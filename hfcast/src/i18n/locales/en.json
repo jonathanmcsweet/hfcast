@@ -1,0 +1,37 @@
+{
+  "app": { "title": "HFcast" },
+  "places": { "seattle": "Seattle", "tokyo": "Tokyo" },
+  "path": { "detail": "{{distance}} · {{bearing}}" },
+  "hero": {
+    "bestBandNow": "Best band right now",
+    "handoff": "{{current}} holds this path until about {{time}}, then {{next}} takes over.",
+    "nothingOpen": "No band is reliably open on this path right now."
+  },
+  "metrics": {
+    "reliability": "Reliability",
+    "signal": "Signal",
+    "muf": "MUF"
+  },
+  "sections": {
+    "hourly": "Next hours",
+    "bands": "By band",
+    "outlook": "24-hour outlook",
+    "outlookHint": "Band by hour, all times UTC"
+  },
+  "quality": {
+    "reliable": "Reliable",
+    "marginal": "Marginal",
+    "poor": "Poor",
+    "closed": "Closed"
+  },
+  "time": { "now": "Now", "utc": "UTC" },
+  "disclaimer": {
+    "body": "Monthly climatology, not a live forecast. Assumes smoothed sunspot number {{ssn}} and quiet geomagnetic conditions."
+  },
+  "settings": { "language": "Language", "changeLanguage": "Change language" },
+  "a11y": {
+    "bandRow": "{{band}}, {{quality}}, {{percent}} reliability",
+    "hourCell": "{{time}}, best band {{band}}, {{quality}}",
+    "heatmap": "Grid of propagation quality for each band at each hour"
+  }
+}

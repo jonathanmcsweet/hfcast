@@ -1,0 +1,28 @@
+{
+  "expo": {
+    "name": "HFcast",
+    "slug": "hfcast",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": false,
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.example.hfcast"
+    },
+    "android": {
+      "package": "com.example.hfcast",
+      "adaptiveIcon": {
+        "backgroundColor": "#0B0D14"
+      }
+    },
+    "web": {
+      "bundler": "metro"
+    },
+    "platforms": [
+      "ios",
+      "android",
+      "web"
+    ]
+  }
+}
