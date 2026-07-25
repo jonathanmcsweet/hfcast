@@ -74,6 +74,21 @@ export default function ForecastScreen() {
         >
           {t('status.errorBody')}
         </Text>
+        {
+          /*
+          The reason is shown verbatim rather than flattened into one generic
+          line. "could not reach http://127.0.0.1:8787" points straight at a
+          server that was never started, which the generic wording does not.
+        */
+        }
+        <Text
+          variant="bodySmall"
+          style={[styles.centreDetail, {
+            color: theme.colors.onSurfaceVariant,
+          }]}
+        >
+          {error instanceof Error ? error.message : String(error)}
+        </Text>
         <Button
           mode="contained"
           onPress={() => void refetch()}
@@ -153,5 +168,6 @@ const styles = StyleSheet.create({
     padding: 24,
   },
   centreText: { marginTop: 12, textAlign: 'center' },
+  centreDetail: { marginTop: 8, textAlign: 'center', opacity: 0.8 },
   retry: { marginTop: 16 },
 });

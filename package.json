@@ -8,7 +8,10 @@
     "fmt:check": "dprint check",
     "lint": "biome lint .",
     "lint:fix": "biome lint --write .",
-    "check": "dprint check && biome lint ."
+    "check": "dprint check && biome lint .",
+    "dev:server": "pnpm --dir server start",
+    "dev:app": "pnpm --dir hfcast start",
+    "test": "pnpm --dir server test"
   },
   "devDependencies": {
     "@biomejs/biome": "^1.9.4",

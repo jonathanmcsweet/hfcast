@@ -85,7 +85,7 @@
   "status": {
     "loading": "Vorhersage wird berechnet",
     "errorTitle": "Keine Vorhersage verfügbar",
-    "errorBody": "Der Vorhersagedienst war nicht erreichbar.",
+    "errorBody": "Der Vorhersagedienst war nicht erreichbar. Starte ihn mit \"pnpm start\" im Verzeichnis server.",
     "retry": "Erneut versuchen"
   }
 }
