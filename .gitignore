@@ -1,0 +1,11 @@
+node_modules/
+dist/
+build/
+web-build/
+.expo/
+*.log
+.DS_Store
+
+# voacapl build tree and its runtime data directory
+vendor/voacapl/
+itshfbc/

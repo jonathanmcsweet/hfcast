@@ -1,0 +1,37 @@
+{
+  "app": { "title": "HFcast" },
+  "places": { "seattle": "سياتل", "tokyo": "طوكيو" },
+  "path": { "detail": "{{distance}} · {{bearing}}" },
+  "hero": {
+    "bestBandNow": "أفضل نطاق الآن",
+    "handoff": "يحمل {{current}} هذا المسار حتى نحو {{time}}، ثم ينتقل العمل إلى {{next}}.",
+    "nothingOpen": "لا يوجد نطاق مفتوح بشكل موثوق على هذا المسار الآن."
+  },
+  "metrics": {
+    "reliability": "الموثوقية",
+    "signal": "الإشارة",
+    "muf": "أعلى تردد صالح"
+  },
+  "sections": {
+    "hourly": "الساعات القادمة",
+    "bands": "حسب النطاق",
+    "outlook": "توقعات 24 ساعة",
+    "outlookHint": "النطاق لكل ساعة، جميع الأوقات بتوقيت UTC"
+  },
+  "quality": {
+    "reliable": "موثوق",
+    "marginal": "حدّي",
+    "poor": "ضعيف",
+    "closed": "مغلق"
+  },
+  "time": { "now": "الآن", "utc": "UTC" },
+  "disclaimer": {
+    "body": "مناخ شهري وليس تنبؤًا لحظيًا. يفترض عدد بقع شمسية ممهّدًا قدره {{ssn}} وظروفًا جيومغناطيسية هادئة."
+  },
+  "settings": { "language": "اللغة", "changeLanguage": "تغيير اللغة" },
+  "a11y": {
+    "bandRow": "{{band}}، {{quality}}، الموثوقية {{percent}}",
+    "hourCell": "{{time}}، أفضل نطاق {{band}}، {{quality}}",
+    "heatmap": "شبكة جودة الانتشار لكل نطاق في كل ساعة"
+  }
+}

@@ -1,0 +1,37 @@
+{
+  "app": { "title": "HFcast" },
+  "places": { "seattle": "シアトル", "tokyo": "東京" },
+  "path": { "detail": "{{distance}} · {{bearing}}" },
+  "hero": {
+    "bestBandNow": "現在の最適バンド",
+    "handoff": "{{current}}が{{time}}頃までこの経路を支え、その後は{{next}}に移ります。",
+    "nothingOpen": "現在この経路で安定して開いているバンドはありません。"
+  },
+  "metrics": {
+    "reliability": "信頼度",
+    "signal": "信号",
+    "muf": "MUF"
+  },
+  "sections": {
+    "hourly": "今後の時間",
+    "bands": "バンド別",
+    "outlook": "24時間予報",
+    "outlookHint": "時間別バンド（すべてUTC）"
+  },
+  "quality": {
+    "reliable": "良好",
+    "marginal": "境界",
+    "poor": "不良",
+    "closed": "不通"
+  },
+  "time": { "now": "現在", "utc": "UTC" },
+  "disclaimer": {
+    "body": "月別の気候値であり、実時間の予報ではありません。平滑黒点数{{ssn}}、静穏な地磁気状態を前提としています。"
+  },
+  "settings": { "language": "言語", "changeLanguage": "言語を変更" },
+  "a11y": {
+    "bandRow": "{{band}}、{{quality}}、信頼度{{percent}}",
+    "hourCell": "{{time}}、最適バンド{{band}}、{{quality}}",
+    "heatmap": "バンドごと・時間ごとの伝搬品質の一覧"
+  }
+}

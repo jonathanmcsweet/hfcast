@@ -1,0 +1,15 @@
+{
+  "workbench.colorCustomizations": {
+    "titleBar.activeBackground": "#c2410c",
+    "titleBar.activeForeground": "#ffffff",
+    "titleBar.inactiveBackground": "#913009",
+    "titleBar.inactiveForeground": "#ffffff",
+    "statusBar.background": "#a4370a",
+    "statusBar.foreground": "#ffffff",
+    "statusBarItem.remoteBackground": "#c2410c",
+    "statusBarItem.remoteForeground": "#ffffff",
+    "activityBar.background": "#7e2a07",
+    "activityBar.foreground": "#ffffff"
+  },
+  "window.title": "[hfcast] ${dirty}${activeEditorShort}${separator}${rootName}"
+}
