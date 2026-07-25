@@ -8,13 +8,22 @@ export const API_BASE = process.env.EXPO_PUBLIC_HFCAST_API
   ?? 'http://127.0.0.1:8787';
 
 export class ApiError extends Error {
+  /** 0 when the request never reached the server at all. */
   readonly status: number;
-  constructor(message: string, status: number) {
-    super(message);
+  constructor(message: string, status: number, options?: ErrorOptions) {
+    super(message, options);
     this.name = 'ApiError';
     this.status = status;
   }
 }
+
+/**
+ * A request must always finish, one way or the other. A refused connection
+ * fails immediately, but a port that accepts and then never answers — a
+ * forwarded port with nothing behind it, a sleeping laptop, a captive portal —
+ * would otherwise leave the app on its loading spinner with no way out.
+ */
+const REQUEST_TIMEOUT_MS = 10_000;
 
 async function getJson<T>(
   path: string,
@@ -25,7 +34,27 @@ async function getJson<T>(
     if (value !== '') url.searchParams.set(key, value);
   }
 
-  const response = await fetch(url.toString());
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+
+  let response: Response;
+  try {
+    response = await fetch(url.toString(), { signal: controller.signal });
+  } catch (cause) {
+    // Both a refused connection and the abort above land here. Neither has a
+    // status, so they are reported as 0 rather than invented as a 5xx.
+    const timedOut = controller.signal.aborted;
+    throw new ApiError(
+      timedOut
+        ? `no answer from ${API_BASE} after ${REQUEST_TIMEOUT_MS / 1000}s`
+        : `could not reach ${API_BASE}`,
+      0,
+      { cause },
+    );
+  } finally {
+    clearTimeout(timer);
+  }
+
   if (!response.ok) {
     let message = `request failed with ${response.status}`;
     try {

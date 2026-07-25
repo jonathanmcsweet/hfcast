@@ -1,6 +1,10 @@
 {
-  "app": { "title": "HFcast" },
-  "path": { "detail": "{{distance}} · {{bearing}}" },
+  "app": {
+    "title": "HFcast"
+  },
+  "path": {
+    "detail": "{{distance}} · {{bearing}}"
+  },
   "hero": {
     "bestBandNow": "Best band right now",
     "pinnedBand": "Selected band",
@@ -11,8 +15,12 @@
     "live": "Live conditions",
     "climatology": "Typical for the month"
   },
-  "bands": { "best": "Best band" },
-  "days": { "today": "Today" },
+  "bands": {
+    "best": "Best band"
+  },
+  "days": {
+    "today": "Today"
+  },
   "metrics": {
     "reliability": "Reliability",
     "signal": "Signal",
@@ -41,7 +49,10 @@
     "poor": "Poor",
     "closed": "Closed"
   },
-  "time": { "now": "Now", "utc": "UTC" },
+  "time": {
+    "now": "Now",
+    "utc": "UTC"
+  },
   "location": {
     "title": "Choose a path",
     "from": "From",
@@ -56,7 +67,7 @@
   "status": {
     "loading": "Working out the forecast",
     "errorTitle": "No forecast available",
-    "errorBody": "The prediction service could not be reached.",
+    "errorBody": "The prediction service could not be reached. Start it with \"pnpm start\" in the server directory.",
     "retry": "Try again"
   },
   "disclaimer": {
@@ -64,7 +75,10 @@
     "forecast": "Monthly climatology using a predicted sunspot number of {{ssn}}. Forecasts further ahead are less certain.",
     "nowcast": "Driven by current readings, with an effective sunspot number of {{ssn}}. This estimates the ionosphere, not this path."
   },
-  "settings": { "language": "Language", "changeLanguage": "Change language" },
+  "settings": {
+    "language": "Language",
+    "changeLanguage": "Change language"
+  },
   "a11y": {
     "bandRow": "{{band}}, {{quality}}, {{percent}} reliability",
     "hourCell": "{{time}}, best band {{band}}, {{quality}}",
