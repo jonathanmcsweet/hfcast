@@ -1,11 +1,15 @@
 {
-  "app": { "title": "HFcast" },
-  "places": { "seattle": "Seattle", "tokyo": "Tokio" },
-  "path": { "detail": "{{distance}} · {{bearing}}" },
+  "app": {
+    "title": "HFcast"
+  },
+  "path": {
+    "detail": "{{distance}} · {{bearing}}"
+  },
   "hero": {
     "bestBandNow": "Mejor banda ahora",
     "handoff": "{{current}} sostiene esta ruta hasta cerca de las {{time}}; después toma el relevo {{next}}.",
-    "nothingOpen": "Ninguna banda está abierta con fiabilidad en esta ruta ahora mismo."
+    "nothingOpen": "Ninguna banda está abierta con fiabilidad en esta ruta ahora mismo.",
+    "pinnedBand": "Banda seleccionada"
   },
   "metrics": {
     "reliability": "Fiabilidad",
@@ -16,7 +20,8 @@
     "hourly": "Próximas horas",
     "bands": "Por banda",
     "outlook": "Pronóstico de 24 horas",
-    "outlookHint": "Banda por hora, todas en UTC"
+    "outlookHint": "Banda por hora, todas en UTC",
+    "spaceWeather": "Meteorología espacial"
   },
   "quality": {
     "reliable": "Fiable",
@@ -24,14 +29,63 @@
     "poor": "Débil",
     "closed": "Cerrada"
   },
-  "time": { "now": "Ahora", "utc": "UTC" },
-  "disclaimer": {
-    "body": "Climatología mensual, no un pronóstico en vivo. Supone un número de manchas solares suavizado de {{ssn}} y condiciones geomagnéticas tranquilas."
+  "time": {
+    "now": "Ahora",
+    "utc": "UTC"
   },
-  "settings": { "language": "Idioma", "changeLanguage": "Cambiar idioma" },
+  "disclaimer": {
+    "climatology": "Climatología mensual, no una previsión en directo. Supone un número de manchas solares suavizado de {{ssn}} y condiciones geomagnéticas tranquilas.",
+    "forecast": "Climatología mensual con un número de manchas solares previsto de {{ssn}}. Las previsiones más lejanas son menos seguras.",
+    "nowcast": "Basada en lecturas actuales, con un número de manchas solares efectivo de {{ssn}}. Estima la ionosfera, no esta ruta."
+  },
+  "settings": {
+    "language": "Idioma",
+    "changeLanguage": "Cambiar idioma"
+  },
   "a11y": {
     "bandRow": "{{band}}, {{quality}}, fiabilidad {{percent}}",
     "hourCell": "{{time}}, mejor banda {{band}}, {{quality}}",
-    "heatmap": "Cuadrícula de calidad de propagación por banda y hora"
+    "heatmap": "Cuadrícula de calidad de propagación por banda y hora",
+    "changePath": "Ruta de {{from}} a {{to}}. Toca para cambiarla.",
+    "swapEnds": "Intercambiar los dos extremos de la ruta",
+    "followBestBand": "Seguir la banda que sea mejor",
+    "pinBand": "Mostrar solo {{band}}"
+  },
+  "basis": {
+    "live": "Condiciones actuales",
+    "climatology": "Habitual para el mes"
+  },
+  "bands": {
+    "best": "Mejor banda"
+  },
+  "days": {
+    "today": "Hoy"
+  },
+  "spaceWeather": {
+    "flux": "Flujo solar",
+    "fluxHint": "Más alto eleva las frecuencias utilizables",
+    "kp": "Índice K",
+    "kpQuiet": "Tranquilo. Condiciones normales",
+    "kpStormy": "Tormenta. Los trayectos pueden degradarse",
+    "effectiveSsn": "SSN efectivo",
+    "effectiveSsnHint": "Estimado a partir de las lecturas actuales",
+    "unavailable": "Las lecturas en directo no están disponibles, así que esta previsión usa las condiciones habituales del mes."
+  },
+  "location": {
+    "title": "Elegir una ruta",
+    "from": "Desde",
+    "to": "Hasta",
+    "useDevice": "Usar mi ubicación",
+    "searchPlaceholder": "Nombre de ciudad o localizador",
+    "searchFailed": "La búsqueda no está disponible ahora mismo.",
+    "noResults": "No se encontraron lugares.",
+    "permissionDenied": "Se rechazó el permiso de ubicación. Busca un lugar en su lugar.",
+    "unavailable": "No se pudo leer tu ubicación. Busca un lugar en su lugar."
+  },
+  "status": {
+    "loading": "Calculando la previsión",
+    "errorTitle": "No hay previsión disponible",
+    "errorBody": "No se pudo contactar con el servicio de predicción.",
+    "retry": "Reintentar"
   }
 }

@@ -1,7 +1,7 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { StyleSheet } from 'react-native';
 import { Chip, useTheme } from 'react-native-paper';
-import { useTranslation } from 'react-i18next';
 import type { AppTheme, QualityKey } from '../theme';
 
 interface Props {

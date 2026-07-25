@@ -113,11 +113,13 @@ export async function fetchSpaceWeather(): Promise<SpaceWeather> {
 export async function ssnForMonth(
   year: number,
   month: number,
-): Promise<{ ssn: number; predicted: boolean }> {
+): Promise<{ ssn: number; predicted: boolean; }> {
   const tag = `${year}-${String(month).padStart(2, '0')}`;
 
   const [observed, predicted] = await Promise.all([
-    getJson<ObservedRecord[]>('json/solar-cycle/observed-solar-cycle-indices.json'),
+    getJson<ObservedRecord[]>(
+      'json/solar-cycle/observed-solar-cycle-indices.json',
+    ),
     getJson<PredictedRecord[]>('json/solar-cycle/predicted-solar-cycle.json'),
   ]);
 

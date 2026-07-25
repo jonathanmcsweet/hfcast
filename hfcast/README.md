@@ -6,15 +6,22 @@ The design premise: VOACAP output is climatology with a probability attached, wh
 
 ## Running it
 
+The app reads its forecasts from `hfcast-server`, so start that first — see
+`server/README.md`. Then:
+
 ```bash
-npm install
-npx expo install --fix   # aligns native module versions with the installed SDK
-npm start
+pnpm install
+pnpm start
 ```
 
 Then press `i` for the iOS simulator, `a` for an Android emulator, `w` for the browser, or scan the QR code with Expo Go on a phone that's on the same network.
 
-`expo install --fix` matters: the versions pinned in `package.json` target Expo SDK 51, and if you're on a newer SDK the native modules need to move with it.
+The versions pinned in `package.json` target Expo SDK 51. On a newer SDK run
+`npx expo install --fix` to move the native modules with it.
+
+`API_BASE` in `src/api/client.ts` defaults to `http://127.0.0.1:8787`, which
+suits the web build and a simulator. A real device needs
+`EXPO_PUBLIC_HFCAST_API` pointing at the machine running the server.
 
 **Opening the dev server URL in a browser shows a JSON manifest, not the app.** That's expected — the root of a Metro server serves app metadata. Press `w` for the browser build instead.
 
@@ -24,15 +31,25 @@ Then press `i` for the iOS simulator, `a` for an Android emulator, `w` for the b
 
 ### Using pnpm
 
-Metro's resolver still handles pnpm's symlinked tree imperfectly for transitive dependencies, so the bundled `.npmrc` sets `node-linker=hoisted` — a flat `node_modules`, which is Expo's own recommendation. pnpm won't relayout an existing install, so if you installed before that file existed:
+Metro resolves several packages from the project root, and pnpm's default
+isolated layout only exposes direct dependencies there. `expo-asset`,
+`@react-native/assets-registry`, `@babel/runtime` and `babel-preset-expo` are
+therefore declared in `package.json` even though nothing imports them directly.
+Without them `expo start` dies in Metro config with "The required package
+`expo-asset` cannot be found", before any server exists to press `w` at.
 
-```bash
-rm -rf node_modules pnpm-lock.yaml
-pnpm install
-pnpm start --clear
-```
+The `.npmrc` in this directory sets `node-linker=hoisted`, which would also fix
+it — but **pnpm 11 no longer reads pnpm-specific settings from `.npmrc`** and
+silently uses the default instead. That file is inert on pnpm 11. The setting's
+new home is `pnpm-workspace.yaml`.
 
-The `--clear` flag empties Metro's transform cache, which otherwise holds resolutions from the previous layout.
+### Bundler memory
+
+`metro.config.js` budgets Metro's transform workers by system memory rather
+than core count. Each worker is a separate Node process, so on a machine with
+many cores and little memory the default pool is killed by the kernel partway
+through a bundle. That presents as a blank page and `exit code 137`, with no
+error from Metro itself.
 
 ## Getting an installable app
 
@@ -55,20 +72,28 @@ App.tsx                     providers: i18n, Paper theme, safe area
 src/palette.ts              raw ramps — imported only by theme.ts
 src/theme.ts                MD3 scheme + the four propagation-quality roles
 src/i18n/                   i18next setup, Intl polyfills, five locale files
-src/data/types.ts           PathPrediction — the only shape the UI knows about
-src/data/samplePrediction   stand-in VOACAP run + selectors
+src/data/types.ts           PathPrediction — mirrors server/src/types.ts
+src/data/selectors.ts       pure reads over a prediction
+src/data/grid.ts            Maidenhead locator from a GPS fix
 src/data/quality.ts         reliability → four-state bucketing
+src/api/                    client and React Query hooks — all network state
+src/store/usePathStore.ts   Zustand — path, pinned band, selected day
 src/hooks/useFormatters     every number and date in the app goes through here
 src/hooks/useDirection      language switching, including the RTL reload dance
 src/components/             presentational pieces
 src/screens/ForecastScreen  composition
 ```
 
-### Swapping in real data
+### Where the data comes from
 
-Everything downstream of `src/data/types.ts` reads `PathPrediction` and nothing else. To wire up a real prediction engine, produce that shape and replace the `samplePrediction` import in `ForecastScreen`. The selectors (`bestBandAt`, `cellsForHour`, `mufAt`) are pure functions over it.
+`hfcast-server` runs real VOACAP through `voacapl` and returns `PathPrediction`.
+Everything downstream of `src/data/types.ts` reads that shape and nothing else.
 
-If you're driving actual VOACAP, note that `smoothedSSN` is deliberately a required field. The model is fitted against the smoothed twelve-month sunspot number, not today's SFI, and passing the wrong one degrades the output silently. Making it required keeps that decision visible at the call site.
+The `basis` field says which sunspot number drove the run — observed, predicted,
+or inferred from current conditions — and the hero and the disclaimer both
+change wording to match. VOACAP is fitted against the _smoothed_ sunspot number,
+not today's SFI, so a live figure cannot simply be passed through; the server
+converts it. Never label a run "live" without checking `basis`.
 
 ## Design notes
 
@@ -99,7 +124,7 @@ Ramps were spaced in OKLCH for even perceptual steps and flattened to hex, since
 
 **The disclaimer isn't dismissible.** A friendly skin over climatology is one wrong assumption away from being read as a live forecast, so the assumed SSN and quiet-geomagnetic caveat stay on screen permanently.
 
-**The heatmap is 3-hour columns, not 24.** Twenty-four columns at phone width gives you 13px cells. Each column takes the *best* hour in its window rather than the first, so a short opening never disappears. Change `step` on `<BandHeatmap />` if you'd rather scroll horizontally at full resolution.
+**The heatmap is 3-hour columns, not 24.** Twenty-four columns at phone width gives you 13px cells. Each column takes the _best_ hour in its window rather than the first, so a short opening never disappears. Change `step` on `<BandHeatmap />` if you'd rather scroll horizontally at full resolution.
 
 ## Internationalisation
 
@@ -121,6 +146,6 @@ Things worth knowing before you extend this:
 
 - **Tabular figures on Android.** `fontVariant: ['tabular-nums']` is honoured on iOS. On Android it depends on the bundled font exposing the `tnum` OpenType feature; Roboto does, but a custom font may not, in which case numeric columns will jitter slightly as values change.
 - **Times are UTC only.** Operators think in UTC, but a consumer-facing app aimed at newcomers should default to device-local time with a UTC toggle. That's the first thing I'd add.
-- **One hardcoded path.** There's no path picker, no geolocation, and no grid square entry. `PathPrediction` supports arbitrary endpoints; the UI just doesn't offer a way to change them yet.
 - **The heatmap flips under RTL.** `flexDirection: 'row'` reverses the time axis in Arabic. That's arguably correct for RTL reading order and arguably wrong for a time axis — worth deciding deliberately rather than inheriting.
-- **No tests.** The pure functions in `src/data/` are the obvious place to start.
+- **No app tests.** The server has them; the app does not. The pure functions in `src/data/` are the obvious place to start.
+- **Days inside one month are identical.** VOACAP is monthly climatology, so the day selector only changes the answer at a month boundary, or for today when a now-cast is available.

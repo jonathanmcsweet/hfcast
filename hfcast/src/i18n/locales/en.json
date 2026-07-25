@@ -1,12 +1,18 @@
 {
   "app": { "title": "HFcast" },
-  "places": { "seattle": "Seattle", "tokyo": "Tokyo" },
   "path": { "detail": "{{distance}} · {{bearing}}" },
   "hero": {
     "bestBandNow": "Best band right now",
+    "pinnedBand": "Selected band",
     "handoff": "{{current}} holds this path until about {{time}}, then {{next}} takes over.",
     "nothingOpen": "No band is reliably open on this path right now."
   },
+  "basis": {
+    "live": "Live conditions",
+    "climatology": "Typical for the month"
+  },
+  "bands": { "best": "Best band" },
+  "days": { "today": "Today" },
   "metrics": {
     "reliability": "Reliability",
     "signal": "Signal",
@@ -16,7 +22,18 @@
     "hourly": "Next hours",
     "bands": "By band",
     "outlook": "24-hour outlook",
-    "outlookHint": "Band by hour, all times UTC"
+    "outlookHint": "Band by hour, all times UTC",
+    "spaceWeather": "Space weather"
+  },
+  "spaceWeather": {
+    "flux": "Solar flux",
+    "fluxHint": "Higher lifts the usable frequencies",
+    "kp": "K index",
+    "kpQuiet": "Quiet. Normal conditions",
+    "kpStormy": "Storm. Paths may be degraded",
+    "effectiveSsn": "Effective SSN",
+    "effectiveSsnHint": "Estimated from current readings",
+    "unavailable": "Live readings are unavailable, so this forecast uses typical conditions for the month."
   },
   "quality": {
     "reliable": "Reliable",
@@ -25,13 +42,36 @@
     "closed": "Closed"
   },
   "time": { "now": "Now", "utc": "UTC" },
+  "location": {
+    "title": "Choose a path",
+    "from": "From",
+    "to": "To",
+    "useDevice": "Use my location",
+    "searchPlaceholder": "City name or grid square",
+    "searchFailed": "Search is unavailable right now.",
+    "noResults": "No places found.",
+    "permissionDenied": "Location permission was declined. Search for a place instead.",
+    "unavailable": "Your location could not be read. Search for a place instead."
+  },
+  "status": {
+    "loading": "Working out the forecast",
+    "errorTitle": "No forecast available",
+    "errorBody": "The prediction service could not be reached.",
+    "retry": "Try again"
+  },
   "disclaimer": {
-    "body": "Monthly climatology, not a live forecast. Assumes smoothed sunspot number {{ssn}} and quiet geomagnetic conditions."
+    "climatology": "Monthly climatology, not a live forecast. Assumes smoothed sunspot number {{ssn}} and quiet geomagnetic conditions.",
+    "forecast": "Monthly climatology using a predicted sunspot number of {{ssn}}. Forecasts further ahead are less certain.",
+    "nowcast": "Driven by current readings, with an effective sunspot number of {{ssn}}. This estimates the ionosphere, not this path."
   },
   "settings": { "language": "Language", "changeLanguage": "Change language" },
   "a11y": {
     "bandRow": "{{band}}, {{quality}}, {{percent}} reliability",
     "hourCell": "{{time}}, best band {{band}}, {{quality}}",
-    "heatmap": "Grid of propagation quality for each band at each hour"
+    "heatmap": "Grid of propagation quality for each band at each hour",
+    "changePath": "Path from {{from}} to {{to}}. Tap to change.",
+    "swapEnds": "Swap the two ends of the path",
+    "followBestBand": "Follow whichever band is best",
+    "pinBand": "Show {{band}} only"
   }
 }

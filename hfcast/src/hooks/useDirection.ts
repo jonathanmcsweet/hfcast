@@ -1,7 +1,7 @@
-import { useCallback } from 'react';
-import { Alert, I18nManager } from 'react-native';
-import { useTranslation } from 'react-i18next';
 import * as Updates from 'expo-updates';
+import { useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
+import { Alert, I18nManager } from 'react-native';
 import { RTL_LANGUAGES } from '../i18n';
 import type { SupportedLanguage } from '../i18n';
 

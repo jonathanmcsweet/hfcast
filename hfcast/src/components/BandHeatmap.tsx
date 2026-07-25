@@ -1,13 +1,13 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { StyleSheet, View } from 'react-native';
 import { Text, useTheme } from 'react-native-paper';
-import { useTranslation } from 'react-i18next';
 import { qualityFor } from '../data/quality';
-import { useFormatters } from '../hooks/useFormatters';
 import { BAND_ORDER } from '../data/types';
+import type { PathPrediction } from '../data/types';
+import { useFormatters } from '../hooks/useFormatters';
 import { numeric } from '../theme';
 import type { AppTheme } from '../theme';
-import type { PathPrediction } from '../data/types';
 
 interface Props {
   prediction: PathPrediction;
@@ -49,7 +49,9 @@ export default function BandHeatmap({ prediction, step = 3 }: Props) {
           <Text
             key={h}
             variant="labelSmall"
-            style={[styles.colLabel, numeric, { color: theme.colors.onSurfaceVariant }]}
+            style={[styles.colLabel, numeric, {
+              color: theme.colors.onSurfaceVariant,
+            }]}
           >
             {f.utcHour(h)}
           </Text>

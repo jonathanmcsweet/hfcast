@@ -14,7 +14,7 @@ export function isGrid(value: string): boolean {
  * Accepts 4 or 6 characters. Throws on anything else, since a silently wrong
  * coordinate is worse than a failed request.
  */
-export function gridToLatLon(grid: string): { lat: number; lon: number } {
+export function gridToLatLon(grid: string): { lat: number; lon: number; } {
   const g = grid.trim().toUpperCase();
   if (!GRID_RE.test(g)) throw new Error(`not a Maidenhead locator: ${grid}`);
 
@@ -53,12 +53,12 @@ export function latLonToGrid(lat: number, lon: number): string {
   const subLat = Math.floor((adjLat % 1) * 24);
 
   return (
-    String.fromCharCode(A + fieldLon) +
-    String.fromCharCode(A + fieldLat) +
-    String.fromCharCode(ZERO + sqLon) +
-    String.fromCharCode(ZERO + sqLat) +
-    String.fromCharCode(A + subLon) +
-    String.fromCharCode(A + subLat)
+    String.fromCharCode(A + fieldLon)
+    + String.fromCharCode(A + fieldLat)
+    + String.fromCharCode(ZERO + sqLon)
+    + String.fromCharCode(ZERO + sqLat)
+    + String.fromCharCode(A + subLon)
+    + String.fromCharCode(A + subLat)
   );
 }
 
@@ -77,8 +77,8 @@ export function distanceKm(
   const p2 = toRad(lat2);
   const dp = toRad(lat2 - lat1);
   const dl = toRad(lon2 - lon1);
-  const a =
-    Math.sin(dp / 2) ** 2 + Math.cos(p1) * Math.cos(p2) * Math.sin(dl / 2) ** 2;
+  const a = Math.sin(dp / 2) ** 2
+    + Math.cos(p1) * Math.cos(p2) * Math.sin(dl / 2) ** 2;
   return 2 * R_EARTH_KM * Math.asin(Math.min(1, Math.sqrt(a)));
 }
 
@@ -93,7 +93,7 @@ export function bearingDeg(
   const p2 = toRad(lat2);
   const dl = toRad(lon2 - lon1);
   const y = Math.sin(dl) * Math.cos(p2);
-  const x =
-    Math.cos(p1) * Math.sin(p2) - Math.sin(p1) * Math.cos(p2) * Math.cos(dl);
+  const x = Math.cos(p1) * Math.sin(p2)
+    - Math.sin(p1) * Math.cos(p2) * Math.cos(dl);
   return (toDeg(Math.atan2(y, x)) + 360) % 360;
 }

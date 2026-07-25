@@ -6,7 +6,12 @@ import { TtlCache } from './cache.ts';
 import { latLonToGrid } from './geo.ts';
 import { bearingDeg, distanceKm } from './geo.ts';
 import { ssnForMonth } from './spaceweather.ts';
-import { BANDS_BY_FREQ, type Endpoint, type PathPrediction, type PredictionBasis } from './types.ts';
+import {
+  BANDS_BY_FREQ,
+  type Endpoint,
+  type PathPrediction,
+  type PredictionBasis,
+} from './types.ts';
 import { buildDeck } from './voacap/deck.ts';
 import { parseVoacapOutput } from './voacap/parse.ts';
 import { runVoacap } from './voacap/run.ts';
@@ -44,7 +49,9 @@ function keyFor(request: PredictRequest, ssn: number): string {
   ].join('|');
 }
 
-export async function predict(request: PredictRequest): Promise<PathPrediction> {
+export async function predict(
+  request: PredictRequest,
+): Promise<PathPrediction> {
   const month = request.date.getUTCMonth() + 1;
   const year = request.date.getUTCFullYear();
 

@@ -6,11 +6,7 @@
  * field run straight into the next one, which is legal and expected. Column
  * positions are therefore the contract — never join these with spaces.
  */
-import {
-  BANDS_BY_FREQ,
-  BAND_MHZ,
-  type BandKey,
-} from '../types.ts';
+import { BAND_MHZ, type BandKey, BANDS_BY_FREQ } from '../types.ts';
 
 /** Number of frequency slots on a FREQUENCY card. */
 export const FREQ_SLOTS = 11;
@@ -97,20 +93,34 @@ export function buildDeck(options: DeckOptions): string {
     'LINEMAX      55       number of lines-per-page',
     'COEFFS    CCIR',
     // All 24 hours, stepping by one, in UTC.
-    `TIME      ${field('1', 5)}${field('24', 5)}${field('1', 5)}${field('1', 5)}`,
-    `MONTH     ${field(String(options.year), 5)}${field(options.month.toFixed(2), 5)}`,
+    `TIME      ${field('1', 5)}${field('24', 5)}${field('1', 5)}${
+      field('1', 5)
+    }`,
+    `MONTH     ${field(String(options.year), 5)}${
+      field(options.month.toFixed(2), 5)
+    }`,
     `SUNSPOT   ${field(`${Math.round(options.ssn)}.`, 5)}`,
     `LABEL     ${text(options.fromLabel, 20)}${text(options.toLabel, 20)}`,
-    `CIRCUIT   ${latCompact(options.fromLat)}${lonWide(options.fromLon)}` +
-      `${latWide(options.toLat)}${lonWide(options.toLon)}  S     0`,
-    `SYSTEM    ${field('1.', 5)}${field(`${options.noiseDbw}.`, 5)}` +
-      `${field('0.10', 5)}${field('90.', 5)}` +
-      `${field(options.requiredSnrDb.toFixed(1), 5)}${field('3.00', 5)}${field('0.10', 5)}`,
+    `CIRCUIT   ${latCompact(options.fromLat)}${lonWide(options.fromLon)}`
+    + `${latWide(options.toLat)}${lonWide(options.toLon)}  S     0`,
+    `SYSTEM    ${field('1.', 5)}${field(`${options.noiseDbw}.`, 5)}`
+    + `${field('0.10', 5)}${field('90.', 5)}`
+    + `${field(options.requiredSnrDb.toFixed(1), 5)}${field('3.00', 5)}${
+      field('0.10', 5)
+    }`,
     'FPROB      1.00 1.00 1.00 0.00',
-    `ANTENNA   ${field('1', 5)}${field('1', 5)}${field('2', 5)}${field('30', 5)}` +
-      `${field('0.000', 10)}${antennaRef(ANTENNA_FILE)}${field('0.0', 5)}${field(kw.toFixed(4), 10)}`,
-    `ANTENNA   ${field('2', 5)}${field('2', 5)}${field('2', 5)}${field('30', 5)}` +
-      `${field('0.000', 10)}${antennaRef(ANTENNA_FILE)}${field('0.0', 5)}${field('0.0000', 10)}`,
+    `ANTENNA   ${field('1', 5)}${field('1', 5)}${field('2', 5)}${
+      field('30', 5)
+    }`
+    + `${field('0.000', 10)}${antennaRef(ANTENNA_FILE)}${field('0.0', 5)}${
+      field(kw.toFixed(4), 10)
+    }`,
+    `ANTENNA   ${field('2', 5)}${field('2', 5)}${field('2', 5)}${
+      field('30', 5)
+    }`
+    + `${field('0.000', 10)}${antennaRef(ANTENNA_FILE)}${field('0.0', 5)}${
+      field('0.0000', 10)
+    }`,
     `FREQUENCY ${freqCard}`,
     `METHOD    ${field('30', 5)}${field('0', 5)}`,
     'EXECUTE',

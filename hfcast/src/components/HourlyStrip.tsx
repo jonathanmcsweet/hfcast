@@ -1,30 +1,43 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { ScrollView, StyleSheet, View } from 'react-native';
 import { Surface, Text, useTheme } from 'react-native-paper';
-import { useTranslation } from 'react-i18next';
 import { qualityFor } from '../data/quality';
-import { bestBandAt } from '../data/samplePrediction';
+import { bestBandAt, cellFor } from '../data/selectors';
+import type { BandKey, PathPrediction } from '../data/types';
 import { useFormatters } from '../hooks/useFormatters';
 import { numeric } from '../theme';
 import type { AppTheme } from '../theme';
-import type { PathPrediction } from '../data/types';
 
 interface Props {
   prediction: PathPrediction;
   hour: number;
   hours?: number;
+  /** Null follows the best band at each hour, which is the default view. */
+  pinnedBand?: BandKey | null;
 }
 
-export default function HourlyStrip({ prediction, hour, hours = 12 }: Props) {
+export default function HourlyStrip({
+  prediction,
+  hour,
+  hours = 12,
+  pinnedBand = null,
+}: Props) {
   const theme = useTheme<AppTheme>();
   const { t } = useTranslation();
   const f = useFormatters();
 
+  // When a band is pinned the strip follows that band, so the row answers
+  // "how does 20m look tonight" rather than switching bands under the reader.
   const slots = Array.from({ length: hours }, (_, i) => {
     const h = (hour + i) % 24;
-    const best = bestBandAt(prediction, h);
-    return { h, offset: i, best, quality: qualityFor(best.reliability) };
-  });
+    const best = pinnedBand
+      ? cellFor(prediction, pinnedBand, h)
+      : bestBandAt(prediction, h);
+    return best
+      ? { h, offset: i, best, quality: qualityFor(best.reliability) }
+      : null;
+  }).filter((slot): slot is NonNullable<typeof slot> => slot !== null);
 
   return (
     <ScrollView

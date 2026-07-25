@@ -1,4 +1,4 @@
-const os = require('os');
+const os = require('node:os');
 const { getDefaultConfig } = require('expo/metro-config');
 
 const config = getDefaultConfig(__dirname);

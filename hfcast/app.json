@@ -2,19 +2,26 @@
   "expo": {
     "name": "HFcast",
     "slug": "hfcast",
-    "version": "0.1.0",
+    "version": "0.2.0",
     "orientation": "portrait",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": false,
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.example.hfcast"
+      "bundleIdentifier": "com.example.hfcast",
+      "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "HFcast uses your location to work out the propagation path from where you are."
+      }
     },
     "android": {
       "package": "com.example.hfcast",
       "adaptiveIcon": {
         "backgroundColor": "#0B0D14"
-      }
+      },
+      "permissions": [
+        "ACCESS_COARSE_LOCATION",
+        "ACCESS_FINE_LOCATION"
+      ]
     },
     "web": {
       "bundler": "metro"
@@ -23,6 +30,14 @@
       "ios",
       "android",
       "web"
+    ],
+    "plugins": [
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "HFcast uses your location to work out the propagation path from where you are."
+        }
+      ]
     ]
   }
 }
