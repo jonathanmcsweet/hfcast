@@ -1,6 +1,7 @@
 # Agents.md — guidance for AI agents working in this repo
 
 ## Your behavior
+
 - Be concise, articulate with your language in interactions and avoid idioms that may confuse people who don't know what they mean. Use simple language
 
 ## Open work and progress
@@ -10,14 +11,17 @@ create tracker or progress documents. If you defer work or find a gap,
 describe it in the pull request and the maintainer will record it.
 
 ## Build and verify
+
 - //TODO
 
 ## Chores
+
 - Always bump the version number for any part of the product (ex: core and dashboard) based on semantic versioning when commiting your final work to a branch.
 - Core and Dashboard do not need to have vesion parity.
 - SemVer reference: https://semver.org
 
 ## Documentation
+
 - Keep text descriptions short without excessive details unless necessary to prevent confusion
 - Refrain from using idiomatic language such as "clobber," "belt and suspenders," etc. which may be read differently by different people
 
@@ -57,18 +61,19 @@ describe it in the pull request and the maintainer will record it.
 - NEVER embed another language (Python, etc.) inline in any other file
 
 ## UI code: Typescript
+
 - Always use a functional-first immutability-first coding style
 - All network state management needs to be in React Query
 - All non-network app state management needs to be managed by Zustand
 
 ## Backend code
+
 - //TODO
 
 ## UX
+
 - Use the Material UI/UX framework
 - WCAG compliance is required
   - If a feature can't be WCAG compliant, propose an alternative for users that need it. I.e. a table for those who can't see a graph
 - i18n compatability is a must
-- **Everything must work on both mobile and tablet.** 
-
-
+- **Everything must work on both mobile and tablet.**

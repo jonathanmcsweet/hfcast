@@ -1,0 +1,17 @@
+{
+  "name": "hfcast-workspace",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Tooling shared by the HFcast app and its prediction server",
+  "scripts": {
+    "fmt": "dprint fmt",
+    "fmt:check": "dprint check",
+    "lint": "biome lint .",
+    "lint:fix": "biome lint --write .",
+    "check": "dprint check && biome lint ."
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^1.9.4",
+    "dprint": "^0.47.2"
+  }
+}

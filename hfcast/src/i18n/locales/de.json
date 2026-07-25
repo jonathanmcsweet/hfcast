@@ -1,11 +1,15 @@
 {
-  "app": { "title": "HFcast" },
-  "places": { "seattle": "Seattle", "tokyo": "Tokio" },
-  "path": { "detail": "{{distance}} · {{bearing}}" },
+  "app": {
+    "title": "HFcast"
+  },
+  "path": {
+    "detail": "{{distance}} · {{bearing}}"
+  },
   "hero": {
     "bestBandNow": "Beste Band jetzt",
     "handoff": "{{current}} trägt diese Strecke bis etwa {{time}}, danach übernimmt {{next}}.",
-    "nothingOpen": "Auf dieser Strecke ist derzeit keine Band zuverlässig offen."
+    "nothingOpen": "Auf dieser Strecke ist derzeit keine Band zuverlässig offen.",
+    "pinnedBand": "Gewählte Band"
   },
   "metrics": {
     "reliability": "Zuverlässigkeit",
@@ -16,7 +20,8 @@
     "hourly": "Nächste Stunden",
     "bands": "Nach Band",
     "outlook": "24-Stunden-Ausblick",
-    "outlookHint": "Band pro Stunde, alle Zeiten UTC"
+    "outlookHint": "Band pro Stunde, alle Zeiten UTC",
+    "spaceWeather": "Weltraumwetter"
   },
   "quality": {
     "reliable": "Zuverlässig",
@@ -24,14 +29,63 @@
     "poor": "Schwach",
     "closed": "Geschlossen"
   },
-  "time": { "now": "Jetzt", "utc": "UTC" },
-  "disclaimer": {
-    "body": "Monatsklimatologie, keine Echtzeitvorhersage. Angenommen werden eine geglättete Sonnenfleckenzahl von {{ssn}} und ruhige geomagnetische Bedingungen."
+  "time": {
+    "now": "Jetzt",
+    "utc": "UTC"
   },
-  "settings": { "language": "Sprache", "changeLanguage": "Sprache ändern" },
+  "disclaimer": {
+    "climatology": "Monatliche Klimatologie, keine Live-Vorhersage. Nimmt eine geglättete Sonnenfleckenzahl von {{ssn}} und ruhige geomagnetische Bedingungen an.",
+    "forecast": "Monatliche Klimatologie mit einer vorhergesagten Sonnenfleckenzahl von {{ssn}}. Weiter entfernte Vorhersagen sind unsicherer.",
+    "nowcast": "Auf aktuellen Messwerten beruhend, mit einer effektiven Sonnenfleckenzahl von {{ssn}}. Dies schätzt die Ionosphäre, nicht diese Strecke."
+  },
+  "settings": {
+    "language": "Sprache",
+    "changeLanguage": "Sprache ändern"
+  },
   "a11y": {
     "bandRow": "{{band}}, {{quality}}, Zuverlässigkeit {{percent}}",
     "hourCell": "{{time}}, beste Band {{band}}, {{quality}}",
-    "heatmap": "Raster der Ausbreitungsqualität je Band und Stunde"
+    "heatmap": "Raster der Ausbreitungsqualität je Band und Stunde",
+    "changePath": "Strecke von {{from}} nach {{to}}. Zum Ändern tippen.",
+    "swapEnds": "Die beiden Enden der Strecke tauschen",
+    "followBestBand": "Der jeweils besten Band folgen",
+    "pinBand": "Nur {{band}} anzeigen"
+  },
+  "basis": {
+    "live": "Aktuelle Bedingungen",
+    "climatology": "Typisch für den Monat"
+  },
+  "bands": {
+    "best": "Beste Band"
+  },
+  "days": {
+    "today": "Heute"
+  },
+  "spaceWeather": {
+    "flux": "Solarer Fluss",
+    "fluxHint": "Höher hebt die nutzbaren Frequenzen",
+    "kp": "K-Index",
+    "kpQuiet": "Ruhig. Normale Bedingungen",
+    "kpStormy": "Sturm. Strecken können gestört sein",
+    "effectiveSsn": "Effektive SSN",
+    "effectiveSsnHint": "Aus aktuellen Messwerten geschätzt",
+    "unavailable": "Aktuelle Messwerte sind nicht verfügbar, daher nutzt diese Vorhersage die typischen Bedingungen des Monats."
+  },
+  "location": {
+    "title": "Strecke wählen",
+    "from": "Von",
+    "to": "Nach",
+    "useDevice": "Meinen Standort verwenden",
+    "searchPlaceholder": "Ortsname oder Locator",
+    "searchFailed": "Die Suche ist derzeit nicht verfügbar.",
+    "noResults": "Keine Orte gefunden.",
+    "permissionDenied": "Die Standortfreigabe wurde abgelehnt. Suche stattdessen nach einem Ort.",
+    "unavailable": "Dein Standort konnte nicht gelesen werden. Suche stattdessen nach einem Ort."
+  },
+  "status": {
+    "loading": "Vorhersage wird berechnet",
+    "errorTitle": "Keine Vorhersage verfügbar",
+    "errorBody": "Der Vorhersagedienst war nicht erreichbar.",
+    "retry": "Erneut versuchen"
   }
 }

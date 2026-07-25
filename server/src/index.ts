@@ -8,7 +8,11 @@
  *   GET /api/prediction?from&to    one day, optionally as a now-cast
  *   GET /api/forecast?from&to&days several days, one prediction each
  */
-import { createServer, type IncomingMessage, type ServerResponse } from 'node:http';
+import {
+  createServer,
+  type IncomingMessage,
+  type ServerResponse,
+} from 'node:http';
 
 import { TtlCache } from './cache.ts';
 import { gridToLatLon, isGrid, latLonToGrid } from './geo.ts';
@@ -16,8 +20,8 @@ import { endpointFromLatLon, isoDate, predict } from './predict.ts';
 import { fetchSpaceWeather } from './spaceweather.ts';
 import type { Endpoint, PredictionResponse, SpaceWeather } from './types.ts';
 
-const PORT = Number(process.env['PORT'] ?? 8787);
-const HOST = process.env['HOST'] ?? '127.0.0.1';
+const PORT = Number(process.env.PORT ?? 8787);
+const HOST = process.env.HOST ?? '127.0.0.1';
 
 /** Defaults describing a modest amateur station. */
 const DEFAULT_WATTS = 100;
@@ -38,7 +42,11 @@ function num(value: string | null, fallback: number): number {
 }
 
 /** Accepts a Maidenhead locator or a "lat,lon" pair. */
-function parseEndpoint(raw: string | null, label: string | null, name: string): Endpoint {
+function parseEndpoint(
+  raw: string | null,
+  label: string | null,
+  name: string,
+): Endpoint {
   if (raw === null || raw.trim() === '') {
     throw new BadRequest(`missing "${name}"`);
   }
@@ -46,7 +54,12 @@ function parseEndpoint(raw: string | null, label: string | null, name: string): 
 
   if (isGrid(value)) {
     const { lat, lon } = gridToLatLon(value);
-    return { grid: value.toUpperCase(), label: label ?? value.toUpperCase(), lat, lon };
+    return {
+      grid: value.toUpperCase(),
+      label: label ?? value.toUpperCase(),
+      lat,
+      lon,
+    };
   }
 
   const parts = value.split(',');
@@ -67,10 +80,14 @@ function parseEndpoint(raw: string | null, label: string | null, name: string): 
 function parseDate(raw: string | null): Date {
   if (raw === null || raw.trim() === '') {
     const now = new Date();
-    return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+    return new Date(
+      Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()),
+    );
   }
   const parsed = new Date(`${raw}T00:00:00Z`);
-  if (Number.isNaN(parsed.getTime())) throw new BadRequest(`not a date: ${raw}`);
+  if (Number.isNaN(parsed.getTime())) {
+    throw new BadRequest(`not a date: ${raw}`);
+  }
   return parsed;
 }
 
@@ -84,8 +101,16 @@ async function trySpaceWeather(): Promise<SpaceWeather | null> {
 }
 
 async function handlePrediction(url: URL): Promise<PredictionResponse> {
-  const from = parseEndpoint(url.searchParams.get('from'), url.searchParams.get('fromLabel'), 'from');
-  const to = parseEndpoint(url.searchParams.get('to'), url.searchParams.get('toLabel'), 'to');
+  const from = parseEndpoint(
+    url.searchParams.get('from'),
+    url.searchParams.get('fromLabel'),
+    'from',
+  );
+  const to = parseEndpoint(
+    url.searchParams.get('to'),
+    url.searchParams.get('toLabel'),
+    'to',
+  );
   const date = parseDate(url.searchParams.get('date'));
   const wantNowcast = url.searchParams.get('nowcast') === '1';
 
@@ -111,11 +136,22 @@ async function handlePrediction(url: URL): Promise<PredictionResponse> {
 async function handleForecast(url: URL): Promise<PredictionResponse[]> {
   const days = Math.min(14, Math.max(1, num(url.searchParams.get('days'), 5)));
   const start = parseDate(url.searchParams.get('date'));
-  const from = parseEndpoint(url.searchParams.get('from'), url.searchParams.get('fromLabel'), 'from');
-  const to = parseEndpoint(url.searchParams.get('to'), url.searchParams.get('toLabel'), 'to');
+  const from = parseEndpoint(
+    url.searchParams.get('from'),
+    url.searchParams.get('fromLabel'),
+    'from',
+  );
+  const to = parseEndpoint(
+    url.searchParams.get('to'),
+    url.searchParams.get('toLabel'),
+    'to',
+  );
 
   const watts = num(url.searchParams.get('watts'), DEFAULT_WATTS);
-  const requiredSnrDb = num(url.searchParams.get('snr'), DEFAULT_REQUIRED_SNR_DB);
+  const requiredSnrDb = num(
+    url.searchParams.get('snr'),
+    DEFAULT_REQUIRED_SNR_DB,
+  );
   const noiseDbw = num(url.searchParams.get('noise'), DEFAULT_NOISE_DBW);
 
   const out: PredictionResponse[] = [];
@@ -123,7 +159,14 @@ async function handleForecast(url: URL): Promise<PredictionResponse[]> {
     const date = new Date(start.getTime() + i * 86_400_000);
     // Sequential on purpose: each run is a process, and the box this is
     // expected to run on has far less memory than it has cores.
-    const prediction = await predict({ from, to, date, watts, requiredSnrDb, noiseDbw });
+    const prediction = await predict({
+      from,
+      to,
+      date,
+      watts,
+      requiredSnrDb,
+      noiseDbw,
+    });
     out.push({ prediction, spaceWeather: null });
   }
   return out;
@@ -172,9 +215,11 @@ async function handleGeocode(url: URL): Promise<GeocodeResult[]> {
     upstream.searchParams.set('language', url.searchParams.get('lang') ?? 'en');
     upstream.searchParams.set('format', 'json');
 
-    const response = await fetch(upstream, { signal: AbortSignal.timeout(8000) });
+    const response = await fetch(upstream, {
+      signal: AbortSignal.timeout(8000),
+    });
     if (!response.ok) throw new Error(`geocoder returned ${response.status}`);
-    const body = (await response.json()) as { results?: OpenMeteoPlace[] };
+    const body = (await response.json()) as { results?: OpenMeteoPlace[]; };
 
     return (body.results ?? []).map((r) => ({
       name: r.name,
@@ -218,7 +263,10 @@ async function route(url: URL): Promise<unknown> {
 }
 
 const server = createServer((req: IncomingMessage, res: ServerResponse) => {
-  const url = new URL(req.url ?? '/', `http://${req.headers.host ?? 'localhost'}`);
+  const url = new URL(
+    req.url ?? '/',
+    `http://${req.headers.host ?? 'localhost'}`,
+  );
 
   if (req.method === 'OPTIONS') {
     res.writeHead(204, {

@@ -1,20 +1,26 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { StyleSheet, View } from 'react-native';
 import { Icon, Surface, Text, useTheme } from 'react-native-paper';
-import { useTranslation } from 'react-i18next';
+import type { PredictionBasis } from '../data/types';
 import { useFormatters } from '../hooks/useFormatters';
 import type { AppTheme } from '../theme';
 
 interface Props {
-  smoothedSSN: number;
+  ssn: number;
+  basis: PredictionBasis;
 }
 
 /**
  * Deliberately permanent rather than dismissible. A consumer-friendly skin on
  * climatology is one wrong assumption away from being read as a live forecast,
  * so the assumptions stay on screen.
+ *
+ * The wording follows the basis: a now-cast is driven by current indices and a
+ * forecast by a predicted sunspot number, and neither is a live measurement of
+ * the path itself.
  */
-export default function DisclaimerCard({ smoothedSSN }: Props) {
+export default function DisclaimerCard({ ssn, basis }: Props) {
   const theme = useTheme<AppTheme>();
   const { t } = useTranslation();
   const f = useFormatters();
@@ -37,7 +43,7 @@ export default function DisclaimerCard({ smoothedSSN }: Props) {
           variant="bodySmall"
           style={[styles.text, { color: theme.colors.onSecondaryContainer }]}
         >
-          {t('disclaimer.body', { ssn: f.integer(smoothedSSN) })}
+          {t(`disclaimer.${basis}`, { ssn: f.integer(ssn) })}
         </Text>
       </View>
     </Surface>

@@ -15,11 +15,11 @@ import { promisify } from 'node:util';
 
 const execFileAsync = promisify(execFile);
 
-export const ITSHFBC_DIR =
-  process.env['HFCAST_ITSHFBC'] ?? path.join(homedir(), 'itshfbc');
+export const ITSHFBC_DIR = process.env.HFCAST_ITSHFBC
+  ?? path.join(homedir(), 'itshfbc');
 
-export const VOACAPL_BIN =
-  process.env['HFCAST_VOACAPL'] ?? path.join(homedir(), '.local/bin/voacapl');
+export const VOACAPL_BIN = process.env.HFCAST_VOACAPL
+  ?? path.join(homedir(), '.local/bin/voacapl');
 
 /** A single run times out well before any sensible HTTP client does. */
 const RUN_TIMEOUT_MS = 30_000;

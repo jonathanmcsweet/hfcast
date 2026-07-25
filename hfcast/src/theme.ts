@@ -1,5 +1,5 @@
-import { MD3DarkTheme, MD3LightTheme } from 'react-native-paper';
 import { StyleSheet } from 'react-native';
+import { MD3DarkTheme, MD3LightTheme } from 'react-native-paper';
 import { amber, cyan, indigo, rose, slate } from './palette';
 
 /**
@@ -12,7 +12,7 @@ export type QualityKey = 'reliable' | 'marginal' | 'poor' | 'closed';
 
 type QualityColors = Record<
   QualityKey,
-  { base: string; container: string; onContainer: string }
+  { base: string; container: string; onContainer: string; }
 >;
 
 /**

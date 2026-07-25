@@ -1,13 +1,13 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { StyleSheet, View } from 'react-native';
 import { Divider, Text, useTheme } from 'react-native-paper';
-import { useTranslation } from 'react-i18next';
 import { qualityFor } from '../data/quality';
-import { cellsForHour } from '../data/samplePrediction';
+import { cellsForHour } from '../data/selectors';
+import type { PathPrediction } from '../data/types';
 import { useFormatters } from '../hooks/useFormatters';
 import { numeric } from '../theme';
 import type { AppTheme } from '../theme';
-import type { PathPrediction } from '../data/types';
 
 interface Props {
   prediction: PathPrediction;

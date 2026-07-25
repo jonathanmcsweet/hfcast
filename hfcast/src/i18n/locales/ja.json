@@ -1,11 +1,15 @@
 {
-  "app": { "title": "HFcast" },
-  "places": { "seattle": "シアトル", "tokyo": "東京" },
-  "path": { "detail": "{{distance}} · {{bearing}}" },
+  "app": {
+    "title": "HFcast"
+  },
+  "path": {
+    "detail": "{{distance}} · {{bearing}}"
+  },
   "hero": {
     "bestBandNow": "現在の最適バンド",
     "handoff": "{{current}}が{{time}}頃までこの経路を支え、その後は{{next}}に移ります。",
-    "nothingOpen": "現在この経路で安定して開いているバンドはありません。"
+    "nothingOpen": "現在この経路で安定して開いているバンドはありません。",
+    "pinnedBand": "選択したバンド"
   },
   "metrics": {
     "reliability": "信頼度",
@@ -16,7 +20,8 @@
     "hourly": "今後の時間",
     "bands": "バンド別",
     "outlook": "24時間予報",
-    "outlookHint": "時間別バンド（すべてUTC）"
+    "outlookHint": "時間別バンド（すべてUTC）",
+    "spaceWeather": "宇宙天気"
   },
   "quality": {
     "reliable": "良好",
@@ -24,14 +29,63 @@
     "poor": "不良",
     "closed": "不通"
   },
-  "time": { "now": "現在", "utc": "UTC" },
-  "disclaimer": {
-    "body": "月別の気候値であり、実時間の予報ではありません。平滑黒点数{{ssn}}、静穏な地磁気状態を前提としています。"
+  "time": {
+    "now": "現在",
+    "utc": "UTC"
   },
-  "settings": { "language": "言語", "changeLanguage": "言語を変更" },
+  "disclaimer": {
+    "climatology": "月別の気候値であり、リアルタイム予報ではありません。平滑化太陽黒点数 {{ssn}} と静穏な地磁気状態を前提としています。",
+    "forecast": "予測太陽黒点数 {{ssn}} を用いた月別の気候値です。先の予報ほど不確実になります。",
+    "nowcast": "現在の観測値に基づき、実効太陽黒点数は {{ssn}} です。これは電離層の推定であり、この経路の実測ではありません。"
+  },
+  "settings": {
+    "language": "言語",
+    "changeLanguage": "言語を変更"
+  },
   "a11y": {
     "bandRow": "{{band}}、{{quality}}、信頼度{{percent}}",
     "hourCell": "{{time}}、最適バンド{{band}}、{{quality}}",
-    "heatmap": "バンドごと・時間ごとの伝搬品質の一覧"
+    "heatmap": "バンドごと・時間ごとの伝搬品質の一覧",
+    "changePath": "{{from}} から {{to}} への経路。タップして変更します。",
+    "swapEnds": "経路の両端を入れ替える",
+    "followBestBand": "最適なバンドに追従する",
+    "pinBand": "{{band}} のみ表示"
+  },
+  "basis": {
+    "live": "現在の状況",
+    "climatology": "その月の平年値"
+  },
+  "bands": {
+    "best": "最適バンド"
+  },
+  "days": {
+    "today": "今日"
+  },
+  "spaceWeather": {
+    "flux": "太陽電波フラックス",
+    "fluxHint": "高いほど使用可能な周波数が上がります",
+    "kp": "K指数",
+    "kpQuiet": "静穏。通常の状態です",
+    "kpStormy": "磁気嵐。経路が悪化する場合があります",
+    "effectiveSsn": "実効太陽黒点数",
+    "effectiveSsnHint": "現在の観測値からの推定",
+    "unavailable": "現在の観測値を取得できないため、この予報はその月の平年値を使用しています。"
+  },
+  "location": {
+    "title": "経路を選ぶ",
+    "from": "送信地",
+    "to": "受信地",
+    "useDevice": "現在地を使う",
+    "searchPlaceholder": "都市名またはグリッド",
+    "searchFailed": "現在、検索を利用できません。",
+    "noResults": "該当する場所がありません。",
+    "permissionDenied": "位置情報の許可が拒否されました。代わりに場所を検索してください。",
+    "unavailable": "現在地を取得できませんでした。代わりに場所を検索してください。"
+  },
+  "status": {
+    "loading": "予報を計算しています",
+    "errorTitle": "予報を取得できません",
+    "errorBody": "予測サービスに接続できませんでした。",
+    "retry": "再試行"
   }
 }

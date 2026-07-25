@@ -13,5 +13,8 @@ export function qualityFor(reliability: number): QualityKey {
 }
 
 export const QUALITY_ORDER: QualityKey[] = [
-  'reliable', 'marginal', 'poor', 'closed',
+  'reliable',
+  'marginal',
+  'poor',
+  'closed',
 ];

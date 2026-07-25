@@ -4,10 +4,15 @@ import path from 'node:path';
 import { test } from 'node:test';
 import { fileURLToPath } from 'node:url';
 
+import {
+  bearingDeg,
+  distanceKm,
+  gridToLatLon,
+  latLonToGrid,
+} from '../src/geo.ts';
+import { BANDS_BY_FREQ } from '../src/types.ts';
 import { buildDeck } from '../src/voacap/deck.ts';
 import { parseVoacapOutput } from '../src/voacap/parse.ts';
-import { bearingDeg, distanceKm, gridToLatLon, latLonToGrid } from '../src/geo.ts';
-import { BANDS_BY_FREQ } from '../src/types.ts';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const fixture = readFileSync(

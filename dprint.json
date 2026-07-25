@@ -1,0 +1,31 @@
+{
+  "typescript": {
+    "quoteStyle": "preferSingle",
+    "semiColons": "always",
+    "trailingCommas": "onlyMultiLine",
+    "arrowFunction.useParentheses": "force",
+    "jsx.quoteStyle": "preferDouble"
+  },
+  "json": {
+    "indentWidth": 2
+  },
+  "markdown": {
+    "textWrap": "maintain"
+  },
+  "lineWidth": 80,
+  "indentWidth": 2,
+  "useTabs": false,
+  "excludes": [
+    "**/node_modules",
+    "**/dist",
+    "**/.expo",
+    "**/pnpm-lock.yaml",
+    "vendor/**",
+    "server/test/fixtures/**"
+  ],
+  "plugins": [
+    "https://plugins.dprint.dev/typescript-0.93.0.wasm",
+    "https://plugins.dprint.dev/json-0.19.3.wasm",
+    "https://plugins.dprint.dev/markdown-0.17.8.wasm"
+  ]
+}

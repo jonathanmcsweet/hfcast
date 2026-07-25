@@ -1,19 +1,24 @@
 import React, { useEffect, useState } from 'react';
-import { ScrollView, StyleSheet, View } from 'react-native';
-import { useTheme } from 'react-native-paper';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
+import { ScrollView, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, Button, Text, useTheme } from 'react-native-paper';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import PathHeader from '../components/PathHeader';
+import BandHeatmap from '../components/BandHeatmap';
+import BandList from '../components/BandList';
+import BandSelector from '../components/BandSelector';
+import DaySelector from '../components/DaySelector';
+import DisclaimerCard from '../components/DisclaimerCard';
 import HeroCard from '../components/HeroCard';
 import HourlyStrip from '../components/HourlyStrip';
-import BandList from '../components/BandList';
-import BandHeatmap from '../components/BandHeatmap';
+import LocationPicker from '../components/LocationPicker';
+import PathHeader from '../components/PathHeader';
 import QualityLegend from '../components/QualityLegend';
-import DisclaimerCard from '../components/DisclaimerCard';
 import SectionHeading from '../components/SectionHeading';
+import SpaceWeatherCard from '../components/SpaceWeatherCard';
 
-import { samplePrediction } from '../data/samplePrediction';
+import { usePrediction } from '../api/queries';
+import { usePathStore } from '../store/usePathStore';
 import type { AppTheme } from '../theme';
 
 export default function ForecastScreen() {
@@ -21,26 +26,95 @@ export default function ForecastScreen() {
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const [now, setNow] = useState(() => new Date());
+  const [pickerOpen, setPickerOpen] = useState(false);
+
+  const from = usePathStore((s) => s.from);
+  const to = usePathStore((s) => s.to);
+  const pinnedBand = usePathStore((s) => s.pinnedBand);
+  const setPinnedBand = usePathStore((s) => s.setPinnedBand);
+  const dayOffset = usePathStore((s) => s.dayOffset);
+  const setDayOffset = usePathStore((s) => s.setDayOffset);
 
   useEffect(() => {
     const id = setInterval(() => setNow(new Date()), 60_000);
     return () => clearInterval(id);
   }, []);
 
-  const prediction = samplePrediction;
-  const hour = now.getUTCHours();
+  const { data, error, isPending, refetch } = usePrediction(
+    from,
+    to,
+    dayOffset,
+  );
+
+  // A future day has no "now", so it opens at the start of the UTC day.
+  const hour = dayOffset === 0 ? now.getUTCHours() : 0;
+
+  if (isPending) {
+    return (
+      <View
+        style={[styles.centre, { backgroundColor: theme.colors.background }]}
+      >
+        <ActivityIndicator size="large" />
+        <Text variant="bodyMedium" style={styles.centreText}>
+          {t('status.loading')}
+        </Text>
+      </View>
+    );
+  }
+
+  if (error || !data) {
+    return (
+      <View
+        style={[styles.centre, { backgroundColor: theme.colors.background }]}
+      >
+        <Text variant="titleMedium">{t('status.errorTitle')}</Text>
+        <Text
+          variant="bodyMedium"
+          style={[styles.centreText, { color: theme.colors.onSurfaceVariant }]}
+        >
+          {t('status.errorBody')}
+        </Text>
+        <Button
+          mode="contained"
+          onPress={() => void refetch()}
+          style={styles.retry}
+        >
+          {t('status.retry')}
+        </Button>
+      </View>
+    );
+  }
+
+  const { prediction, spaceWeather } = data;
 
   return (
     <View style={[styles.root, { backgroundColor: theme.colors.background }]}>
-      <PathHeader prediction={prediction} now={now} />
+      <PathHeader
+        prediction={prediction}
+        now={now}
+        onPressPath={() =>
+          setPickerOpen(true)}
+      />
       <ScrollView
         contentContainerStyle={{ paddingBottom: insets.bottom + 16 }}
         showsVerticalScrollIndicator={false}
       >
-        <HeroCard prediction={prediction} hour={hour} />
+        <View style={styles.controls}>
+          <DaySelector value={dayOffset} onChange={setDayOffset} />
+        </View>
+
+        <HeroCard prediction={prediction} hour={hour} pinnedBand={pinnedBand} />
+
+        <View style={styles.controls}>
+          <BandSelector value={pinnedBand} onChange={setPinnedBand} />
+        </View>
 
         <SectionHeading title={t('sections.hourly')} />
-        <HourlyStrip prediction={prediction} hour={hour} />
+        <HourlyStrip
+          prediction={prediction}
+          hour={hour}
+          pinnedBand={pinnedBand}
+        />
 
         <SectionHeading title={t('sections.bands')} />
         <BandList prediction={prediction} hour={hour} />
@@ -54,8 +128,16 @@ export default function ForecastScreen() {
           <QualityLegend />
         </View>
 
-        <DisclaimerCard smoothedSSN={prediction.smoothedSSN} />
+        <SectionHeading title={t('sections.spaceWeather')} />
+        <SpaceWeatherCard spaceWeather={spaceWeather} />
+
+        <DisclaimerCard ssn={prediction.ssn} basis={prediction.basis} />
       </ScrollView>
+
+      <LocationPicker
+        visible={pickerOpen}
+        onDismiss={() => setPickerOpen(false)}
+      />
     </View>
   );
 }
@@ -63,4 +145,13 @@ export default function ForecastScreen() {
 const styles = StyleSheet.create({
   root: { flex: 1 },
   legend: { marginHorizontal: 16 },
+  controls: { marginTop: 12 },
+  centre: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 24,
+  },
+  centreText: { marginTop: 12, textAlign: 'center' },
+  retry: { marginTop: 16 },
 });

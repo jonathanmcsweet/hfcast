@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
-import { Appbar, Menu } from 'react-native-paper';
 import { useTranslation } from 'react-i18next';
+import { Appbar, Menu } from 'react-native-paper';
+import { useDirection } from '../hooks/useDirection';
 import { LANGUAGE_NAMES, SUPPORTED } from '../i18n';
 import type { SupportedLanguage } from '../i18n';
-import { useDirection } from '../hooks/useDirection';
 
 export default function LocalePicker() {
   const [open, setOpen] = useState(false);

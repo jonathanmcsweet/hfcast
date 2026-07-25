@@ -13,14 +13,16 @@ export default function SectionHeading({ title, hint }: Props) {
   return (
     <View style={styles.wrap}>
       <Text variant="titleSmall">{title}</Text>
-      {hint ? (
-        <Text
-          variant="bodySmall"
-          style={{ color: theme.colors.onSurfaceVariant }}
-        >
-          {hint}
-        </Text>
-      ) : null}
+      {hint
+        ? (
+          <Text
+            variant="bodySmall"
+            style={{ color: theme.colors.onSurfaceVariant }}
+          >
+            {hint}
+          </Text>
+        )
+        : null}
     </View>
   );
 }
