@@ -29,9 +29,39 @@ import type { RawBandHour } from './parse.ts';
 
 /**
  * How much of VOACAP's predicted daily swing is real. Fitted on 2025-06,
- * validated out of sample on 2025-07, 2025-03, 2024-12, 2019-06 and 2019-12.
+ * validated out of sample on 2025-07, 2025-03, 2024-12, 2019-06, 2019-12,
+ * 2022-09 and 2015-03.
  */
 export const SWING_FACTOR = 0.25;
+
+/**
+ * How much of VOACAP's claimed day-to-day spread is real, below and above
+ * the median.
+ *
+ * Checked against per-day WSPR records: the engine claims 25-30% of days
+ * fall 6 dB or more below an hour's monthly median, when 5-10% actually do.
+ * Fitted on 2025-06 and validated on five other months spanning 2015-2025
+ * (propcore/docs/reliability.md). Scaling the deciles by these factors makes
+ * the predicted frequencies match the measured ones in the 3-10 dB range
+ * that decides most reliability values; beyond 10 dB real life still has
+ * more bad days than the scaled model claims, so reliability shown near
+ * 100% should be read as "9 in 10", not certainty.
+ */
+export const SPREAD_FACTOR_LOW = 0.4;
+export const SPREAD_FACTOR_UP = 0.59;
+
+/** The knobs the validation fixed, overridable in tests. */
+export interface CorrectionFactors {
+  swing: number;
+  spreadLow: number;
+  spreadUp: number;
+}
+
+const VALIDATED: CorrectionFactors = {
+  swing: SWING_FACTOR,
+  spreadLow: SPREAD_FACTOR_LOW,
+  spreadUp: SPREAD_FACTOR_UP,
+};
 
 /** A decile is this many standard deviations of a normal distribution. */
 const DECILE_TO_SIGMA = 1.2816;
@@ -87,7 +117,7 @@ function reliabilityFrom(
 export function correctCells(
   cells: readonly RawBandHour[],
   requiredSnrDb: number,
-  swingFactor: number = SWING_FACTOR,
+  factors: CorrectionFactors = VALIDATED,
 ): BandHourPrediction[] {
   // The centre is per band: each band has its own daily curve.
   const centres = new Map<string, number>();
@@ -103,9 +133,14 @@ export function correctCells(
 
   return cells.map((cell) => {
     const centre = centres.get(cell.band) ?? cell.snr;
-    const snr = centre + swingFactor * (cell.snr - centre);
+    const snr = centre + factors.swing * (cell.snr - centre);
     const reliability = cell.snrLowDecile !== null && cell.snrUpDecile !== null
-      ? reliabilityFrom(snr, requiredSnrDb, cell.snrLowDecile, cell.snrUpDecile)
+      ? reliabilityFrom(
+        snr,
+        requiredSnrDb,
+        cell.snrLowDecile * factors.spreadLow,
+        cell.snrUpDecile * factors.spreadUp,
+      )
       : cell.reliability;
     return {
       hour: cell.hour,
