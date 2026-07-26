@@ -108,7 +108,12 @@ export function buildDeck(options: DeckOptions): string {
     + `${field(options.requiredSnrDb.toFixed(1), 5)}${field('3.00', 5)}${
       field('0.10', 5)
     }`,
-    'FPROB      1.00 1.00 1.00 0.00',
+    // The fourth value enables the sporadic-E layer. Standard practice turns
+    // it off as unreliable, but six months of WSPR validation showed the
+    // opposite: with it on, errors improve in every season and solar level,
+    // most of all at solar minimum (7.0 to 3.0 dB in December 2019). See
+    // propcore/docs/accuracy.md.
+    'FPROB      1.00 1.00 1.00 1.00',
     `ANTENNA   ${field('1', 5)}${field('1', 5)}${field('2', 5)}${
       field('30', 5)
     }`

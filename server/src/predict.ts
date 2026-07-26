@@ -12,6 +12,7 @@ import {
   type PathPrediction,
   type PredictionBasis,
 } from './types.ts';
+import { correctCells } from './voacap/correct.ts';
 import { buildDeck } from './voacap/deck.ts';
 import { parseVoacapOutput } from './voacap/parse.ts';
 import { runVoacap } from './voacap/run.ts';
@@ -90,11 +91,17 @@ export async function predict(
   });
 
   const listing = await runVoacap(deck);
-  const { cells, mufByHour } = parseVoacapOutput(listing, BANDS_BY_FREQ);
+  const parsed = parseVoacapOutput(listing, BANDS_BY_FREQ);
 
-  if (cells.length === 0) {
+  if (parsed.cells.length === 0) {
     throw new Error('VOACAP produced no usable rows');
   }
+
+  // Validated against six months of measured reception reports: the engine's
+  // daily swing is shrunk to the fraction of it that is real, and reliability
+  // is recomputed to match. See src/voacap/correct.ts for provenance.
+  const cells = correctCells(parsed.cells, request.requiredSnrDb);
+  const mufByHour = parsed.mufByHour;
 
   const prediction: PathPrediction = {
     from: request.from,

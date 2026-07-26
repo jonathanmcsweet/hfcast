@@ -76,6 +76,9 @@ test('deck places every field on its documented column', () => {
   );
   // 100 W is 0.1 kW, and power sits in the last ten columns of the TX antenna.
   assert.ok(card('ANTENNA').endsWith('    0.1000'));
+  // Sporadic-E on: validated against six months of measured reception
+  // reports. See propcore/docs/accuracy.md before changing this.
+  assert.equal(card('FPROB'), 'FPROB      1.00 1.00 1.00 1.00');
 });
 
 test('deck refuses a value that would overflow its field', () => {
