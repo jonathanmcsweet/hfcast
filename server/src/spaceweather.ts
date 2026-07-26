@@ -96,10 +96,18 @@ export async function fetchSpaceWeather(): Promise<SpaceWeather> {
   const kp = latestKp.Kp;
   const effectiveSsn = Math.round(kpDerate(ssnFromF107(f107), kp));
 
+  // The feed is one record per 3-hour block, oldest first: the current block
+  // plus the eight before it cover the last 24 hours, matching the window
+  // the storm-spread measurement used.
+  const kpMax24h = kpList
+    .slice(-9)
+    .reduce((max, record) => Math.max(max, record.Kp), 0);
+
   return {
     f107,
     observedSsn: null,
     kp,
+    kpMax24h,
     effectiveSsn,
     observedAt: latestFlux.time_tag,
   };

@@ -12,7 +12,7 @@ import {
   type PathPrediction,
   type PredictionBasis,
 } from './types.ts';
-import { correctCells } from './voacap/correct.ts';
+import { correctCells, factorsFor, stormWidening } from './voacap/correct.ts';
 import { buildDeck } from './voacap/deck.ts';
 import { parseVoacapOutput } from './voacap/parse.ts';
 import { runVoacap } from './voacap/run.ts';
@@ -29,6 +29,11 @@ export interface PredictRequest {
   date: Date;
   /** Supply this to force a specific sunspot number, as a now-cast does. */
   ssnOverride?: number;
+  /**
+   * Highest Kp over the last 24 hours, when known. Only a now-cast knows it;
+   * it widens the downward spread after a geomagnetic storm.
+   */
+  kpMax24h?: number;
   basis?: PredictionBasis;
   watts: number;
   requiredSnrDb: number;
@@ -47,6 +52,11 @@ function keyFor(request: PredictRequest, ssn: number): string {
     request.watts,
     request.requiredSnrDb,
     request.noiseDbw,
+    // The storm widening changes the corrected cells, so a stormy now-cast
+    // must not be served from a quiet cache entry or the reverse.
+    request.kpMax24h === undefined
+      ? 'climatology'
+      : stormWidening(request.kpMax24h).toFixed(2),
   ].join('|');
 }
 
@@ -97,10 +107,15 @@ export async function predict(
     throw new Error('VOACAP produced no usable rows');
   }
 
-  // Validated against six months of measured reception reports: the engine's
-  // daily swing is shrunk to the fraction of it that is real, and reliability
-  // is recomputed to match. See src/voacap/correct.ts for provenance.
-  const cells = correctCells(parsed.cells, request.requiredSnrDb);
+  // Validated against eight months of measured reception reports: the
+  // engine's daily swing is shrunk to the fraction of it that is real,
+  // reliability is recomputed to match, and a recent geomagnetic storm
+  // widens the downward spread. See src/voacap/correct.ts for provenance.
+  const cells = correctCells(
+    parsed.cells,
+    request.requiredSnrDb,
+    factorsFor(request.kpMax24h ?? null),
+  );
   const mufByHour = parsed.mufByHour;
 
   const prediction: PathPrediction = {

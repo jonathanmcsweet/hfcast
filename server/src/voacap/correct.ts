@@ -20,9 +20,9 @@
  * as 1.2816 standard deviations of a normal distribution reproduces the
  * engine's own reliability from its own numbers (checked in tests), so the
  * same formula applied to the corrected median is consistent with the engine
- * rather than a second model. The deciles themselves are left as printed: the
- * validation covered the daily swing of the median, not the day-to-day
- * spread.
+ * rather than a second model. The deciles are scaled by the validated spread
+ * factors (propcore/docs/reliability.md), and after a recent geomagnetic
+ * storm the downward one is widened further (propcore/docs/storm.md).
  */
 import type { BandHourPrediction } from '../types.ts';
 import type { RawBandHour } from './parse.ts';
@@ -62,6 +62,42 @@ const VALIDATED: CorrectionFactors = {
   spreadLow: SPREAD_FACTOR_LOW,
   spreadUp: SPREAD_FACTOR_UP,
 };
+
+/**
+ * How much wider the downward spread really is after a geomagnetic storm.
+ *
+ * Measured by tagging every day-hour in the eight validation months with the
+ * highest Kp of its preceding 24 hours (propcore/docs/storm.md). Below Kp 5
+ * the calibrated spread holds. Above it, bad days come both more often and
+ * deeper, growing with storm strength: the spread must be about 1.4 times
+ * wider after Kp 5-6, about 2 times after Kp 6-7, about 2.5 times after
+ * Kp 7+. The gradient reproduces across ten years of data. Only the
+ * downward side widens — storms suppress signals, they do not boost them.
+ */
+export const STORM_WIDENING_START_KP = 4.75;
+export const STORM_WIDENING_PER_KP = 0.5;
+export const STORM_WIDENING_CAP = 2.5;
+
+/** The widening factor for a given "highest Kp in the last 24 hours". */
+export function stormWidening(kpMax24h: number): number {
+  const widening = 1
+    + STORM_WIDENING_PER_KP * (kpMax24h - STORM_WIDENING_START_KP);
+  return Math.min(STORM_WIDENING_CAP, Math.max(1, widening));
+}
+
+/**
+ * The correction factors to use given current geomagnetic conditions.
+ * Pass null when conditions are unknown (any request that is not a
+ * now-cast): the prediction then describes a typical day of the month,
+ * which is the quiet-day calibration.
+ */
+export function factorsFor(kpMax24h: number | null): CorrectionFactors {
+  if (kpMax24h === null) return VALIDATED;
+  return {
+    ...VALIDATED,
+    spreadLow: VALIDATED.spreadLow * stormWidening(kpMax24h),
+  };
+}
 
 /** A decile is this many standard deviations of a normal distribution. */
 const DECILE_TO_SIGMA = 1.2816;
