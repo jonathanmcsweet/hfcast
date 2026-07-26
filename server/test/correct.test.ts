@@ -45,7 +45,11 @@ test('with factor 1, recomputed reliability matches the engine', () => {
   );
   assert.ok(withDeciles.length > 100, 'fixture provides decile rows');
 
-  const recomputed = correctCells(withDeciles, FIXTURE_REQUIRED_SNR, 1);
+  const recomputed = correctCells(withDeciles, FIXTURE_REQUIRED_SNR, {
+    swing: 1,
+    spreadLow: 1,
+    spreadUp: 1,
+  });
   const differences = recomputed.map((cell, i) => {
     const engine = withDeciles[i]?.reliability ?? assert.fail('same length');
     return Math.abs(cell.reliability - engine);
@@ -81,7 +85,12 @@ test('the correction shrinks each band toward its own centre', () => {
 
 test('quiet hours become less dead, strong hours less inflated', () => {
   const { cells } = parseVoacapOutput(fixture, BANDS_BY_FREQ);
-  const corrected = correctCells(cells, FIXTURE_REQUIRED_SNR);
+  // Spread factors held neutral so this test sees the swing alone.
+  const corrected = correctCells(cells, FIXTURE_REQUIRED_SNR, {
+    swing: SWING_FACTOR,
+    spreadLow: 1,
+    spreadUp: 1,
+  });
 
   let raisedWeak = 0;
   let loweredStrong = 0;
@@ -98,6 +107,49 @@ test('quiet hours become less dead, strong hours less inflated', () => {
   assert.ok(
     loweredStrong > 50,
     `${loweredStrong} above-centre cells came down`,
+  );
+});
+
+test('narrower spread makes the answer more decisive', () => {
+  // A single-cell band keeps its own SNR (it is its own centre), so only the
+  // spread factors act. Days differ from each other less than the engine
+  // claims, so a margin above the requirement should read as more certain,
+  // and a shortfall below it as more certainly closed.
+  const cell = (snr: number) => [
+    {
+      hour: 1,
+      band: '20m' as const,
+      reliability: 0.5,
+      snr,
+      snrLowDecile: 16,
+      snrUpDecile: 16,
+    },
+  ];
+  const neutral = { swing: 1, spreadLow: 1, spreadUp: 1 };
+  const sharpened = { swing: 1, spreadLow: 0.4, spreadUp: 0.59 };
+
+  const above = FIXTURE_REQUIRED_SNR + 6;
+  const rawAbove = correctCells(cell(above), FIXTURE_REQUIRED_SNR, neutral);
+  const scaledAbove = correctCells(
+    cell(above),
+    FIXTURE_REQUIRED_SNR,
+    sharpened,
+  );
+  assert.ok(
+    (scaledAbove[0]?.reliability ?? 0) > (rawAbove[0]?.reliability ?? 1),
+    'a 6 dB margin should become more certain',
+  );
+
+  const below = FIXTURE_REQUIRED_SNR - 6;
+  const rawBelow = correctCells(cell(below), FIXTURE_REQUIRED_SNR, neutral);
+  const scaledBelow = correctCells(
+    cell(below),
+    FIXTURE_REQUIRED_SNR,
+    sharpened,
+  );
+  assert.ok(
+    (scaledBelow[0]?.reliability ?? 1) < (rawBelow[0]?.reliability ?? 0),
+    'a 6 dB shortfall should become more certainly closed',
   );
 });
 
