@@ -126,7 +126,11 @@ async function handlePrediction(url: URL): Promise<PredictionResponse> {
     // Falling back to climatology when the upstream is down is deliberate:
     // a slightly stale basis beats no forecast, as long as it is labelled.
     ...(wantNowcast && spaceWeather
-      ? { ssnOverride: spaceWeather.effectiveSsn, basis: 'nowcast' as const }
+      ? {
+        ssnOverride: spaceWeather.effectiveSsn,
+        kpMax24h: spaceWeather.kpMax24h,
+        basis: 'nowcast' as const,
+      }
       : {}),
   });
 

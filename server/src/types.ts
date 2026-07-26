@@ -97,6 +97,12 @@ export interface SpaceWeather {
   observedSsn: number | null;
   /** Planetary K index, 0-9. */
   kp: number;
+  /**
+   * Highest Kp over roughly the last 24 hours. Ionospheric storm effects
+   * outlast the disturbance itself, so "was there a storm recently" is the
+   * question the spread widening asks. See voacap/correct.ts.
+   */
+  kpMax24h: number;
   /** SSN derived from f107 and kp, suitable for driving VOACAP now. */
   effectiveSsn: number;
   /** When the underlying measurements were taken. */

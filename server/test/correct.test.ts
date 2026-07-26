@@ -14,7 +14,13 @@ import { test } from 'node:test';
 import { fileURLToPath } from 'node:url';
 
 import { BANDS_BY_FREQ } from '../src/types.ts';
-import { correctCells, phi, SWING_FACTOR } from '../src/voacap/correct.ts';
+import {
+  correctCells,
+  factorsFor,
+  phi,
+  stormWidening,
+  SWING_FACTOR,
+} from '../src/voacap/correct.ts';
 import { parseVoacapOutput } from '../src/voacap/parse.ts';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
@@ -151,6 +157,45 @@ test('narrower spread makes the answer more decisive', () => {
     (scaledBelow[0]?.reliability ?? 1) < (rawBelow[0]?.reliability ?? 0),
     'a 6 dB shortfall should become more certainly closed',
   );
+});
+
+test('storm widening follows the measured gradient', () => {
+  // Quiet conditions leave the calibration alone.
+  assert.equal(stormWidening(0), 1);
+  assert.equal(stormWidening(4.75), 1);
+  // The measured slope: about half a unit of widening per Kp step.
+  assert.ok(Math.abs(stormWidening(5.5) - 1.375) < 1e-9);
+  assert.ok(Math.abs(stormWidening(6.5) - 1.875) < 1e-9);
+  // Capped where the measurements end.
+  assert.equal(stormWidening(9), 2.5);
+});
+
+test('a recent storm makes an open band less certain, not more', () => {
+  // A single-cell band is its own centre, so only spread factors act.
+  const cell = [
+    {
+      hour: 1,
+      band: '20m' as const,
+      reliability: 0.5,
+      snr: FIXTURE_REQUIRED_SNR + 6,
+      snrLowDecile: 16,
+      snrUpDecile: 16,
+    },
+  ];
+  const quiet = correctCells(cell, FIXTURE_REQUIRED_SNR, factorsFor(2));
+  const storm = correctCells(cell, FIXTURE_REQUIRED_SNR, factorsFor(7));
+  assert.deepEqual(quiet, correctCells(cell, FIXTURE_REQUIRED_SNR));
+  assert.ok(
+    (storm[0]?.reliability ?? 1) < (quiet[0]?.reliability ?? 0),
+    'the storm answer must be less confident',
+  );
+
+  // Below the requirement the upward decile decides, and storms do not
+  // widen it: the "band closed" answer stays as certain as on a quiet day.
+  const closed = cell.map((c) => ({ ...c, snr: FIXTURE_REQUIRED_SNR - 6 }));
+  const quietClosed = correctCells(closed, FIXTURE_REQUIRED_SNR, factorsFor(2));
+  const stormClosed = correctCells(closed, FIXTURE_REQUIRED_SNR, factorsFor(7));
+  assert.equal(quietClosed[0]?.reliability, stormClosed[0]?.reliability);
 });
 
 test('cells without deciles keep the engine reliability', () => {
