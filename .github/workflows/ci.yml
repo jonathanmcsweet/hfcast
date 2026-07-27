@@ -1,0 +1,86 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+# The engine commit the server is tested against. The server talks to
+# the engine over a JSON contract through a subprocess, and nothing else
+# checks that the two agree — so this pin is the written answer to
+# "which engine version does this server work with?". Move it
+# deliberately, with the tests as the evidence.
+env:
+  ENGINE_REPO: jonathanmcsweet/hfcast-engine
+  ENGINE_COMMIT: 85565549c28882f929fe9066dc18f5069406cac2
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          run_install: false
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Formatting
+        run: pnpm fmt:check
+
+      - name: Lint
+        run: pnpm lint
+
+      # Everything below exists so the four engine tests run rather than
+      # skip. They are the only check that the server and the engine
+      # agree on the JSON the one sends and the other parses.
+      - name: Install gfortran
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gfortran
+
+      - name: Build voacapl and its data tree
+        run: |
+          git clone --quiet https://github.com/jawatson/voacapl.git /tmp/voacapl
+          cd /tmp/voacapl
+          ./configure --prefix="$HOME/.local"
+          make -j4
+          make install
+          # The installed copy: the prefix is substituted into it by the
+          # install hook, and the source copy still says __PREFIX__.
+          "$HOME/.local/bin/makeitshfbc"
+
+      - name: Cache the engine build
+        uses: actions/cache@v4
+        with:
+          path: /tmp/hfcast-engine/target
+          key: engine-${{ runner.os }}-${{ env.ENGINE_COMMIT }}
+
+      - name: Build the engine at the pinned commit
+        run: |
+          git clone --quiet "https://github.com/$ENGINE_REPO.git" /tmp/hfcast-engine
+          git -C /tmp/hfcast-engine checkout --quiet "$ENGINE_COMMIT"
+          cargo build --release --manifest-path /tmp/hfcast-engine/Cargo.toml --bin predict
+
+      - name: Test
+        env:
+          HFCAST_PREDICT: /tmp/hfcast-engine/target/release/predict
+        run: |
+          pnpm test 2>&1 | tee test.log
+          # A skipped engine test means the wiring above silently failed,
+          # which would leave the contract unchecked while CI stayed
+          # green. Assert zero skips rather than look for a nonzero count,
+          # so a change to the reporter's output fails loudly instead of
+          # passing quietly.
+          if ! grep -qE 'skipped 0$' test.log; then
+            echo "::error::tests were skipped, or the summary could not be read"
+            exit 1
+          fi
