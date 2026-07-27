@@ -19,3 +19,8 @@ vendor/itu-r-hf/
 
 # Rust build output
 target/
+
+# The engine extracted into its own repository. It lives here so the
+# editor can see both, but it has its own history and must not be
+# committed into this one.
+/hfcast-engine/
