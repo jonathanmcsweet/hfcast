@@ -1,8 +1,9 @@
 {
   "name": "hfcast-workspace",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "description": "Tooling shared by the HFcast app and its prediction server",
+  "license": "Apache-2.0",
   "scripts": {
     "fmt": "dprint fmt",
     "fmt:check": "dprint check",
