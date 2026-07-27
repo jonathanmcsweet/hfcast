@@ -14,8 +14,19 @@ import {
 } from './types.ts';
 import { correctCells, factorsFor, stormWidening } from './voacap/correct.ts';
 import { buildDeck } from './voacap/deck.ts';
+import { runEngine } from './voacap/engine.ts';
 import { parseVoacapOutput } from './voacap/parse.ts';
 import { runVoacap } from './voacap/run.ts';
+
+/**
+ * Which engine serves predictions.
+ *
+ * The Rust port is byte-identical to the Fortran reference and
+ * `propcore`'s `paritycheck` confirms it returns the same fields this server
+ * reads. The Fortran path is kept so a deployment can fall back without a
+ * code change, and so the two can be compared on a live host.
+ */
+const USE_FORTRAN = process.env.HFCAST_ENGINE === 'fortran';
 
 /** Climatology does not change quickly. A day is a conservative lifetime. */
 const PREDICTION_TTL_MS = 24 * 60 * 60 * 1000;
@@ -85,7 +96,7 @@ export async function predict(
     return { ...cached, date: isoDate(request.date), basis };
   }
 
-  const deck = buildDeck({
+  const engineRequest = {
     fromLat: request.from.lat,
     fromLon: request.from.lon,
     toLat: request.to.lat,
@@ -98,13 +109,17 @@ export async function predict(
     watts: request.watts,
     requiredSnrDb: request.requiredSnrDb,
     noiseDbw: request.noiseDbw,
-  });
+  };
 
-  const listing = await runVoacap(deck);
-  const parsed = parseVoacapOutput(listing, BANDS_BY_FREQ);
+  const parsed = USE_FORTRAN
+    ? parseVoacapOutput(
+      await runVoacap(buildDeck(engineRequest)),
+      BANDS_BY_FREQ,
+    )
+    : await runEngine(engineRequest);
 
   if (parsed.cells.length === 0) {
-    throw new Error('VOACAP produced no usable rows');
+    throw new Error('the engine produced no usable rows');
   }
 
   // Validated against eight months of measured reception reports: the
