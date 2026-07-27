@@ -35,6 +35,27 @@ makeitshfbc          # creates ~/itshfbc
 Override the locations with `HFCAST_VOACAPL` and `HFCAST_ITSHFBC` if they are
 not at `~/.local/bin/voacapl` and `~/itshfbc`.
 
+### The engine
+
+Predictions come from the Rust engine by default, which lives in its own
+repository:
+
+```bash
+git clone https://github.com/jonathanmcsweet/hfcast-engine.git
+cd hfcast-engine
+cargo build --release --bin predict
+```
+
+The server looks for it at `~/workspace/hfcast-engine/target/release/predict`,
+or wherever `HFCAST_PREDICT` points. `HFCAST_ENGINE=fortran` uses `voacapl`
+directly instead.
+
+**The engine version is pinned in CI**, in `ENGINE_COMMIT` in
+`.github/workflows/ci.yml`. The server and the engine agree on a JSON contract
+that nothing else checks, so that pin is the answer to "which engine does this
+server work with". Moving it is a deliberate change with the four engine tests
+in `test/engine.test.ts` as the evidence.
+
 ## Running
 
 ```bash
