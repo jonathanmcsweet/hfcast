@@ -22,7 +22,7 @@ import { runVoacap } from './voacap/run.ts';
  * Which engine serves predictions.
  *
  * The Rust port is byte-identical to the Fortran reference and
- * `propcore`'s `paritycheck` confirms it returns the same fields this server
+ * `hfcast-engine`'s `paritycheck` confirms it returns the same fields this server
  * reads. The Fortran path is kept so a deployment can fall back without a
  * code change, and so the two can be compared on a live host.
  */

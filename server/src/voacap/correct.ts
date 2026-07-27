@@ -11,8 +11,8 @@
  *
  * `SWING_FACTOR` was fitted on June 2025 alone and then beat or matched the
  * flat with-hindsight baseline on five months it never saw, including solar
- * minimum in 2019. Provenance and the full evidence: propcore/docs/accuracy.md
- * and propcore/docs/calibration-matrix-es.md.
+ * minimum in 2019. Provenance and the full evidence: hfcast-engine/docs/accuracy.md
+ * and hfcast-engine/docs/calibration-matrix-es.md.
  *
  * Reliability is recomputed from the corrected median, because the engine's
  * printed reliability was derived from the uncorrected one. VOACAP models the
@@ -21,8 +21,8 @@
  * engine's own reliability from its own numbers (checked in tests), so the
  * same formula applied to the corrected median is consistent with the engine
  * rather than a second model. The deciles are scaled by the validated spread
- * factors (propcore/docs/reliability.md), and after a recent geomagnetic
- * storm the downward one is widened further (propcore/docs/storm.md).
+ * factors (hfcast-engine/docs/reliability.md), and after a recent geomagnetic
+ * storm the downward one is widened further (hfcast-engine/docs/storm.md).
  */
 import type { BandHourPrediction } from '../types.ts';
 import type { RawBandHour } from './parse.ts';
@@ -41,7 +41,7 @@ export const SWING_FACTOR = 0.25;
  * Checked against per-day WSPR records: the engine claims 25-30% of days
  * fall 6 dB or more below an hour's monthly median, when 5-10% actually do.
  * Fitted on 2025-06 and validated on five other months spanning 2015-2025
- * (propcore/docs/reliability.md). Scaling the deciles by these factors makes
+ * (hfcast-engine/docs/reliability.md). Scaling the deciles by these factors makes
  * the predicted frequencies match the measured ones in the 3-10 dB range
  * that decides most reliability values; beyond 10 dB real life still has
  * more bad days than the scaled model claims, so reliability shown near
@@ -67,7 +67,7 @@ const VALIDATED: CorrectionFactors = {
  * How much wider the downward spread really is after a geomagnetic storm.
  *
  * Measured by tagging every day-hour in the eight validation months with the
- * highest Kp of its preceding 24 hours (propcore/docs/storm.md). Below Kp 5
+ * highest Kp of its preceding 24 hours (hfcast-engine/docs/storm.md). Below Kp 5
  * the calibrated spread holds. Above it, bad days come both more often and
  * deeper, growing with storm strength: the spread must be about 1.4 times
  * wider after Kp 5-6, about 2 times after Kp 6-7, about 2.5 times after

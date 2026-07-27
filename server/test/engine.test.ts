@@ -2,7 +2,7 @@
  * The Rust engine path.
  *
  * These run the real `predict` binary, so they skip where it is not built.
- * The heavy comparison against the Fortran binary lives in propcore's
+ * The heavy comparison against the Fortran binary lives in hfcast-engine's
  * `paritycheck`; what is checked here is the part written in TypeScript —
  * that the request reaches the binary, and that what comes back is reshaped
  * into exactly what `parseVoacapOutput` used to return.
