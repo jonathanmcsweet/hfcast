@@ -74,6 +74,15 @@ interface WirePrediction {
  * The bands are sent as frequencies and come back the same way, so the
  * mapping from a returned cell to a band is by frequency rather than by
  * position — a cell the engine dropped does not shift the ones after it.
+ *
+ * Looking a float up in a Map is exact equality, which is safe here only
+ * because the number makes a round trip and no arithmetic: the same
+ * double is sent as JSON, printed back by Rust with the shortest text
+ * that reads as that double, and parsed here into the same double again.
+ * Rounding on either side — the binary printing a fixed number of
+ * decimals, or the server deriving a frequency rather than echoing the
+ * one it sent — would break the lookup, and every cell would be dropped
+ * rather than misplaced.
  */
 export async function runEngine(
   request: EngineRequest,
