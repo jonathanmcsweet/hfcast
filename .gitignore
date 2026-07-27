@@ -11,7 +11,7 @@ vendor/voacapl/
 itshfbc/
 
 # One voacapl source copy and build per optimisation level, made by
-# propcore/tools/build-variants.sh
+# hfcast-engine/tools/build-variants.sh
 vendor/voacapl-variants/
 
 # ITU-R P.533 reference implementation checkout, about 700 MB

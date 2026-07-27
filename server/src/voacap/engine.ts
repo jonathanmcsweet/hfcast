@@ -1,7 +1,7 @@
 /**
  * Runs the Rust engine.
  *
- * `propcore`'s `predict` binary is a port of VOACAP proven byte-identical to
+ * `hfcast-engine`'s `predict` binary is a port of VOACAP proven byte-identical to
  * the Fortran reference. It reads one request as JSON on stdin and writes the
  * prediction as JSON on stdout, so this needs no bindings and no build step
  * beyond having the binary on disk.
@@ -14,7 +14,7 @@
  *
  * The values are the same numbers the listing carried: the binary renders the
  * listing and reads it back, so reliability still arrives at two decimals and
- * SNR to the nearest dB. `propcore/src/bin/predict.rs` says why, and
+ * SNR to the nearest dB. `hfcast-engine/src/bin/predict.rs` says why, and
  * `paritycheck` proves it over the request shapes this server sends.
  */
 import { execFile } from 'node:child_process';
@@ -24,7 +24,7 @@ import { BAND_MHZ, type BandKey, BANDS_BY_FREQ } from '../types.ts';
 import type { ParsedPrediction, RawBandHour } from './parse.ts';
 
 export const PREDICT_BIN = process.env.HFCAST_PREDICT
-  ?? path.join(homedir(), 'workspace/propcore/target/release/predict');
+  ?? path.join(homedir(), 'workspace/hfcast-engine/target/release/predict');
 
 /** The coefficient and antenna tree the engine reads. */
 export const ITSHFBC_DIR = process.env.HFCAST_ITSHFBC

@@ -112,7 +112,7 @@ export function buildDeck(options: DeckOptions): string {
     // it off as unreliable, but six months of WSPR validation showed the
     // opposite: with it on, errors improve in every season and solar level,
     // most of all at solar minimum (7.0 to 3.0 dB in December 2019). See
-    // propcore/docs/accuracy.md.
+    // hfcast-engine/docs/accuracy.md.
     'FPROB      1.00 1.00 1.00 1.00',
     `ANTENNA   ${field('1', 5)}${field('1', 5)}${field('2', 5)}${
       field('30', 5)
