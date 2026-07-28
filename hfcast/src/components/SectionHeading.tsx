@@ -31,12 +31,11 @@ export default function SectionHeading({ title, hint }: Props) {
 }
 
 const styles = StyleSheet.create({
-  // Between cards above, inside a card below: the heading belongs to what
-  // follows it, so the gap under it is deliberately the smaller one.
+  // No bottom margin: the card below brings its own top margin, and the
+  // screen keeps one gap between everything at this level.
   wrap: {
     marginHorizontal: spacing.lg,
     marginTop: spacing.xl,
-    marginBottom: spacing.md,
     gap: spacing.xs,
   },
 });

@@ -53,7 +53,9 @@
     "measuredTag": "مقيس",
     "lastMeasured": "آخر قياس",
     "updated": "حُدِّث {{time}}",
-    "asOf": "حتى {{time}}"
+    "asOf": "حتى {{time}}",
+    "measuredTitle": "أقرب مسبار أيونوسفيري · {{value}}",
+    "measuredSub": "{{station}}، على مسافة {{distance}} · قيس في {{time}} بالتوقيت العالمي"
   },
   "quality": {
     "reliable": "موثوق",

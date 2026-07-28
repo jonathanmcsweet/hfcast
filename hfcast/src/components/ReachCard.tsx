@@ -6,7 +6,7 @@ import { isNvis, qualityFor } from '../data/quality';
 import { cellFor } from '../data/selectors';
 import type { BandKey, PathPrediction } from '../data/types';
 import { useFormatters } from '../hooks/useFormatters';
-import { radius, spacing, typography } from '../theme';
+import { numeric, radius, spacing, typography } from '../theme';
 import type { AppTheme } from '../theme';
 import { Card, Inset } from './Card';
 import HourSlider from './HourSlider';
@@ -48,16 +48,22 @@ export default function ReachCard({
 
   return (
     <Card>
-      <Text style={[typography.cardHeadline, { color: ui.ink }]}>
-        {t('reach.title')}
-      </Text>
-      <Text style={[typography.caption, styles.caption, { color: ui.text3 }]}>
-        {t('reach.subtitle', { place: prediction.to.label })}
-      </Text>
+      <View style={styles.head}>
+        <Text style={[typography.cardHeadline, { color: ui.ink }]}>
+          {t('reach.title')}
+        </Text>
+        <Text style={[typography.caption, { color: ui.text3 }]}>
+          {t('reach.subtitle', { place: prediction.to.label })}
+        </Text>
+      </View>
 
-      <Inset style={styles.readout}>
+      <Inset>
         <View style={styles.readoutRow}>
-          <Text style={[typography.answer, styles.sentence, { color: ui.ink }]}>
+          <Text
+            style={[typography.answer, numeric, styles.sentence, {
+              color: ui.ink,
+            }]}
+          >
             {t('reach.answer', {
               band,
               place: prediction.to.label,
@@ -65,7 +71,7 @@ export default function ReachCard({
               percent: f.percent(reliability),
             })}
           </Text>
-          <QualityChip quality={quality} />
+          <QualityChip quality={quality} large />
         </View>
         {
           /* Without this a beginner reads a working low band at midday over
@@ -73,9 +79,7 @@ export default function ReachCard({
         }
         {nvis
           ? (
-            <Text
-              style={[typography.caption, styles.nvis, { color: ui.text3 }]}
-            >
+            <Text style={[typography.caption, { color: ui.text3 }]}>
               {t('a11y.nvis')}
             </Text>
           )
@@ -107,21 +111,23 @@ export default function ReachCard({
 }
 
 const styles = StyleSheet.create({
-  caption: { marginTop: spacing.xs },
-  readout: { marginTop: spacing.md },
-  readoutRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
+  head: { gap: spacing.xs },
+  readoutRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+    minHeight: 40,
+  },
   sentence: { flex: 1 },
-  nvis: { marginTop: spacing.sm },
   // Holds the globe's place at its eventual height, so the card does not
   // change size when the map lands.
   mapSlot: {
     height: 322,
-    marginTop: spacing.md,
     alignItems: 'center',
     justifyContent: 'center',
     gap: spacing.sm,
     padding: spacing.lg,
-    borderRadius: radius.inset,
+    borderRadius: radius.control,
     borderWidth: StyleSheet.hairlineWidth,
     borderStyle: 'dashed',
   },

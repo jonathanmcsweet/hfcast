@@ -1,3 +1,10 @@
+import {
+  IBMPlexSans_400Regular,
+  IBMPlexSans_500Medium,
+  IBMPlexSans_600SemiBold,
+  IBMPlexSans_700Bold,
+  useFonts,
+} from '@expo-google-fonts/ibm-plex-sans';
 import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client';
 import { StatusBar } from 'expo-status-bar';
 import React from 'react';
@@ -19,6 +26,22 @@ import { darkTheme, lightTheme } from './src/theme';
 export default function App() {
   const scheme = useColorScheme();
   const theme = scheme === 'dark' ? darkTheme : lightTheme;
+
+  // One family, four weights. The type scale picks a weight by naming the
+  // face, so all four have to be present before anything renders — with a
+  // face missing, every style that asked for it falls back to the system
+  // font at a different width and the whole layout shifts.
+  const [fontsLoaded, fontError] = useFonts({
+    IBMPlexSans_400Regular,
+    IBMPlexSans_500Medium,
+    IBMPlexSans_600SemiBold,
+    IBMPlexSans_700Bold,
+  });
+
+  // A font that failed to load is not a reason to show nothing: the system
+  // font is worse-looking, not unreadable, and an operator in the field
+  // needs the forecast more than the typeface.
+  if (!fontsLoaded && !fontError) return null;
 
   return (
     // The children render before the cache has been read back, which is

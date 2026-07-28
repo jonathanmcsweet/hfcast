@@ -7,7 +7,7 @@ import {
   TouchableRipple,
   useTheme,
 } from 'react-native-paper';
-import { radius, spacing, typography } from '../theme';
+import { face, radius, spacing, typography } from '../theme';
 import type { AppTheme } from '../theme';
 import LocalePicker from './LocalePicker';
 
@@ -60,7 +60,7 @@ export default function AppHeader({
             /* The affordance is a word, not an icon. "Change" says what
                happens; a pencil or a chevron has to be learned. */
           }
-          <Text style={[typography.captionStrong, { color: ui.accent }]}>
+          <Text style={[styles.change, { color: ui.accent }]}>
             {`${t('location.change')} ▾`}
           </Text>
         </View>
@@ -77,7 +77,7 @@ export default function AppHeader({
             }]}
           >
             <View style={[styles.dot, { borderColor: ui.text3 }]} />
-            <Text style={[typography.label, { color: ui.text3 }]}>
+            <Text style={[styles.chipText, { color: ui.text2 }]}>
               {t('offline.chip')}
             </Text>
           </View>
@@ -101,9 +101,9 @@ const styles = StyleSheet.create({
   row: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.sm,
+    gap: 10,
     paddingHorizontal: spacing.lg,
-    paddingTop: spacing.xs,
+    paddingTop: 2,
   },
   // The whole block opens the location pane, so it is sized as a touch
   // target rather than around its text.
@@ -122,15 +122,25 @@ const styles = StyleSheet.create({
     gap: spacing.xs,
   },
   placeName: { flexShrink: 1 },
+  change: { fontSize: 13, lineHeight: 18, fontFamily: face.bold },
   chip: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.xs,
+    gap: 5,
     marginStart: 'auto',
+    minHeight: 28,
     paddingHorizontal: spacing.sm,
-    paddingVertical: spacing.xs,
-    borderRadius: radius.inset,
+    borderRadius: 8,
     borderWidth: StyleSheet.hairlineWidth,
+  },
+  // The design sets this at 10px. The type scale's floor is 11, because the
+  // app is read outdoors, and a warning is the last thing to shrink.
+  chipText: {
+    fontSize: 11,
+    lineHeight: 14,
+    fontFamily: face.bold,
+    letterSpacing: 0.6,
+    textTransform: 'uppercase',
   },
   dot: { width: 7, height: 7, borderRadius: 4, borderWidth: 1.5 },
 });

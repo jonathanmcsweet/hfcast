@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { StyleSheet, View } from 'react-native';
 import { Text, useTheme } from 'react-native-paper';
 import { QUALITY_ORDER } from '../data/quality';
-import { radius, spacing, typography } from '../theme';
+import { spacing, typography } from '../theme';
 import type { AppTheme } from '../theme';
 
 /**
@@ -22,50 +22,49 @@ import type { AppTheme } from '../theme';
 export default function QualityLegend() {
   const theme = useTheme<AppTheme>();
   const { t } = useTranslation();
+  const ui = theme.colors.ui;
 
   return (
     <View style={styles.wrap}>
-      {QUALITY_ORDER.map((q) => (
-        <View
-          key={q}
-          style={styles.row}
-          accessible
-          accessibilityLabel={`${t(`quality.${q}`)}: ${
-            t(`qualityDescription.${q}`)
-          }`}
-        >
-          {
-            /* One swatch, not the design's two. The second shows the globe's
-               wider-spaced version of this ramp, which has nothing to explain
-               until the map is on screen. */
-          }
+      <View style={styles.rows}>
+        {QUALITY_ORDER.map((q) => (
           <View
-            style={[
-              styles.swatch,
-              { backgroundColor: theme.colors.quality[q].base },
-            ]}
-          />
-          <Text style={[typography.bodyStrong, styles.name]}>
-            {t(`quality.${q}`)}
-          </Text>
-          <Text
-            style={[
-              typography.caption,
-              styles.description,
-              { color: theme.colors.onSurfaceVariant },
-            ]}
+            key={q}
+            style={styles.row}
+            accessible
+            accessibilityLabel={`${t(`quality.${q}`)}: ${
+              t(`qualityDescription.${q}`)
+            }`}
           >
-            {t(`qualityDescription.${q}`)}
-          </Text>
-        </View>
-      ))}
-      <Text
-        style={[
-          typography.caption,
-          styles.footnote,
-          { color: theme.colors.onSurfaceVariant },
-        ]}
-      >
+            {
+              /* One swatch, not the design's two. The second shows the
+                 globe's wider-spaced version of this ramp, which has
+                 nothing to explain until the map is on screen. */
+            }
+            <View
+              style={[styles.swatch, {
+                backgroundColor: theme.colors.quality[q].base,
+                borderColor: ui.line2,
+              }]}
+            />
+            <Text
+              style={[typography.bodyStrong, styles.name, {
+                color: ui.ink,
+              }]}
+            >
+              {t(`quality.${q}`)}
+            </Text>
+            <Text
+              style={[typography.caption, styles.description, {
+                color: ui.text3,
+              }]}
+            >
+              {t(`qualityDescription.${q}`)}
+            </Text>
+          </View>
+        ))}
+      </View>
+      <Text style={[styles.footnote, { color: ui.text4 }]}>
         {t('qualityLegend.footnote')}
       </Text>
     </View>
@@ -73,10 +72,23 @@ export default function QualityLegend() {
 }
 
 const styles = StyleSheet.create({
-  wrap: { gap: spacing.sm },
-  row: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
-  swatch: { width: 20, height: 20, borderRadius: radius.cell },
+  wrap: { gap: spacing.md },
+  rows: { gap: spacing.sm },
+  row: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+    minHeight: 32,
+  },
+  // The ring keeps the palest state visible against the card behind it.
+  // Without it "Closed" in the light theme is a white square on white.
+  swatch: {
+    width: 20,
+    height: 20,
+    borderRadius: 5,
+    borderWidth: StyleSheet.hairlineWidth,
+  },
   name: { width: 88 },
   description: { flex: 1 },
-  footnote: { marginTop: spacing.xs },
+  footnote: { fontSize: 12, lineHeight: 16 },
 });

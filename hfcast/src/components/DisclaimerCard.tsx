@@ -1,10 +1,10 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { StyleSheet, View } from 'react-native';
-import { Text, useTheme } from 'react-native-paper';
+import { Text, TouchableRipple, useTheme } from 'react-native-paper';
 import type { PredictionBasis } from '../data/types';
 import { useFormatters } from '../hooks/useFormatters';
-import { spacing, typography } from '../theme';
+import { face, spacing } from '../theme';
 import type { AppTheme } from '../theme';
 
 interface Props {
@@ -23,16 +23,20 @@ interface Props {
 /**
  * The assumptions behind every number on the screen.
  *
+ * Its own surface rather than a card, and quieter than everything above it —
+ * this is the last thing on the screen and should read as a footnote, not as
+ * another section competing for attention.
+ *
  * Collapsible but never dismissible. A consumer-friendly skin on climatology
  * is one wrong assumption away from being read as a live forecast, so the
- * assumptions stay reachable from the screen rather than living in a settings
- * page nobody opens.
+ * title states the basis even while the body is folded away.
  *
  * The antenna line is here because it is the single largest error the user
  * can be making. Every run is 100 W into a wire; a beam beats these numbers
  * and a compromise antenna will not reach them.
  */
 export default function DisclaimerCard({ ssn, basis, saved = false }: Props) {
+  const [open, setOpen] = useState(false);
   const effective: PredictionBasis = saved && basis === 'nowcast'
     ? 'climatology'
     : basis;
@@ -42,17 +46,62 @@ export default function DisclaimerCard({ ssn, basis, saved = false }: Props) {
   const ui = theme.colors.ui;
 
   return (
-    <View style={styles.wrap}>
-      <Text style={[typography.caption, { color: ui.text2 }]}>
-        {t(`disclaimer.${effective}`, { ssn: f.integer(ssn) })}
-      </Text>
-      <Text style={[typography.caption, { color: ui.text3 }]}>
-        {t('disclaimer.station')}
-      </Text>
+    <View style={[styles.wrap, { backgroundColor: ui.discBg }]}>
+      <TouchableRipple
+        onPress={() => setOpen((v) => !v)}
+        accessibilityRole="button"
+        accessibilityState={{ expanded: open }}
+        style={styles.head}
+      >
+        <View style={styles.headRow}>
+          <Text style={[styles.title, { color: ui.text2 }]}>
+            {saved ? t('disclaimer.titleSaved') : t('disclaimer.titleLive')}
+          </Text>
+          <Text style={[styles.caret, { color: ui.accent }]}>
+            {open ? '−' : '+'}
+          </Text>
+        </View>
+      </TouchableRipple>
+      {open
+        ? (
+          <View style={styles.body}>
+            <Text style={[styles.text, { color: ui.text3 }]}>
+              {t(`disclaimer.${effective}`, { ssn: f.integer(ssn) })}
+            </Text>
+            <Text style={[styles.text, { color: ui.text4 }]}>
+              {t('disclaimer.station')}
+            </Text>
+          </View>
+        )
+        : null}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  wrap: { gap: spacing.sm },
+  wrap: {
+    marginHorizontal: spacing.lg,
+    marginTop: spacing.xl,
+    padding: spacing.lg,
+    borderRadius: 16,
+    gap: spacing.sm,
+  },
+  head: {
+    marginHorizontal: -spacing.lg,
+    marginTop: -spacing.lg,
+    marginBottom: -spacing.sm,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
+    borderRadius: 16,
+  },
+  headRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    minHeight: 28,
+  },
+  title: { flex: 1, fontSize: 13, lineHeight: 18, fontFamily: face.semibold },
+  caret: { fontSize: 13, lineHeight: 18, fontFamily: face.bold },
+  body: { gap: spacing.xs },
+  text: { fontSize: 12, lineHeight: 18 },
 });

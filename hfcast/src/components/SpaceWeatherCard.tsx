@@ -5,7 +5,7 @@ import { Icon, Text, useTheme } from 'react-native-paper';
 
 import type { Sounding, SpaceWeather } from '../data/types';
 import { useFormatters } from '../hooks/useFormatters';
-import { numeric, radius, spacing, typography } from '../theme';
+import { face, numeric, radius, spacing, typography } from '../theme';
 import type { AppTheme } from '../theme';
 import { Inset } from './Card';
 
@@ -37,19 +37,21 @@ function Tile({ label, value, hint, solar }: TileProps) {
   const theme = useTheme<AppTheme>();
   const ui = theme.colors.ui;
   return (
-    <Inset style={styles.tile}>
-      <View accessible accessibilityLabel={`${label}: ${value}. ${hint}`}>
-        <Text style={[typography.label, { color: ui.text4 }]}>{label}</Text>
-        <Text
-          style={[typography.statValue, numeric, styles.tileValue, {
-            color: solar ? ui.amberNum : ui.ink,
-          }]}
-        >
-          {value}
-        </Text>
-        <Text style={[typography.caption, { color: ui.text3 }]}>{hint}</Text>
-      </View>
-    </Inset>
+    <View
+      accessible
+      accessibilityLabel={`${label}: ${value}. ${hint}`}
+      style={[styles.tile, { backgroundColor: ui.inset }]}
+    >
+      <Text style={[typography.label, { color: ui.text4 }]}>{label}</Text>
+      <Text
+        style={[typography.statValue, numeric, {
+          color: solar ? ui.amberNum : ui.ink,
+        }]}
+      >
+        {value}
+      </Text>
+      <Text style={[styles.hint, { color: ui.text3 }]}>{hint}</Text>
+    </View>
   );
 }
 
@@ -90,7 +92,7 @@ export default function SpaceWeatherCard({
   const stormy = spaceWeather.kp >= 5;
 
   return (
-    <View>
+    <View style={styles.wrap}>
       <View style={styles.tiles}>
         <Tile
           label={t('spaceWeather.flux')}
@@ -142,7 +144,7 @@ export default function SpaceWeatherCard({
             }]}
           >
             <Text
-              style={[typography.label, {
+              style={[styles.tagText, {
                 color: offline ? ui.text3 : ui.tagFg,
               }]}
             >
@@ -151,18 +153,28 @@ export default function SpaceWeatherCard({
                 : t('spaceWeather.measuredTag')}
             </Text>
           </View>
-          <Text
-            style={[typography.caption, styles.text, {
-              color: offline ? ui.text3 : ui.ionoTitle,
-            }]}
-          >
-            {t('spaceWeather.measured', {
-              value: f.megahertz(sounding.fof2),
-              station: sounding.station,
-              distance: f.distance(sounding.km),
-              time: f.hourMinute(new Date(sounding.measuredAt)),
-            })}
-          </Text>
+          <View style={styles.soundingText}>
+            <Text
+              style={[typography.bodyStrong, numeric, {
+                color: offline ? ui.text2 : ui.ionoTitle,
+              }]}
+            >
+              {t('spaceWeather.measuredTitle', {
+                value: f.megahertz(sounding.fof2),
+              })}
+            </Text>
+            <Text
+              style={[styles.hint, {
+                color: offline ? ui.text3 : ui.ionoSub,
+              }]}
+            >
+              {t('spaceWeather.measuredSub', {
+                station: sounding.station,
+                distance: f.distance(sounding.km),
+                time: f.hourMinute(new Date(sounding.measuredAt)),
+              })}
+            </Text>
+          </View>
         </View>
       )}
     </View>
@@ -170,23 +182,37 @@ export default function SpaceWeatherCard({
 }
 
 const styles = StyleSheet.create({
+  wrap: { gap: spacing.lg },
   // Wraps rather than scrolls: three tiles fit a phone at two per row and a
   // tablet at three, and a horizontal scroller would hide one of them.
   tiles: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
-  tile: { flexGrow: 1, flexBasis: 140 },
-  tileValue: { marginTop: 2 },
-  sounding: {
-    marginTop: spacing.md,
+  tile: {
+    flexGrow: 1,
+    flexBasis: 132,
     padding: spacing.md,
-    gap: spacing.sm,
+    gap: spacing.xs,
+    borderRadius: radius.inset,
+  },
+  sounding: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: spacing.md,
+    padding: spacing.md,
     borderRadius: radius.inset,
     borderWidth: StyleSheet.hairlineWidth,
   },
+  soundingText: { flex: 1, gap: 2 },
   tag: {
-    alignSelf: 'flex-start',
-    paddingHorizontal: spacing.sm,
-    paddingVertical: 3,
-    borderRadius: radius.cell,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 6,
+  },
+  tagText: {
+    fontSize: 11,
+    lineHeight: 14,
+    fontFamily: face.bold,
+    letterSpacing: 0.6,
+    textTransform: 'uppercase',
   },
   unavailable: {
     flexDirection: 'row',
@@ -194,4 +220,5 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   text: { flex: 1 },
+  hint: { fontSize: 12, lineHeight: 16 },
 });

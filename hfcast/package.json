@@ -1,6 +1,6 @@
 {
   "name": "hfcast",
-  "version": "0.11.0",
+  "version": "0.12.0",
   "license": "Apache-2.0",
   "main": "index.js",
   "scripts": {
@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "@babel/runtime": "^7.24.0",
+    "@expo-google-fonts/ibm-plex-sans": "^0.4.1",
     "@expo/metro-runtime": "~3.2.3",
     "@formatjs/intl-datetimeformat": "^6.12.5",
     "@formatjs/intl-getcanonicallocales": "^2.3.0",
@@ -26,6 +27,7 @@
     "@tanstack/react-query-persist-client": "5.101.4",
     "expo": "~51.0.28",
     "expo-asset": "~10.0.10",
+    "expo-font": "~12.0.10",
     "expo-localization": "~15.0.3",
     "expo-location": "~17.0.1",
     "expo-status-bar": "~1.12.1",

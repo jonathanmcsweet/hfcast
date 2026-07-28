@@ -37,7 +37,11 @@ export default function HourSlider({ hour, onChange, place, lon }: Props) {
         <Text style={[typography.label, styles.label, { color: ui.text4 }]}>
           {t('time.localAt', { place })}
         </Text>
-        <Text style={[typography.bodyStrong, numeric, { color: ui.ink }]}>
+        <Text
+          style={[typography.bodyStrong, numeric, styles.value, {
+            color: ui.ink,
+          }]}
+        >
           {t('time.bothZones', {
             local: f.utcHour(localHour(hour, lon)),
             utc: f.utcHour(hour),
@@ -61,15 +65,15 @@ export default function HourSlider({ hour, onChange, place, lon }: Props) {
 }
 
 const styles = StyleSheet.create({
-  wrap: { marginTop: spacing.md },
+  wrap: { gap: spacing.xs },
   labelRow: {
     flexDirection: 'row',
-    alignItems: 'flex-end',
+    alignItems: 'baseline',
     gap: spacing.sm,
-    marginBottom: spacing.xs,
   },
   // Wraps rather than truncates, since the place name is inside it.
   label: { flexShrink: 1 },
+  value: { marginStart: 'auto', textAlign: 'right' },
   // 44px tall so the thumb is reachable with a thumb, not a fingertip.
   slider: { width: '100%', height: 44 },
 });

@@ -37,7 +37,8 @@
         {
           "locationAlwaysAndWhenInUsePermission": "HFcast uses your location to work out the propagation path from where you are."
         }
-      ]
+      ],
+      "expo-font"
     ]
   }
 }

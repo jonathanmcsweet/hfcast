@@ -53,7 +53,9 @@
     "measuredTag": "Measured",
     "lastMeasured": "Last measured",
     "updated": "Updated {{time}}",
-    "asOf": "As of {{time}}"
+    "asOf": "As of {{time}}",
+    "measuredTitle": "Nearest ionosonde · {{value}}",
+    "measuredSub": "{{station}}, {{distance}} away · measured {{time}} UTC"
   },
   "quality": {
     "reliable": "Reliable",

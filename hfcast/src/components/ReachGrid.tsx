@@ -6,7 +6,7 @@ import { qualityFor } from '../data/quality';
 import { cellFor, mufAt } from '../data/selectors';
 import type { BandKey, PathPrediction } from '../data/types';
 import { useFormatters } from '../hooks/useFormatters';
-import { radius, spacing, typography } from '../theme';
+import { numeric, spacing, typography } from '../theme';
 import type { AppTheme } from '../theme';
 import BandHeatmap from './BandHeatmap';
 import BandTable from './BandTable';
@@ -67,24 +67,27 @@ export default function ReachGrid({
                   band: band.toUpperCase(),
                 })}
             </Text>
-            <Text style={[typography.answer, { color: ui.ink }]}>
+            <Text style={[typography.bodyStrong, numeric, { color: ui.ink }]}>
               {t('grid.chanceTo', {
                 percent: f.percent(reliability),
                 place: prediction.to.label,
               })}
             </Text>
           </View>
-          <QualityChip quality={quality} />
+          <QualityChip quality={quality} large />
         </View>
+        {
+          /* The rail sits inside the readout rather than beside it: it is
+             the reason for the number above it, not a separate display. */
+        }
+        <View style={[styles.rule, { backgroundColor: ui.line }]} />
+        <WindowRail
+          window={prediction.window}
+          muf={mufAt(prediction, hour)}
+          hour={hour}
+          band={band}
+        />
       </Inset>
-
-      <View style={[styles.rule, { backgroundColor: ui.line }]} />
-      <WindowRail
-        window={prediction.window}
-        muf={mufAt(prediction, hour)}
-        hour={hour}
-        band={band}
-      />
 
       {
         /* The unit is stated, not implied. The grid's quantity changes with
@@ -99,7 +102,10 @@ export default function ReachGrid({
           onPress={() => setAsTable((v) => !v)}
           accessibilityRole="button"
           accessibilityState={{ selected: asTable }}
-          style={[styles.toggle, { borderColor: ui.line2 }]}
+          style={[styles.toggle, {
+            borderColor: ui.line2,
+            backgroundColor: ui.card,
+          }]}
         >
           <Text style={[typography.captionStrong, { color: ui.accent }]}>
             {asTable ? t('grid.showAsGrid') : t('grid.showAsTable')}
@@ -127,23 +133,23 @@ export default function ReachGrid({
 }
 
 const styles = StyleSheet.create({
-  readoutRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
-  readoutText: { flex: 1, gap: spacing.xs },
-  rule: { height: StyleSheet.hairlineWidth, marginTop: spacing.md },
-  unitRow: {
+  readoutRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.sm,
-    marginTop: spacing.md,
+    minHeight: 40,
   },
+  readoutText: { flex: 1, gap: 2 },
+  rule: { height: StyleSheet.hairlineWidth },
+  unitRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
   unit: { flexShrink: 1 },
   toggle: {
     marginStart: 'auto',
     minHeight: 44,
     justifyContent: 'center',
-    paddingHorizontal: spacing.md,
-    borderRadius: radius.inset,
+    paddingHorizontal: 10,
+    borderRadius: 10,
     borderWidth: StyleSheet.hairlineWidth,
   },
-  footnote: { marginTop: spacing.md },
+  footnote: {},
 });

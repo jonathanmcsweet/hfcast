@@ -53,7 +53,9 @@
     "measuredTag": "Gemessen",
     "lastMeasured": "Zuletzt gemessen",
     "updated": "Aktualisiert {{time}}",
-    "asOf": "Stand {{time}}"
+    "asOf": "Stand {{time}}",
+    "measuredTitle": "Nächste Ionosonde · {{value}}",
+    "measuredSub": "{{station}}, {{distance}} entfernt · gemessen {{time}} UTC"
   },
   "quality": {
     "reliable": "Zuverlässig",

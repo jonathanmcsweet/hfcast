@@ -59,9 +59,12 @@ export default function PathHeader({ prediction, onPressDestination }: Props) {
       <TouchableRipple
         onPress={onPressDestination}
         accessibilityRole="button"
-        style={[styles.button, { borderColor: ui.line2 }]}
+        style={[styles.button, {
+          borderColor: ui.line2,
+          backgroundColor: ui.card,
+        }]}
       >
-        <Text style={[typography.captionStrong, { color: ui.accent }]}>
+        <Text style={[typography.bodyStrong, { color: ui.accent }]}>
           {t('path.changeDestination')}
         </Text>
       </TouchableRipple>
@@ -70,15 +73,18 @@ export default function PathHeader({ prediction, onPressDestination }: Props) {
 }
 
 const styles = StyleSheet.create({
-  wrap: { marginHorizontal: spacing.lg, marginTop: spacing.xl },
-  detail: { marginTop: spacing.xs },
+  wrap: {
+    marginHorizontal: spacing.lg,
+    marginTop: spacing.xl,
+    gap: spacing.sm,
+  },
+  detail: {},
   button: {
     alignSelf: 'flex-start',
-    marginTop: spacing.md,
     minHeight: 44,
     justifyContent: 'center',
-    paddingHorizontal: spacing.lg,
-    borderRadius: radius.control,
+    paddingHorizontal: 14,
+    borderRadius: radius.inset,
     borderWidth: StyleSheet.hairlineWidth,
   },
 });

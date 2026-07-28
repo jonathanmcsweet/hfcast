@@ -53,7 +53,9 @@
     "measuredTag": "Medido",
     "lastMeasured": "Última medición",
     "updated": "Actualizado {{time}}",
-    "asOf": "A las {{time}}"
+    "asOf": "A las {{time}}",
+    "measuredTitle": "Ionosonda más cercana · {{value}}",
+    "measuredSub": "{{station}}, a {{distance}} · medido a las {{time}} UTC"
   },
   "quality": {
     "reliable": "Fiable",
