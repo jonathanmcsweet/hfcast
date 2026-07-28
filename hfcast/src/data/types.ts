@@ -65,7 +65,7 @@ export interface PathPrediction {
   mufByHour: number[];
   /**
    * The frequency window to work inside, or null when the server did not
-   * supply one. Nothing displays it yet.
+   * supply one. Drawn by the usable-window rail.
    */
   window: OperatingWindow | null;
   cells: BandHourPrediction[];

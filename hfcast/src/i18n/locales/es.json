@@ -1,27 +1,59 @@
 {
-  "app": {
-    "title": "HFcast"
+  "bands": {
+    "label": "Banda"
+  },
+  "reach": {
+    "title": "¿Hasta dónde llego?",
+    "subtitle": "La previsión de abajo apunta a {{place}}.",
+    "answer": "{{band}} llega a {{place}} a las {{hour}} UTC: cerca de {{percent}} de probabilidad de contacto.",
+    "mapPending": "El mapa de cobertura aún no está construido. Hasta entonces, todo lo de abajo describe esta única ruta."
   },
   "path": {
-    "detail": "{{distance}} · {{bearing}}"
+    "summary": "{{distance}} · rumbo {{bearing}} · {{hops}} saltos",
+    "summaryOneHop": "{{distance}} · rumbo {{bearing}} · un salto",
+    "changeDestination": "Cambiar destino"
   },
-  "hero": {
-    "bestBandNow": "Mejor banda ahora",
-    "handoff": "{{current}} sostiene esta ruta hasta cerca de las {{time}}; después toma el relevo {{next}}.",
-    "nothingOpen": "Ninguna banda está abierta con fiabilidad en esta ruta ahora mismo.",
-    "pinnedBand": "Banda seleccionada"
+  "window": {
+    "label": "Ventana utilizable",
+    "floorCeiling": "Mínima {{floor}} · máxima {{ceiling}}",
+    "ceilingOnly": "Máxima {{ceiling}} · sin mínima",
+    "noFloor": "sin mínima",
+    "explain": "Por encima de {{ceiling}} la señal atraviesa la ionosfera y se pierde en el espacio. Por debajo de {{floor}} se absorbe al subir. Esas dos son la MUF y la LUF.",
+    "explainNoFloor": "Por encima de {{ceiling}} la señal atraviesa la ionosfera y se pierde en el espacio: esa es la MUF. Ninguna frecuencia fue lo bastante fiable esta hora para fijar una mínima."
   },
-  "metrics": {
-    "reliability": "Fiabilidad",
-    "signal": "Señal",
-    "muf": "MUF"
+  "grid": {
+    "readoutNow": "Ahora · {{hour}} · {{band}}",
+    "readoutAt": "{{band}} a las {{hour}}",
+    "chanceTo": "cerca de {{percent}} de probabilidad de contacto con {{place}}",
+    "unitChance": "Probabilidad de contacto, %",
+    "showAsTable": "Ver como tabla",
+    "showAsGrid": "Ver como cuadrícula",
+    "bandColumn": "Banda",
+    "footnoteHours": "Las horas son UTC. La hora local en {{place}} está en el reloj de arriba.",
+    "footnoteSaved": "Son datos guardados, así que no pueden mostrar nada que haya cambiado desde que se descargaron."
   },
   "sections": {
-    "hourly": "Próximas horas",
-    "bands": "Por banda",
-    "outlook": "Pronóstico de 24 horas",
-    "outlookHint": "Banda por hora, todas en UTC",
-    "spaceWeather": "Meteorología espacial"
+    "allBands": "Todas las bandas, todo el día",
+    "allBandsHint": "Hasta dónde llega cada banda, hora a hora.",
+    "legend": "Qué significan los tonos",
+    "sun": "El sol hoy"
+  },
+  "spaceWeather": {
+    "flux": "Flujo solar",
+    "fluxHint": "Más alto eleva las frecuencias utilizables",
+    "fluxSaved": "Lectura guardada, no actual",
+    "kp": "Índice K",
+    "kpQuiet": "Tranquilo. Condiciones normales",
+    "kpStormy": "Tormenta. Los trayectos pueden degradarse",
+    "kpSaved": "Última lectura. Una tormenta posterior sería invisible",
+    "effectiveSsn": "SSN efectivo",
+    "effectiveSsnHint": "Estimado a partir de las lecturas actuales",
+    "unavailable": "Las lecturas en directo no están disponibles, así que esta previsión usa las condiciones habituales del mes.",
+    "measured": "La ionosonda de {{station}}, a {{distance}}, midió foF2 {{value}} a las {{time}} UTC.",
+    "measuredTag": "Medido",
+    "lastMeasured": "Última medición",
+    "updated": "Actualizado {{time}}",
+    "asOf": "A las {{time}}"
   },
   "quality": {
     "reliable": "Fiable",
@@ -29,54 +61,22 @@
     "weak": "Débil",
     "closed": "Cerrada"
   },
+  "qualityDescription": {
+    "reliable": "Deberías establecer contacto",
+    "patchy": "Va y viene",
+    "weak": "Solo con paciencia",
+    "closed": "Esta banda no ahora"
+  },
+  "qualityLegend": {
+    "footnote": "Más contraste con el fondo significa una banda más fiable. Los cuatro estados están ordenados por luminosidad, así que se distinguen también en escala de grises y con cualquier tipo de daltonismo."
+  },
   "time": {
-    "now": "Ahora",
-    "utc": "UTC"
-  },
-  "disclaimer": {
-    "climatology": "Climatología mensual, no una previsión en directo. Supone un número de manchas solares suavizado de {{ssn}} y condiciones geomagnéticas tranquilas.",
-    "forecast": "Climatología mensual con un número de manchas solares previsto de {{ssn}}. Las previsiones más lejanas son menos seguras.",
-    "nowcast": "Basada en lecturas actuales, con un número de manchas solares efectivo de {{ssn}}. Estima la ionosfera, no esta ruta."
-  },
-  "settings": {
-    "language": "Idioma",
-    "changeLanguage": "Cambiar idioma"
-  },
-  "a11y": {
-    "bandRow": "{{band}}, {{quality}}, fiabilidad {{percent}}",
-    "hourCell": "{{time}}, mejor banda {{band}}, {{quality}}",
-    "heatmap": "Cuadrícula de calidad de propagación por banda y hora",
-    "changePath": "Ruta de {{from}} a {{to}}. Toca para cambiarla.",
-    "swapEnds": "Intercambiar los dos extremos de la ruta",
-    "followBestBand": "Seguir la banda que sea mejor",
-    "pinBand": "Mostrar solo {{band}}",
-    "nvis": "Llega por incidencia casi vertical, así que no hay zona de silencio.",
-    "sounding": "foF2 medido de {{value}} por la ionosonda de {{station}}, a {{distance}}, a las {{time}} UTC. Es una medición real, no parte de la previsión."
-  },
-  "basis": {
-    "live": "Condiciones actuales",
-    "climatology": "Habitual para el mes"
-  },
-  "bands": {
-    "best": "Mejor banda",
-    "nvis": "NVIS"
-  },
-  "days": {
-    "today": "Hoy"
-  },
-  "spaceWeather": {
-    "flux": "Flujo solar",
-    "fluxHint": "Más alto eleva las frecuencias utilizables",
-    "kp": "Índice K",
-    "kpQuiet": "Tranquilo. Condiciones normales",
-    "kpStormy": "Tormenta. Los trayectos pueden degradarse",
-    "effectiveSsn": "SSN efectivo",
-    "effectiveSsnHint": "Estimado a partir de las lecturas actuales",
-    "unavailable": "Las lecturas en directo no están disponibles, así que esta previsión usa las condiciones habituales del mes.",
-    "measured": "La ionosonda de {{station}}, a {{distance}}, midió foF2 {{value}} a las {{time}} UTC."
+    "localAt": "Hora local en {{place}}",
+    "bothZones": "{{local}} local · {{utc}} UTC"
   },
   "location": {
     "title": "Elegir una ruta",
+    "change": "Cambiar",
     "from": "Desde",
     "to": "Hasta",
     "useDevice": "Usar mi ubicación",
@@ -94,17 +94,27 @@
   },
   "offline": {
     "title": "Previsión guardada",
-    "body": "No se pudo contactar con el servidor. Se muestra la previsión guardada el {{time}} UTC.",
-    "unchanged": "Las previsiones son mensuales, así que sigue siendo correcta el resto del mes.",
-    "nowcastStale": "Las lecturas en directo que la generaron ya no son actuales. Interprétala como típica del mes."
+    "chip": "Sin conexión"
   },
-  "qualityDescription": {
-    "reliable": "Deberías establecer contacto",
-    "patchy": "Va y viene",
-    "weak": "Solo con paciencia",
-    "closed": "Esta banda no ahora"
+  "disclaimer": {
+    "titleLive": "Datos en directo, no climatología",
+    "titleSaved": "Datos guardados",
+    "climatology": "Climatología mensual, no una previsión en directo. Supone un número de manchas solares suavizado de {{ssn}} y condiciones geomagnéticas tranquilas.",
+    "forecast": "Climatología mensual con un número de manchas solares previsto de {{ssn}}. Las previsiones más lejanas son menos seguras.",
+    "nowcast": "Basada en lecturas actuales, con un número de manchas solares efectivo de {{ssn}}. Estima la ionosfera, no esta ruta.",
+    "station": "Supone 100 W a un dipolo a 10 m de altura. Una antena mejor supera estas cifras; una antena de compromiso no las alcanza."
   },
-  "qualityLegend": {
-    "footnote": "Más contraste con el fondo significa una banda más fiable. Los cuatro estados están ordenados por luminosidad, así que se distinguen también en escala de grises y con cualquier tipo de daltonismo."
+  "settings": {
+    "changeLanguage": "Cambiar idioma"
+  },
+  "a11y": {
+    "changeLocation": "Transmitiendo desde {{place}}. Toca para cambiarlo.",
+    "swapEnds": "Intercambiar los dos extremos de la ruta",
+    "pinBand": "Mostrar {{band}}",
+    "hourSlider": "Hora del día, UTC",
+    "gridCell": "{{band}}, {{hour}} UTC, {{percent}}, {{quality}}",
+    "windowRail": "Ventana utilizable: mínima {{floor}}, máxima {{ceiling}}. Toca para ver la explicación.",
+    "nvis": "Llega por incidencia casi vertical, así que no hay zona de silencio.",
+    "sounding": "foF2 medido de {{value}} por la ionosonda de {{station}}, a {{distance}}, a las {{time}} UTC. Es una medición real, no parte de la previsión."
   }
 }

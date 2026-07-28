@@ -1,27 +1,59 @@
 {
-  "app": {
-    "title": "HFcast"
+  "bands": {
+    "label": "バンド"
+  },
+  "reach": {
+    "title": "どこまで届きますか",
+    "subtitle": "下の予報は {{place}} に向けたものです。",
+    "answer": "{{band}} は {{hour}} UTC に {{place}} へ届きます。交信できる可能性は約 {{percent}} です。",
+    "mapPending": "到達範囲の地図はまだ作成されていません。それまでは、以下はこの一つの経路についての表示です。"
   },
   "path": {
-    "detail": "{{distance}} · {{bearing}}"
+    "summary": "{{distance}} · 方位 {{bearing}} · {{hops}} ホップ",
+    "summaryOneHop": "{{distance}} · 方位 {{bearing}} · 1 ホップ",
+    "changeDestination": "受信地を変更"
   },
-  "hero": {
-    "bestBandNow": "現在の最適バンド",
-    "handoff": "{{current}}が{{time}}頃までこの経路を支え、その後は{{next}}に移ります。",
-    "nothingOpen": "現在この経路で安定して開いているバンドはありません。",
-    "pinnedBand": "選択したバンド"
+  "window": {
+    "label": "使用可能な範囲",
+    "floorCeiling": "下限 {{floor}} · 上限 {{ceiling}}",
+    "ceilingOnly": "上限 {{ceiling}} · 下限なし",
+    "noFloor": "下限なし",
+    "explain": "{{ceiling}} より上では電波は電離層を突き抜けて宇宙へ出ていきます。{{floor}} より下では上昇中に吸収されます。この二つが MUF と LUF です。",
+    "explainNoFloor": "{{ceiling}} より上では電波は電離層を突き抜けて宇宙へ出ていきます。これが MUF です。この時間帯は、下限を決められるほど安定した周波数がありませんでした。"
   },
-  "metrics": {
-    "reliability": "信頼度",
-    "signal": "信号",
-    "muf": "MUF"
+  "grid": {
+    "readoutNow": "現在 · {{hour}} · {{band}}",
+    "readoutAt": "{{hour}} の {{band}}",
+    "chanceTo": "{{place}} と交信できる可能性は約 {{percent}}",
+    "unitChance": "交信できる可能性、%",
+    "showAsTable": "表で表示",
+    "showAsGrid": "図で表示",
+    "bandColumn": "バンド",
+    "footnoteHours": "時刻は UTC です。{{place}} の現地時刻は上の時計にあります。",
+    "footnoteSaved": "これは保存されたデータのため、取得後の変化は反映されません。"
   },
   "sections": {
-    "hourly": "今後の時間",
-    "bands": "バンド別",
-    "outlook": "24時間予報",
-    "outlookHint": "時間別バンド（すべてUTC）",
-    "spaceWeather": "宇宙天気"
+    "allBands": "全バンド・全時間",
+    "allBandsHint": "各バンドがどこまで届くか、1時間ごとに示します。",
+    "legend": "色の濃さの意味",
+    "sun": "今日の太陽"
+  },
+  "spaceWeather": {
+    "flux": "太陽電波フラックス",
+    "fluxHint": "高いほど使用可能な周波数が上がります",
+    "fluxSaved": "保存された測定値で、最新ではありません",
+    "kp": "K指数",
+    "kpQuiet": "静穏。通常の状態です",
+    "kpStormy": "磁気嵐。経路が悪化する場合があります",
+    "kpSaved": "最後の測定値です。その後に磁気嵐が起きても表示されません",
+    "effectiveSsn": "実効太陽黒点数",
+    "effectiveSsnHint": "現在の観測値からの推定",
+    "unavailable": "現在の観測値を取得できないため、この予報はその月の平年値を使用しています。",
+    "measured": "{{distance}} 離れた {{station}} の電離層観測装置が {{time}} UTC に foF2 {{value}} を測定しました。",
+    "measuredTag": "実測",
+    "lastMeasured": "最後の実測",
+    "updated": "{{time}} 更新",
+    "asOf": "{{time}} 時点"
   },
   "quality": {
     "reliable": "良好",
@@ -29,54 +61,22 @@
     "weak": "微弱",
     "closed": "不通"
   },
+  "qualityDescription": {
+    "reliable": "つながるはずです",
+    "patchy": "つながったり切れたり",
+    "weak": "根気があれば",
+    "closed": "この周波数は今は使えません"
+  },
+  "qualityLegend": {
+    "footnote": "背景との明暗差が大きいほど、その周波数は安定しています。4つの状態は明るさの順に並んでいるため、白黒表示でも、どの型の色覚特性でも読み取れます。"
+  },
   "time": {
-    "now": "現在",
-    "utc": "UTC"
-  },
-  "disclaimer": {
-    "climatology": "月別の気候値であり、リアルタイム予報ではありません。平滑化太陽黒点数 {{ssn}} と静穏な地磁気状態を前提としています。",
-    "forecast": "予測太陽黒点数 {{ssn}} を用いた月別の気候値です。先の予報ほど不確実になります。",
-    "nowcast": "現在の観測値に基づき、実効太陽黒点数は {{ssn}} です。これは電離層の推定であり、この経路の実測ではありません。"
-  },
-  "settings": {
-    "language": "言語",
-    "changeLanguage": "言語を変更"
-  },
-  "a11y": {
-    "bandRow": "{{band}}、{{quality}}、信頼度{{percent}}",
-    "hourCell": "{{time}}、最適バンド{{band}}、{{quality}}",
-    "heatmap": "バンドごと・時間ごとの伝搬品質の一覧",
-    "changePath": "{{from}} から {{to}} への経路。タップして変更します。",
-    "swapEnds": "経路の両端を入れ替える",
-    "followBestBand": "最適なバンドに追従する",
-    "pinBand": "{{band}} のみ表示",
-    "nvis": "ほぼ垂直入射で届くため、スキップゾーンがありません。",
-    "sounding": "{{distance}} 離れた {{station}} の観測装置による foF2 の実測値 {{value}}（{{time}} UTC）。予報ではなく実測値です。"
-  },
-  "basis": {
-    "live": "現在の状況",
-    "climatology": "その月の平年値"
-  },
-  "bands": {
-    "best": "最適バンド",
-    "nvis": "NVIS"
-  },
-  "days": {
-    "today": "今日"
-  },
-  "spaceWeather": {
-    "flux": "太陽電波フラックス",
-    "fluxHint": "高いほど使用可能な周波数が上がります",
-    "kp": "K指数",
-    "kpQuiet": "静穏。通常の状態です",
-    "kpStormy": "磁気嵐。経路が悪化する場合があります",
-    "effectiveSsn": "実効太陽黒点数",
-    "effectiveSsnHint": "現在の観測値からの推定",
-    "unavailable": "現在の観測値を取得できないため、この予報はその月の平年値を使用しています。",
-    "measured": "{{distance}} 離れた {{station}} の電離層観測装置が {{time}} UTC に foF2 {{value}} を測定しました。"
+    "localAt": "{{place}} の現地時刻",
+    "bothZones": "現地 {{local}} · UTC {{utc}}"
   },
   "location": {
     "title": "経路を選ぶ",
+    "change": "変更",
     "from": "送信地",
     "to": "受信地",
     "useDevice": "現在地を使う",
@@ -94,17 +94,27 @@
   },
   "offline": {
     "title": "保存された予報",
-    "body": "サーバーに接続できませんでした。{{time}} UTC に保存した予報を表示しています。",
-    "unchanged": "予報は月単位のため、今月中はこの内容で正しいままです。",
-    "nowcastStale": "もとになったリアルタイム測定値はすでに最新ではありません。月の平均的な状態として読んでください。"
+    "chip": "オフライン"
   },
-  "qualityDescription": {
-    "reliable": "つながるはずです",
-    "patchy": "つながったり切れたり",
-    "weak": "根気があれば",
-    "closed": "この周波数は今は使えません"
+  "disclaimer": {
+    "titleLive": "気候値ではなく、現在のデータ",
+    "titleSaved": "保存されたデータ",
+    "climatology": "月別の気候値であり、リアルタイム予報ではありません。平滑化太陽黒点数 {{ssn}} と静穏な地磁気状態を前提としています。",
+    "forecast": "予測太陽黒点数 {{ssn}} を用いた月別の気候値です。先の予報ほど不確実になります。",
+    "nowcast": "現在の観測値に基づき、実効太陽黒点数は {{ssn}} です。これは電離層の推定であり、この経路の実測ではありません。",
+    "station": "高さ 10 m のダイポールに 100 W を給電した場合を前提としています。より良いアンテナならこの数値を上回り、簡易的なアンテナでは届きません。"
   },
-  "qualityLegend": {
-    "footnote": "背景との明暗差が大きいほど、その周波数は安定しています。4つの状態は明るさの順に並んでいるため、白黒表示でも、どの型の色覚特性でも読み取れます。"
+  "settings": {
+    "changeLanguage": "言語を変更"
+  },
+  "a11y": {
+    "changeLocation": "送信地は {{place}} です。タップして変更します。",
+    "swapEnds": "経路の両端を入れ替える",
+    "pinBand": "{{band}} を表示",
+    "hourSlider": "時刻（UTC）",
+    "gridCell": "{{band}}、{{hour}} UTC、{{percent}}、{{quality}}",
+    "windowRail": "使用可能な範囲：下限 {{floor}}、上限 {{ceiling}}。タップすると説明が開きます。",
+    "nvis": "ほぼ垂直入射で届くため、スキップゾーンがありません。",
+    "sounding": "{{distance}} 離れた {{station}} の観測装置による foF2 の実測値 {{value}}（{{time}} UTC）。予報ではなく実測値です。"
   }
 }

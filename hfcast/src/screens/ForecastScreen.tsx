@@ -4,21 +4,19 @@ import { ScrollView, StyleSheet, View } from 'react-native';
 import { ActivityIndicator, Button, Text, useTheme } from 'react-native-paper';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import BandHeatmap from '../components/BandHeatmap';
-import BandList from '../components/BandList';
+import AppHeader from '../components/AppHeader';
 import BandSelector from '../components/BandSelector';
-import DaySelector from '../components/DaySelector';
+import Collapsible from '../components/Collapsible';
 import DisclaimerCard from '../components/DisclaimerCard';
-import HeroCard from '../components/HeroCard';
-import HourlyStrip from '../components/HourlyStrip';
 import LocationPicker from '../components/LocationPicker';
-import OfflineBanner from '../components/OfflineBanner';
 import PathHeader from '../components/PathHeader';
 import QualityLegend from '../components/QualityLegend';
+import ReachCard from '../components/ReachCard';
+import ReachGrid from '../components/ReachGrid';
 import SectionHeading from '../components/SectionHeading';
 import SpaceWeatherCard from '../components/SpaceWeatherCard';
 
-import { usePrediction, usePrefetchDays, useSounding } from '../api/queries';
+import { usePrediction, useSounding } from '../api/queries';
 import { usePathStore } from '../store/usePathStore';
 import { spacing, typography } from '../theme';
 import type { AppTheme } from '../theme';
@@ -32,10 +30,10 @@ export default function ForecastScreen() {
 
   const from = usePathStore((s) => s.from);
   const to = usePathStore((s) => s.to);
-  const pinnedBand = usePathStore((s) => s.pinnedBand);
-  const setPinnedBand = usePathStore((s) => s.setPinnedBand);
-  const dayOffset = usePathStore((s) => s.dayOffset);
-  const setDayOffset = usePathStore((s) => s.setDayOffset);
+  const band = usePathStore((s) => s.band);
+  const setBand = usePathStore((s) => s.setBand);
+  const hour = usePathStore((s) => s.hour);
+  const setHour = usePathStore((s) => s.setHour);
 
   useEffect(() => {
     const id = setInterval(() => setNow(new Date()), 60_000);
@@ -43,26 +41,21 @@ export default function ForecastScreen() {
   }, []);
 
   const { data, error, isPending, isFetching, dataUpdatedAt, refetch } =
-    usePrediction(from, to, dayOffset);
-
-  // Once a request has succeeded the network is up, which is the moment
-  // worth spending on filling the other days.
-  usePrefetchDays(from, to, Boolean(data) && !error);
+    usePrediction(from, to);
 
   // Measured foF2 near the transmitting end, when a sounder is close
   // enough. Independent of the forecast: it never delays or blocks it.
   const { data: sounding } = useSounding(from);
 
-  // A future day has no "now", so it opens at the start of the UTC day.
-  const hour = dayOffset === 0 ? now.getUTCHours() : 0;
+  const ui = theme.colors.ui;
+  const nowHour = now.getUTCHours();
+  const offline = Boolean(error);
 
   if (isPending) {
     return (
-      <View
-        style={[styles.centre, { backgroundColor: theme.colors.background }]}
-      >
+      <View style={[styles.centre, { backgroundColor: ui.page }]}>
         <ActivityIndicator size="large" />
-        <Text style={[typography.body, styles.centreText]}>
+        <Text style={[typography.body, styles.centreText, { color: ui.text2 }]}>
           {t('status.loading')}
         </Text>
       </View>
@@ -77,17 +70,11 @@ export default function ForecastScreen() {
   // refetch in `error`, which is exactly this case.
   if (!data) {
     return (
-      <View
-        style={[styles.centre, { backgroundColor: theme.colors.background }]}
-      >
-        <Text style={typography.cardHeadline}>{t('status.errorTitle')}</Text>
-        <Text
-          style={[
-            typography.body,
-            styles.centreText,
-            { color: theme.colors.onSurfaceVariant },
-          ]}
-        >
+      <View style={[styles.centre, { backgroundColor: ui.page }]}>
+        <Text style={[typography.cardHeadline, { color: ui.ink }]}>
+          {t('status.errorTitle')}
+        </Text>
+        <Text style={[typography.body, styles.centreText, { color: ui.text2 }]}>
           {t('status.errorBody')}
         </Text>
         {
@@ -98,9 +85,7 @@ export default function ForecastScreen() {
         */
         }
         <Text
-          style={[typography.caption, styles.centreDetail, {
-            color: theme.colors.onSurfaceVariant,
-          }]}
+          style={[typography.caption, styles.centreDetail, { color: ui.text3 }]}
         >
           {error instanceof Error ? error.message : String(error)}
         </Text>
@@ -118,63 +103,90 @@ export default function ForecastScreen() {
   const { prediction, spaceWeather } = data;
 
   return (
-    <View style={[styles.root, { backgroundColor: theme.colors.background }]}>
-      <PathHeader
-        prediction={prediction}
-        now={now}
-        onPressPath={() =>
-          setPickerOpen(true)}
-      />
+    <View style={[styles.root, { backgroundColor: ui.page }]}>
       <ScrollView
         contentContainerStyle={{ paddingBottom: insets.bottom + spacing.xxl }}
         showsVerticalScrollIndicator={false}
       >
-        {error && (
-          <OfflineBanner
-            savedAt={dataUpdatedAt}
-            wasNowcast={prediction.basis === 'nowcast'}
-            onRetry={() => void refetch()}
-            retrying={isFetching}
-          />
-        )}
-
-        <View style={styles.controls}>
-          <DaySelector value={dayOffset} onChange={setDayOffset} />
-        </View>
-
-        <HeroCard prediction={prediction} hour={hour} pinnedBand={pinnedBand} />
-
-        <View style={styles.controls}>
-          <BandSelector value={pinnedBand} onChange={setPinnedBand} />
-        </View>
-
-        <SectionHeading title={t('sections.hourly')} />
-        <HourlyStrip
-          prediction={prediction}
-          hour={hour}
-          pinnedBand={pinnedBand}
+        <AppHeader
+          place={prediction.from.label}
+          offline={offline}
+          onPressPlace={() => setPickerOpen(true)}
+          onRefresh={() => void refetch()}
+          refreshing={isFetching}
         />
 
-        <SectionHeading title={t('sections.bands')} />
-        <BandList prediction={prediction} hour={hour} />
+        <BandSelector value={band} onChange={setBand} />
+
+        <ReachCard
+          prediction={prediction}
+          band={band}
+          hour={hour}
+          onHourChange={setHour}
+        />
+
+        <PathHeader
+          prediction={prediction}
+          onPressDestination={() => setPickerOpen(true)}
+        />
 
         <SectionHeading
-          title={t('sections.outlook')}
-          hint={t('sections.outlookHint')}
+          title={t('sections.allBands')}
+          hint={t('sections.allBandsHint')}
         />
-        <BandHeatmap prediction={prediction} />
-        <View style={styles.legend}>
+        <ReachGrid
+          prediction={prediction}
+          band={band}
+          hour={hour}
+          nowHour={nowHour}
+          offline={offline}
+          onSelect={(nextBand, nextHour) => {
+            setBand(nextBand);
+            setHour(nextHour);
+          }}
+        />
+
+        <Collapsible title={t('sections.legend')} defaultOpen>
           <QualityLegend />
-        </View>
+        </Collapsible>
 
-        <SectionHeading title={t('sections.spaceWeather')} />
-        <SpaceWeatherCard spaceWeather={spaceWeather} sounding={sounding} />
+        {
+          /* The freshness tag stays on the collapsed header. A cached quiet
+             K index is the most misleading number this app can show, so how
+             old it is must not be something the reader has to open a
+             section to discover. */
+        }
+        <Collapsible
+          title={t('sections.sun')}
+          tag={offline
+            ? t('spaceWeather.asOf', {
+              time: dataUpdatedAt
+                ? new Date(dataUpdatedAt).toISOString().slice(11, 16)
+                : '',
+            })
+            : t('spaceWeather.updated', {
+              time: new Date(dataUpdatedAt).toISOString().slice(11, 16),
+            })}
+          tagStale={offline}
+        >
+          <SpaceWeatherCard
+            spaceWeather={spaceWeather}
+            sounding={sounding}
+            offline={offline}
+          />
+        </Collapsible>
 
-        <DisclaimerCard
-          ssn={prediction.ssn}
-          basis={prediction.basis}
-          saved={Boolean(error)}
-        />
+        <Collapsible
+          title={offline
+            ? t('disclaimer.titleSaved')
+            : t('disclaimer.titleLive')}
+        >
+          <DisclaimerCard
+            ssn={prediction.ssn}
+            basis={prediction.basis}
+            saved={offline}
+          />
+        </Collapsible>
       </ScrollView>
 
       <LocationPicker
@@ -187,8 +199,6 @@ export default function ForecastScreen() {
 
 const styles = StyleSheet.create({
   root: { flex: 1 },
-  legend: { marginHorizontal: spacing.lg },
-  controls: { marginTop: spacing.md },
   centre: {
     flex: 1,
     alignItems: 'center',
