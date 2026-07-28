@@ -18,7 +18,7 @@ import QualityLegend from '../components/QualityLegend';
 import SectionHeading from '../components/SectionHeading';
 import SpaceWeatherCard from '../components/SpaceWeatherCard';
 
-import { usePrediction } from '../api/queries';
+import { usePrediction, usePrefetchDays } from '../api/queries';
 import { usePathStore } from '../store/usePathStore';
 import type { AppTheme } from '../theme';
 
@@ -43,6 +43,10 @@ export default function ForecastScreen() {
 
   const { data, error, isPending, isFetching, dataUpdatedAt, refetch } =
     usePrediction(from, to, dayOffset);
+
+  // Once a request has succeeded the network is up, which is the moment
+  // worth spending on filling the other days.
+  usePrefetchDays(from, to, Boolean(data) && !error);
 
   // A future day has no "now", so it opens at the start of the UTC day.
   const hour = dayOffset === 0 ? now.getUTCHours() : 0;
