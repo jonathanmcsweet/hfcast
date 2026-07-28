@@ -1,4 +1,9 @@
-import type { Place, PredictionResponse, SpaceWeather } from '../data/types';
+import type {
+  Place,
+  PredictionResponse,
+  Sounding,
+  SpaceWeather,
+} from '../data/types';
 
 /**
  * Where the prediction server lives. Set EXPO_PUBLIC_HFCAST_API to point a
@@ -109,6 +114,18 @@ export function fetchForecast(
     date: p.date,
     days: String(p.days),
   });
+}
+
+/**
+ * Measured foF2 near a point, or null where no live sounder is close
+ * enough. Fetched through the server rather than directly: GIRO restricts
+ * its CORS header to its own origin, so a browser blocks a direct call.
+ */
+export function fetchSounding(
+  lat: number,
+  lon: number,
+): Promise<Sounding | null> {
+  return getJson<Sounding | null>('/api/ionosonde', { at: `${lat},${lon}` });
 }
 
 export function fetchGeocode(query: string, lang: string): Promise<Place[]> {

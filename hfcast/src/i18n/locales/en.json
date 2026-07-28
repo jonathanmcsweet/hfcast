@@ -42,7 +42,8 @@
     "kpStormy": "Storm. Paths may be degraded",
     "effectiveSsn": "Effective SSN",
     "effectiveSsnHint": "Estimated from current readings",
-    "unavailable": "Live readings are unavailable, so this forecast uses typical conditions for the month."
+    "unavailable": "Live readings are unavailable, so this forecast uses typical conditions for the month.",
+    "measured": "Sounder at {{station}}, {{distance}} away, measured foF2 {{value}} at {{time}} UTC."
   },
   "quality": {
     "reliable": "Reliable",
@@ -94,6 +95,7 @@
     "swapEnds": "Swap the two ends of the path",
     "followBestBand": "Follow whichever band is best",
     "pinBand": "Show {{band}} only",
-    "nvis": "Reaches by near-vertical incidence, so there is no skip zone."
+    "nvis": "Reaches by near-vertical incidence, so there is no skip zone.",
+    "sounding": "Measured foF2 {{value}} from the sounder at {{station}}, {{distance}} away, at {{time}} UTC. This is a real measurement, not part of the forecast."
   }
 }

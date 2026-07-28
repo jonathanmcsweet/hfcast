@@ -3,7 +3,12 @@ import { useEffect } from 'react';
 
 import type { Endpoint } from '../data/types';
 import { dateForOffset, MAX_DAY_OFFSET } from '../store/usePathStore';
-import { fetchForecast, fetchGeocode, fetchPrediction } from './client';
+import {
+  fetchForecast,
+  fetchGeocode,
+  fetchPrediction,
+  fetchSounding,
+} from './client';
 
 /**
  * All network state goes through React Query. Query keys carry every input the
@@ -17,6 +22,7 @@ export const queryKeys = {
   forecast: (from: string, to: string, date: string, days: number) =>
     ['forecast', from, to, date, days] as const,
   geocode: (query: string, lang: string) => ['geocode', query, lang] as const,
+  sounding: (lat: number, lon: number) => ['sounding', lat, lon] as const,
 };
 
 /**
@@ -110,6 +116,25 @@ export function usePrefetchDays(
       }
     }
   }, [client, data, from.grid, to.grid]);
+}
+
+/**
+ * Measured foF2 from a sounder near the transmitting end.
+ *
+ * Never blocks anything: a null answer is the ordinary case outside
+ * Europe, and a failure leaves the forecast untouched. Not persisted
+ * either — a measurement's whole value is being current, so a saved one
+ * would be worse than none.
+ */
+export function useSounding(from: Endpoint) {
+  return useQuery({
+    queryKey: queryKeys.sounding(from.lat, from.lon),
+    queryFn: () => fetchSounding(from.lat, from.lon),
+    // Stations sound every 5 to 15 minutes and the server caches for 5.
+    staleTime: 5 * 60 * 1000,
+    gcTime: 15 * 60 * 1000,
+    retry: false,
+  });
 }
 
 /** Place search. Also accepts a Maidenhead locator, resolved without a network call upstream. */

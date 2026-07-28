@@ -18,7 +18,7 @@ import QualityLegend from '../components/QualityLegend';
 import SectionHeading from '../components/SectionHeading';
 import SpaceWeatherCard from '../components/SpaceWeatherCard';
 
-import { usePrediction, usePrefetchDays } from '../api/queries';
+import { usePrediction, usePrefetchDays, useSounding } from '../api/queries';
 import { usePathStore } from '../store/usePathStore';
 import type { AppTheme } from '../theme';
 
@@ -47,6 +47,10 @@ export default function ForecastScreen() {
   // Once a request has succeeded the network is up, which is the moment
   // worth spending on filling the other days.
   usePrefetchDays(from, to, Boolean(data) && !error);
+
+  // Measured foF2 near the transmitting end, when a sounder is close
+  // enough. Independent of the forecast: it never delays or blocks it.
+  const { data: sounding } = useSounding(from);
 
   // A future day has no "now", so it opens at the start of the UTC day.
   const hour = dayOffset === 0 ? now.getUTCHours() : 0;
@@ -161,7 +165,7 @@ export default function ForecastScreen() {
         </View>
 
         <SectionHeading title={t('sections.spaceWeather')} />
-        <SpaceWeatherCard spaceWeather={spaceWeather} />
+        <SpaceWeatherCard spaceWeather={spaceWeather} sounding={sounding} />
 
         <DisclaimerCard
           ssn={prediction.ssn}

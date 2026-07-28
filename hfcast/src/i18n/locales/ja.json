@@ -50,7 +50,8 @@
     "swapEnds": "経路の両端を入れ替える",
     "followBestBand": "最適なバンドに追従する",
     "pinBand": "{{band}} のみ表示",
-    "nvis": "ほぼ垂直入射で届くため、スキップゾーンがありません。"
+    "nvis": "ほぼ垂直入射で届くため、スキップゾーンがありません。",
+    "sounding": "{{distance}} 離れた {{station}} の観測装置による foF2 の実測値 {{value}}（{{time}} UTC）。予報ではなく実測値です。"
   },
   "basis": {
     "live": "現在の状況",
@@ -71,7 +72,8 @@
     "kpStormy": "磁気嵐。経路が悪化する場合があります",
     "effectiveSsn": "実効太陽黒点数",
     "effectiveSsnHint": "現在の観測値からの推定",
-    "unavailable": "現在の観測値を取得できないため、この予報はその月の平年値を使用しています。"
+    "unavailable": "現在の観測値を取得できないため、この予報はその月の平年値を使用しています。",
+    "measured": "{{distance}} 離れた {{station}} の電離層観測装置が {{time}} UTC に foF2 {{value}} を測定しました。"
   },
   "location": {
     "title": "経路を選ぶ",
