@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { StyleSheet, View } from 'react-native';
 import { Icon, Surface, Text, useTheme } from 'react-native-paper';
 
-import type { SpaceWeather } from '../data/types';
+import type { Sounding, SpaceWeather } from '../data/types';
 import { useFormatters } from '../hooks/useFormatters';
 import { numeric } from '../theme';
 import type { AppTheme } from '../theme';
@@ -11,6 +11,12 @@ import type { AppTheme } from '../theme';
 interface Props {
   /** Null when the upstream was unreachable. */
   spaceWeather: SpaceWeather | null;
+  /**
+   * A measured foF2 from a nearby sounder, when one is close enough and
+   * reporting. Undefined while loading, null when there is none — and null
+   * is the ordinary case, since live stations are almost all in Europe.
+   */
+  sounding?: Sounding | null;
 }
 
 interface ReadingProps {
@@ -53,7 +59,7 @@ function Reading({ label, value, hint }: ReadingProps) {
  * are shown as numbers with a plain-language hint each, so the figure is
  * readable by someone who has never met a K index.
  */
-export default function SpaceWeatherCard({ spaceWeather }: Props) {
+export default function SpaceWeatherCard({ spaceWeather, sounding }: Props) {
   const theme = useTheme<AppTheme>();
   const { t } = useTranslation();
   const f = useFormatters();
@@ -106,6 +112,41 @@ export default function SpaceWeatherCard({ spaceWeather }: Props) {
           hint={t('spaceWeather.effectiveSsnHint')}
         />
       </View>
+      {
+        /* The one measured number in the app. Everything above is an index
+           that feeds the model; this is an ionosonde saying what the
+           ionosphere actually did, which is the only line here a user can
+           check the model against. Absent for most of the world. */
+      }
+      {sounding && (
+        <View
+          accessible
+          accessibilityLabel={t('a11y.sounding', {
+            value: f.megahertz(sounding.fof2),
+            station: sounding.station,
+            distance: f.distance(sounding.km),
+            time: f.hourMinute(new Date(sounding.measuredAt)),
+          })}
+          style={styles.sounding}
+        >
+          <Icon
+            source="radar"
+            size={16}
+            color={theme.colors.onSurfaceVariant}
+          />
+          <Text
+            variant="bodySmall"
+            style={[styles.text, { color: theme.colors.onSurfaceVariant }]}
+          >
+            {t('spaceWeather.measured', {
+              value: f.megahertz(sounding.fof2),
+              station: sounding.station,
+              distance: f.distance(sounding.km),
+              time: f.hourMinute(new Date(sounding.measuredAt)),
+            })}
+          </Text>
+        </View>
+      )}
     </Surface>
   );
 }
@@ -113,6 +154,12 @@ export default function SpaceWeatherCard({ spaceWeather }: Props) {
 const styles = StyleSheet.create({
   wrap: { marginHorizontal: 16, borderRadius: 12, padding: 12 },
   readings: { flexDirection: 'row', gap: 12 },
+  sounding: {
+    flexDirection: 'row',
+    gap: 8,
+    alignItems: 'center',
+    marginTop: 10,
+  },
   reading: { flex: 1 },
   unavailable: { flexDirection: 'row', gap: 10, alignItems: 'center' },
   text: { flex: 1, lineHeight: 18 },

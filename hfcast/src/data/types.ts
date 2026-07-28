@@ -77,6 +77,23 @@ export interface SpaceWeather {
   observedAt: string;
 }
 
+/**
+ * A measured foF2 from a real ionosonde near the path, for comparison with
+ * the model's assumption. Absent for most of the world: only a handful of
+ * stations report live, and nearly all of them are in Europe.
+ */
+export interface Sounding {
+  station: string;
+  ursi: string;
+  /** How far the sounder is from the point asked about, km. */
+  km: number;
+  /** Critical frequency of the F2 layer, MHz. */
+  fof2: number;
+  measuredAt: string;
+  /** Autoscaling confidence, 0-100. */
+  confidence: number;
+}
+
 export interface PredictionResponse {
   prediction: PathPrediction;
   /** Null when the space weather upstream was unreachable. */

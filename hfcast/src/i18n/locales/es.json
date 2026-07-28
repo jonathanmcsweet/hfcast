@@ -50,7 +50,8 @@
     "swapEnds": "Intercambiar los dos extremos de la ruta",
     "followBestBand": "Seguir la banda que sea mejor",
     "pinBand": "Mostrar solo {{band}}",
-    "nvis": "Llega por incidencia casi vertical, así que no hay zona de silencio."
+    "nvis": "Llega por incidencia casi vertical, así que no hay zona de silencio.",
+    "sounding": "foF2 medido de {{value}} por la ionosonda de {{station}}, a {{distance}}, a las {{time}} UTC. Es una medición real, no parte de la previsión."
   },
   "basis": {
     "live": "Condiciones actuales",
@@ -71,7 +72,8 @@
     "kpStormy": "Tormenta. Los trayectos pueden degradarse",
     "effectiveSsn": "SSN efectivo",
     "effectiveSsnHint": "Estimado a partir de las lecturas actuales",
-    "unavailable": "Las lecturas en directo no están disponibles, así que esta previsión usa las condiciones habituales del mes."
+    "unavailable": "Las lecturas en directo no están disponibles, así que esta previsión usa las condiciones habituales del mes.",
+    "measured": "La ionosonda de {{station}}, a {{distance}}, midió foF2 {{value}} a las {{time}} UTC."
   },
   "location": {
     "title": "Elegir una ruta",

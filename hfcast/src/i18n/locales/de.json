@@ -50,7 +50,8 @@
     "swapEnds": "Die beiden Enden der Strecke tauschen",
     "followBestBand": "Der jeweils besten Band folgen",
     "pinBand": "Nur {{band}} anzeigen",
-    "nvis": "Erreicht über nahezu senkrechten Einfall, daher ohne tote Zone."
+    "nvis": "Erreicht über nahezu senkrechten Einfall, daher ohne tote Zone.",
+    "sounding": "Gemessenes foF2 {{value}} von der Ionosonde in {{station}}, {{distance}} entfernt, um {{time}} UTC. Eine echte Messung, nicht Teil der Vorhersage."
   },
   "basis": {
     "live": "Aktuelle Bedingungen",
@@ -71,7 +72,8 @@
     "kpStormy": "Sturm. Strecken können gestört sein",
     "effectiveSsn": "Effektive SSN",
     "effectiveSsnHint": "Aus aktuellen Messwerten geschätzt",
-    "unavailable": "Aktuelle Messwerte sind nicht verfügbar, daher nutzt diese Vorhersage die typischen Bedingungen des Monats."
+    "unavailable": "Aktuelle Messwerte sind nicht verfügbar, daher nutzt diese Vorhersage die typischen Bedingungen des Monats.",
+    "measured": "Die Ionosonde in {{station}}, {{distance}} entfernt, hat um {{time}} UTC foF2 {{value}} gemessen."
   },
   "location": {
     "title": "Strecke wählen",

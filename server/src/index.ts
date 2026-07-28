@@ -7,6 +7,7 @@
  *   GET /api/geocode?q=            place name search, or a Maidenhead locator
  *   GET /api/prediction?from&to    one day, optionally as a now-cast
  *   GET /api/forecast?from&to&days several days, one prediction each
+ *   GET /api/ionosonde?at=lat,lon  measured foF2 from the nearest sounder
  */
 import {
   createServer,
@@ -16,6 +17,12 @@ import {
 
 import { TtlCache } from './cache.ts';
 import { gridToLatLon, isGrid, latLonToGrid } from './geo.ts';
+import {
+  fetchSounding,
+  IONOSONDE_TTL_MS,
+  type Sounding,
+  usefulStation,
+} from './ionosonde.ts';
 import { endpointFromLatLon, isoDate, predict } from './predict.ts';
 import { fetchSpaceWeather } from './spaceweather.ts';
 import type { Endpoint, PredictionResponse, SpaceWeather } from './types.ts';
@@ -31,6 +38,9 @@ const DEFAULT_NOISE_DBW = 145;
 /** Space weather updates on the order of an hour; geocoding barely changes. */
 const spaceWeatherCache = new TtlCache<SpaceWeather>(15 * 60 * 1000, 1);
 const geocodeCache = new TtlCache<unknown>(24 * 60 * 60 * 1000, 200);
+// Keyed on the station rather than the request point, since every point
+// near one station wants the same reading.
+const ionosondeCache = new TtlCache<Sounding | null>(IONOSONDE_TTL_MS, 50);
 
 class BadRequest extends Error {}
 
@@ -176,6 +186,22 @@ async function handleForecast(url: URL): Promise<PredictionResponse[]> {
   return out;
 }
 
+/**
+ * Measured foF2 near a point. `null` when there is no live station in
+ * range or the service did not answer, which is the ordinary case outside
+ * Europe rather than a failure.
+ */
+async function handleIonosonde(url: URL): Promise<Sounding | null> {
+  const at = parseEndpoint(url.searchParams.get('at'), null, 'at');
+  const station = usefulStation(at.lat, at.lon);
+  if (station === null) return null;
+  const cached = ionosondeCache.get(station.ursi);
+  if (cached !== undefined) return cached;
+  const sounding = await fetchSounding(at.lat, at.lon);
+  ionosondeCache.set(station.ursi, sounding);
+  return sounding;
+}
+
 interface GeocodeResult {
   name: string;
   lat: number;
@@ -261,6 +287,8 @@ async function route(url: URL): Promise<unknown> {
       return await handlePrediction(url);
     case '/api/forecast':
       return await handleForecast(url);
+    case '/api/ionosonde':
+      return await handleIonosonde(url);
     default:
       return undefined;
   }
