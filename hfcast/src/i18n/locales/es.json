@@ -103,5 +103,8 @@
     "patchy": "Va y viene",
     "weak": "Solo con paciencia",
     "closed": "Esta banda no ahora"
+  },
+  "qualityLegend": {
+    "footnote": "Más contraste con el fondo significa una banda más fiable. Los cuatro estados están ordenados por luminosidad, así que se distinguen también en escala de grises y con cualquier tipo de daltonismo."
   }
 }

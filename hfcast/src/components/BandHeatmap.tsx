@@ -6,7 +6,7 @@ import { qualityFor } from '../data/quality';
 import { BAND_ORDER } from '../data/types';
 import type { PathPrediction } from '../data/types';
 import { useFormatters } from '../hooks/useFormatters';
-import { numeric } from '../theme';
+import { numeric, radius, spacing, typography } from '../theme';
 import type { AppTheme } from '../theme';
 
 interface Props {
@@ -48,8 +48,7 @@ export default function BandHeatmap({ prediction, step = 3 }: Props) {
         {columns.map((h) => (
           <Text
             key={h}
-            variant="labelSmall"
-            style={[styles.colLabel, numeric, {
+            style={[typography.axis, styles.colLabel, numeric, {
               color: theme.colors.onSurfaceVariant,
             }]}
           >
@@ -61,8 +60,12 @@ export default function BandHeatmap({ prediction, step = 3 }: Props) {
       {BAND_ORDER.map((band) => (
         <View key={band} style={styles.row}>
           <Text
-            variant="labelSmall"
-            style={[styles.gutter, { color: theme.colors.onSurfaceVariant }]}
+            style={[
+              typography.axis,
+              numeric,
+              styles.gutter,
+              { color: theme.colors.onSurfaceVariant },
+            ]}
           >
             {band}
           </Text>
@@ -86,11 +89,19 @@ export default function BandHeatmap({ prediction, step = 3 }: Props) {
 }
 
 const styles = StyleSheet.create({
-  wrap: { marginHorizontal: 16 },
-  headerRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 4 },
-  row: { flexDirection: 'row', alignItems: 'center', marginBottom: 3 },
+  wrap: { marginHorizontal: spacing.lg },
+  headerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: spacing.xs,
+  },
+  row: { flexDirection: 'row', alignItems: 'center', marginBottom: 1 },
+  // The label column is a fixed 36px so every row's cells start on the same
+  // edge, which is what lets the grid read down a column as well as across.
   gutter: { width: 36 },
   colLabel: { flex: 1, textAlign: 'center' },
-  cellSlot: { flex: 1, paddingHorizontal: 1.5 },
-  cell: { height: 20, borderRadius: 4 },
+  // Half a gap either side of a cell gives the 1px gutter the design asks
+  // for without a margin that would break `flex: 1` sizing.
+  cellSlot: { flex: 1, paddingHorizontal: 0.5 },
+  cell: { height: 22, borderRadius: radius.cell },
 });

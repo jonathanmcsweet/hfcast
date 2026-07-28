@@ -5,7 +5,7 @@ import { Icon, Surface, Text, useTheme } from 'react-native-paper';
 
 import type { Sounding, SpaceWeather } from '../data/types';
 import { useFormatters } from '../hooks/useFormatters';
-import { numeric } from '../theme';
+import { numeric, radius, spacing, typography } from '../theme';
 import type { AppTheme } from '../theme';
 
 interface Props {
@@ -34,17 +34,15 @@ function Reading({ label, value, hint }: ReadingProps) {
       accessibilityLabel={`${label}: ${value}. ${hint}`}
     >
       <Text
-        variant="labelSmall"
-        style={{ color: theme.colors.onSurfaceVariant }}
+        style={[typography.label, { color: theme.colors.onSurfaceVariant }]}
       >
         {label}
       </Text>
-      <Text variant="titleMedium" style={numeric}>
+      <Text style={[typography.statValue, numeric]}>
         {value}
       </Text>
       <Text
-        variant="bodySmall"
-        style={{ color: theme.colors.onSurfaceVariant }}
+        style={[typography.caption, { color: theme.colors.onSurfaceVariant }]}
       >
         {hint}
       </Text>
@@ -77,8 +75,11 @@ export default function SpaceWeatherCard({ spaceWeather, sounding }: Props) {
             color={theme.colors.onSurfaceVariant}
           />
           <Text
-            variant="bodySmall"
-            style={[styles.text, { color: theme.colors.onSurfaceVariant }]}
+            style={[
+              typography.caption,
+              styles.text,
+              { color: theme.colors.onSurfaceVariant },
+            ]}
           >
             {t('spaceWeather.unavailable')}
           </Text>
@@ -135,8 +136,11 @@ export default function SpaceWeatherCard({ spaceWeather, sounding }: Props) {
             color={theme.colors.onSurfaceVariant}
           />
           <Text
-            variant="bodySmall"
-            style={[styles.text, { color: theme.colors.onSurfaceVariant }]}
+            style={[
+              typography.caption,
+              styles.text,
+              { color: theme.colors.onSurfaceVariant },
+            ]}
           >
             {t('spaceWeather.measured', {
               value: f.megahertz(sounding.fof2),
@@ -152,15 +156,23 @@ export default function SpaceWeatherCard({ spaceWeather, sounding }: Props) {
 }
 
 const styles = StyleSheet.create({
-  wrap: { marginHorizontal: 16, borderRadius: 12, padding: 12 },
-  readings: { flexDirection: 'row', gap: 12 },
+  wrap: {
+    marginHorizontal: spacing.lg,
+    borderRadius: radius.inset,
+    padding: spacing.md,
+  },
+  readings: { flexDirection: 'row', gap: spacing.md },
   sounding: {
     flexDirection: 'row',
-    gap: 8,
+    gap: spacing.sm,
     alignItems: 'center',
-    marginTop: 10,
+    marginTop: spacing.md,
   },
   reading: { flex: 1 },
-  unavailable: { flexDirection: 'row', gap: 10, alignItems: 'center' },
-  text: { flex: 1, lineHeight: 18 },
+  unavailable: {
+    flexDirection: 'row',
+    gap: spacing.md,
+    alignItems: 'center',
+  },
+  text: { flex: 1 },
 });

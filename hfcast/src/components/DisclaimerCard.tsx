@@ -4,6 +4,7 @@ import { StyleSheet, View } from 'react-native';
 import { Icon, Surface, Text, useTheme } from 'react-native-paper';
 import type { PredictionBasis } from '../data/types';
 import { useFormatters } from '../hooks/useFormatters';
+import { radius, spacing, typography } from '../theme';
 import type { AppTheme } from '../theme';
 
 interface Props {
@@ -51,8 +52,11 @@ export default function DisclaimerCard({ ssn, basis, saved = false }: Props) {
           color={theme.colors.onSecondaryContainer}
         />
         <Text
-          variant="bodySmall"
-          style={[styles.text, { color: theme.colors.onSecondaryContainer }]}
+          style={[
+            typography.caption,
+            styles.text,
+            { color: theme.colors.onSecondaryContainer },
+          ]}
         >
           {t(`disclaimer.${effective}`, { ssn: f.integer(ssn) })}
         </Text>
@@ -62,7 +66,11 @@ export default function DisclaimerCard({ ssn, basis, saved = false }: Props) {
 }
 
 const styles = StyleSheet.create({
-  wrap: { margin: 16, borderRadius: 12, padding: 12 },
-  row: { flexDirection: 'row', gap: 10 },
-  text: { flex: 1, lineHeight: 18 },
+  wrap: {
+    margin: spacing.lg,
+    borderRadius: radius.inset,
+    padding: spacing.md,
+  },
+  row: { flexDirection: 'row', gap: spacing.md },
+  text: { flex: 1 },
 });

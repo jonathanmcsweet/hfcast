@@ -6,7 +6,7 @@ import { qualityFor } from '../data/quality';
 import { bestBandAt, cellFor } from '../data/selectors';
 import type { BandKey, PathPrediction } from '../data/types';
 import { useFormatters } from '../hooks/useFormatters';
-import { numeric } from '../theme';
+import { numeric, radius, spacing, typography } from '../theme';
 import type { AppTheme } from '../theme';
 
 interface Props {
@@ -63,12 +63,15 @@ export default function HourlyStrip({
             ]}
           >
             <Text
-              variant="labelSmall"
-              style={[numeric, { color: theme.colors.onSurfaceVariant }]}
+              style={[
+                typography.axis,
+                numeric,
+                { color: theme.colors.onSurfaceVariant },
+              ]}
             >
               {label}
             </Text>
-            <Text variant="titleMedium" style={styles.band}>
+            <Text style={[typography.cardTitle, styles.band]}>
               {best.band}
             </Text>
             <View
@@ -85,13 +88,13 @@ export default function HourlyStrip({
 }
 
 const styles = StyleSheet.create({
-  row: { paddingHorizontal: 16, gap: 8 },
+  row: { paddingHorizontal: spacing.lg, gap: spacing.sm },
   cell: {
     width: 64,
-    borderRadius: 12,
-    paddingVertical: 10,
+    borderRadius: radius.inset,
+    paddingVertical: spacing.sm,
     alignItems: 'center',
   },
-  band: { marginVertical: 4 },
+  band: { marginVertical: spacing.xs },
   bar: { height: 4, width: 32, borderRadius: 2 },
 });

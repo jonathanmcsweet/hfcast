@@ -5,6 +5,7 @@ import { Chip } from 'react-native-paper';
 
 import { useFormatters } from '../hooks/useFormatters';
 import { MAX_DAY_OFFSET } from '../store/usePathStore';
+import { radius, spacing, typography } from '../theme';
 
 interface Props {
   value: number;
@@ -50,6 +51,7 @@ export default function DaySelector({ value, onChange }: Props) {
           onPress={() => onChange(offset)}
           accessibilityLabel={offset === 0 ? t('days.today') : f.dayLabel(date)}
           style={styles.chip}
+          textStyle={typography.bodyStrong}
         >
           {offset === 0 ? t('days.today') : f.dayLabel(date)}
         </Chip>
@@ -59,6 +61,11 @@ export default function DaySelector({ value, onChange }: Props) {
 }
 
 const styles = StyleSheet.create({
-  row: { paddingHorizontal: 16, gap: 8 },
-  chip: { marginVertical: 2 },
+  row: { paddingHorizontal: spacing.lg, gap: spacing.sm },
+  chip: {
+    marginVertical: 2,
+    minHeight: 44,
+    justifyContent: 'center',
+    borderRadius: radius.inset,
+  },
 });

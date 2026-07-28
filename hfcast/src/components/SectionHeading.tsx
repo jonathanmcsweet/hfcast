@@ -1,6 +1,7 @@
 import React from 'react';
 import { StyleSheet, View } from 'react-native';
 import { Text, useTheme } from 'react-native-paper';
+import { spacing, typography } from '../theme';
 import type { AppTheme } from '../theme';
 
 interface Props {
@@ -12,12 +13,14 @@ export default function SectionHeading({ title, hint }: Props) {
   const theme = useTheme<AppTheme>();
   return (
     <View style={styles.wrap}>
-      <Text variant="titleSmall">{title}</Text>
+      <Text style={typography.cardTitle}>{title}</Text>
       {hint
         ? (
           <Text
-            variant="bodySmall"
-            style={{ color: theme.colors.onSurfaceVariant }}
+            style={[
+              typography.caption,
+              { color: theme.colors.onSurfaceVariant },
+            ]}
           >
             {hint}
           </Text>
@@ -28,5 +31,12 @@ export default function SectionHeading({ title, hint }: Props) {
 }
 
 const styles = StyleSheet.create({
-  wrap: { marginHorizontal: 16, marginTop: 24, marginBottom: 10, gap: 2 },
+  // Between cards above, inside a card below: the heading belongs to what
+  // follows it, so the gap under it is deliberately the smaller one.
+  wrap: {
+    marginHorizontal: spacing.lg,
+    marginTop: spacing.xl,
+    marginBottom: spacing.md,
+    gap: spacing.xs,
+  },
 });

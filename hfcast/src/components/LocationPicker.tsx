@@ -20,6 +20,7 @@ import { useGeocode } from '../api/queries';
 import { latLonToGrid } from '../data/grid';
 import type { Endpoint, Place } from '../data/types';
 import { usePathStore } from '../store/usePathStore';
+import { radius, spacing, typography } from '../theme';
 import type { AppTheme } from '../theme';
 
 interface Props {
@@ -110,7 +111,7 @@ export default function LocationPicker({ visible, onDismiss }: Props) {
         ]}
       >
         <View style={styles.headerRow}>
-          <Text variant="titleMedium" style={styles.title}>
+          <Text style={[typography.cardHeadline, styles.title]}>
             {t('location.title')}
           </Text>
           <IconButton
@@ -148,8 +149,9 @@ export default function LocationPicker({ visible, onDismiss }: Props) {
         {locationError
           ? (
             <Text
-              variant="bodySmall"
-              style={[styles.message, { color: theme.colors.onSurfaceVariant }]}
+              style={[typography.caption, styles.message, {
+                color: theme.colors.onSurfaceVariant,
+              }]}
             >
               {locationError}
             </Text>
@@ -170,8 +172,11 @@ export default function LocationPicker({ visible, onDismiss }: Props) {
         {error
           ? (
             <Text
-              variant="bodySmall"
-              style={[styles.message, { color: theme.colors.error }]}
+              style={[
+                typography.caption,
+                styles.message,
+                { color: theme.colors.error },
+              ]}
             >
               {t('location.searchFailed')}
             </Text>
@@ -196,8 +201,7 @@ export default function LocationPicker({ visible, onDismiss }: Props) {
           ListEmptyComponent={query.trim().length >= 2 && !isFetching
             ? (
               <Text
-                variant="bodySmall"
-                style={[styles.message, {
+                style={[typography.caption, styles.message, {
                   color: theme.colors.onSurfaceVariant,
                 }]}
               >
@@ -218,16 +222,16 @@ const styles = StyleSheet.create({
     maxWidth: 560,
     alignSelf: 'center',
     width: '90%',
-    borderRadius: 16,
-    padding: 16,
+    borderRadius: radius.card,
+    padding: spacing.lg,
     maxHeight: '85%',
   },
   headerRow: { flexDirection: 'row', alignItems: 'center' },
   title: { flex: 1 },
-  segments: { marginTop: 8 },
-  gps: { marginTop: 12 },
-  search: { marginTop: 12 },
-  spinner: { marginTop: 12 },
-  message: { marginTop: 12 },
-  list: { marginTop: 8 },
+  segments: { marginTop: spacing.sm },
+  gps: { marginTop: spacing.md, minHeight: 52, justifyContent: 'center' },
+  search: { marginTop: spacing.md },
+  spinner: { marginTop: spacing.md },
+  message: { marginTop: spacing.md },
+  list: { marginTop: spacing.sm },
 });

@@ -4,6 +4,7 @@ import { StyleSheet, View } from 'react-native';
 import { Appbar, Text, TouchableRipple, useTheme } from 'react-native-paper';
 import type { PathPrediction } from '../data/types';
 import { useFormatters } from '../hooks/useFormatters';
+import { numeric, radius, spacing, typography } from '../theme';
 import type { AppTheme } from '../theme';
 import LocalePicker from './LocalePicker';
 
@@ -33,13 +34,15 @@ export default function PathHeader({ prediction, now, onPressPath }: Props) {
         accessibilityLabel={t('a11y.changePath', { from, to })}
       >
         <View>
-          <Text variant="titleMedium" numberOfLines={1}>
+          <Text style={typography.locationName} numberOfLines={1}>
             {`${from} → ${to}`}
           </Text>
           <Text
-            variant="bodySmall"
             numberOfLines={1}
-            style={{ color: theme.colors.onSurfaceVariant }}
+            style={[
+              typography.caption,
+              { color: theme.colors.onSurfaceVariant },
+            ]}
           >
             {`${prediction.from.grid} → ${prediction.to.grid} · ${
               t('path.detail', {
@@ -51,12 +54,14 @@ export default function PathHeader({ prediction, now, onPressPath }: Props) {
         </View>
       </TouchableRipple>
       <View style={styles.time}>
-        <Text variant="labelLarge">
+        <Text style={[typography.bodyStrong, numeric]}>
           {`${f.hourMinute(now)} ${t('time.utc')}`}
         </Text>
         <Text
-          variant="bodySmall"
-          style={{ color: theme.colors.onSurfaceVariant }}
+          style={[
+            typography.caption,
+            { color: theme.colors.onSurfaceVariant },
+          ]}
         >
           {f.dayLabel(now)}
         </Text>
@@ -67,11 +72,15 @@ export default function PathHeader({ prediction, now, onPressPath }: Props) {
 }
 
 const styles = StyleSheet.create({
+  // The whole path block opens the location picker, so it is sized as a
+  // touch target rather than around its two lines of text.
   block: {
     flex: 1,
-    paddingHorizontal: 12,
-    paddingVertical: 4,
-    borderRadius: 8,
+    justifyContent: 'center',
+    minHeight: 44,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.xs,
+    borderRadius: radius.inset,
   },
-  time: { alignItems: 'flex-end', paddingHorizontal: 4 },
+  time: { alignItems: 'flex-end', paddingHorizontal: spacing.xs },
 });

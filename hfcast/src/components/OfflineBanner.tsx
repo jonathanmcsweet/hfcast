@@ -4,6 +4,7 @@ import { AccessibilityInfo, StyleSheet, View } from 'react-native';
 import { Button, Text, useTheme } from 'react-native-paper';
 
 import { useFormatters } from '../hooks/useFormatters';
+import { radius, spacing, typography } from '../theme';
 import type { AppTheme } from '../theme';
 
 /**
@@ -59,20 +60,26 @@ export default function OfflineBanner({
     >
       <View style={styles.text}>
         <Text
-          variant="titleSmall"
-          style={{ color: theme.colors.onSurfaceVariant }}
+          style={[
+            typography.cardTitle,
+            { color: theme.colors.onSurfaceVariant },
+          ]}
         >
           {t('offline.title')}
         </Text>
         <Text
-          variant="bodySmall"
-          style={{ color: theme.colors.onSurfaceVariant }}
+          style={[
+            typography.caption,
+            { color: theme.colors.onSurfaceVariant },
+          ]}
         >
           {body}
         </Text>
         <Text
-          variant="bodySmall"
-          style={{ color: theme.colors.onSurfaceVariant }}
+          style={[
+            typography.caption,
+            { color: theme.colors.onSurfaceVariant },
+          ]}
         >
           {note}
         </Text>
@@ -101,13 +108,13 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
     alignItems: 'center',
     justifyContent: 'space-between',
-    gap: 8,
-    marginHorizontal: 16,
-    marginTop: 12,
-    padding: 12,
-    borderRadius: 12,
+    gap: spacing.sm,
+    marginHorizontal: spacing.lg,
+    marginTop: spacing.md,
+    padding: spacing.md,
+    borderRadius: radius.inset,
     borderWidth: StyleSheet.hairlineWidth,
   },
-  text: { flexGrow: 1, flexShrink: 1, flexBasis: 220, gap: 2 },
+  text: { flexGrow: 1, flexShrink: 1, flexBasis: 220, gap: spacing.xs },
   retry: { flexShrink: 0 },
 });
