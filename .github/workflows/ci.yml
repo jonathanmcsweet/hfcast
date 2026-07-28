@@ -84,3 +84,57 @@ jobs:
             echo "::error::tests were skipped, or the summary could not be read"
             exit 1
           fi
+
+  # Nothing in the `check` job installs or builds the app, so for a while
+  # nothing checked it at all. A flat-layout setting went dead when pnpm 11
+  # stopped reading .npmrc, the next install relinked the tree, and the web
+  # build stayed broken until somebody ran it by hand.
+  #
+  # The install and the export together are what catch that class of fault:
+  # the install decides the module layout, and the export is the only step
+  # that makes Metro resolve every import and @expo/cli load its own
+  # dependencies. A type error alone would not have caught it.
+  app:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: hfcast
+    env:
+      EXPO_NO_TELEMETRY: '1'
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          run_install: false
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+          # The app is a separate project with its own lockfile. Without
+          # this the cache keys off the repository root's lockfile, which
+          # lists two formatters and none of the app's dependencies.
+          cache-dependency-path: hfcast/pnpm-lock.yaml
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Typecheck
+        run: pnpm typecheck
+
+      - name: Build for web
+        run: pnpm exec expo export --platform web
+
+      - name: Check the export produced something
+        run: |
+          # `expo export` has been known to exit 0 after writing nothing.
+          # Assert the two artefacts a served build cannot work without,
+          # rather than trusting the exit status alone.
+          test -f dist/index.html
+          bundle=$(find dist/_expo -name '*.js' -size +100k | head -1)
+          if [ -z "$bundle" ]; then
+            echo "::error::no JavaScript bundle over 100 kB in dist/_expo"
+            exit 1
+          fi
+          echo "bundled $bundle"
