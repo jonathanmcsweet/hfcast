@@ -1,86 +1,84 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { StyleSheet, View } from 'react-native';
-import { Appbar, Text, TouchableRipple, useTheme } from 'react-native-paper';
+import { Text, TouchableRipple, useTheme } from 'react-native-paper';
 import type { PathPrediction } from '../data/types';
 import { useFormatters } from '../hooks/useFormatters';
-import { numeric, radius, spacing, typography } from '../theme';
+import { radius, spacing, typography } from '../theme';
 import type { AppTheme } from '../theme';
-import LocalePicker from './LocalePicker';
 
 interface Props {
   prediction: PathPrediction;
-  now: Date;
-  /** Opens the location picker. The whole path block is the target. */
-  onPressPath: () => void;
+  /** Opens the location picker on the destination end. */
+  onPressDestination: () => void;
 }
 
-export default function PathHeader({ prediction, now, onPressPath }: Props) {
+/**
+ * A single hop reaches about this far. Used only to say how many bounces the
+ * signal makes, which is the honest way to explain why a long path is harder
+ * than a short one: every bounce off the ground loses signal.
+ */
+const HOP_KM = 3400;
+
+/**
+ * What the numbers below are about: the path being forecast.
+ *
+ * Sits between the map and the grid because it is what turns one into the
+ * other — the map is every direction, the grid is this direction.
+ */
+export default function PathHeader({ prediction, onPressDestination }: Props) {
   const theme = useTheme<AppTheme>();
   const { t } = useTranslation();
   const f = useFormatters();
+  const ui = theme.colors.ui;
 
-  // Place names come from geocoding now, so they are free text rather than
-  // translation keys. Grids stay untranslated by convention.
-  const from = prediction.from.label;
-  const to = prediction.to.label;
+  const hops = Math.max(1, Math.ceil(prediction.distanceKm / HOP_KM));
 
   return (
-    <Appbar.Header elevated mode="center-aligned">
+    <View style={styles.wrap}>
+      <Text style={[typography.cardHeadline, { color: ui.ink }]}>
+        {`${prediction.from.label} → ${prediction.to.label}`}
+      </Text>
+      <Text style={[typography.caption, styles.detail, { color: ui.text3 }]}>
+        {
+          // A separate string for one hop rather than a plural rule. Five
+          // languages with five different plural systems is a lot of
+          // machinery for a number that is only ever 1 or more.
+          hops === 1
+            ? t('path.summaryOneHop', {
+              distance: f.distance(prediction.distanceKm),
+              bearing: f.degrees(prediction.bearingDeg),
+            })
+            : t('path.summary', {
+              distance: f.distance(prediction.distanceKm),
+              bearing: f.degrees(prediction.bearingDeg),
+              hops,
+            })
+        }
+      </Text>
       <TouchableRipple
-        style={styles.block}
-        onPress={onPressPath}
+        onPress={onPressDestination}
         accessibilityRole="button"
-        accessibilityLabel={t('a11y.changePath', { from, to })}
+        style={[styles.button, { borderColor: ui.line2 }]}
       >
-        <View>
-          <Text style={typography.locationName} numberOfLines={1}>
-            {`${from} → ${to}`}
-          </Text>
-          <Text
-            numberOfLines={1}
-            style={[
-              typography.caption,
-              { color: theme.colors.onSurfaceVariant },
-            ]}
-          >
-            {`${prediction.from.grid} → ${prediction.to.grid} · ${
-              t('path.detail', {
-                distance: f.distance(prediction.distanceKm),
-                bearing: f.degrees(prediction.bearingDeg),
-              })
-            }`}
-          </Text>
-        </View>
+        <Text style={[typography.captionStrong, { color: ui.accent }]}>
+          {t('path.changeDestination')}
+        </Text>
       </TouchableRipple>
-      <View style={styles.time}>
-        <Text style={[typography.bodyStrong, numeric]}>
-          {`${f.hourMinute(now)} ${t('time.utc')}`}
-        </Text>
-        <Text
-          style={[
-            typography.caption,
-            { color: theme.colors.onSurfaceVariant },
-          ]}
-        >
-          {f.dayLabel(now)}
-        </Text>
-      </View>
-      <LocalePicker />
-    </Appbar.Header>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  // The whole path block opens the location picker, so it is sized as a
-  // touch target rather than around its two lines of text.
-  block: {
-    flex: 1,
-    justifyContent: 'center',
+  wrap: { marginHorizontal: spacing.lg, marginTop: spacing.xl },
+  detail: { marginTop: spacing.xs },
+  button: {
+    alignSelf: 'flex-start',
+    marginTop: spacing.md,
     minHeight: 44,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.xs,
-    borderRadius: radius.inset,
+    justifyContent: 'center',
+    paddingHorizontal: spacing.lg,
+    borderRadius: radius.control,
+    borderWidth: StyleSheet.hairlineWidth,
   },
-  time: { alignItems: 'flex-end', paddingHorizontal: spacing.xs },
 });

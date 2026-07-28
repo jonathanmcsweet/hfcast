@@ -1,10 +1,10 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { StyleSheet, View } from 'react-native';
-import { Icon, Surface, Text, useTheme } from 'react-native-paper';
+import { Text, useTheme } from 'react-native-paper';
 import type { PredictionBasis } from '../data/types';
 import { useFormatters } from '../hooks/useFormatters';
-import { radius, spacing, typography } from '../theme';
+import { spacing, typography } from '../theme';
 import type { AppTheme } from '../theme';
 
 interface Props {
@@ -21,13 +21,16 @@ interface Props {
 }
 
 /**
- * Deliberately permanent rather than dismissible. A consumer-friendly skin on
- * climatology is one wrong assumption away from being read as a live forecast,
- * so the assumptions stay on screen.
+ * The assumptions behind every number on the screen.
  *
- * The wording follows the basis: a now-cast is driven by current indices and a
- * forecast by a predicted sunspot number, and neither is a live measurement of
- * the path itself.
+ * Collapsible but never dismissible. A consumer-friendly skin on climatology
+ * is one wrong assumption away from being read as a live forecast, so the
+ * assumptions stay reachable from the screen rather than living in a settings
+ * page nobody opens.
+ *
+ * The antenna line is here because it is the single largest error the user
+ * can be making. Every run is 100 W into a wire; a beam beats these numbers
+ * and a compromise antenna will not reach them.
  */
 export default function DisclaimerCard({ ssn, basis, saved = false }: Props) {
   const effective: PredictionBasis = saved && basis === 'nowcast'
@@ -36,41 +39,20 @@ export default function DisclaimerCard({ ssn, basis, saved = false }: Props) {
   const theme = useTheme<AppTheme>();
   const { t } = useTranslation();
   const f = useFormatters();
+  const ui = theme.colors.ui;
 
   return (
-    <Surface
-      elevation={0}
-      style={[
-        styles.wrap,
-        { backgroundColor: theme.colors.secondaryContainer },
-      ]}
-    >
-      <View style={styles.row}>
-        <Icon
-          source="information-outline"
-          size={18}
-          color={theme.colors.onSecondaryContainer}
-        />
-        <Text
-          style={[
-            typography.caption,
-            styles.text,
-            { color: theme.colors.onSecondaryContainer },
-          ]}
-        >
-          {t(`disclaimer.${effective}`, { ssn: f.integer(ssn) })}
-        </Text>
-      </View>
-    </Surface>
+    <View style={styles.wrap}>
+      <Text style={[typography.caption, { color: ui.text2 }]}>
+        {t(`disclaimer.${effective}`, { ssn: f.integer(ssn) })}
+      </Text>
+      <Text style={[typography.caption, { color: ui.text3 }]}>
+        {t('disclaimer.station')}
+      </Text>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  wrap: {
-    margin: spacing.lg,
-    borderRadius: radius.inset,
-    padding: spacing.md,
-  },
-  row: { flexDirection: 'row', gap: spacing.md },
-  text: { flex: 1 },
+  wrap: { gap: spacing.sm },
 });

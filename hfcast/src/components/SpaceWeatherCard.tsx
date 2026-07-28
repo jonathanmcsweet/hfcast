@@ -1,12 +1,13 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { StyleSheet, View } from 'react-native';
-import { Icon, Surface, Text, useTheme } from 'react-native-paper';
+import { Icon, Text, useTheme } from 'react-native-paper';
 
 import type { Sounding, SpaceWeather } from '../data/types';
 import { useFormatters } from '../hooks/useFormatters';
 import { numeric, radius, spacing, typography } from '../theme';
 import type { AppTheme } from '../theme';
+import { Inset } from './Card';
 
 interface Props {
   /** Null when the upstream was unreachable. */
@@ -17,74 +18,71 @@ interface Props {
    * is the ordinary case, since live stations are almost all in Europe.
    */
   sounding?: Sounding | null;
+  /** The readings came from the cache, so they are no longer current. */
+  offline?: boolean;
 }
 
-interface ReadingProps {
+interface TileProps {
   label: string;
   value: string;
   hint: string;
+  /**
+   * Marks the one solar-driven number. Amber appears exactly once in the
+   * app, which is what makes it read as meaning rather than decoration.
+   */
+  solar?: boolean;
 }
 
-function Reading({ label, value, hint }: ReadingProps) {
+function Tile({ label, value, hint, solar }: TileProps) {
   const theme = useTheme<AppTheme>();
+  const ui = theme.colors.ui;
   return (
-    <View
-      style={styles.reading}
-      accessible
-      accessibilityLabel={`${label}: ${value}. ${hint}`}
-    >
-      <Text
-        style={[typography.label, { color: theme.colors.onSurfaceVariant }]}
-      >
-        {label}
-      </Text>
-      <Text style={[typography.statValue, numeric]}>
-        {value}
-      </Text>
-      <Text
-        style={[typography.caption, { color: theme.colors.onSurfaceVariant }]}
-      >
-        {hint}
-      </Text>
-    </View>
+    <Inset style={styles.tile}>
+      <View accessible accessibilityLabel={`${label}: ${value}. ${hint}`}>
+        <Text style={[typography.label, { color: ui.text4 }]}>{label}</Text>
+        <Text
+          style={[typography.statValue, numeric, styles.tileValue, {
+            color: solar ? ui.amberNum : ui.ink,
+          }]}
+        >
+          {value}
+        </Text>
+        <Text style={[typography.caption, { color: ui.text3 }]}>{hint}</Text>
+      </View>
+    </Inset>
   );
 }
 
 /**
  * Current solar and geomagnetic conditions.
  *
- * These are the inputs behind a now-cast, not a measurement of the path. They
- * are shown as numbers with a plain-language hint each, so the figure is
- * readable by someone who has never met a K index.
+ * These are the inputs behind a now-cast, not a measurement of the path. Each
+ * figure carries a plain-language line, so it is readable by somebody who has
+ * never met a K index.
+ *
+ * Offline, the hints change rather than the numbers. The K index matters most:
+ * a cached quiet reading is the most dangerous number in the app, because a
+ * storm that started since then looks exactly like calm conditions. So it says
+ * that outright instead of implying it with a timestamp.
  */
-export default function SpaceWeatherCard({ spaceWeather, sounding }: Props) {
+export default function SpaceWeatherCard({
+  spaceWeather,
+  sounding,
+  offline = false,
+}: Props) {
   const theme = useTheme<AppTheme>();
   const { t } = useTranslation();
   const f = useFormatters();
+  const ui = theme.colors.ui;
 
   if (!spaceWeather) {
     return (
-      <Surface
-        elevation={0}
-        style={[styles.wrap, { backgroundColor: theme.colors.surfaceVariant }]}
-      >
-        <View style={styles.unavailable}>
-          <Icon
-            source="cloud-off-outline"
-            size={18}
-            color={theme.colors.onSurfaceVariant}
-          />
-          <Text
-            style={[
-              typography.caption,
-              styles.text,
-              { color: theme.colors.onSurfaceVariant },
-            ]}
-          >
-            {t('spaceWeather.unavailable')}
-          </Text>
-        </View>
-      </Surface>
+      <View style={styles.unavailable}>
+        <Icon source="cloud-off-outline" size={18} color={ui.text3} />
+        <Text style={[typography.caption, styles.text, { color: ui.text3 }]}>
+          {t('spaceWeather.unavailable')}
+        </Text>
+      </View>
     );
   }
 
@@ -92,22 +90,26 @@ export default function SpaceWeatherCard({ spaceWeather, sounding }: Props) {
   const stormy = spaceWeather.kp >= 5;
 
   return (
-    <Surface
-      elevation={0}
-      style={[styles.wrap, { backgroundColor: theme.colors.surfaceVariant }]}
-    >
-      <View style={styles.readings}>
-        <Reading
+    <View>
+      <View style={styles.tiles}>
+        <Tile
           label={t('spaceWeather.flux')}
           value={f.integer(spaceWeather.f107)}
-          hint={t('spaceWeather.fluxHint')}
+          hint={offline
+            ? t('spaceWeather.fluxSaved')
+            : t('spaceWeather.fluxHint')}
+          solar
         />
-        <Reading
+        <Tile
           label={t('spaceWeather.kp')}
           value={f.decimal(spaceWeather.kp)}
-          hint={stormy ? t('spaceWeather.kpStormy') : t('spaceWeather.kpQuiet')}
+          hint={offline
+            ? t('spaceWeather.kpSaved')
+            : stormy
+            ? t('spaceWeather.kpStormy')
+            : t('spaceWeather.kpQuiet')}
         />
-        <Reading
+        <Tile
           label={t('spaceWeather.effectiveSsn')}
           value={f.integer(spaceWeather.effectiveSsn)}
           hint={t('spaceWeather.effectiveSsnHint')}
@@ -128,19 +130,31 @@ export default function SpaceWeatherCard({ spaceWeather, sounding }: Props) {
             distance: f.distance(sounding.km),
             time: f.hourMinute(new Date(sounding.measuredAt)),
           })}
-          style={styles.sounding}
+          style={[styles.sounding, {
+            backgroundColor: offline ? ui.inset : ui.ionoBg,
+            borderColor: offline ? ui.line2 : ui.ionoBg,
+            borderStyle: offline ? 'dashed' : 'solid',
+          }]}
         >
-          <Icon
-            source="radar"
-            size={16}
-            color={theme.colors.onSurfaceVariant}
-          />
+          <View
+            style={[styles.tag, {
+              backgroundColor: offline ? ui.inset : ui.tagBg,
+            }]}
+          >
+            <Text
+              style={[typography.label, {
+                color: offline ? ui.text3 : ui.tagFg,
+              }]}
+            >
+              {offline
+                ? t('spaceWeather.lastMeasured')
+                : t('spaceWeather.measuredTag')}
+            </Text>
+          </View>
           <Text
-            style={[
-              typography.caption,
-              styles.text,
-              { color: theme.colors.onSurfaceVariant },
-            ]}
+            style={[typography.caption, styles.text, {
+              color: offline ? ui.text3 : ui.ionoTitle,
+            }]}
           >
             {t('spaceWeather.measured', {
               value: f.megahertz(sounding.fof2),
@@ -151,24 +165,29 @@ export default function SpaceWeatherCard({ spaceWeather, sounding }: Props) {
           </Text>
         </View>
       )}
-    </Surface>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  wrap: {
-    marginHorizontal: spacing.lg,
-    borderRadius: radius.inset,
-    padding: spacing.md,
-  },
-  readings: { flexDirection: 'row', gap: spacing.md },
+  // Wraps rather than scrolls: three tiles fit a phone at two per row and a
+  // tablet at three, and a horizontal scroller would hide one of them.
+  tiles: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
+  tile: { flexGrow: 1, flexBasis: 140 },
+  tileValue: { marginTop: 2 },
   sounding: {
-    flexDirection: 'row',
-    gap: spacing.sm,
-    alignItems: 'center',
     marginTop: spacing.md,
+    padding: spacing.md,
+    gap: spacing.sm,
+    borderRadius: radius.inset,
+    borderWidth: StyleSheet.hairlineWidth,
   },
-  reading: { flex: 1 },
+  tag: {
+    alignSelf: 'flex-start',
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 3,
+    borderRadius: radius.cell,
+  },
   unavailable: {
     flexDirection: 'row',
     gap: spacing.md,

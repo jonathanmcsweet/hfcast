@@ -7,8 +7,8 @@ import type { BandKey, Endpoint } from '../data/types';
 /**
  * Non-network app state. Anything fetched lives in React Query instead.
  *
- * The store is deliberately small: the path being viewed, which band the user
- * pinned, and how many days ahead they are looking. Everything else is derived.
+ * The store is deliberately small: the path being viewed, the band selected
+ * and the hour selected. Everything else is derived.
  *
  * The path persists to the device. Without it a relaunch reset to the
  * built-in Seattle to Tokyo default, which on a dead connection meant
@@ -30,21 +30,27 @@ const DEFAULT_TO: Endpoint = {
   lon: 139.77,
 };
 
-/** How far ahead the day selector may go. Beyond this the guess is not useful. */
-export const MAX_DAY_OFFSET = 6;
+/**
+ * The band the app opens on.
+ *
+ * 40m is the general-purpose choice: it works by day out to a few hundred
+ * kilometres and by night to a few thousand, so it is the band least likely
+ * to show a beginner an empty row on their first launch.
+ */
+export const DEFAULT_BAND: BandKey = '40m';
 
 interface PathState {
   from: Endpoint;
   to: Endpoint;
-  /** Null means "follow the best band", which is the default view. */
-  pinnedBand: BandKey | null;
-  /** Days ahead of today, 0..MAX_DAY_OFFSET. */
-  dayOffset: number;
+  /** The band every module is showing. Always set — there is no "auto". */
+  band: BandKey;
+  /** The hour every module is showing, 0..23. */
+  hour: number;
   setFrom: (endpoint: Endpoint) => void;
   setTo: (endpoint: Endpoint) => void;
   swapEnds: () => void;
-  setPinnedBand: (band: BandKey | null) => void;
-  setDayOffset: (offset: number) => void;
+  setBand: (band: BandKey) => void;
+  setHour: (hour: number) => void;
 }
 
 /**
@@ -52,55 +58,62 @@ interface PathState {
  * `migrate`. Without it a stored `Endpoint` from an older build would be
  * spread into state unchecked.
  */
-const PERSIST_VERSION = 1;
+const PERSIST_VERSION = 2;
 
 export const usePathStore = create<PathState>()(
   persist(
     (set) => ({
       from: DEFAULT_FROM,
       to: DEFAULT_TO,
-      pinnedBand: null,
-      dayOffset: 0,
+      band: DEFAULT_BAND,
+      hour: new Date().getUTCHours(),
       setFrom: (from) => set({ from }),
       setTo: (to) => set({ to }),
       swapEnds: () => set((state) => ({ from: state.to, to: state.from })),
-      setPinnedBand: (pinnedBand) => set({ pinnedBand }),
-      setDayOffset: (dayOffset) =>
-        set({ dayOffset: Math.min(MAX_DAY_OFFSET, Math.max(0, dayOffset)) }),
+      setBand: (band) => set({ band }),
+      setHour: (hour) =>
+        set({ hour: Math.min(23, Math.max(0, Math.round(hour))) }),
     }),
     {
       name: 'hfcast.path',
       version: PERSIST_VERSION,
       storage: createJSONStorage(() => AsyncStorage),
-      // The path and the pinned band are worth restoring. `dayOffset` is
-      // not: it is relative to today, so restoring it would silently
-      // reopen the app on a different date than the one the user left
-      // it showing.
+      // The path and the band are worth restoring. `hour` is not: the app
+      // should open on the current hour, not on whatever hour the user was
+      // last inspecting.
       partialize: (state) => ({
         from: state.from,
         to: state.to,
-        pinnedBand: state.pinnedBand,
+        band: state.band,
       }),
       migrate: (persisted, version) => {
-        // No older versions exist yet. When one does, convert it here
-        // rather than trusting the stored shape; returning undefined
-        // falls back to the defaults, which is the safe outcome for a
-        // shape this build cannot read.
+        // Version 1 stored `pinnedBand`, which could be null to mean
+        // "follow the best band". That mode is gone, so a stored null
+        // becomes the default band and the endpoints carry over.
+        if (version === 1) {
+          const old = persisted as {
+            from?: Endpoint;
+            to?: Endpoint;
+            pinnedBand?: BandKey | null;
+          };
+          return {
+            from: old.from ?? DEFAULT_FROM,
+            to: old.to ?? DEFAULT_TO,
+            band: old.pinnedBand ?? DEFAULT_BAND,
+          };
+        }
         if (version === PERSIST_VERSION) {
           return persisted as Partial<PathState>;
         }
+        // A shape this build cannot read falls back to the defaults,
+        // which is the safe outcome.
         return undefined;
       },
     },
   ),
 );
 
-/** The UTC date the given day offset refers to, as an ISO date string. */
-export function dateForOffset(offset: number, from = new Date()): string {
-  const utcMidnight = Date.UTC(
-    from.getUTCFullYear(),
-    from.getUTCMonth(),
-    from.getUTCDate(),
-  );
-  return new Date(utcMidnight + offset * 86_400_000).toISOString().slice(0, 10);
+/** Today, as the ISO date string the prediction request takes. */
+export function today(from = new Date()): string {
+  return from.toISOString().slice(0, 10);
 }

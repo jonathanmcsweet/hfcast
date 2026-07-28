@@ -73,7 +73,7 @@ export default function QualityLegend() {
 }
 
 const styles = StyleSheet.create({
-  wrap: { marginTop: spacing.md, gap: spacing.sm },
+  wrap: { gap: spacing.sm },
   row: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
   swatch: { width: 20, height: 20, borderRadius: radius.cell },
   name: { width: 88 },

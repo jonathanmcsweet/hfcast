@@ -1,107 +1,183 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { StyleSheet, View } from 'react-native';
-import { Text, useTheme } from 'react-native-paper';
+import { Text, TouchableRipple, useTheme } from 'react-native-paper';
 import { qualityFor } from '../data/quality';
+import { cellFor } from '../data/selectors';
 import { BAND_ORDER } from '../data/types';
-import type { PathPrediction } from '../data/types';
+import type { BandKey, PathPrediction } from '../data/types';
 import { useFormatters } from '../hooks/useFormatters';
 import { numeric, radius, spacing, typography } from '../theme';
 import type { AppTheme } from '../theme';
 
 interface Props {
   prediction: PathPrediction;
-  /** Hours per column. 3 keeps the grid legible at phone width. */
-  step?: number;
+  band: BandKey;
+  hour: number;
+  onSelect: (band: BandKey, hour: number) => void;
 }
 
-export default function BandHeatmap({ prediction, step = 3 }: Props) {
+const HOURS = Array.from({ length: 24 }, (_, h) => h);
+/** Every fourth hour is labelled. More than that and the axis stops being read. */
+const AXIS_STEP = 4;
+const CELL_HEIGHT = 22;
+const GAP = 1;
+
+/**
+ * Every band, every hour, at once.
+ *
+ * The whole point is the shape. A single reading tells you about one moment;
+ * this shows the day's structure — the low bands filling in after dark, the
+ * high bands opening around noon — and that structure is what teaches somebody
+ * how the ionosphere behaves rather than just what to do next.
+ *
+ * Built as columns of hours rather than rows of bands, even though it reads as
+ * rows. The selected hour is marked by one rectangle around a whole column,
+ * and a column that is a real view can carry that border itself instead of
+ * needing an overlay aligned to a grid it cannot see.
+ */
+export default function BandHeatmap({
+  prediction,
+  band,
+  hour,
+  onSelect,
+}: Props) {
   const theme = useTheme<AppTheme>();
   const { t } = useTranslation();
   const f = useFormatters();
-
-  const columns = Array.from({ length: 24 / step }, (_, i) => i * step);
-
-  /**
-   * Each column covers `step` hours. Take the best hour in the window rather
-   * than the first, so a short opening is never silently dropped.
-   */
-  const valueAt = (band: string, start: number) => {
-    let best = 0;
-    for (let h = start; h < start + step; h += 1) {
-      const cell = prediction.cells.find(
-        (c) => c.band === band && c.hour === h % 24,
-      );
-      if (cell && cell.reliability > best) best = cell.reliability;
-    }
-    return best;
-  };
+  const ui = theme.colors.ui;
 
   return (
-    <View
-      style={styles.wrap}
-      accessible
-      accessibilityLabel={t('a11y.heatmap')}
-    >
-      <View style={styles.headerRow}>
+    <View>
+      {
+        /* A tick above the selected column, so the hour is findable
+           without tracing down from the axis. */
+      }
+      <View style={styles.tickRow}>
         <View style={styles.gutter} />
-        {columns.map((h) => (
-          <Text
-            key={h}
-            style={[typography.axis, styles.colLabel, numeric, {
-              color: theme.colors.onSurfaceVariant,
-            }]}
-          >
-            {f.utcHour(h)}
-          </Text>
-        ))}
+        <View style={styles.tickTrack}>
+          {HOURS.map((h) => (
+            <View key={h} style={styles.tickSlot}>
+              {h === hour
+                ? (
+                  <View
+                    style={[styles.tick, { backgroundColor: ui.amberNum }]}
+                  />
+                )
+                : null}
+            </View>
+          ))}
+        </View>
       </View>
 
-      {BAND_ORDER.map((band) => (
-        <View key={band} style={styles.row}>
-          <Text
-            style={[
-              typography.axis,
-              numeric,
-              styles.gutter,
-              { color: theme.colors.onSurfaceVariant },
-            ]}
-          >
-            {band}
-          </Text>
-          {columns.map((h) => {
-            const quality = qualityFor(valueAt(band, h));
-            return (
-              <View key={h} style={styles.cellSlot}>
-                <View
-                  style={[
-                    styles.cell,
-                    { backgroundColor: theme.colors.quality[quality].base },
-                  ]}
-                />
-              </View>
-            );
-          })}
+      <View style={styles.gridRow}>
+        <View style={styles.gutter}>
+          {BAND_ORDER.map((key) => (
+            <View key={key} style={styles.labelSlot}>
+              <Text
+                style={[typography.axis, numeric, {
+                  color: key === band ? ui.ink : ui.text4,
+                }]}
+              >
+                {key}
+              </Text>
+            </View>
+          ))}
         </View>
-      ))}
+
+        <View style={styles.columns}>
+          {HOURS.map((h) => (
+            <View
+              key={h}
+              style={[
+                styles.column,
+                h === hour
+                  ? [styles.columnSelected, { borderColor: ui.amberNum }]
+                  : null,
+              ]}
+            >
+              {BAND_ORDER.map((key) => {
+                const cell = cellFor(prediction, key, h);
+                const reliability = cell?.reliability ?? 0;
+                const quality = qualityFor(reliability);
+                return (
+                  <TouchableRipple
+                    key={key}
+                    onPress={() => onSelect(key, h)}
+                    accessibilityRole="button"
+                    accessibilityLabel={t('a11y.gridCell', {
+                      band: key,
+                      hour: f.utcHour(h),
+                      percent: f.percent(reliability),
+                      quality: t(`quality.${quality}`),
+                    })}
+                    style={[styles.cell, {
+                      backgroundColor: theme.colors.quality[quality].base,
+                    }]}
+                  >
+                    <View />
+                  </TouchableRipple>
+                );
+              })}
+            </View>
+          ))}
+        </View>
+      </View>
+
+      <View style={styles.axisRow}>
+        <View style={styles.gutter} />
+        <View style={styles.tickTrack}>
+          {HOURS.map((h) => (
+            <View key={h} style={styles.tickSlot}>
+              {
+                /* The selected hour is always labelled; a regular label is
+                   dropped when it would collide with it. */
+              }
+              {h === hour
+                  || (h % AXIS_STEP === 0 && Math.abs(h - hour) > 1)
+                ? (
+                  <Text
+                    style={[typography.axis, numeric, {
+                      color: h === hour ? ui.amberNum : ui.text4,
+                    }]}
+                  >
+                    {f.utcHour(h)}
+                  </Text>
+                )
+                : null}
+            </View>
+          ))}
+        </View>
+      </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  wrap: { marginHorizontal: spacing.lg },
-  headerRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: spacing.xs,
-  },
-  row: { flexDirection: 'row', alignItems: 'center', marginBottom: 1 },
-  // The label column is a fixed 36px so every row's cells start on the same
-  // edge, which is what lets the grid read down a column as well as across.
+  // The label column is a fixed width so every band's cells start on the
+  // same edge, which is what lets the grid be read down as well as across.
   gutter: { width: 36 },
-  colLabel: { flex: 1, textAlign: 'center' },
-  // Half a gap either side of a cell gives the 1px gutter the design asks
-  // for without a margin that would break `flex: 1` sizing.
-  cellSlot: { flex: 1, paddingHorizontal: 0.5 },
-  cell: { height: 22, borderRadius: radius.cell },
+  labelSlot: {
+    height: CELL_HEIGHT,
+    marginBottom: GAP,
+    justifyContent: 'center',
+  },
+  gridRow: { flexDirection: 'row', gap: GAP * 4 },
+  columns: { flex: 1, flexDirection: 'row', gap: GAP },
+  column: { flex: 1, gap: GAP },
+  // The marker draws outside the column rather than inside it: a 2px border
+  // taken out of a 12px column would cost a third of every cell's width, and
+  // the negative margin cancels the border so no column changes size when the
+  // hour moves.
+  columnSelected: {
+    borderWidth: 2,
+    margin: -2,
+    borderRadius: radius.cell,
+  },
+  cell: { height: CELL_HEIGHT, borderRadius: radius.cell },
+  tickRow: { flexDirection: 'row', gap: GAP * 4, marginBottom: spacing.xs },
+  tickTrack: { flex: 1, flexDirection: 'row', gap: GAP },
+  tickSlot: { flex: 1, alignItems: 'center' },
+  tick: { width: 10, height: 2, borderRadius: 1 },
+  axisRow: { flexDirection: 'row', gap: GAP * 4, marginTop: spacing.xs },
 });

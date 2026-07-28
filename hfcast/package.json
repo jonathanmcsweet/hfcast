@@ -1,6 +1,6 @@
 {
   "name": "hfcast",
-  "version": "0.10.0",
+  "version": "0.11.0",
   "license": "Apache-2.0",
   "main": "index.js",
   "scripts": {
@@ -19,6 +19,7 @@
     "@formatjs/intl-numberformat": "^8.10.3",
     "@formatjs/intl-pluralrules": "^5.2.14",
     "@react-native-async-storage/async-storage": "1.23.1",
+    "@react-native-community/slider": "4.5.2",
     "@react-native/assets-registry": "0.74.87",
     "@tanstack/query-async-storage-persister": "5.101.4",
     "@tanstack/react-query": "^5.101.4",

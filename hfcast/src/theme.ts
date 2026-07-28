@@ -97,7 +97,109 @@ const quality = {
   dark: QUALITY_SCALE === 'signal' ? signalDark : trafficDark,
 };
 
+/**
+ * The design's own surface names, kept alongside the Material roles rather
+ * than mapped onto them.
+ *
+ * They do not line up. The design's `inset` — a recessed panel inside a card —
+ * is a near-white, while MD3's nearest role, `surfaceVariant`, is the hairline
+ * grey. Forcing one onto the other would have meant every component quietly
+ * choosing which meaning it wanted. These are named as the handoff names them,
+ * so a value in the specification can be found in the code by searching for it.
+ *
+ * Elevation is carried by hairline borders, in both themes. That was an
+ * explicit product decision: Material tints raised surfaces with the primary
+ * hue, which at this chroma washes the whole screen cyan.
+ */
+interface UiColors {
+  /** Screen background. */
+  page: string;
+  /** Raised surfaces. */
+  card: string;
+  /** Recessed panels inside a card — readouts, stat tiles. */
+  inset: string;
+  /** Hairline borders. These carry elevation. */
+  line: string;
+  /** Stronger borders and control outlines. */
+  line2: string;
+  /** Primary text, and selection outlines. */
+  ink: string;
+  /** Text on an `ink` fill. */
+  inkInv: string;
+  /** Secondary text. */
+  text2: string;
+  /** Captions. */
+  text3: string;
+  /** Labels, axis ticks, footnotes. */
+  text4: string;
+  /** Anything the user can act on: selected chip, link, slider. */
+  accent: string;
+  /** Text on `accent`. */
+  accentInk: string;
+  /** The solar value, and the selected-hour column marker. */
+  amberNum: string;
+  amberBg: string;
+  amberFg: string;
+  /** The measured-ionosonde card, the one number that is not modelled. */
+  ionoBg: string;
+  ionoTitle: string;
+  ionoSub: string;
+  tagBg: string;
+  tagFg: string;
+  /** The disclaimer surface. */
+  discBg: string;
+}
+
+const uiLight: UiColors = {
+  page: slate[25],
+  card: slate[0],
+  inset: slate[25],
+  line: slate[100],
+  line2: slate[200],
+  ink: slate[950],
+  inkInv: slate[25],
+  text2: slate[700],
+  text3: slate[500],
+  text4: slate[400],
+  accent: cyan[700],
+  accentInk: cyan[50],
+  amberNum: amber[700],
+  amberBg: amber[100],
+  amberFg: amber[800],
+  ionoBg: cyan[50],
+  ionoTitle: cyan[900],
+  ionoSub: cyan[700],
+  tagBg: cyan[200],
+  tagFg: cyan[800],
+  discBg: slate[50],
+};
+
+const uiDark: UiColors = {
+  page: slate[1000],
+  card: slate[950],
+  inset: slate[900],
+  line: slate[800],
+  line2: slate[700],
+  ink: slate[25],
+  inkInv: slate[1000],
+  text2: slate[200],
+  text3: slate[300],
+  text4: slate[400],
+  accent: cyan[400],
+  accentInk: cyan[900],
+  amberNum: amber[400],
+  amberBg: amber[800],
+  amberFg: amber[200],
+  ionoBg: cyan[900],
+  ionoTitle: cyan[100],
+  ionoSub: cyan[200],
+  tagBg: cyan[700],
+  tagFg: cyan[50],
+  discBg: slate[900],
+};
+
 const lightColors = {
+  ui: uiLight,
   primary: cyan[700],
   onPrimary: slate[0],
   primaryContainer: cyan[100],
@@ -142,6 +244,7 @@ const lightColors = {
 };
 
 const darkColors = {
+  ui: uiDark,
   primary: cyan[400],
   onPrimary: cyan[900],
   primaryContainer: cyan[800],

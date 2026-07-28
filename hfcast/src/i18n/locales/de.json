@@ -1,27 +1,59 @@
 {
-  "app": {
-    "title": "HFcast"
+  "bands": {
+    "label": "Band"
+  },
+  "reach": {
+    "title": "Wen kann ich erreichen?",
+    "subtitle": "Die Vorhersage unten gilt für {{place}}.",
+    "answer": "{{band}} erreicht {{place}} um {{hour}} UTC — Verbindungswahrscheinlichkeit etwa {{percent}}.",
+    "mapPending": "Die Reichweitenkarte ist noch nicht gebaut. Bis dahin beschreibt alles Weitere die eine Strecke."
   },
   "path": {
-    "detail": "{{distance}} · {{bearing}}"
+    "summary": "{{distance}} · Peilung {{bearing}} · {{hops}} Sprünge",
+    "summaryOneHop": "{{distance}} · Peilung {{bearing}} · ein Sprung",
+    "changeDestination": "Ziel ändern"
   },
-  "hero": {
-    "bestBandNow": "Beste Band jetzt",
-    "handoff": "{{current}} trägt diese Strecke bis etwa {{time}}, danach übernimmt {{next}}.",
-    "nothingOpen": "Auf dieser Strecke ist derzeit keine Band zuverlässig offen.",
-    "pinnedBand": "Gewählte Band"
+  "window": {
+    "label": "Nutzbarer Bereich",
+    "floorCeiling": "Untergrenze {{floor}} · Obergrenze {{ceiling}}",
+    "ceilingOnly": "Obergrenze {{ceiling}} · keine Untergrenze",
+    "noFloor": "keine Untergrenze",
+    "explain": "Oberhalb von {{ceiling}} geht das Signal durch die Ionosphäre hindurch in den Weltraum. Unterhalb von {{floor}} wird es auf dem Weg nach oben absorbiert. Diese beiden Grenzen heißen MUF und LUF.",
+    "explainNoFloor": "Oberhalb von {{ceiling}} geht das Signal durch die Ionosphäre hindurch in den Weltraum — das ist die MUF. In dieser Stunde war keine Frequenz zuverlässig genug für eine Untergrenze."
   },
-  "metrics": {
-    "reliability": "Zuverlässigkeit",
-    "signal": "Signal",
-    "muf": "MUF"
+  "grid": {
+    "readoutNow": "Jetzt · {{hour}} · {{band}}",
+    "readoutAt": "{{band}} um {{hour}}",
+    "chanceTo": "Verbindungswahrscheinlichkeit nach {{place}} etwa {{percent}}",
+    "unitChance": "Verbindungswahrscheinlichkeit, %",
+    "showAsTable": "Als Tabelle anzeigen",
+    "showAsGrid": "Als Raster anzeigen",
+    "bandColumn": "Band",
+    "footnoteHours": "Stunden in UTC. Die Ortszeit in {{place}} steht auf der Uhr darüber.",
+    "footnoteSaved": "Dies sind gespeicherte Daten und können nichts zeigen, was sich seit dem Abruf geändert hat."
   },
   "sections": {
-    "hourly": "Nächste Stunden",
-    "bands": "Nach Band",
-    "outlook": "24-Stunden-Ausblick",
-    "outlookHint": "Band pro Stunde, alle Zeiten UTC",
-    "spaceWeather": "Weltraumwetter"
+    "allBands": "Alle Bänder, ganzer Tag",
+    "allBandsHint": "Wie weit jedes Band trägt, Stunde für Stunde.",
+    "legend": "Was die Farbtöne bedeuten",
+    "sun": "Die Sonne heute"
+  },
+  "spaceWeather": {
+    "flux": "Solarer Fluss",
+    "fluxHint": "Höher hebt die nutzbaren Frequenzen",
+    "fluxSaved": "Gespeicherter Messwert, nicht aktuell",
+    "kp": "K-Index",
+    "kpQuiet": "Ruhig. Normale Bedingungen",
+    "kpStormy": "Sturm. Strecken können gestört sein",
+    "kpSaved": "Letzter Messwert. Ein Sturm seitdem wäre unsichtbar",
+    "effectiveSsn": "Effektive SSN",
+    "effectiveSsnHint": "Aus aktuellen Messwerten geschätzt",
+    "unavailable": "Aktuelle Messwerte sind nicht verfügbar, daher nutzt diese Vorhersage die typischen Bedingungen des Monats.",
+    "measured": "Die Ionosonde in {{station}}, {{distance}} entfernt, hat um {{time}} UTC foF2 {{value}} gemessen.",
+    "measuredTag": "Gemessen",
+    "lastMeasured": "Zuletzt gemessen",
+    "updated": "Aktualisiert {{time}}",
+    "asOf": "Stand {{time}}"
   },
   "quality": {
     "reliable": "Zuverlässig",
@@ -29,54 +61,22 @@
     "weak": "Schwach",
     "closed": "Geschlossen"
   },
+  "qualityDescription": {
+    "reliable": "Verbindung sollte klappen",
+    "patchy": "Kommt und geht",
+    "weak": "Nur mit Geduld",
+    "closed": "Dieses Band trägt jetzt nicht"
+  },
+  "qualityLegend": {
+    "footnote": "Mehr Kontrast zum Hintergrund bedeutet ein zuverlässigeres Band. Die vier Stufen sind nach Helligkeit geordnet und bleiben deshalb auch in Graustufen und bei jeder Form von Farbenblindheit lesbar."
+  },
   "time": {
-    "now": "Jetzt",
-    "utc": "UTC"
-  },
-  "disclaimer": {
-    "climatology": "Monatliche Klimatologie, keine Live-Vorhersage. Nimmt eine geglättete Sonnenfleckenzahl von {{ssn}} und ruhige geomagnetische Bedingungen an.",
-    "forecast": "Monatliche Klimatologie mit einer vorhergesagten Sonnenfleckenzahl von {{ssn}}. Weiter entfernte Vorhersagen sind unsicherer.",
-    "nowcast": "Auf aktuellen Messwerten beruhend, mit einer effektiven Sonnenfleckenzahl von {{ssn}}. Dies schätzt die Ionosphäre, nicht diese Strecke."
-  },
-  "settings": {
-    "language": "Sprache",
-    "changeLanguage": "Sprache ändern"
-  },
-  "a11y": {
-    "bandRow": "{{band}}, {{quality}}, Zuverlässigkeit {{percent}}",
-    "hourCell": "{{time}}, beste Band {{band}}, {{quality}}",
-    "heatmap": "Raster der Ausbreitungsqualität je Band und Stunde",
-    "changePath": "Strecke von {{from}} nach {{to}}. Zum Ändern tippen.",
-    "swapEnds": "Die beiden Enden der Strecke tauschen",
-    "followBestBand": "Der jeweils besten Band folgen",
-    "pinBand": "Nur {{band}} anzeigen",
-    "nvis": "Erreicht über nahezu senkrechten Einfall, daher ohne tote Zone.",
-    "sounding": "Gemessenes foF2 {{value}} von der Ionosonde in {{station}}, {{distance}} entfernt, um {{time}} UTC. Eine echte Messung, nicht Teil der Vorhersage."
-  },
-  "basis": {
-    "live": "Aktuelle Bedingungen",
-    "climatology": "Typisch für den Monat"
-  },
-  "bands": {
-    "best": "Beste Band",
-    "nvis": "NVIS"
-  },
-  "days": {
-    "today": "Heute"
-  },
-  "spaceWeather": {
-    "flux": "Solarer Fluss",
-    "fluxHint": "Höher hebt die nutzbaren Frequenzen",
-    "kp": "K-Index",
-    "kpQuiet": "Ruhig. Normale Bedingungen",
-    "kpStormy": "Sturm. Strecken können gestört sein",
-    "effectiveSsn": "Effektive SSN",
-    "effectiveSsnHint": "Aus aktuellen Messwerten geschätzt",
-    "unavailable": "Aktuelle Messwerte sind nicht verfügbar, daher nutzt diese Vorhersage die typischen Bedingungen des Monats.",
-    "measured": "Die Ionosonde in {{station}}, {{distance}} entfernt, hat um {{time}} UTC foF2 {{value}} gemessen."
+    "localAt": "Ortszeit in {{place}}",
+    "bothZones": "{{local}} Ortszeit · {{utc}} UTC"
   },
   "location": {
     "title": "Strecke wählen",
+    "change": "Ändern",
     "from": "Von",
     "to": "Nach",
     "useDevice": "Meinen Standort verwenden",
@@ -94,17 +94,27 @@
   },
   "offline": {
     "title": "Gespeicherte Vorhersage",
-    "body": "Der Server war nicht erreichbar. Angezeigt wird die am {{time}} UTC gespeicherte Vorhersage.",
-    "unchanged": "Vorhersagen gelten monatlich und bleiben daher für den Rest des Monats richtig.",
-    "nowcastStale": "Die zugrunde liegenden Live-Messwerte sind nicht mehr aktuell. Lies dies als typisch für den Monat."
+    "chip": "Offline"
   },
-  "qualityDescription": {
-    "reliable": "Verbindung sollte klappen",
-    "patchy": "Kommt und geht",
-    "weak": "Nur mit Geduld",
-    "closed": "Dieses Band trägt jetzt nicht"
+  "disclaimer": {
+    "titleLive": "Aktuelle Daten, keine Klimatologie",
+    "titleSaved": "Gespeicherte Daten",
+    "climatology": "Monatliche Klimatologie, keine Live-Vorhersage. Nimmt eine geglättete Sonnenfleckenzahl von {{ssn}} und ruhige geomagnetische Bedingungen an.",
+    "forecast": "Monatliche Klimatologie mit einer vorhergesagten Sonnenfleckenzahl von {{ssn}}. Weiter entfernte Vorhersagen sind unsicherer.",
+    "nowcast": "Auf aktuellen Messwerten beruhend, mit einer effektiven Sonnenfleckenzahl von {{ssn}}. Dies schätzt die Ionosphäre, nicht diese Strecke.",
+    "station": "Nimmt 100 W an einem Dipol in 10 m Höhe an. Eine bessere Antenne übertrifft diese Werte; eine Behelfsantenne erreicht sie nicht."
   },
-  "qualityLegend": {
-    "footnote": "Mehr Kontrast zum Hintergrund bedeutet ein zuverlässigeres Band. Die vier Stufen sind nach Helligkeit geordnet und bleiben deshalb auch in Graustufen und bei jeder Form von Farbenblindheit lesbar."
+  "settings": {
+    "changeLanguage": "Sprache ändern"
+  },
+  "a11y": {
+    "changeLocation": "Sendestandort {{place}}. Zum Ändern tippen.",
+    "swapEnds": "Die beiden Enden der Strecke tauschen",
+    "pinBand": "{{band}} anzeigen",
+    "hourSlider": "Stunde des Tages, UTC",
+    "gridCell": "{{band}}, {{hour}} UTC, {{percent}}, {{quality}}",
+    "windowRail": "Nutzbarer Bereich: Untergrenze {{floor}}, Obergrenze {{ceiling}}. Zum Erklären tippen.",
+    "nvis": "Erreicht über nahezu senkrechten Einfall, daher ohne tote Zone.",
+    "sounding": "Gemessenes foF2 {{value}} von der Ionosonde in {{station}}, {{distance}} entfernt, um {{time}} UTC. Eine echte Messung, nicht Teil der Vorhersage."
   }
 }
