@@ -20,6 +20,7 @@ import SpaceWeatherCard from '../components/SpaceWeatherCard';
 
 import { usePrediction, usePrefetchDays, useSounding } from '../api/queries';
 import { usePathStore } from '../store/usePathStore';
+import { spacing, typography } from '../theme';
 import type { AppTheme } from '../theme';
 
 export default function ForecastScreen() {
@@ -61,7 +62,7 @@ export default function ForecastScreen() {
         style={[styles.centre, { backgroundColor: theme.colors.background }]}
       >
         <ActivityIndicator size="large" />
-        <Text variant="bodyMedium" style={styles.centreText}>
+        <Text style={[typography.body, styles.centreText]}>
           {t('status.loading')}
         </Text>
       </View>
@@ -79,10 +80,13 @@ export default function ForecastScreen() {
       <View
         style={[styles.centre, { backgroundColor: theme.colors.background }]}
       >
-        <Text variant="titleMedium">{t('status.errorTitle')}</Text>
+        <Text style={typography.cardHeadline}>{t('status.errorTitle')}</Text>
         <Text
-          variant="bodyMedium"
-          style={[styles.centreText, { color: theme.colors.onSurfaceVariant }]}
+          style={[
+            typography.body,
+            styles.centreText,
+            { color: theme.colors.onSurfaceVariant },
+          ]}
         >
           {t('status.errorBody')}
         </Text>
@@ -94,8 +98,7 @@ export default function ForecastScreen() {
         */
         }
         <Text
-          variant="bodySmall"
-          style={[styles.centreDetail, {
+          style={[typography.caption, styles.centreDetail, {
             color: theme.colors.onSurfaceVariant,
           }]}
         >
@@ -123,7 +126,7 @@ export default function ForecastScreen() {
           setPickerOpen(true)}
       />
       <ScrollView
-        contentContainerStyle={{ paddingBottom: insets.bottom + 16 }}
+        contentContainerStyle={{ paddingBottom: insets.bottom + spacing.xxl }}
         showsVerticalScrollIndicator={false}
       >
         {error && (
@@ -184,15 +187,15 @@ export default function ForecastScreen() {
 
 const styles = StyleSheet.create({
   root: { flex: 1 },
-  legend: { marginHorizontal: 16 },
-  controls: { marginTop: 12 },
+  legend: { marginHorizontal: spacing.lg },
+  controls: { marginTop: spacing.md },
   centre: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    padding: 24,
+    padding: spacing.xl,
   },
-  centreText: { marginTop: 12, textAlign: 'center' },
-  centreDetail: { marginTop: 8, textAlign: 'center', opacity: 0.8 },
-  retry: { marginTop: 16 },
+  centreText: { marginTop: spacing.md, textAlign: 'center' },
+  centreDetail: { marginTop: spacing.sm, textAlign: 'center', opacity: 0.8 },
+  retry: { marginTop: spacing.lg },
 });

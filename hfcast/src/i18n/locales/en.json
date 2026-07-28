@@ -103,5 +103,8 @@
     "patchy": "Comes and goes",
     "weak": "Only with patience",
     "closed": "Not this band, not now"
+  },
+  "qualityLegend": {
+    "footnote": "More contrast against the page means a more reliable band. The four states are ordered by lightness, so they still read in greyscale and with any form of colour blindness."
   }
 }

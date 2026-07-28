@@ -6,7 +6,7 @@ import { qualityFor } from '../data/quality';
 import { bestBandAt, cellFor, mufAt } from '../data/selectors';
 import type { BandKey, PathPrediction } from '../data/types';
 import { useFormatters } from '../hooks/useFormatters';
-import { numeric } from '../theme';
+import { numeric, radius, spacing, typography } from '../theme';
 import type { AppTheme } from '../theme';
 import QualityChip from './QualityChip';
 
@@ -53,15 +53,14 @@ function MetricTile({ label, value, solar }: TileProps) {
       style={[styles.tile, { backgroundColor: background }]}
     >
       <Text
-        variant="labelSmall"
         numberOfLines={2}
-        style={{ color: foreground }}
+        style={[typography.label, { color: foreground }]}
       >
         {label}
       </Text>
       <Text
-        variant="headlineSmall"
         style={[
+          typography.statValue,
           styles.tileValue,
           numeric,
           solar ? { color: theme.colors.onTertiaryContainer } : null,
@@ -99,8 +98,10 @@ export default function HeroCard({ prediction, hour, pinnedBand }: Props) {
       <Card.Content>
         <View style={styles.eyebrow}>
           <Text
-            variant="labelMedium"
-            style={{ color: theme.colors.onSurfaceVariant }}
+            style={[
+              typography.label,
+              { color: theme.colors.onSurfaceVariant },
+            ]}
           >
             {pinnedBand ? t('hero.pinnedBand') : t('hero.bestBandNow')}
           </Text>
@@ -115,8 +116,10 @@ export default function HeroCard({ prediction, hour, pinnedBand }: Props) {
               color={theme.colors.onSurfaceVariant}
             />
             <Text
-              variant="labelSmall"
-              style={{ color: theme.colors.onSurfaceVariant }}
+              style={[
+                typography.axis,
+                { color: theme.colors.onSurfaceVariant },
+              ]}
             >
               {live ? t('basis.live') : t('basis.climatology')}
             </Text>
@@ -124,7 +127,13 @@ export default function HeroCard({ prediction, hour, pinnedBand }: Props) {
         </View>
 
         <View style={styles.headline}>
-          <Text variant="displayMedium" style={styles.band}>
+          {
+            /* The one size the scale does not name. The scale tops out at 28px
+               because the redesign replaces this card with the map readout, so
+               inventing a display role for a card that is being retired would
+               add a token nothing else can use. */
+          }
+          <Text variant="displayMedium" style={[styles.band, numeric]}>
             {focus.band}
           </Text>
           <View style={styles.chipSlot}>
@@ -133,8 +142,11 @@ export default function HeroCard({ prediction, hour, pinnedBand }: Props) {
         </View>
 
         <Text
-          variant="bodyMedium"
-          style={[styles.summary, { color: theme.colors.onSurfaceVariant }]}
+          style={[
+            typography.answer,
+            styles.summary,
+            { color: theme.colors.onSurfaceVariant },
+          ]}
         >
           {quality === 'closed' || !handoff
             ? t('hero.nothingOpen')
@@ -163,26 +175,27 @@ export default function HeroCard({ prediction, hour, pinnedBand }: Props) {
 
 const styles = StyleSheet.create({
   card: {
-    marginHorizontal: 16,
-    marginTop: 16,
+    marginHorizontal: spacing.lg,
+    marginTop: spacing.lg,
+    borderRadius: radius.card,
     borderWidth: StyleSheet.hairlineWidth,
   },
   eyebrow: { flexDirection: 'row', alignItems: 'center' },
   basis: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: spacing.xs,
     marginStart: 'auto',
   },
   headline: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginTop: 4,
+    marginTop: spacing.xs,
   },
   band: { fontWeight: '400' },
   chipSlot: { marginStart: 'auto' },
-  summary: { marginTop: 8, lineHeight: 20 },
-  tiles: { flexDirection: 'row', gap: 8, marginTop: 16 },
+  summary: { marginTop: spacing.sm },
+  tiles: { flexDirection: 'row', gap: spacing.sm, marginTop: spacing.lg },
   tileValue: { marginTop: 2 },
-  tile: { flex: 1, borderRadius: 12, padding: 10 },
+  tile: { flex: 1, borderRadius: radius.inset, padding: spacing.md },
 });
