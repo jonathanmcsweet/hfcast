@@ -16,6 +16,7 @@ import {
 } from 'node:http';
 
 import { TtlCache } from './cache.ts';
+import { coverage } from './coverage.ts';
 import { gridToLatLon, isGrid, latLonToGrid } from './geo.ts';
 import {
   fetchSounding,
@@ -25,7 +26,13 @@ import {
 } from './ionosonde.ts';
 import { endpointFromLatLon, isoDate, predict } from './predict.ts';
 import { fetchSpaceWeather } from './spaceweather.ts';
-import type { Endpoint, PredictionResponse, SpaceWeather } from './types.ts';
+import {
+  BAND_ORDER,
+  type BandKey,
+  type Endpoint,
+  type PredictionResponse,
+  type SpaceWeather,
+} from './types.ts';
 
 const PORT = Number(process.env.PORT ?? 8787);
 const HOST = process.env.HOST ?? '127.0.0.1';
@@ -145,6 +152,47 @@ async function handlePrediction(url: URL): Promise<PredictionResponse> {
   });
 
   return { prediction, spaceWeather };
+}
+
+/**
+ * Coverage for one band at one hour.
+ *
+ * Takes the hour explicitly rather than deriving it from the clock: the
+ * app's map follows a slider the user moves, so "now" is only one of the
+ * twenty-four answers it asks for.
+ */
+async function handleCoverage(url: URL) {
+  const from = parseEndpoint(
+    url.searchParams.get('from'),
+    url.searchParams.get('fromLabel'),
+    'from',
+  );
+  const band = url.searchParams.get('band');
+  if (band === null || !(BAND_ORDER as readonly string[]).includes(band)) {
+    throw new BadRequest(
+      `band must be one of ${BAND_ORDER.join(', ')}`,
+    );
+  }
+  const hour = num(url.searchParams.get('hour'), 0);
+  if (!Number.isInteger(hour) || hour < 0 || hour > 23) {
+    throw new BadRequest('hour must be a whole number from 0 to 23');
+  }
+  const date = parseDate(url.searchParams.get('date'));
+  const wantNowcast = url.searchParams.get('nowcast') === '1';
+  const spaceWeather = wantNowcast ? await trySpaceWeather() : null;
+
+  return await coverage({
+    from,
+    date,
+    band: band as BandKey,
+    hour,
+    watts: num(url.searchParams.get('watts'), DEFAULT_WATTS),
+    requiredSnrDb: num(url.searchParams.get('snr'), DEFAULT_REQUIRED_SNR_DB),
+    noiseDbw: num(url.searchParams.get('noise'), DEFAULT_NOISE_DBW),
+    ...(spaceWeather
+      ? { ssnOverride: spaceWeather.effectiveSsn, basis: 'nowcast' as const }
+      : {}),
+  });
 }
 
 async function handleForecast(url: URL): Promise<PredictionResponse[]> {
@@ -285,6 +333,8 @@ async function route(url: URL): Promise<unknown> {
       return await handleGeocode(url);
     case '/api/prediction':
       return await handlePrediction(url);
+    case '/api/coverage':
+      return await handleCoverage(url);
     case '/api/forecast':
       return await handleForecast(url);
     case '/api/ionosonde':
