@@ -1,8 +1,13 @@
 import { useQuery } from '@tanstack/react-query';
 
-import type { Endpoint } from '../data/types';
+import type { BandKey, Endpoint } from '../data/types';
 import { today } from '../store/usePathStore';
-import { fetchGeocode, fetchPrediction, fetchSounding } from './client';
+import {
+  fetchCoverage,
+  fetchGeocode,
+  fetchPrediction,
+  fetchSounding,
+} from './client';
 
 /**
  * All network state goes through React Query. Query keys carry every input the
@@ -15,6 +20,8 @@ export const queryKeys = {
     ['prediction', from, to, date, nowcast] as const,
   geocode: (query: string, lang: string) => ['geocode', query, lang] as const,
   sounding: (lat: number, lon: number) => ['sounding', lat, lon] as const,
+  coverage: (from: string, band: string, hour: number, date: string) =>
+    ['coverage', from, band, hour, date] as const,
 };
 
 /**
@@ -72,5 +79,35 @@ export function useGeocode(query: string, lang: string) {
     queryFn: () => fetchGeocode(trimmed, lang),
     enabled: trimmed.length >= 2,
     staleTime: 24 * 60 * 60 * 1000,
+  });
+}
+
+/**
+ * Coverage for the selected band at the selected hour.
+ *
+ * One request per hour, because an area run computes one hour. Kept
+ * generous on staleness for the same reason a prediction is: the
+ * climatology underneath does not move within a month, and a user
+ * sweeping the clock should not refetch an hour they have already seen.
+ */
+export function useCoverage(
+  from: Endpoint,
+  band: BandKey,
+  hour: number,
+) {
+  const date = today();
+  return useQuery({
+    queryKey: queryKeys.coverage(from.grid, band, hour, date),
+    queryFn: () =>
+      fetchCoverage({
+        from: `${from.lat},${from.lon}`,
+        fromLabel: from.label,
+        band,
+        hour,
+        date,
+        nowcast: true,
+      }),
+    staleTime: 15 * 60 * 1000,
+    retry: 1,
   });
 }

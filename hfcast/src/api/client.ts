@@ -1,4 +1,5 @@
 import type {
+  Coverage,
   Place,
   PredictionResponse,
   Sounding,
@@ -134,4 +135,28 @@ export function fetchGeocode(query: string, lang: string): Promise<Place[]> {
 
 export function fetchSpaceWeather(): Promise<SpaceWeather> {
   return getJson<SpaceWeather>('/api/spaceweather', {});
+}
+
+/**
+ * Coverage for one band at one hour.
+ *
+ * One hour per request because an area run computes one: a whole day is 24
+ * runs, not one call with a day in it.
+ */
+export function fetchCoverage(p: {
+  from: string;
+  fromLabel: string;
+  band: string;
+  hour: number;
+  date: string;
+  nowcast?: boolean;
+}): Promise<Coverage> {
+  return getJson<Coverage>('/api/coverage', {
+    from: p.from,
+    fromLabel: p.fromLabel,
+    band: p.band,
+    hour: String(p.hour),
+    date: p.date,
+    nowcast: p.nowcast ? '1' : '',
+  });
 }

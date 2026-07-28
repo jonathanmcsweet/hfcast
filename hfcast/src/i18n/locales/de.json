@@ -6,7 +6,9 @@
     "title": "Wen kann ich erreichen?",
     "subtitle": "Die Vorhersage unten gilt für {{place}}.",
     "answer": "{{band}} erreicht {{place}} um {{hour}} UTC — Verbindungswahrscheinlichkeit etwa {{percent}}.",
-    "mapPending": "Die Reichweitenkarte ist noch nicht gebaut. Bis dahin beschreibt alles Weitere die eine Strecke."
+    "mapLoading": "Reichweite dieses Bandes wird berechnet",
+    "mapUnavailable": "Die Reichweitenkarte konnte nicht geladen werden.",
+    "reachLine": "{{band}} erreicht zu dieser Stunde etwa {{percent}} der Erde."
   },
   "path": {
     "summary": "{{distance}} · Peilung {{bearing}} · {{hops}} Sprünge",
@@ -117,6 +119,7 @@
     "gridCell": "{{band}}, {{hour}} UTC, {{percent}}, {{quality}}",
     "windowRail": "Nutzbarer Bereich: Untergrenze {{floor}}, Obergrenze {{ceiling}}. Zum Erklären tippen.",
     "nvis": "Erreicht über nahezu senkrechten Einfall, daher ohne tote Zone.",
-    "sounding": "Gemessenes foF2 {{value}} von der Ionosonde in {{station}}, {{distance}} entfernt, um {{time}} UTC. Eine echte Messung, nicht Teil der Vorhersage."
+    "sounding": "Gemessenes foF2 {{value}} von der Ionosonde in {{station}}, {{distance}} entfernt, um {{time}} UTC. Eine echte Messung, nicht Teil der Vorhersage.",
+    "coverage": "Reichweitenkarte. {{band}} erreicht zu dieser Stunde etwa {{percent}} Prozent der Erde."
   }
 }

@@ -160,3 +160,28 @@ export const BAND_MHZ: Record<BandKey, number> = {
   '12m': 24.94,
   '10m': 28.4,
 };
+
+/** One grid point of the coverage map. */
+export interface CoveragePoint {
+  lat: number;
+  lon: number;
+  reliability: number;
+}
+
+/**
+ * Where one band reaches, at one hour, in every direction.
+ *
+ * `reach` is the share of the globe above the "patchy" threshold, weighted
+ * by area — the headline number the map is a picture of. The cell size is
+ * the server's, not a request parameter, so the cells always tile without
+ * gaps.
+ */
+export interface Coverage {
+  band: BandKey;
+  hour: number;
+  latStep: number;
+  lonStep: number;
+  reach: number;
+  basis: PredictionBasis;
+  points: readonly CoveragePoint[];
+}

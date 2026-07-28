@@ -6,7 +6,9 @@
     "title": "Where can I reach?",
     "subtitle": "The forecast below is aimed at {{place}}.",
     "answer": "{{band}} reaches {{place}} at {{hour}} UTC — about {{percent}} chance of contact.",
-    "mapPending": "The coverage map is not built yet. Until it is, everything below describes the one path."
+    "mapLoading": "Working out where this band reaches",
+    "mapUnavailable": "The coverage map could not be loaded.",
+    "reachLine": "{{band}} reaches about {{percent}} of the world at this hour."
   },
   "path": {
     "summary": "{{distance}} · bearing {{bearing}} · {{hops}} hops",
@@ -117,6 +119,7 @@
     "gridCell": "{{band}}, {{hour}} UTC, {{percent}}, {{quality}}",
     "windowRail": "Usable window: floor {{floor}}, ceiling {{ceiling}}. Tap for an explanation.",
     "nvis": "Reaches by near-vertical incidence, so there is no skip zone.",
-    "sounding": "Measured foF2 {{value}} from the sounder at {{station}}, {{distance}} away, at {{time}} UTC. This is a real measurement, not part of the forecast."
+    "sounding": "Measured foF2 {{value}} from the sounder at {{station}}, {{distance}} away, at {{time}} UTC. This is a real measurement, not part of the forecast.",
+    "coverage": "Coverage map. {{band}} reaches about {{percent}} percent of the world at this hour."
   }
 }

@@ -3,6 +3,11 @@
   "compilerOptions": {
     "strict": true,
     "resolveJsonModule": true,
+    // Node's type stripping runs the TypeScript sources directly, so a
+    // test has to import the extension it is actually loading. Metro
+    // never sees these files.
+    "allowImportingTsExtensions": true,
+    "noEmit": true,
     "baseUrl": ".",
     "paths": { "@/*": ["src/*"] }
   }
