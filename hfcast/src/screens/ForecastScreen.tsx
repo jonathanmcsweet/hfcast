@@ -12,6 +12,7 @@ import DisclaimerCard from '../components/DisclaimerCard';
 import HeroCard from '../components/HeroCard';
 import HourlyStrip from '../components/HourlyStrip';
 import LocationPicker from '../components/LocationPicker';
+import OfflineBanner from '../components/OfflineBanner';
 import PathHeader from '../components/PathHeader';
 import QualityLegend from '../components/QualityLegend';
 import SectionHeading from '../components/SectionHeading';
@@ -40,11 +41,8 @@ export default function ForecastScreen() {
     return () => clearInterval(id);
   }, []);
 
-  const { data, error, isPending, refetch } = usePrediction(
-    from,
-    to,
-    dayOffset,
-  );
+  const { data, error, isPending, isFetching, dataUpdatedAt, refetch } =
+    usePrediction(from, to, dayOffset);
 
   // A future day has no "now", so it opens at the start of the UTC day.
   const hour = dayOffset === 0 ? now.getUTCHours() : 0;
@@ -62,7 +60,13 @@ export default function ForecastScreen() {
     );
   }
 
-  if (error || !data) {
+  // The error screen is only for having nothing to show. When a fetch
+  // fails over a saved forecast, the saved one is displayed instead:
+  // predictions are monthly climatology, so it is still correct, and
+  // replacing it with an error would withhold a usable answer. React
+  // Query keeps `data` from the last success while reporting the failed
+  // refetch in `error`, which is exactly this case.
+  if (!data) {
     return (
       <View
         style={[styles.centre, { backgroundColor: theme.colors.background }]}
@@ -114,6 +118,15 @@ export default function ForecastScreen() {
         contentContainerStyle={{ paddingBottom: insets.bottom + 16 }}
         showsVerticalScrollIndicator={false}
       >
+        {error && (
+          <OfflineBanner
+            savedAt={dataUpdatedAt}
+            wasNowcast={prediction.basis === 'nowcast'}
+            onRetry={() => void refetch()}
+            retrying={isFetching}
+          />
+        )}
+
         <View style={styles.controls}>
           <DaySelector value={dayOffset} onChange={setDayOffset} />
         </View>
@@ -146,7 +159,11 @@ export default function ForecastScreen() {
         <SectionHeading title={t('sections.spaceWeather')} />
         <SpaceWeatherCard spaceWeather={spaceWeather} />
 
-        <DisclaimerCard ssn={prediction.ssn} basis={prediction.basis} />
+        <DisclaimerCard
+          ssn={prediction.ssn}
+          basis={prediction.basis}
+          saved={Boolean(error)}
+        />
       </ScrollView>
 
       <LocationPicker

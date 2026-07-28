@@ -9,6 +9,14 @@ import type { AppTheme } from '../theme';
 interface Props {
   ssn: number;
   basis: PredictionBasis;
+  /**
+   * The forecast came from the saved cache after a failed fetch. A saved
+   * now-cast was driven by readings that are no longer current, so it is
+   * described as climatology instead: the sunspot number it used is
+   * still the truth about the run, but "driven by current readings" no
+   * longer is.
+   */
+  saved?: boolean;
 }
 
 /**
@@ -20,7 +28,10 @@ interface Props {
  * forecast by a predicted sunspot number, and neither is a live measurement of
  * the path itself.
  */
-export default function DisclaimerCard({ ssn, basis }: Props) {
+export default function DisclaimerCard({ ssn, basis, saved = false }: Props) {
+  const effective: PredictionBasis = saved && basis === 'nowcast'
+    ? 'climatology'
+    : basis;
   const theme = useTheme<AppTheme>();
   const { t } = useTranslation();
   const f = useFormatters();
@@ -43,7 +54,7 @@ export default function DisclaimerCard({ ssn, basis }: Props) {
           variant="bodySmall"
           style={[styles.text, { color: theme.colors.onSecondaryContainer }]}
         >
-          {t(`disclaimer.${basis}`, { ssn: f.integer(ssn) })}
+          {t(`disclaimer.${effective}`, { ssn: f.integer(ssn) })}
         </Text>
       </View>
     </Surface>

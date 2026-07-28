@@ -70,6 +70,12 @@
     "errorBody": "The prediction service could not be reached. Start it with \"pnpm start\" in the server directory.",
     "retry": "Try again"
   },
+  "offline": {
+    "title": "Saved forecast",
+    "body": "The server could not be reached. Showing the forecast saved on {{time}} UTC.",
+    "unchanged": "Predictions are monthly, so this stays correct for the rest of the month.",
+    "nowcastStale": "The live readings behind it are no longer current, so read this as typical for the month."
+  },
   "disclaimer": {
     "climatology": "Monthly climatology, not a live forecast. Assumes smoothed sunspot number {{ssn}} and quiet geomagnetic conditions.",
     "forecast": "Monthly climatology using a predicted sunspot number of {{ssn}}. Forecasts further ahead are less certain.",
