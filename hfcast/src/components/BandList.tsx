@@ -6,7 +6,7 @@ import { isNvis, qualityFor } from '../data/quality';
 import { cellsForHour } from '../data/selectors';
 import type { PathPrediction } from '../data/types';
 import { useFormatters } from '../hooks/useFormatters';
-import { numeric } from '../theme';
+import { numeric, spacing, typography } from '../theme';
 import type { AppTheme } from '../theme';
 
 interface Props {
@@ -41,7 +41,7 @@ export default function BandList({ prediction, hour }: Props) {
               style={styles.row}
             >
               <View style={styles.labelSlot}>
-                <Text variant="titleSmall" style={numeric}>
+                <Text style={[typography.bodyStrong, numeric]}>
                   {cell.band}
                 </Text>
                 {
@@ -51,8 +51,9 @@ export default function BandList({ prediction, hour }: Props) {
                 }
                 {nvis && (
                   <Text
-                    variant="labelSmall"
-                    style={{ color: theme.colors.onSurfaceVariant }}
+                    style={[typography.axis, {
+                      color: theme.colors.onSurfaceVariant,
+                    }]}
                   >
                     {t('bands.nvis')}
                   </Text>
@@ -78,8 +79,8 @@ export default function BandList({ prediction, hour }: Props) {
 
               <View style={styles.valueSlot}>
                 <Text
-                  variant="bodyMedium"
                   style={[
+                    typography.bodyStrong,
                     numeric,
                     { color: theme.colors.onSurfaceVariant },
                   ]}
@@ -97,15 +98,17 @@ export default function BandList({ prediction, hour }: Props) {
 }
 
 const styles = StyleSheet.create({
-  wrap: { marginHorizontal: 16 },
+  wrap: { marginHorizontal: spacing.lg },
   row: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
-    paddingVertical: 10,
+    gap: spacing.md,
+    // A row is a touch target before it is a table row, so it is sized by
+    // the 44px minimum rather than by padding around the text.
+    minHeight: 44,
   },
   labelSlot: { width: 44 },
-  track: { flex: 1, height: 6, borderRadius: 3, overflow: 'hidden' },
-  fill: { height: '100%', borderRadius: 3 },
+  track: { flex: 1, height: 8, borderRadius: 4, overflow: 'hidden' },
+  fill: { height: '100%', borderRadius: 4 },
   valueSlot: { width: 52, alignItems: 'flex-end' },
 });

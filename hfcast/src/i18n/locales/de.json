@@ -25,8 +25,8 @@
   },
   "quality": {
     "reliable": "Zuverlässig",
-    "marginal": "Grenzwertig",
-    "poor": "Schwach",
+    "patchy": "Wechselhaft",
+    "weak": "Schwach",
     "closed": "Geschlossen"
   },
   "time": {
@@ -97,5 +97,11 @@
     "body": "Der Server war nicht erreichbar. Angezeigt wird die am {{time}} UTC gespeicherte Vorhersage.",
     "unchanged": "Vorhersagen gelten monatlich und bleiben daher für den Rest des Monats richtig.",
     "nowcastStale": "Die zugrunde liegenden Live-Messwerte sind nicht mehr aktuell. Lies dies als typisch für den Monat."
+  },
+  "qualityDescription": {
+    "reliable": "Verbindung sollte klappen",
+    "patchy": "Kommt und geht",
+    "weak": "Nur mit Geduld",
+    "closed": "Dieses Band trägt jetzt nicht"
   }
 }

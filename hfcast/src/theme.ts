@@ -1,27 +1,38 @@
 import { StyleSheet } from 'react-native';
 import { MD3DarkTheme, MD3LightTheme } from 'react-native-paper';
-import { amber, cyan, indigo, rose, slate } from './palette';
+import { amber, cyan, indigo, rose, slate, violet } from './palette';
 
 /**
  * Propagation quality is a four-state scale, not a continuous gradient.
- * MD3 has no role for "this band is marginal", so we extend the scheme with a
- * parallel set of container/on-container pairs that follow the same contrast
- * rules as the built-in roles.
+ * MD3 has no role for "this band is patchy", so the scheme is extended with
+ * a parallel set that follows the same contrast rules as the built-in roles.
+ *
+ * The state names are the words shown to the user, so they say what to do
+ * rather than grade the number: a band is `patchy` because it comes and
+ * goes, not because it scored in a middle band.
  */
-export type QualityKey = 'reliable' | 'marginal' | 'poor' | 'closed';
+export type QualityKey = 'reliable' | 'patchy' | 'weak' | 'closed';
 
-type QualityColors = Record<
-  QualityKey,
-  { base: string; container: string; onContainer: string; }
->;
+/**
+ * A fill and the text that goes on it — the only two colours a state has.
+ *
+ * Deliberately not the container/on-container pair MD3 uses. The design
+ * puts quality on solid fills throughout (heatmap cells, bars, badges), so
+ * a lighter container tone would be a value nothing specifies and nothing
+ * draws.
+ */
+type QualityColors = Record<QualityKey, { base: string; onBase: string; }>;
 
 /**
  * Two scales ship. `signal` is the default.
  *
- * `signal` is ordinal: quality maps to contrast against the page, so it stays
- * readable in greyscale and under every form of colour blindness. Brighter
- * against a dark page, darker against a light one — either way, more contrast
- * means more signal.
+ * `signal` is ordinal: quality maps to lightness against the page, so it
+ * stays readable in greyscale and under every form of colour blindness.
+ * Darker against a light page, brighter against a dark one — the ramp
+ * inverts between themes, and either way more contrast means more signal.
+ *
+ * It is violet rather than the interface's cyan so the two never compete:
+ * cyan is what the user can press, violet is what the ionosphere is doing.
  *
  * `traffic` is the familiar green/amber/red. It trades those accessibility
  * properties for instant recognition. Switch if testing says the ordinal ramp
@@ -31,31 +42,54 @@ export type QualityScale = 'signal' | 'traffic';
 export const QUALITY_SCALE: QualityScale = 'signal';
 
 const signalLight: QualityColors = {
-  reliable: { base: cyan[700], container: cyan[100], onContainer: cyan[900] },
-  marginal: { base: indigo[600], container: '#DEE7FF', onContainer: '#122353' },
-  poor: { base: '#8B80DE', container: indigo[50], onContainer: '#241C5C' },
-  closed: { base: '#C3C9D9', container: slate[50], onContainer: slate[600] },
+  reliable: { base: violet[900], onBase: violet[75] },
+  patchy: { base: violet[700], onBase: violet[50] },
+  weak: { base: violet[400], onBase: violet[950] },
+  closed: { base: violet[100], onBase: slate[500] },
 };
 
 const signalDark: QualityColors = {
-  reliable: { base: cyan[400], container: cyan[800], onContainer: cyan[200] },
-  marginal: { base: indigo[500], container: '#1B3468', onContainer: '#C3D6FF' },
-  poor: { base: indigo[400], container: indigo[800], onContainer: '#D4CEFF' },
-  closed: { base: '#3E4459', container: slate[900], onContainer: slate[300] },
+  reliable: { base: violet[400], onBase: violet[950] },
+  patchy: { base: violet[700], onBase: violet[50] },
+  weak: { base: violet[850], onBase: violet[200] },
+  closed: { base: slate[900], onBase: slate[400] },
 };
 
+/**
+ * The same four states for the coverage globe.
+ *
+ * Wider spacing than the grid ramp, because white coastlines over partial
+ * fill opacity compress perceived contrast — at the grid's spacing the
+ * middle two states stop reading as two. Nothing consumes this yet; it
+ * lands with the map.
+ */
+export const qualityMap = {
+  light: {
+    reliable: { fill: violet[925], opacity: 0.95 },
+    patchy: { fill: violet[600], opacity: 0.88 },
+    weak: { fill: violet[400], opacity: 0.8 },
+    closed: { fill: violet[100], opacity: 0.6 },
+  },
+  dark: {
+    reliable: { fill: violet[300], opacity: 0.95 },
+    patchy: { fill: violet[500], opacity: 0.88 },
+    weak: { fill: violet[850], opacity: 0.8 },
+    closed: { fill: slate[900], opacity: 0.6 },
+  },
+} as const;
+
 const trafficLight: QualityColors = {
-  reliable: { base: '#2F7D32', container: '#D3EDD4', onContainer: '#0E2B10' },
-  marginal: { base: '#9A6200', container: '#FFE7BE', onContainer: '#331F00' },
-  poor: { base: '#B3261E', container: '#FFDAD6', onContainer: '#410E0B' },
-  closed: { base: '#C3C9D9', container: slate[50], onContainer: slate[600] },
+  reliable: { base: '#2F7D32', onBase: '#FFFFFF' },
+  patchy: { base: '#9A6200', onBase: '#FFFFFF' },
+  weak: { base: '#B3261E', onBase: '#FFFFFF' },
+  closed: { base: '#C3C9D9', onBase: slate[600] },
 };
 
 const trafficDark: QualityColors = {
-  reliable: { base: '#7BC97F', container: '#1B4D1F', onContainer: '#C6E9C8' },
-  marginal: { base: '#F0B152', container: '#553800', onContainer: '#FFDFA0' },
-  poor: { base: '#F2857D', container: '#5E1512', onContainer: '#FFDAD6' },
-  closed: { base: '#3E4459', container: slate[900], onContainer: slate[300] },
+  reliable: { base: '#7BC97F', onBase: '#0E2B10' },
+  patchy: { base: '#F0B152', onBase: '#331F00' },
+  weak: { base: '#F2857D', onBase: '#410E0B' },
+  closed: { base: '#3E4459', onBase: slate[300] },
 };
 
 const quality = {
@@ -176,3 +210,163 @@ export type AppTheme = typeof lightTheme;
 export const numeric = StyleSheet.create({
   tabular: { fontVariant: ['tabular-nums'] },
 }).tabular;
+
+/**
+ * The spacing scale.
+ *
+ * Six steps, every one a multiple of four, so they drop into style objects
+ * as plain numbers. **Gaps grow as the relationship weakens** — that rule is
+ * the scale; the numbers are just where it lands.
+ *
+ * Before this existed every margin was written inline, which is why the app
+ * had a considered colour system and no rhythm at all.
+ */
+export const spacing = {
+  /** A label and its own value; padding inside a chip. */
+  xs: 4,
+  /** Dense table rows, a swatch and its text, gaps between chips or tiles. */
+  sm: 8,
+  /** Elements inside one card. */
+  md: 12,
+  /** Card padding, screen gutters. */
+  lg: 16,
+  /** Between cards. */
+  xl: 24,
+  /** The bottom of a scroll, so the last card clears the gesture area. */
+  xxl: 32,
+} as const;
+
+/**
+ * Screen padding, which is not a single step: the top is deliberately tight
+ * because the header sits close to what follows it.
+ */
+export const screenPadding = {
+  phone: {
+    paddingTop: 4,
+    paddingHorizontal: spacing.lg,
+    paddingBottom: spacing.xxl,
+  },
+  tablet: {
+    paddingTop: spacing.sm,
+    paddingHorizontal: 20,
+    paddingBottom: spacing.xxl,
+  },
+} as const;
+
+/** Corner radii, largest to smallest surface. */
+export const radius = {
+  /** The device frame in the design; sheets and full-screen panes. */
+  frame: 28,
+  /** Cards. */
+  card: 20,
+  /** Buttons and fields. */
+  control: 14,
+  /** Chips, and recessed panels inside a card. */
+  inset: 12,
+  /** Heatmap cells. */
+  cell: 3,
+} as const;
+
+/**
+ * The type scale.
+ *
+ * One family throughout, with numbers separated from labels by weight and
+ * tracking rather than by a second family. Sizes are the design's; the M3
+ * role each one replaces is named so a Paper `variant` can be swapped for
+ * an entry here without guessing.
+ *
+ * **Nothing goes below 11px.** The app is read outdoors in direct sunlight,
+ * which is a stronger constraint than any density argument.
+ *
+ * Japanese wants roughly +2px of line height at body size and below, and
+ * German runs about 35% longer than English — so every label slot has to
+ * wrap rather than truncate, and no chip may carry a fixed width.
+ */
+export const typography = {
+  /** Location name in the header. Replaces titleLarge. */
+  locationName: {
+    fontSize: 20,
+    lineHeight: 24,
+    fontWeight: '700',
+    letterSpacing: -0.3,
+  },
+  /** The headline on a card. Replaces headlineSmall. */
+  cardHeadline: {
+    fontSize: 22,
+    lineHeight: 28,
+    fontWeight: '600',
+    letterSpacing: -0.3,
+  },
+  /** The plain-language answer. Lighter than a title on purpose — it reads
+   * as a sentence, not a heading. Replaces titleMedium. */
+  answer: { fontSize: 17, lineHeight: 24, fontWeight: '500', letterSpacing: 0 },
+  /** A card's own title. Replaces titleMedium. */
+  cardTitle: {
+    fontSize: 17,
+    lineHeight: 24,
+    fontWeight: '600',
+    letterSpacing: 0,
+  },
+  /** A large standalone figure, such as solar flux. Replaces headlineSmall. */
+  statValue: {
+    fontSize: 28,
+    lineHeight: 32,
+    fontWeight: '600',
+    letterSpacing: -0.5,
+  },
+  /** A figure inside a row or readout. Replaces titleLarge. */
+  numberMedium: {
+    fontSize: 20,
+    lineHeight: 24,
+    fontWeight: '600',
+    letterSpacing: 0,
+  },
+  /** Body text and input values. Replaces bodyLarge. */
+  body: { fontSize: 15, lineHeight: 20, fontWeight: '400', letterSpacing: 0 },
+  /** Body weight for a value that has to hold its own beside a label. */
+  bodyStrong: {
+    fontSize: 15,
+    lineHeight: 20,
+    fontWeight: '600',
+    letterSpacing: 0,
+  },
+  /** Text fields, which need to stay comfortable to read while typing. */
+  input: { fontSize: 17, lineHeight: 24, fontWeight: '400', letterSpacing: 0 },
+  /** Supporting text under a title. Replaces bodySmall. */
+  caption: {
+    fontSize: 13,
+    lineHeight: 18,
+    fontWeight: '400',
+    letterSpacing: 0,
+  },
+  /** A caption carrying a value rather than prose. */
+  captionStrong: {
+    fontSize: 13,
+    lineHeight: 18,
+    fontWeight: '600',
+    letterSpacing: 0,
+  },
+  /** The uppercase label above a value. Replaces labelSmall. */
+  label: {
+    fontSize: 11,
+    lineHeight: 14,
+    fontWeight: '600',
+    letterSpacing: 0.8,
+    textTransform: 'uppercase',
+  },
+  /** Axis ticks and footnotes. The floor: never smaller than this. */
+  axis: { fontSize: 11, lineHeight: 14, fontWeight: '600', letterSpacing: 0 },
+  /** The title on a full-screen setup pane. Tablet steps up to 34/40. */
+  setupTitle: {
+    fontSize: 28,
+    lineHeight: 34,
+    fontWeight: '600',
+    letterSpacing: -0.6,
+  },
+  setupTitleTablet: {
+    fontSize: 34,
+    lineHeight: 40,
+    fontWeight: '600',
+    letterSpacing: -0.6,
+  },
+} as const;

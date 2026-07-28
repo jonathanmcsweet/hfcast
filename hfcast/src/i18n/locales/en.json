@@ -47,8 +47,8 @@
   },
   "quality": {
     "reliable": "Reliable",
-    "marginal": "Marginal",
-    "poor": "Poor",
+    "patchy": "Patchy",
+    "weak": "Weak",
     "closed": "Closed"
   },
   "time": {
@@ -97,5 +97,11 @@
     "pinBand": "Show {{band}} only",
     "nvis": "Reaches by near-vertical incidence, so there is no skip zone.",
     "sounding": "Measured foF2 {{value}} from the sounder at {{station}}, {{distance}} away, at {{time}} UTC. This is a real measurement, not part of the forecast."
+  },
+  "qualityDescription": {
+    "reliable": "You should get through",
+    "patchy": "Comes and goes",
+    "weak": "Only with patience",
+    "closed": "Not this band, not now"
   }
 }

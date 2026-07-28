@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>HFCast — aurora photography</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; background: #E2E5F0; font-family: 'IBM Plex Sans', system-ui, sans-serif; -webkit-font-smoothing: antialiased; color: #12151F; }
+  a { color: #0E7490; text-decoration: none; }
+  a:hover { color: #0B4C5C; text-decoration: underline; }
+  .num { font-variant-numeric: tabular-nums; }
+  .shot { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; display: block; }
+  .credit { font-size: 10px; line-height: 14px; letter-spacing: 0.3px; color: #8590AB; }
+  /* duotone: strip the green, push it into the cyan ramp */
+  .duo { position: absolute; inset: 0; overflow: hidden; background: #03303D; }
+  .duo .shot { filter: grayscale(1) contrast(1.15) brightness(0.92); }
+  .duo .tint { position: absolute; inset: 0; background: linear-gradient(160deg, #22D3EE, #0E7490 45%, #4B5570); mix-blend-mode: color; }
+  .duo .lift { position: absolute; inset: 0; background: radial-gradient(120% 80% at 50% 0%, rgba(165,238,250,.22), transparent 70%); }
+  .scrim-b { position: absolute; inset: 0; background: linear-gradient(rgba(11,13,20,0) 30%, rgba(11,13,20,.72) 62%, #0B0D14 100%); }
+  .scrim-t { position: absolute; inset: 0; background: linear-gradient(rgba(11,13,20,.55), rgba(11,13,20,0) 45%); }
+</style>
+</head>
+<body>
+<div style="display:flex; flex-direction:column; gap:24px; padding:48px">
+  <div style="display:flex; flex-direction:column; gap:8px; max-width:900px">
+    <div style="font-size:11px; font-weight:600; letter-spacing:0.8px; text-transform:uppercase; color:#65708C">Turn 5 · photographic aurora</div>
+    <div style="font-size:28px; line-height:32px; font-weight:600; letter-spacing:-0.4px">Real aurora, public domain</div>
+    <div style="font-size:15px; line-height:22px; color:#4B5570; text-wrap:pretty">Three NASA photographs from Wikimedia Commons — public domain, so no attribution is legally required, but each frame carries a credit line anyway. All as shot: no tint, no duotone, no gradient map. The only additions are scrims, sized so type clears 4.5:1 over the photograph underneath. Ship them as bundled assets, not remote fetches, so the loading screen still works offline.</div>
+  </div>
+
+  <div style="display:flex; flex-wrap:wrap; gap:32px; align-items:flex-start">
+
+    <div style="display:flex; flex-direction:column; gap:12px; width:390px">
+      <div style="display:flex; align-items:center; gap:8px">
+        <div style="font-size:11px; font-weight:600; letter-spacing:0.8px; background:#12151F; color:#F7F8FC; padding:4px 8px; border-radius:6px">5a</div>
+        <div style="font-size:13px; font-weight:600">Loading · as shot</div>
+      </div>
+      <div style="position:relative; width:390px; height:640px; background:#0B0D14; border:1px solid #272D40; border-radius:28px; overflow:hidden">
+        <img class="shot" id="img5a" alt="Aurora australis photographed from the International Space Station" src="https://commons.wikimedia.org/wiki/Special:FilePath/Aurora_Australis_From_ISS.JPG?width=1200">
+        <div class="scrim-t"></div><div class="scrim-b"></div>
+        <div style="position:absolute; inset:0; display:flex; flex-direction:column; justify-content:space-between; padding:28px 24px 24px">
+          <div class="num" style="display:flex; justify-content:space-between; font-size:11px; font-weight:600; color:#CBD0E1"><span>14:02</span><span>DN70 · 4G</span></div>
+          <div style="display:flex; flex-direction:column; gap:12px">
+            <div style="font-size:44px; line-height:44px; font-weight:700; color:#FFFFFF; letter-spacing:-1.5px">HFCast</div>
+            <div style="font-size:17px; line-height:24px; color:#E2E5F0; text-wrap:pretty">Reading the ionosphere over Denver</div>
+            <div style="display:flex; flex-direction:column; gap:8px; padding-top:8px">
+              <div style="height:4px; border-radius:2px; background:rgba(226,229,240,.25); overflow:hidden"><div id="bar" style="height:4px; width:12%; border-radius:2px; background:#22D3EE"></div></div>
+              <div id="step" class="num" style="font-size:12px; line-height:16px; font-weight:600; letter-spacing:0.4px; text-transform:uppercase; color:#AAB2C8">Solar flux</div>
+            </div>
+            <div class="credit" style="padding-top:8px">Aurora australis from the ISS · NASA, public domain</div>
+          </div>
+        </div>
+      </div>
+      <div style="font-size:13px; line-height:18px; color:#4B5570; text-wrap:pretty">Green reads as “aurora” instantly, but it is the one hue your system deliberately does not use — it will always feel like a guest.</div>
+    </div>
+
+    <div style="display:flex; flex-direction:column; gap:12px; width:390px">
+      <div style="display:flex; align-items:center; gap:8px">
+        <div style="font-size:11px; font-weight:600; letter-spacing:0.8px; background:#12151F; color:#F7F8FC; padding:4px 8px; border-radius:6px">5b</div>
+        <div style="font-size:13px; font-weight:600">Loading · North Atlantic, as shot</div>
+      </div>
+      <div style="position:relative; width:390px; height:640px; background:#0B0D14; border:1px solid #272D40; border-radius:28px; overflow:hidden">
+        <img class="shot" id="img5b" alt="Aurora borealis over the North Atlantic from the International Space Station" src="https://commons.wikimedia.org/wiki/Special:FilePath/ISS-42_Aurora_borealis_over_North_Atlantic_Ocean.jpg?width=1200">
+        <div class="scrim-b"></div>
+        <div style="position:absolute; inset:0; display:flex; flex-direction:column; justify-content:space-between; padding:28px 24px 24px">
+          <div class="num" style="display:flex; justify-content:space-between; font-size:11px; font-weight:600; color:#CBD0E1"><span>14:02</span><span>DN70 · 4G</span></div>
+          <div style="display:flex; flex-direction:column; gap:12px">
+            <div style="font-size:11px; line-height:14px; font-weight:600; letter-spacing:0.8px; text-transform:uppercase; color:#AAB2C8">Denver → Chicago</div>
+            <div style="font-size:32px; line-height:36px; font-weight:600; color:#FFFFFF; letter-spacing:-0.8px; text-wrap:pretty">Working out which band gets you there</div>
+            <div id="dots" class="num" style="font-size:13px; line-height:18px; color:#E2E5F0">Solar flux · ionosonde · path model</div>
+            <div class="credit" style="padding-top:8px">ISS Expedition 42 · NASA, public domain</div>
+          </div>
+        </div>
+      </div>
+      <div style="font-size:13px; line-height:18px; color:#4B5570; text-wrap:pretty">The photograph left alone: green curtain, blue airglow on the limb, orange city light. A bottom scrim is the only intervention.</div>
+    </div>
+
+    <div style="display:flex; flex-direction:column; gap:12px; width:390px">
+      <div style="display:flex; align-items:center; gap:8px">
+        <div style="font-size:11px; font-weight:600; letter-spacing:0.8px; background:#12151F; color:#F7F8FC; padding:4px 8px; border-radius:6px">5c</div>
+        <div style="font-size:13px; font-weight:600">Background · header crop, as shot</div>
+      </div>
+      <div style="width:390px; background:#F7F8FC; border:1px solid #CBD0E1; border-radius:28px; overflow:hidden">
+        <div style="position:relative; height:250px; background:#0B0D14">
+          <img class="shot" id="img5c" style="object-position:50% 38%" alt="Aurora over Canada photographed from the International Space Station" src="https://commons.wikimedia.org/wiki/Special:FilePath/NASA_astronaut_Scott_Kelly_took_this_aurora_image_over_Canada_on_Jan._21,_2016_01.jpg?width=1200">
+          <div style="position:absolute; inset:0; background:linear-gradient(105deg, rgba(11,13,20,.94) 6%, rgba(11,13,20,.4) 62%, rgba(11,13,20,.12))"></div>
+          <div style="position:relative; display:flex; flex-direction:column; gap:12px; padding:20px">
+            <div style="display:flex; justify-content:space-between; align-items:center">
+              <div style="font-size:20px; line-height:24px; font-weight:700; color:#FFFFFF; letter-spacing:-0.3px">HFCast</div>
+              <div style="font-size:15px; color:#CBD0E1">↻ &nbsp; ⋯</div>
+            </div>
+            <div style="display:flex; flex-direction:column; gap:4px; padding-top:28px">
+              <div style="font-size:11px; line-height:14px; font-weight:600; letter-spacing:0.8px; text-transform:uppercase; color:#AAB2C8">Best band right now</div>
+              <div class="num" style="font-size:44px; line-height:44px; font-weight:600; color:#FFFFFF; letter-spacing:-1.5px">17m</div>
+              <div class="num" style="font-size:13px; line-height:18px; color:#E2E5F0">18.100 MHz · reliable to Chicago until 19:00</div>
+            </div>
+          </div>
+        </div>
+        <div style="padding:16px; display:flex; flex-direction:column; gap:8px">
+          <div style="background:#FFFFFF; border:1px solid #E2E5F0; border-radius:16px; padding:16px; display:flex; flex-direction:column; gap:4px">
+            <div style="font-size:17px; line-height:24px; font-weight:600">Where can I reach?</div>
+            <div style="font-size:13px; line-height:18px; color:#65708C; text-wrap:pretty">One photograph, one screen. Everything below the header stays flat and legible in sun.</div>
+          </div>
+          <div class="credit">Header: ISS Expedition 46, Scott Kelly · NASA, public domain</div>
+        </div>
+      </div>
+      <div style="font-size:13px; line-height:18px; color:#4B5570; text-wrap:pretty">A hard diagonal scrim keeps the type on near-solid colour while the photograph survives on the right. My pick if you want a photo in the product rather than only at launch.</div>
+    </div>
+
+    <div style="display:flex; flex-direction:column; gap:12px; width:390px">
+      <div style="display:flex; align-items:center; gap:8px">
+        <div style="font-size:11px; font-weight:600; letter-spacing:0.8px; background:#12151F; color:#F7F8FC; padding:4px 8px; border-radius:6px">5d</div>
+        <div style="font-size:13px; font-weight:600">Data · photo only when there is a storm</div>
+      </div>
+      <div style="width:390px; background:#F7F8FC; border:1px solid #CBD0E1; border-radius:28px; padding:16px; display:flex; flex-direction:column; gap:16px">
+        <div style="display:flex; flex-direction:column; gap:4px">
+          <div style="font-size:17px; line-height:24px; font-weight:600">Geomagnetic storm</div>
+          <div style="font-size:13px; line-height:18px; color:#65708C; text-wrap:pretty">Quiet days get a flat card. The photograph is the alarm — it only shows up when K climbs, so it never becomes wallpaper.</div>
+        </div>
+        <div style="display:flex; gap:12px">
+          <div style="flex:1; display:flex; flex-direction:column; gap:8px">
+            <div style="position:relative; height:140px; border-radius:14px; overflow:hidden; background:#12151F; border:1px solid #272D40">
+              <div style="position:absolute; inset:0; background:repeating-linear-gradient(74deg, rgba(165,178,200,.14) 0 1px, transparent 1px 6px)"></div>
+              <div class="num" style="position:absolute; left:12px; bottom:10px; font-size:24px; line-height:28px; font-weight:700; color:#FFFFFF; letter-spacing:-0.5px">K 2</div>
+            </div>
+            <div style="font-size:13px; line-height:18px; color:#65708C">Quiet — nothing to worry about</div>
+          </div>
+          <div style="flex:1; display:flex; flex-direction:column; gap:8px">
+            <div style="position:relative; height:140px; border-radius:14px; overflow:hidden; background:#0B0D14; border:1px solid #272D40">
+              <img class="shot" id="img5d" style="object-position:50% 45%" alt="Aurora australis from the International Space Station" src="https://commons.wikimedia.org/wiki/Special:FilePath/Aurora_Australis_From_ISS.JPG?width=1200">
+              <div style="position:absolute; inset:0; background:linear-gradient(rgba(11,13,20,0) 40%, rgba(11,13,20,.85))"></div>
+              <div class="num" style="position:absolute; left:12px; bottom:10px; font-size:24px; line-height:28px; font-weight:700; color:#FFFFFF; letter-spacing:-0.5px">K 7</div>
+            </div>
+            <div style="font-size:13px; line-height:18px; color:#65708C">Storm — northern paths will fade</div>
+          </div>
+        </div>
+        <div style="background:#EEF0F7; border-radius:12px; padding:12px; font-size:12px; line-height:18px; color:#4B5570; text-wrap:pretty">The number and the plain-word verdict carry the meaning; the photograph is redundant by design, so nothing is lost with images off or on a screen reader.</div>
+      </div>
+      <div style="font-size:13px; line-height:18px; color:#4B5570; text-wrap:pretty">Cheapest to ship: one bundled image, used rarely, doing actual work.</div>
+    </div>
+
+  </div>
+
+  <div style="background:#F7F8FC; border:1px solid #CBD0E1; border-radius:16px; padding:16px; max-width:900px; display:flex; flex-direction:column; gap:6px">
+    <div style="font-size:13px; line-height:18px; font-weight:600">Sources · all NASA, public domain via Wikimedia Commons</div>
+    <div style="font-size:12px; line-height:18px; color:#4B5570">Aurora Australis From ISS · ISS-42 Aurora borealis over North Atlantic Ocean · Aurora over Canada, ISS Expedition 46 (Scott Kelly). Loaded here from Commons at 1200px for review; bundle them at 2× the frame size and strip EXIF before shipping.</div>
+  </div>
+</div>
+
+<script>
+const STEPS = ['Solar flux', 'Boulder ionosonde', 'Path model', 'Your bands'];
+const bar = document.getElementById('bar'), stepEl = document.getElementById('step'), dots = document.getElementById('dots');
+const t0 = performance.now();
+(function tick(now) {
+  const p = ((now - t0) / 1000 * 14) % 100;
+  bar.style.width = Math.max(8, p).toFixed(1) + '%';
+  stepEl.textContent = STEPS[Math.min(3, Math.floor(p / 25))];
+  dots.textContent = 'Solar flux · ionosonde · path model' + '.'.repeat(1 + Math.floor((now - t0) / 500) % 3);
+  requestAnimationFrame(tick);
+})(performance.now());
+</script>
+</body>
+</html>
