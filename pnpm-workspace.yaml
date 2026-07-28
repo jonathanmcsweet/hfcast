@@ -1,12 +1,11 @@
-allowBuilds:
-  '@biomejs/biome': set this to true or false
-  dprint: set this to true or false
 # Settings only: no `packages:` key, so hfcast/ and server/ stay independent
 # projects rather than becoming workspace members.
 #
 # pnpm 11 no longer reads pnpm-specific settings from .npmrc or from the "pnpm"
-# field in package.json. This file is the only place it looks. That same change
-# is what broke the app's web build, so the setting is kept here deliberately.
+# field in package.json. This file is the only place it looks, and it is also
+# what makes pnpm treat a directory as a root project. hfcast/ carries its own
+# copy for that reason: without one, `pnpm install` run from there walks up to
+# this file and installs this project instead of the app.
 #
 # pnpm 11 also fails an install when a dependency's build script has not been
 # reviewed. dprint and biome resolve their prebuilt platform binary that way.
@@ -14,3 +13,6 @@ allowBuilds:
 # in 11.10.0, so the gate is turned off for this tooling-only project. Both
 # binaries are verified to run without their build script. See docs/roadmap.md.
 strictDepBuilds: false
+allowBuilds:
+  '@biomejs/biome': set this to true or false
+  dprint: set this to true or false

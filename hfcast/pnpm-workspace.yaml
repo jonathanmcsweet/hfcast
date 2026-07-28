@@ -1,0 +1,22 @@
+# Settings only: no `packages:` key. This file exists so that pnpm, run from
+# this directory, treats the app as its own root project with its own
+# pnpm-lock.yaml, rather than walking up to the repository root and installing
+# that project instead.
+#
+# `nodeLinker: hoisted` is what keeps the app buildable. Metro and @expo/cli
+# both reach into packages they never declared as dependencies — @expo/cli
+# deep-imports `metro/src/lib/TerminalReporter`, and Metro's file map ignores
+# anything outside the project directory, which is where pnpm's symlinks point.
+# Neither works under pnpm's default isolated layout. Expo's own guidance for
+# pnpm is a flat tree.
+#
+# This lived in .npmrc until pnpm 11 stopped reading pnpm settings from there,
+# which broke the web build silently: the next install relinked the tree
+# isolated and nothing reported it, because nothing in this project builds the
+# app. Putting it back in .npmrc would look correct and do nothing.
+nodeLinker: hoisted
+
+# Expo's dependencies run build scripts to fetch or compile platform binaries.
+# pnpm 11 fails the install rather than running unreviewed ones; the gate is
+# turned off here for the same reason as at the repository root.
+strictDepBuilds: false
