@@ -52,6 +52,17 @@ export interface BandHourPrediction {
   reliability: number;
   /** Median signal-to-noise ratio in dB. */
   snr: number;
+  /**
+   * Transmit take-off angle in degrees, or null where the engine printed
+   * no angle for this band and hour.
+   *
+   * Carried through so a client can say when a path works by
+   * near-vertical incidence: a steep departure comes back down without a
+   * skip zone, which is why a short path works on bands that look too
+   * low for it. The empirical correction does not touch this — it moves
+   * the signal median, not the geometry.
+   */
+  takeoffAngleDeg: number | null;
 }
 
 /** Where the sunspot number driving a run came from. */

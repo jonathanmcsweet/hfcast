@@ -49,14 +49,16 @@
     "changePath": "{{from}} から {{to}} への経路。タップして変更します。",
     "swapEnds": "経路の両端を入れ替える",
     "followBestBand": "最適なバンドに追従する",
-    "pinBand": "{{band}} のみ表示"
+    "pinBand": "{{band}} のみ表示",
+    "nvis": "ほぼ垂直入射で届くため、スキップゾーンがありません。"
   },
   "basis": {
     "live": "現在の状況",
     "climatology": "その月の平年値"
   },
   "bands": {
-    "best": "最適バンド"
+    "best": "最適バンド",
+    "nvis": "NVIS"
   },
   "days": {
     "today": "今日"

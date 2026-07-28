@@ -33,6 +33,12 @@ const LABEL_START = 66;
 export interface RawBandHour extends BandHourPrediction {
   snrLowDecile: number | null;
   snrUpDecile: number | null;
+  /**
+   * Transmit take-off angle in degrees. Near-vertical incidence is a
+   * property of this angle: a steep departure returns without a skip
+   * zone, which is why a short path works on bands that look too low.
+   */
+  takeoffAngleDeg: number | null;
 }
 
 export interface ParsedPrediction {
@@ -67,7 +73,7 @@ function normaliseHour(raw: number): number {
 }
 
 /** The row labels one hour block contributes to a cell. */
-const ROWS = ['REL', 'SNR', 'SNR LW', 'SNR UP'] as const;
+const ROWS = ['REL', 'SNR', 'SNR LW', 'SNR UP', 'TANGLE'] as const;
 type RowLabel = (typeof ROWS)[number];
 
 export function parseVoacapOutput(
@@ -121,6 +127,7 @@ export function parseVoacapOutput(
         snr,
         snrLowDecile: bySlot.get('SNR LW')?.get(index) ?? null,
         snrUpDecile: bySlot.get('SNR UP')?.get(index) ?? null,
+        takeoffAngleDeg: bySlot.get('TANGLE')?.get(index) ?? null,
       });
     });
   }

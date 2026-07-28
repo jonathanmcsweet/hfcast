@@ -129,6 +129,7 @@ test('narrower spread makes the answer more decisive', () => {
       snr,
       snrLowDecile: 16,
       snrUpDecile: 16,
+      takeoffAngleDeg: 12,
     },
   ];
   const neutral = { swing: 1, spreadLow: 1, spreadUp: 1 };
@@ -180,6 +181,7 @@ test('a recent storm makes an open band less certain, not more', () => {
       snr: FIXTURE_REQUIRED_SNR + 6,
       snrLowDecile: 16,
       snrUpDecile: 16,
+      takeoffAngleDeg: 12,
     },
   ];
   const quiet = correctCells(cell, FIXTURE_REQUIRED_SNR, factorsFor(2));
@@ -198,6 +200,36 @@ test('a recent storm makes an open band less certain, not more', () => {
   assert.equal(quietClosed[0]?.reliability, stormClosed[0]?.reliability);
 });
 
+test('the take-off angle passes through the correction untouched', () => {
+  // The correction moves the signal median and rescales the deciles. The
+  // angle is geometry and has nothing to do with either, so a client can
+  // trust it to be the engine's own number rather than a corrected one.
+  const cells = [
+    {
+      hour: 1,
+      band: '20m' as const,
+      reliability: 0.5,
+      snr: 30,
+      snrLowDecile: 16,
+      snrUpDecile: 16,
+      takeoffAngleDeg: 84.3,
+    },
+    {
+      hour: 2,
+      band: '20m' as const,
+      reliability: 0.5,
+      snr: 40,
+      snrLowDecile: 16,
+      snrUpDecile: 16,
+      takeoffAngleDeg: null,
+    },
+  ];
+  const corrected = correctCells(cells, FIXTURE_REQUIRED_SNR);
+  assert.equal(corrected[0]?.takeoffAngleDeg, 84.3);
+  assert.equal(corrected[1]?.takeoffAngleDeg, null);
+  assert.notEqual(corrected[0]?.snr, cells[0]?.snr);
+});
+
 test('cells without deciles keep the engine reliability', () => {
   const bare = [
     {
@@ -207,6 +239,7 @@ test('cells without deciles keep the engine reliability', () => {
       snr: 30,
       snrLowDecile: null,
       snrUpDecile: null,
+      takeoffAngleDeg: null,
     },
   ];
   const corrected = correctCells(bare, FIXTURE_REQUIRED_SNR);

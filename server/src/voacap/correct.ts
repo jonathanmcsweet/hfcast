@@ -183,6 +183,9 @@ export function correctCells(
       band: cell.band,
       reliability: Math.min(1, Math.max(0, reliability)),
       snr,
+      // Geometry, not signal level: the correction has nothing to say
+      // about it, so it passes through untouched.
+      takeoffAngleDeg: cell.takeoffAngleDeg,
     };
   });
 }

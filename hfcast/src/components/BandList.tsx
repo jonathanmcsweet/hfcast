@@ -2,7 +2,7 @@ import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { StyleSheet, View } from 'react-native';
 import { Divider, Text, useTheme } from 'react-native-paper';
-import { qualityFor } from '../data/quality';
+import { isNvis, qualityFor } from '../data/quality';
 import { cellsForHour } from '../data/selectors';
 import type { PathPrediction } from '../data/types';
 import { useFormatters } from '../hooks/useFormatters';
@@ -25,20 +25,39 @@ export default function BandList({ prediction, hour }: Props) {
       {rows.map((cell, index) => {
         const quality = qualityFor(cell.reliability);
         const colour = theme.colors.quality[quality].base;
+        const nvis = isNvis(cell.takeoffAngleDeg, cell.reliability);
         return (
           <View key={cell.band}>
             <View
               accessible
-              accessibilityLabel={t('a11y.bandRow', {
-                band: cell.band,
-                quality: t(`quality.${quality}`),
-                percent: f.percent(cell.reliability),
-              })}
+              accessibilityLabel={[
+                t('a11y.bandRow', {
+                  band: cell.band,
+                  quality: t(`quality.${quality}`),
+                  percent: f.percent(cell.reliability),
+                }),
+                nvis ? t('a11y.nvis') : '',
+              ].filter(Boolean).join(' ')}
               style={styles.row}
             >
-              <Text variant="titleSmall" style={[styles.label, numeric]}>
-                {cell.band}
-              </Text>
+              <View style={styles.labelSlot}>
+                <Text variant="titleSmall" style={numeric}>
+                  {cell.band}
+                </Text>
+                {
+                  /* Marks the bands a short path reaches straight up and
+                     back down. Without it the low bands working at noon on
+                     a 30 km path reads as a bug rather than as physics. */
+                }
+                {nvis && (
+                  <Text
+                    variant="labelSmall"
+                    style={{ color: theme.colors.onSurfaceVariant }}
+                  >
+                    {t('bands.nvis')}
+                  </Text>
+                )}
+              </View>
 
               <View
                 style={[
@@ -85,7 +104,7 @@ const styles = StyleSheet.create({
     gap: 12,
     paddingVertical: 10,
   },
-  label: { width: 44 },
+  labelSlot: { width: 44 },
   track: { flex: 1, height: 6, borderRadius: 3, overflow: 'hidden' },
   fill: { height: '100%', borderRadius: 3 },
   valueSlot: { width: 52, alignItems: 'flex-end' },

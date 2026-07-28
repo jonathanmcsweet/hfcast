@@ -49,14 +49,16 @@
     "changePath": "Ruta de {{from}} a {{to}}. Toca para cambiarla.",
     "swapEnds": "Intercambiar los dos extremos de la ruta",
     "followBestBand": "Seguir la banda que sea mejor",
-    "pinBand": "Mostrar solo {{band}}"
+    "pinBand": "Mostrar solo {{band}}",
+    "nvis": "Llega por incidencia casi vertical, así que no hay zona de silencio."
   },
   "basis": {
     "live": "Condiciones actuales",
     "climatology": "Habitual para el mes"
   },
   "bands": {
-    "best": "Mejor banda"
+    "best": "Mejor banda",
+    "nvis": "NVIS"
   },
   "days": {
     "today": "Hoy"

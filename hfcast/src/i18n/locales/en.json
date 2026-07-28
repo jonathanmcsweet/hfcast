@@ -16,7 +16,8 @@
     "climatology": "Typical for the month"
   },
   "bands": {
-    "best": "Best band"
+    "best": "Best band",
+    "nvis": "NVIS"
   },
   "days": {
     "today": "Today"
@@ -92,6 +93,7 @@
     "changePath": "Path from {{from}} to {{to}}. Tap to change.",
     "swapEnds": "Swap the two ends of the path",
     "followBestBand": "Follow whichever band is best",
-    "pinBand": "Show {{band}} only"
+    "pinBand": "Show {{band}} only",
+    "nvis": "Reaches by near-vertical incidence, so there is no skip zone."
   }
 }
