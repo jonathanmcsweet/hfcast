@@ -154,6 +154,9 @@ export async function predict(
     year,
     date: isoDate(request.date),
     mufByHour,
+    // Frequencies, not signal levels, so the corrections above do not
+    // apply to them and they pass through as the engine reported them.
+    window: parsed.window,
     cells,
   };
 

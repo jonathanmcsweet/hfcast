@@ -23,7 +23,7 @@ import { QueryClient } from '@tanstack/react-query';
  * an error. The buster is what prevents that: on a mismatch the whole
  * cache is dropped and refetched.
  */
-export const CACHE_BUSTER = '1-prediction-v1';
+export const CACHE_BUSTER = '2-prediction-window';
 
 const STORAGE_KEY = 'hfcast.query-cache';
 
