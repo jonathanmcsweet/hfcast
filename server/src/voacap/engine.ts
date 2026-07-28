@@ -60,6 +60,7 @@ interface WireCell {
   snr: number;
   snrLowDecile: number | null;
   snrUpDecile: number | null;
+  takeoffAngleDeg: number | null;
 }
 
 interface WirePrediction {
@@ -141,6 +142,7 @@ export async function runEngine(
       snr: cell.snr,
       snrLowDecile: cell.snrLowDecile,
       snrUpDecile: cell.snrUpDecile,
+      takeoffAngleDeg: cell.takeoffAngleDeg,
     });
   }
 

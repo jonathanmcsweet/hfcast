@@ -23,6 +23,11 @@ export interface BandHourPrediction {
   reliability: number;
   /** Median signal-to-noise ratio in dB. */
   snr: number;
+  /**
+   * Transmit take-off angle in degrees, or null where the engine printed
+   * none. Steep means near-vertical incidence: see `isNvis`.
+   */
+  takeoffAngleDeg: number | null;
 }
 
 /** Where the sunspot number driving a run came from. */

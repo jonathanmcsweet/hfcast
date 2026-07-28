@@ -49,14 +49,16 @@
     "changePath": "Strecke von {{from}} nach {{to}}. Zum Ändern tippen.",
     "swapEnds": "Die beiden Enden der Strecke tauschen",
     "followBestBand": "Der jeweils besten Band folgen",
-    "pinBand": "Nur {{band}} anzeigen"
+    "pinBand": "Nur {{band}} anzeigen",
+    "nvis": "Erreicht über nahezu senkrechten Einfall, daher ohne tote Zone."
   },
   "basis": {
     "live": "Aktuelle Bedingungen",
     "climatology": "Typisch für den Monat"
   },
   "bands": {
-    "best": "Beste Band"
+    "best": "Beste Band",
+    "nvis": "NVIS"
   },
   "days": {
     "today": "Heute"
