@@ -6,7 +6,9 @@
     "title": "¿Hasta dónde llego?",
     "subtitle": "La previsión de abajo apunta a {{place}}.",
     "answer": "{{band}} llega a {{place}} a las {{hour}} UTC: cerca de {{percent}} de probabilidad de contacto.",
-    "mapPending": "El mapa de cobertura aún no está construido. Hasta entonces, todo lo de abajo describe esta única ruta."
+    "mapLoading": "Calculando hasta dónde llega esta banda",
+    "mapUnavailable": "No se pudo cargar el mapa de cobertura.",
+    "reachLine": "{{band}} llega a cerca del {{percent}} del mundo a esta hora."
   },
   "path": {
     "summary": "{{distance}} · rumbo {{bearing}} · {{hops}} saltos",
@@ -117,6 +119,7 @@
     "gridCell": "{{band}}, {{hour}} UTC, {{percent}}, {{quality}}",
     "windowRail": "Ventana utilizable: mínima {{floor}}, máxima {{ceiling}}. Toca para ver la explicación.",
     "nvis": "Llega por incidencia casi vertical, así que no hay zona de silencio.",
-    "sounding": "foF2 medido de {{value}} por la ionosonda de {{station}}, a {{distance}}, a las {{time}} UTC. Es una medición real, no parte de la previsión."
+    "sounding": "foF2 medido de {{value}} por la ionosonda de {{station}}, a {{distance}}, a las {{time}} UTC. Es una medición real, no parte de la previsión.",
+    "coverage": "Mapa de cobertura. {{band}} llega a cerca del {{percent}} por ciento del mundo a esta hora."
   }
 }

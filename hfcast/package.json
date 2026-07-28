@@ -1,6 +1,6 @@
 {
   "name": "hfcast",
-  "version": "0.12.0",
+  "version": "0.13.0",
   "license": "Apache-2.0",
   "main": "index.js",
   "scripts": {
@@ -8,7 +8,8 @@
     "android": "expo start --android",
     "ios": "expo start --ios",
     "web": "expo start --web",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test": "node --experimental-strip-types --test test/*.test.ts"
   },
   "dependencies": {
     "@babel/runtime": "^7.24.0",
@@ -39,6 +40,7 @@
     "react-native": "0.74.5",
     "react-native-paper": "^5.12.5",
     "react-native-safe-area-context": "4.10.5",
+    "react-native-svg": "15.2.0",
     "react-native-vector-icons": "^10.1.0",
     "react-native-web": "~0.19.10",
     "zustand": "^5.0.14"
@@ -47,7 +49,9 @@
     "@babel/core": "^7.24.0",
     "@types/react": "~18.2.79",
     "babel-preset-expo": "~11.0.15",
-    "typescript": "^5.3.3"
+    "topojson-client": "^3.1.0",
+    "typescript": "^5.3.3",
+    "world-atlas": "^2.0.2"
   },
   "private": true
 }

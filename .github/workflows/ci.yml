@@ -123,6 +123,9 @@ jobs:
       - name: Typecheck
         run: pnpm typecheck
 
+      - name: Test
+        run: pnpm test
+
       - name: Build for web
         run: pnpm exec expo export --platform web
 
