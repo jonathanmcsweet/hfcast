@@ -67,6 +67,38 @@ export const amber = {
   900: '#2E1C00',
 } as const;
 
+/**
+ * Propagation quality, and only that.
+ *
+ * A ramp of its own so quality never competes with the interface: cyan is
+ * what the user can press, violet is what the ionosphere is doing. The
+ * values come from the design handoff (see `design/`), which chose them
+ * for even steps of lightness rather than of hue — the scale has to be
+ * ordinal, so lightness is the axis that carries meaning and the one that
+ * survives greyscale, sunlight and colour blindness.
+ *
+ * Two spacings are defined. The `grid` steps are for solid fills. The
+ * wider `map` steps exist because white coastlines and partial fill
+ * opacity compress perceived contrast on the globe, so the same four
+ * states need pulling further apart to read as four.
+ */
+export const violet = {
+  50: '#F5F0FF',
+  75: '#F3ECFF',
+  100: '#F1EFF8',
+  200: '#E0D7FA',
+  300: '#D6C6FA',
+  400: '#C9B4F7',
+  500: '#9B78E8',
+  600: '#8A5FDC',
+  700: '#7C4BD0',
+  800: '#5B2FB0',
+  850: '#4A2F7D',
+  900: '#43267A',
+  925: '#3B1F72',
+  950: '#2A1656',
+} as const;
+
 /** Error only. Warmer and less institutional than Material's default red. */
 export const rose = {
   100: '#FFE0E5',

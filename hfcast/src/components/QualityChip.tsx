@@ -17,8 +17,8 @@ export default function QualityChip({ quality, compact }: Props) {
   return (
     <Chip
       compact={compact}
-      style={[styles.chip, { backgroundColor: c.container }]}
-      textStyle={{ color: c.onContainer }}
+      style={[styles.chip, { backgroundColor: c.base }]}
+      textStyle={{ color: c.onBase }}
     >
       {t(`quality.${quality}`)}
     </Chip>

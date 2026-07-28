@@ -25,8 +25,8 @@
   },
   "quality": {
     "reliable": "Fiable",
-    "marginal": "Marginal",
-    "poor": "Débil",
+    "patchy": "Irregular",
+    "weak": "Débil",
     "closed": "Cerrada"
   },
   "time": {
@@ -97,5 +97,11 @@
     "body": "No se pudo contactar con el servidor. Se muestra la previsión guardada el {{time}} UTC.",
     "unchanged": "Las previsiones son mensuales, así que sigue siendo correcta el resto del mes.",
     "nowcastStale": "Las lecturas en directo que la generaron ya no son actuales. Interprétala como típica del mes."
+  },
+  "qualityDescription": {
+    "reliable": "Deberías establecer contacto",
+    "patchy": "Va y viene",
+    "weak": "Solo con paciencia",
+    "closed": "Esta banda no ahora"
   }
 }
