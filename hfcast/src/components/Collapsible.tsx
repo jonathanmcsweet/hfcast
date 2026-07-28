@@ -2,7 +2,7 @@ import { type ReactNode, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import type { ViewStyle } from 'react-native';
 import { Text, TouchableRipple, useTheme } from 'react-native-paper';
-import { radius, spacing, typography } from '../theme';
+import { face, radius, spacing, typography } from '../theme';
 import type { AppTheme } from '../theme';
 import { Card } from './Card';
 
@@ -75,11 +75,7 @@ export default function Collapsible({
                says what the tap will do, and it needs no animation to be
                understood. */
           }
-          <Text
-            style={[typography.numberMedium, styles.caret, {
-              color: ui.text3,
-            }]}
-          >
+          <Text style={[styles.caret, { color: ui.accent }]}>
             {open ? '−' : '+'}
           </Text>
         </View>
@@ -94,22 +90,28 @@ const styles = StyleSheet.create({
   // whole header is the touch target rather than just the text.
   header: {
     marginHorizontal: -spacing.lg,
-    marginVertical: -spacing.lg,
+    marginTop: -spacing.lg,
+    marginBottom: -spacing.xs,
     paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.lg,
+    paddingVertical: spacing.md,
     borderRadius: radius.card,
   },
   headerRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.sm,
-    minHeight: 24,
+    minHeight: 32,
   },
   tag: {
-    paddingHorizontal: spacing.sm,
-    paddingVertical: 3,
-    borderRadius: radius.cell,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 6,
   },
-  caret: { marginStart: 'auto' },
-  body: { marginTop: spacing.lg },
+  caret: {
+    marginStart: 'auto',
+    fontSize: 13,
+    lineHeight: 18,
+    fontFamily: face.bold,
+  },
+  body: {},
 });

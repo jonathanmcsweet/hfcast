@@ -78,8 +78,8 @@ export default function WindowRail({ window, muf, hour, band }: Props) {
             {t('window.label')}
           </Text>
           <Text
-            style={[typography.captionStrong, numeric, styles.numbers, {
-              color: ui.text2,
+            style={[typography.axis, numeric, styles.numbers, {
+              color: ui.text3,
             }]}
           >
             {luf === null
@@ -91,7 +91,13 @@ export default function WindowRail({ window, muf, hour, band }: Props) {
           </Text>
         </View>
 
-        <View style={[styles.track, { backgroundColor: ui.line }]}>
+        <View style={styles.rail}>
+          <View
+            style={[styles.track, {
+              backgroundColor: ui.inset,
+              borderColor: ui.line,
+            }]}
+          />
           {
             /* The lit span is the answer; the ticks are the question. A
                tick inside it is a band that can work this hour. */
@@ -119,6 +125,8 @@ export default function WindowRail({ window, muf, hour, band }: Props) {
                     ? ui.text2
                     : ui.line2,
                 }]}
+                accessibilityElementsHidden
+                importantForAccessibility="no"
               />
             );
           })}
@@ -154,24 +162,43 @@ export default function WindowRail({ window, muf, hour, band }: Props) {
   );
 }
 
+const TRACK_TOP = 4;
+const TRACK_HEIGHT = 6;
+const RAIL_HEIGHT = 14;
+
 const styles = StyleSheet.create({
-  wrap: { marginTop: spacing.md, paddingVertical: spacing.sm },
-  headRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
+  wrap: { gap: 6 },
+  headRow: { flexDirection: 'row', alignItems: 'baseline', gap: spacing.sm },
   numbers: { marginStart: 'auto', textAlign: 'right', flexShrink: 1 },
+  // Taller than the track so the band ticks stand proud of it at both
+  // ends. A tick contained by the track would be a mark on the scale; one
+  // crossing it is a mark against the scale, which is what it means.
+  rail: { height: RAIL_HEIGHT },
   track: {
-    height: 6,
-    borderRadius: 3,
-    marginTop: spacing.sm,
-    overflow: 'hidden',
+    position: 'absolute',
+    start: 0,
+    end: 0,
+    top: TRACK_TOP,
+    height: TRACK_HEIGHT,
+    borderRadius: TRACK_HEIGHT / 2,
+    borderWidth: StyleSheet.hairlineWidth,
   },
   // Absolute so the span and every tick share one coordinate system: each
   // is placed by its frequency, not by its order in the row.
-  span: { position: 'absolute', top: 0, bottom: 0, opacity: 0.3 },
-  tick: { position: 'absolute', top: 0, bottom: 0 },
-  endRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginTop: spacing.xs,
+  span: {
+    position: 'absolute',
+    top: TRACK_TOP,
+    height: TRACK_HEIGHT,
+    borderRadius: TRACK_HEIGHT / 2,
+    opacity: 0.3,
   },
-  detail: { marginTop: spacing.sm },
+  tick: {
+    position: 'absolute',
+    top: 0,
+    height: RAIL_HEIGHT,
+    borderRadius: 1,
+    marginStart: -1,
+  },
+  endRow: { flexDirection: 'row', justifyContent: 'space-between' },
+  detail: {},
 });

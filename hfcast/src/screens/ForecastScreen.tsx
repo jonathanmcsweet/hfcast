@@ -176,17 +176,11 @@ export default function ForecastScreen() {
           />
         </Collapsible>
 
-        <Collapsible
-          title={offline
-            ? t('disclaimer.titleSaved')
-            : t('disclaimer.titleLive')}
-        >
-          <DisclaimerCard
-            ssn={prediction.ssn}
-            basis={prediction.basis}
-            saved={offline}
-          />
-        </Collapsible>
+        <DisclaimerCard
+          ssn={prediction.ssn}
+          basis={prediction.basis}
+          saved={offline}
+        />
       </ScrollView>
 
       <LocationPicker

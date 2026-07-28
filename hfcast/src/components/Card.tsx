@@ -62,8 +62,16 @@ const styles = StyleSheet.create({
     marginHorizontal: spacing.lg,
     marginTop: spacing.xl,
     padding: spacing.lg,
+    // One gap for everything inside a card, so no child has to know what
+    // sits above it.
+    gap: spacing.md,
     borderRadius: radius.card,
     borderWidth: StyleSheet.hairlineWidth,
   },
-  inset: { padding: spacing.md, borderRadius: radius.inset },
+  inset: {
+    paddingVertical: 10,
+    paddingHorizontal: spacing.md,
+    gap: 10,
+    borderRadius: radius.inset,
+  },
 });

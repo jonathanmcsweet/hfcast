@@ -53,7 +53,9 @@
     "measuredTag": "実測",
     "lastMeasured": "最後の実測",
     "updated": "{{time}} 更新",
-    "asOf": "{{time}} 時点"
+    "asOf": "{{time}} 時点",
+    "measuredTitle": "最寄りの電離層観測 · {{value}}",
+    "measuredSub": "{{station}}、{{distance}} · {{time}} UTC 測定"
   },
   "quality": {
     "reliable": "良好",
