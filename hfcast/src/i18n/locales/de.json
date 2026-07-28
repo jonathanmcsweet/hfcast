@@ -87,5 +87,11 @@
     "errorTitle": "Keine Vorhersage verfügbar",
     "errorBody": "Der Vorhersagedienst war nicht erreichbar. Starte ihn mit \"pnpm start\" im Verzeichnis server.",
     "retry": "Erneut versuchen"
+  },
+  "offline": {
+    "title": "Gespeicherte Vorhersage",
+    "body": "Der Server war nicht erreichbar. Angezeigt wird die am {{time}} UTC gespeicherte Vorhersage.",
+    "unchanged": "Vorhersagen gelten monatlich und bleiben daher für den Rest des Monats richtig.",
+    "nowcastStale": "Die zugrunde liegenden Live-Messwerte sind nicht mehr aktuell. Lies dies als typisch für den Monat."
   }
 }

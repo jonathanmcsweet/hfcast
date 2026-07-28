@@ -87,5 +87,11 @@
     "errorTitle": "No hay previsión disponible",
     "errorBody": "No se pudo contactar con el servicio de predicción. Inícialo con «pnpm start» en el directorio server.",
     "retry": "Reintentar"
+  },
+  "offline": {
+    "title": "Previsión guardada",
+    "body": "No se pudo contactar con el servidor. Se muestra la previsión guardada el {{time}} UTC.",
+    "unchanged": "Las previsiones son mensuales, así que sigue siendo correcta el resto del mes.",
+    "nowcastStale": "Las lecturas en directo que la generaron ya no son actuales. Interprétala como típica del mes."
   }
 }

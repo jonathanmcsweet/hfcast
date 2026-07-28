@@ -54,6 +54,16 @@ export function useFormatters() {
       month: 'short',
       timeZone: 'UTC',
     });
+    // For "saved at", where the day matters as much as the time: a
+    // forecast kept overnight must not read as if it were minutes old.
+    const dayAndTime = new Intl.DateTimeFormat(locale, {
+      day: 'numeric',
+      month: 'short',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false,
+      timeZone: 'UTC',
+    });
 
     /** Hour of day as a bare 00-23 label, without a date to hang it on. */
     const utcHour = (hour: number) =>
@@ -70,6 +80,7 @@ export function useFormatters() {
       megahertz: (mhz: number) => `${decimal.format(mhz)} MHz`,
       hourMinute: (d: Date) => hourMinute.format(d),
       dayLabel: (d: Date) => dayLabel.format(d),
+      dayAndTime: (d: Date) => dayAndTime.format(d),
       utcHour,
     };
   }, [locale]);
