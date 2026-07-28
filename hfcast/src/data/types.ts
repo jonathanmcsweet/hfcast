@@ -63,7 +63,34 @@ export interface PathPrediction {
   date: string;
   /** Median MUF in MHz per UTC hour, index 0-23. */
   mufByHour: number[];
+  /**
+   * The frequency window to work inside, or null when the server did not
+   * supply one. Nothing displays it yet.
+   */
+  window: OperatingWindow | null;
   cells: BandHourPrediction[];
+}
+
+/**
+ * The frequency window, per UTC hour, index 0-23.
+ *
+ * Answers "what should I set the dial to", which the reliability figures
+ * do not: above the MUF the signal passes through the ionosphere, below
+ * the LUF it is absorbed or lost in noise.
+ *
+ * Null entries are ordinary and mean the engine reported no value for
+ * that hour. A null LUF specifically means no frequency met the required
+ * reliability, not that a very low one did — so an hour with no LUF has
+ * no bottom to draw, rather than a bottom at zero. A long path at low
+ * power can have no LUF at any hour of the day.
+ */
+export interface OperatingWindow {
+  /** Frequency of optimum traffic: the one to pick. */
+  fotByHour: (number | null)[];
+  /** Highest probable frequency. */
+  hpfByHour: (number | null)[];
+  /** Lowest usable frequency. */
+  lufByHour: (number | null)[];
 }
 
 export interface SpaceWeather {

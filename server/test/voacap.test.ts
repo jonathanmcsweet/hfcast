@@ -114,6 +114,15 @@ test('parser reads every hour and band from a real listing', () => {
   assert.ok(mufByHour.every((m) => m > 0 && m < 60), 'MUF should be plausible');
 });
 
+test('the Fortran path reports no operating window rather than an empty one', () => {
+  // A method-30 listing prints neither the LUF nor the FOT, so this path
+  // has nothing to report until it runs a second, method-26 deck. Null
+  // says that; 24 nulls would say the frequencies were computed and
+  // nothing worked, which is a different and untrue claim.
+  const { window } = parseVoacapOutput(fixture, BANDS_BY_FREQ);
+  assert.equal(window, null);
+});
+
 test('parser keeps reliability in 0..1 and reads merged columns correctly', () => {
   const { cells } = parseVoacapOutput(fixture, BANDS_BY_FREQ);
   assert.ok(cells.every((c) => c.reliability >= 0 && c.reliability <= 1));

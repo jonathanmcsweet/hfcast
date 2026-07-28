@@ -95,6 +95,66 @@ test('a request for one band returns only that band', {
   assert.ok(cells.every((c) => c.band === '20m'));
 });
 
+test('the operating window arrives as 24 hours of frequencies', {
+  skip: !available,
+}, async () => {
+  const { window } = await runEngine(FIXTURE_REQUEST);
+  assert.ok(window, 'the Rust path must supply a window');
+  for (const key of ['fotByHour', 'hpfByHour', 'lufByHour'] as const) {
+    assert.equal(window[key].length, 24, key);
+    for (const value of window[key]) {
+      assert.ok(
+        value === null || (typeof value === 'number' && value > 0),
+        `${key} holds ${value}, which is neither absent nor a frequency`,
+      );
+    }
+  }
+});
+
+test('the window is ordered LUF below FOT below MUF', {
+  skip: !available,
+}, async () => {
+  // The point of the display is that these bound each other. If the
+  // three curves were ever read out of the table in the wrong columns,
+  // every value would still look plausible on its own and only the
+  // ordering would give it away.
+  const { window, mufByHour } = await runEngine(FIXTURE_REQUEST);
+  assert.ok(window);
+  let compared = 0;
+  for (let hour = 0; hour < 24; hour++) {
+    const fot = window.fotByHour[hour];
+    const hpf = window.hpfByHour[hour];
+    const luf = window.lufByHour[hour];
+    const muf = mufByHour[hour];
+    if (fot === null || fot === undefined || muf === undefined) continue;
+    compared++;
+    assert.ok(fot <= muf, `hour ${hour}: FOT ${fot} above MUF ${muf}`);
+    assert.ok(
+      hpf !== null && hpf !== undefined && hpf >= fot,
+      `hour ${hour}: HPF below FOT`,
+    );
+    if (luf !== null && luf !== undefined) {
+      assert.ok(luf <= fot, `hour ${hour}: LUF ${luf} above FOT ${fot}`);
+    }
+  }
+  assert.ok(compared >= 20, `only ${compared} hours had an FOT`);
+});
+
+test('a long path at low power reports no LUF rather than a wrong one', {
+  skip: !available,
+}, async () => {
+  // Seattle to Tokyo at 100 W meets the 24 dB requirement at no
+  // frequency, and the engine says so with a negative LUF. Reading that
+  // as a number would put a 1 MHz floor on the chart that no equipment
+  // could use.
+  const { window } = await runEngine(FIXTURE_REQUEST);
+  assert.ok(window);
+  assert.ok(
+    window.lufByHour.every((luf) => luf === null || luf > 0),
+    'a negative LUF reached the caller',
+  );
+});
+
 test('a refused request reports why', { skip: !available }, async () => {
   await assert.rejects(
     runEngine({ ...FIXTURE_REQUEST, month: 13 }),

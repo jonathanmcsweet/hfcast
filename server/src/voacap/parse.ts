@@ -15,7 +15,7 @@
  * label is read from its column rather than as the line's last word, because
  * labels contain spaces and `SNR LW` and `SIG LW` share a last word.
  */
-import type { BandHourPrediction, BandKey } from '../types.ts';
+import type { BandHourPrediction, BandKey, OperatingWindow } from '../types.ts';
 
 const FIRST_SLOT = 11;
 const SLOT_WIDTH = 5;
@@ -45,6 +45,14 @@ export interface ParsedPrediction {
   /** Median MUF in MHz per UTC hour, index 0-23. */
   mufByHour: number[];
   cells: RawBandHour[];
+  /**
+   * Null from the Fortran path, which would need a second `voacapl` run
+   * with a method-26 deck to produce it. That path exists as a fallback
+   * and is due for removal once the parity soak passes, so it was not
+   * worth a second run there. Consumers must treat the window as
+   * optional for that reason alone.
+   */
+  window: OperatingWindow | null;
 }
 
 /** One 5-column slot, or null where the listing prints a dash. */
@@ -132,5 +140,6 @@ export function parseVoacapOutput(
     });
   }
 
-  return { mufByHour, cells };
+  // No window: a method-30 listing prints neither the LUF nor the FOT.
+  return { mufByHour, cells, window: null };
 }

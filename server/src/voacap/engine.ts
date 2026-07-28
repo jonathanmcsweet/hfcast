@@ -20,7 +20,12 @@
 import { execFile } from 'node:child_process';
 import { homedir } from 'node:os';
 import path from 'node:path';
-import { BAND_MHZ, type BandKey, BANDS_BY_FREQ } from '../types.ts';
+import {
+  BAND_MHZ,
+  type BandKey,
+  BANDS_BY_FREQ,
+  type OperatingWindow,
+} from '../types.ts';
 import type { ParsedPrediction, RawBandHour } from './parse.ts';
 
 export const PREDICT_BIN = process.env.HFCAST_PREDICT
@@ -65,6 +70,9 @@ interface WireCell {
 
 interface WirePrediction {
   mufByHour?: number[];
+  fotByHour?: (number | null)[];
+  hpfByHour?: (number | null)[];
+  lufByHour?: (number | null)[];
   cells?: WireCell[];
   error?: string;
 }
@@ -151,5 +159,39 @@ export async function runEngine(
     if (hour < 24 && Number.isFinite(muf)) mufByHour[hour] = muf;
   });
 
-  return { mufByHour, cells };
+  return { mufByHour, cells, window: windowOf(parsed) };
+}
+
+/**
+ * The operating window, or null if the binary did not send one.
+ *
+ * Absent rather than empty when the fields are missing, so an older
+ * `predict` build reads as "this engine has no window" instead of as 24
+ * hours during which nothing worked. The two look identical once the
+ * arrays exist, and only one of them is true.
+ */
+function windowOf(parsed: WirePrediction): OperatingWindow | null {
+  const { fotByHour, hpfByHour, lufByHour } = parsed;
+  if (
+    fotByHour === undefined && hpfByHour === undefined
+    && lufByHour === undefined
+  ) {
+    return null;
+  }
+  return {
+    fotByHour: hours(fotByHour),
+    hpfByHour: hours(hpfByHour),
+    lufByHour: hours(lufByHour),
+  };
+}
+
+/** Exactly 24 entries, with anything unusable read as absent. */
+function hours(values: readonly (number | null)[] | undefined) {
+  const out = Array<number | null>(24).fill(null);
+  (values ?? []).forEach((value, hour) => {
+    if (hour < 24 && value !== null && Number.isFinite(value)) {
+      out[hour] = value;
+    }
+  });
+  return out;
 }
