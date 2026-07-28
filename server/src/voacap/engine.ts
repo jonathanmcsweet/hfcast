@@ -57,6 +57,48 @@ export interface EngineRequest {
   bands?: readonly BandKey[];
 }
 
+/**
+ * One run of the binary: JSON in on stdin, JSON out on stdout.
+ *
+ * A refused request still prints an object with an `error` field, which
+ * carries a better message than the exit status, so a non-zero exit with
+ * output is not treated as a failure until that field has been read.
+ */
+async function callPredict<T extends { error?: string; }>(
+  payload: string,
+): Promise<T> {
+  const stdout = await new Promise<string>((resolve, reject) => {
+    const child = execFile(
+      PREDICT_BIN,
+      [],
+      { timeout: RUN_TIMEOUT_MS, maxBuffer: 8 * 1024 * 1024 },
+      (error, out, stderr) => {
+        if (error && !out) {
+          reject(
+            new Error(`predict failed: ${stderr.trim() || error.message}`),
+          );
+          return;
+        }
+        resolve(out);
+      },
+    );
+    child.stdin?.end(payload);
+  });
+
+  let parsed: T;
+  try {
+    parsed = JSON.parse(stdout) as T;
+  } catch {
+    throw new Error(
+      `predict returned text that is not JSON: ${stdout.slice(0, 200)}`,
+    );
+  }
+  if (parsed.error !== undefined) {
+    throw new Error(`predict refused the request: ${parsed.error}`);
+  }
+  return parsed;
+}
+
 /** One cell as the binary emits it, before it is labelled with its band. */
 interface WireCell {
   hour: number;
@@ -107,37 +149,7 @@ export async function runEngine(
     itshfbc: ITSHFBC_DIR,
   });
 
-  const stdout = await new Promise<string>((resolve, reject) => {
-    const child = execFile(
-      PREDICT_BIN,
-      [],
-      { timeout: RUN_TIMEOUT_MS, maxBuffer: 8 * 1024 * 1024 },
-      (error, out, stderr) => {
-        // A refused request still prints JSON with an error field, which
-        // carries a better message than the exit status does.
-        if (error && !out) {
-          reject(
-            new Error(`predict failed: ${stderr.trim() || error.message}`),
-          );
-          return;
-        }
-        resolve(out);
-      },
-    );
-    child.stdin?.end(payload);
-  });
-
-  let parsed: WirePrediction;
-  try {
-    parsed = JSON.parse(stdout) as WirePrediction;
-  } catch {
-    throw new Error(
-      `predict returned text that is not JSON: ${stdout.slice(0, 200)}`,
-    );
-  }
-  if (parsed.error !== undefined) {
-    throw new Error(`predict refused the request: ${parsed.error}`);
-  }
+  const parsed = await callPredict<WirePrediction>(payload);
 
   const cells: RawBandHour[] = [];
   for (const cell of parsed.cells ?? []) {
@@ -194,4 +206,76 @@ function hours(values: readonly (number | null)[] | undefined) {
     }
   });
   return out;
+}
+
+/** One grid point as the binary emits it. */
+interface WireCoveragePoint {
+  lat: number;
+  lon: number;
+  reliability: number;
+}
+
+interface WireCoverage {
+  latStep?: number;
+  lonStep?: number;
+  points?: WireCoveragePoint[];
+  error?: string;
+}
+
+export interface CoverageRequest {
+  fromLat: number;
+  fromLon: number;
+  /** 1-12. */
+  month: number;
+  year: number;
+  ssn: number;
+  watts: number;
+  requiredSnrDb: number;
+  noiseDbw: number;
+  /** UTC hour, 0-23. An area run covers one hour, not a day. */
+  hour: number;
+  band: BandKey;
+  /** Cell size in degrees. */
+  latStep: number;
+  lonStep: number;
+}
+
+export interface Coverage {
+  band: BandKey;
+  hour: number;
+  latStep: number;
+  lonStep: number;
+  points: readonly WireCoveragePoint[];
+}
+
+/**
+ * Where this band reaches, this hour, in every direction.
+ *
+ * One band per call. Asking the engine for several frequencies at once
+ * makes it report the best of them at each point, which saturates the
+ * whole map and answers a question nobody asked — the map exists to show
+ * how the band the user selected differs from the others.
+ */
+export async function runCoverage(
+  request: CoverageRequest,
+): Promise<Coverage> {
+  const { band, ...rest } = request;
+  const parsed = await callPredict<WireCoverage>(JSON.stringify({
+    ...rest,
+    mode: 'area',
+    freqMhz: BAND_MHZ[band],
+    itshfbc: ITSHFBC_DIR,
+  }));
+
+  return {
+    band,
+    hour: request.hour,
+    latStep: parsed.latStep ?? request.latStep,
+    lonStep: parsed.lonStep ?? request.lonStep,
+    points: (parsed.points ?? []).map((p) => ({
+      lat: p.lat,
+      lon: p.lon,
+      reliability: Math.min(1, Math.max(0, p.reliability)),
+    })),
+  };
 }
