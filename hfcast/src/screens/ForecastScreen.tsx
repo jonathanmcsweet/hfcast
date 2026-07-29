@@ -10,7 +10,6 @@ import Collapsible from '../components/Collapsible';
 import DisclaimerCard from '../components/DisclaimerCard';
 import LocationPicker from '../components/LocationPicker';
 import PathHeader from '../components/PathHeader';
-import QualityLegend from '../components/QualityLegend';
 import ReachCard from '../components/ReachCard';
 import ReachGrid from '../components/ReachGrid';
 import SectionHeading from '../components/SectionHeading';
@@ -160,10 +159,6 @@ export default function ForecastScreen() {
             setHour(nextHour);
           }}
         />
-
-        <Collapsible title={t('sections.legend')} defaultOpen>
-          <QualityLegend />
-        </Collapsible>
 
         {
           /* The freshness tag stays on the collapsed header. A cached quiet

@@ -12,6 +12,7 @@ import BandHeatmap from './BandHeatmap';
 import BandTable from './BandTable';
 import { Card, Inset } from './Card';
 import QualityChip from './QualityChip';
+import QualityLegend from './QualityLegend';
 import WindowRail from './WindowRail';
 
 interface Props {
@@ -123,6 +124,8 @@ export default function ReachGrid({
             onSelect={onSelect}
           />
         )}
+
+      <QualityLegend />
 
       <Text style={[typography.caption, styles.footnote, { color: ui.text3 }]}>
         {t('grid.footnoteHours', { place })}

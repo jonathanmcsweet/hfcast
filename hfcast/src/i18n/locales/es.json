@@ -38,7 +38,6 @@
   },
   "sections": {
     "allBandsHint": "Hasta dónde llega cada banda, hora a hora.",
-    "legend": "Qué significan los tonos",
     "sun": "El sol hoy",
     "allBandsTo": "Todas las bandas hacia {{place}}",
     "noneReach": "Hoy ninguna banda llega a {{place}} a ninguna hora."
@@ -73,9 +72,6 @@
     "patchy": "Va y viene",
     "weak": "Solo con paciencia",
     "closed": "Esta banda no ahora"
-  },
-  "qualityLegend": {
-    "footnote": "Más contraste con el fondo significa una banda más fiable. Los cuatro estados están ordenados por luminosidad, así que se distinguen también en escala de grises y con cualquier tipo de daltonismo."
   },
   "time": {
     "localAt": "Hora local en {{place}}",
