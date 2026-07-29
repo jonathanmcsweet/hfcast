@@ -12,6 +12,7 @@ import type { AppTheme } from '../theme';
 import { Card, Inset } from './Card';
 import CoverageGlobe from './CoverageGlobe';
 import HourSlider from './HourSlider';
+import MapLegend from './MapLegend';
 import QualityChip from './QualityChip';
 
 interface Props {
@@ -117,6 +118,8 @@ export default function ReachCard({
           )
           : null}
       </View>
+
+      <MapLegend />
 
       {
         /* The map's headline number in words, because a shape is not a

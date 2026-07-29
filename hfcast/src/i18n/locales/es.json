@@ -8,7 +8,9 @@
     "answer": "{{band}} llega a {{place}} a las {{hour}} UTC: cerca de {{percent}} de probabilidad de contacto.",
     "mapLoading": "Calculando hasta dónde llega esta banda",
     "mapUnavailable": "No se pudo cargar el mapa de cobertura.",
-    "reachLine": "{{band}} llega a cerca del {{percent}} del mundo a esta hora."
+    "reachLine": "{{band}} llega a cerca del {{percent}} del mundo a esta hora.",
+    "legendReach": "Alcance",
+    "legendNight": "Noche"
   },
   "path": {
     "summary": "{{distance}} · rumbo {{bearing}} · {{hops}} saltos",
@@ -120,7 +122,12 @@
     "windowRail": "Ventana utilizable: mínima {{floor}}, máxima {{ceiling}}. Toca para ver la explicación.",
     "nvis": "Llega por incidencia casi vertical, así que no hay zona de silencio.",
     "sounding": "foF2 medido de {{value}} por la ionosonda de {{station}}, a {{distance}}, a las {{time}} UTC. Es una medición real, no parte de la previsión.",
-    "coverage": "Mapa de cobertura. {{band}} llega a cerca del {{percent}} por ciento del mundo a esta hora."
+    "coverage": "Mapa de cobertura. {{band}} llega a cerca del {{percent}} por ciento del mundo a esta hora.",
+    "zoomIn": "Acercar",
+    "zoomOut": "Alejar",
+    "fitReach": "Encuadrar hasta dónde llega esta banda",
+    "wholeGlobe": "Mostrar el globo entero",
+    "mapLegend": "Leyenda del mapa. Los tonos morados son el alcance previsto, de más débil a más fuerte. La zona gris es la noche."
   },
   "crash": {
     "title": "Algo ha fallado",

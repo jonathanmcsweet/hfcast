@@ -8,7 +8,9 @@
     "answer": "{{band}} は {{hour}} UTC に {{place}} へ届きます。交信できる可能性は約 {{percent}} です。",
     "mapLoading": "この周波数の到達範囲を計算しています",
     "mapUnavailable": "到達範囲の地図を読み込めませんでした。",
-    "reachLine": "{{band}} はこの時間、世界の約 {{percent}} に届きます。"
+    "reachLine": "{{band}} はこの時間、世界の約 {{percent}} に届きます。",
+    "legendReach": "到達範囲",
+    "legendNight": "夜"
   },
   "path": {
     "summary": "{{distance}} · 方位 {{bearing}} · {{hops}} ホップ",
@@ -120,7 +122,12 @@
     "windowRail": "使用可能な範囲：下限 {{floor}}、上限 {{ceiling}}。タップすると説明が開きます。",
     "nvis": "ほぼ垂直入射で届くため、スキップゾーンがありません。",
     "sounding": "{{distance}} 離れた {{station}} の観測装置による foF2 の実測値 {{value}}（{{time}} UTC）。予報ではなく実測値です。",
-    "coverage": "到達範囲の地図。{{band}} はこの時間、世界の約 {{percent}} パーセントに届きます。"
+    "coverage": "到達範囲の地図。{{band}} はこの時間、世界の約 {{percent}} パーセントに届きます。",
+    "zoomIn": "拡大",
+    "zoomOut": "縮小",
+    "fitReach": "このバンドの到達範囲に合わせる",
+    "wholeGlobe": "地球全体を表示",
+    "mapLegend": "地図の凡例。紫の濃淡は予測される到達範囲で、薄いほど弱く濃いほど強くなります。灰色の部分は夜です。"
   },
   "crash": {
     "title": "問題が発生しました",
