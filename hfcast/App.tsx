@@ -22,11 +22,16 @@ import {
 import ErrorBoundary from './src/components/ErrorBoundary';
 import i18n from './src/i18n';
 import ForecastScreen from './src/screens/ForecastScreen';
+import { useSettingsStore } from './src/store/useSettingsStore';
 import { darkTheme, lightTheme } from './src/theme';
 
 export default function App() {
   const scheme = useColorScheme();
-  const theme = scheme === 'dark' ? darkTheme : lightTheme;
+  const mode = useSettingsStore((s) => s.themeMode);
+  // `system` follows the device; the other two override it. Read here so
+  // one value drives the theme, the status bar and every component below.
+  const dark = mode === 'system' ? scheme === 'dark' : mode === 'dark';
+  const theme = dark ? darkTheme : lightTheme;
 
   // One family, four weights. The type scale picks a weight by naming the
   // face, so all four have to be present before anything renders — with a
@@ -71,7 +76,7 @@ export default function App() {
       <I18nextProvider i18n={i18n}>
         <PaperProvider theme={theme}>
           <SafeAreaProvider>
-            <StatusBar style={scheme === 'dark' ? 'light' : 'dark'} />
+            <StatusBar style={dark ? 'light' : 'dark'} />
             {
               /* Translated through the instance rather than a hook: the
                  boundary has to be able to render when what it wraps

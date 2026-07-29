@@ -343,7 +343,7 @@ export default function CoverageGlobe({
               d={pathOf(run, true)}
               fill={dark ? '#000000' : '#12151F'}
               fillOpacity={dark ? NIGHT_OPACITY.dark : NIGHT_OPACITY.light}
-              stroke={dark ? '#AAB2C8' : '#FFFFFF'}
+              stroke={ui.mapGuide}
               strokeWidth={px(0.9)}
               strokeDasharray={`${px(4)} ${px(4)}`}
               strokeOpacity={0.7}
@@ -355,7 +355,7 @@ export default function CoverageGlobe({
               key={`c${d}`}
               d={d}
               fill="none"
-              stroke={dark ? '#8590AB' : '#FFFFFF'}
+              stroke={ui.mapLine}
               strokeWidth={px(0.9)}
               strokeOpacity={0.9}
             />
@@ -368,7 +368,7 @@ export default function CoverageGlobe({
               cy={p.cy}
               r={ring.r}
               fill="none"
-              stroke={dark ? '#AAB2C8' : '#FFFFFF'}
+              stroke={ui.mapGuide}
               strokeWidth={px(0.8)}
               strokeDasharray={`${px(3)} ${px(5)}`}
               strokeOpacity={0.55}

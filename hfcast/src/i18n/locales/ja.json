@@ -112,7 +112,16 @@
     "station": "高さ 10 m のダイポールに 100 W を給電した場合を前提としています。より良いアンテナならこの数値を上回り、簡易的なアンテナでは届きません。"
   },
   "settings": {
-    "changeLanguage": "言語を変更"
+    "changeLanguage": "言語を変更",
+    "changeTheme": "テーマを変更",
+    "theme": {
+      "system": "端末に合わせる",
+      "light": "ライト",
+      "dark": "ダーク"
+    },
+    "menu": "設定",
+    "themeSection": "テーマ",
+    "languageSection": "言語"
   },
   "a11y": {
     "changeLocation": "送信地は {{place}} です。タップして変更します。",

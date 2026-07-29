@@ -112,7 +112,16 @@
     "station": "Nimmt 100 W an einem Dipol in 10 m Höhe an. Eine bessere Antenne übertrifft diese Werte; eine Behelfsantenne erreicht sie nicht."
   },
   "settings": {
-    "changeLanguage": "Sprache ändern"
+    "changeLanguage": "Sprache ändern",
+    "changeTheme": "Design ändern",
+    "theme": {
+      "system": "Gerät folgen",
+      "light": "Hell",
+      "dark": "Dunkel"
+    },
+    "menu": "Einstellungen",
+    "themeSection": "Design",
+    "languageSection": "Sprache"
   },
   "a11y": {
     "changeLocation": "Sendestandort {{place}}. Zum Ändern tippen.",
