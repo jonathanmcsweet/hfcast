@@ -1,6 +1,6 @@
 {
   "name": "hfcast",
-  "version": "0.13.0",
+  "version": "0.13.1",
   "license": "Apache-2.0",
   "main": "index.js",
   "scripts": {
@@ -9,7 +9,7 @@
     "ios": "expo start --ios",
     "web": "expo start --web",
     "typecheck": "tsc --noEmit",
-    "test": "node --experimental-strip-types --test test/*.test.ts"
+    "test": "node --experimental-strip-types --experimental-test-module-mocks --test test/*.test.ts"
   },
   "dependencies": {
     "@babel/runtime": "^7.24.0",
