@@ -71,7 +71,7 @@ export default function BandTable({ prediction, band, hour }: Props) {
                     color: h === hour ? ui.amberNum : ui.text4,
                   }]}
                 >
-                  {f.utcHour(h)}
+                  {f.hourTick(h)}
                 </Text>
               </View>
             ))}
@@ -88,7 +88,7 @@ export default function BandTable({ prediction, band, hour }: Props) {
                     accessible
                     accessibilityLabel={t('a11y.gridCell', {
                       band: key,
-                      hour: f.utcHour(h),
+                      hour: f.utcClock(h),
                       percent: f.percent(reliability),
                       quality: t(`quality.${quality}`),
                     })}

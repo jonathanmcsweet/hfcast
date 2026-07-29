@@ -17,6 +17,7 @@ import SectionHeading from '../components/SectionHeading';
 import SpaceWeatherCard from '../components/SpaceWeatherCard';
 
 import { usePrediction, useSounding } from '../api/queries';
+import { qualityFor } from '../data/quality';
 import { usePathStore } from '../store/usePathStore';
 import { spacing, typography } from '../theme';
 import type { AppTheme } from '../theme';
@@ -102,6 +103,13 @@ export default function ForecastScreen() {
 
   const { prediction, spaceWeather } = data;
 
+  // A grid of 216 identical closed cells is a true answer that looks like a
+  // failed one. Very long paths give exactly that — the engine's best cell
+  // over 16,000 km was 0.12 — so it gets said in words as well as drawn.
+  const allClosed = prediction.cells.every(
+    (c) => qualityFor(c.reliability) === 'closed',
+  );
+
   return (
     <View style={[styles.root, { backgroundColor: ui.page }]}>
       <ScrollView
@@ -130,9 +138,16 @@ export default function ForecastScreen() {
           onPressDestination={() => setPickerOpen(true)}
         />
 
+        {
+          /* Named for the destination, because this grid is about one path.
+             The map above answers the other question — who can hear you —
+             and the two were reading as the same thing. */
+        }
         <SectionHeading
-          title={t('sections.allBands')}
-          hint={t('sections.allBandsHint')}
+          title={t('sections.allBandsTo', { place: prediction.to.label })}
+          hint={allClosed
+            ? t('sections.noneReach', { place: prediction.to.label })
+            : t('sections.allBandsHint')}
         />
         <ReachGrid
           prediction={prediction}

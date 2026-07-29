@@ -107,7 +107,7 @@ export default function BandHeatmap({
                     accessibilityRole="button"
                     accessibilityLabel={t('a11y.gridCell', {
                       band: key,
-                      hour: f.utcHour(h),
+                      hour: f.utcClock(h),
                       percent: f.percent(reliability),
                       quality: t(`quality.${quality}`),
                     })}
@@ -141,7 +141,7 @@ export default function BandHeatmap({
                       color: h === hour ? ui.amberNum : ui.text4,
                     }]}
                   >
-                    {f.utcHour(h)}
+                    {f.hourTick(h)}
                   </Text>
                 )
                 : null}

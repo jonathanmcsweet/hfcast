@@ -59,8 +59,8 @@ export default function HourSlider({ hour, onChange, place, lon }: Props) {
           }]}
         >
           {t('time.bothZones', {
-            local: f.utcHour(localHour(hour, lon)),
-            utc: f.utcHour(hour),
+            local: f.utcClock(localHour(hour, lon)),
+            utc: f.utcClock(hour),
           })}
         </Text>
       </View>

@@ -48,6 +48,10 @@ export function useFormatters() {
       hour12: false,
       timeZone: 'UTC',
     });
+    const axisHour = new Intl.NumberFormat(locale, {
+      minimumIntegerDigits: 2,
+      useGrouping: false,
+    });
     const dayLabel = new Intl.DateTimeFormat(locale, {
       weekday: 'short',
       day: 'numeric',
@@ -65,7 +69,28 @@ export function useFormatters() {
       timeZone: 'UTC',
     });
 
-    /** Hour of day as a bare 00-23 label, without a date to hang it on. */
+    /**
+     * An hour as a clock time: 17:00, not 17.
+     *
+     * The minutes are always zero and carry no information, which is the
+     * argument for leaving them off — but a bare "17" is not how a time is
+     * read, and every other time on the screen has them.
+     */
+    const utcClock = (hour: number) =>
+      hourMinute.format(Date.UTC(2000, 0, 1, hour));
+
+    /**
+     * An hour as an axis tick: two digits, nothing else.
+     *
+     * Not `hourOnly`, which is a date format and so carries whatever the
+     * locale attaches to an hour — German gives "17 Uhr" and Japanese
+     * "17時". Those are correct and unusable in a twelve-pixel column. A
+     * number with a minimum width keeps the locale's own digits, which is
+     * what Arabic needs, and adds nothing.
+     */
+    const hourTick = (hour: number) => axisHour.format(hour);
+
+    /** Hour of day as the locale writes it, for prose. */
     const utcHour = (hour: number) =>
       hourOnly.format(Date.UTC(2000, 0, 1, hour));
 
@@ -79,6 +104,8 @@ export function useFormatters() {
       decibels: (db: number) => `${decibels.format(db)} dB`,
       megahertz: (mhz: number) => `${decimal.format(mhz)} MHz`,
       hourMinute: (d: Date) => hourMinute.format(d),
+      utcClock,
+      hourTick,
       dayLabel: (d: Date) => dayLabel.format(d),
       dayAndTime: (d: Date) => dayAndTime.format(d),
       utcHour,
