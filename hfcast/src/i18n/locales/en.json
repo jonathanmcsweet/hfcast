@@ -117,7 +117,15 @@
     },
     "menu": "Settings",
     "themeSection": "Theme",
-    "languageSection": "Language"
+    "languageSection": "Language",
+    "stationSection": "Radio",
+    "unitsSection": "Units",
+    "units": {
+      "auto": "Follow the device",
+      "autoNamed": "Follow the device ({{system}})",
+      "metric": "Metric",
+      "imperial": "Imperial"
+    }
   },
   "a11y": {
     "changeLocation": "Transmitting from {{place}}. Tap to change.",
@@ -138,5 +146,81 @@
   "crash": {
     "title": "Something went wrong",
     "body": "This screen could not be drawn. That is a fault in the app, not a problem with the forecast."
+  },
+  "station": {
+    "title": "Your radio",
+    "close": "Close",
+    "modeSection": "Mode",
+    "modeHint": "Listed hardest first. A digital mode can work a path that voice cannot.",
+    "modeNeeds": "{{mode}} needs {{db}} dB above the noise on this path.",
+    "powerSection": "Power",
+    "power": "Transmit power",
+    "watts": "{{watts}} W",
+    "antennaSection": "Antenna",
+    "height": "Height above ground",
+    "heightNote": "Height decides most of the answer. On 20 metres, a dipole a wavelength up beats one a quarter wave up by about 9 dB on a long path.",
+    "isotropicNote": "An equal signal in every direction. Not a real antenna, but it assumes nothing about yours.",
+    "gain": "Gain over a dipole",
+    "dbd": "{{gain}} dBd",
+    "beam": "Beam heading",
+    "degrees": "{{degrees}}°",
+    "aimAt": "Point at {{place}}, {{degrees}}°",
+    "reset": "Back to defaults",
+    "mode": {
+      "fm": "FM",
+      "am": "AM",
+      "ssb": "SSB voice",
+      "rtty": "RTTY",
+      "cw": "CW",
+      "psk31": "PSK31",
+      "ft8": "FT8",
+      "js8": "JS8",
+      "wspr": "WSPR"
+    },
+    "antenna": {
+      "isotropic": "Unspecified",
+      "dipole": "Dipole",
+      "vertical": "Vertical",
+      "invertedL": "Inverted L",
+      "yagi": "Beam"
+    },
+    "tip": {
+      "mode": "{{mode}}: needs {{db}} dB above the noise. Tap to change.",
+      "power": "Transmitting {{watts}} watts. Tap to change.",
+      "isotropic": "No antenna assumed. Tap to describe yours.",
+      "antenna": "{{antenna}} at {{height}}. Tap to change.",
+      "beam": "{{antenna}} at {{height}}, {{gain}} dBd, pointing {{degrees}}°. Tap to change.",
+      "preset": "Switch between your saved stations."
+    },
+    "a11y": {
+      "openHint": "Opens your radio settings",
+      "mode": "Mode: {{mode}}, needing {{db}} decibels above the noise",
+      "powerIs": "Power: {{watts}} watts",
+      "isotropic": "Antenna: none assumed",
+      "antennaIs": "Antenna: {{antenna}} at {{height}}",
+      "pickMode": "Use {{mode}}",
+      "pickAntenna": "Use a {{antenna}}",
+      "power": "Transmit power in watts",
+      "height": "Antenna height in metres",
+      "gain": "Antenna gain over a dipole, in decibels",
+      "beam": "Beam heading in degrees",
+      "name": "Name of this station",
+      "addHint": "Copies this station so you can change one thing",
+      "preset": "Station: {{name}}",
+      "presetHint": "Opens the list of your saved stations"
+    },
+    "nameSection": "Station",
+    "unnamed": "My station",
+    "add": "Add a station",
+    "remove": "Delete",
+    "manage": "Edit stations…",
+    "wattsUnit": "W",
+    "powerRange": "Anything from {{min}} W to {{max}} W. Below {{min}} W the model stops tracking power."
+  },
+  "units": {
+    "metres": "{{value}} m",
+    "feet": "{{value}} ft",
+    "kilometres": "{{value}} km",
+    "miles": "{{value}} mi"
   }
 }

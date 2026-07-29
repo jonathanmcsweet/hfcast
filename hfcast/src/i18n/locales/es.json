@@ -117,7 +117,15 @@
     },
     "menu": "Ajustes",
     "themeSection": "Tema",
-    "languageSection": "Idioma"
+    "languageSection": "Idioma",
+    "stationSection": "Radio",
+    "unitsSection": "Unidades",
+    "units": {
+      "auto": "Seguir al dispositivo",
+      "autoNamed": "Seguir al dispositivo ({{system}})",
+      "metric": "Métrico",
+      "imperial": "Imperial"
+    }
   },
   "a11y": {
     "changeLocation": "Transmitiendo desde {{place}}. Toca para cambiarlo.",
@@ -138,5 +146,81 @@
   "crash": {
     "title": "Algo ha fallado",
     "body": "No se pudo dibujar esta pantalla. Es un fallo de la aplicación, no un problema con la predicción."
+  },
+  "station": {
+    "title": "Su radio",
+    "close": "Cerrar",
+    "modeSection": "Modo",
+    "modeHint": "De más difícil a más fácil. Un modo digital puede abrir un camino que la voz no abre.",
+    "modeNeeds": "{{mode}} necesita {{db}} dB sobre el ruido en este camino.",
+    "powerSection": "Potencia",
+    "power": "Potencia de transmisión",
+    "watts": "{{watts}} W",
+    "antennaSection": "Antena",
+    "height": "Altura sobre el suelo",
+    "heightNote": "La altura decide casi todo. En 20 metros, un dipolo a una longitud de onda supera por unos 9 dB a uno a un cuarto de onda en caminos largos.",
+    "isotropicNote": "Señal igual en todas las direcciones. No es una antena real, pero no supone nada sobre la suya.",
+    "gain": "Ganancia sobre un dipolo",
+    "dbd": "{{gain}} dBd",
+    "beam": "Orientación de la antena",
+    "degrees": "{{degrees}}°",
+    "aimAt": "Apuntar a {{place}}, {{degrees}}°",
+    "reset": "Volver a los valores por defecto",
+    "mode": {
+      "fm": "FM",
+      "am": "AM",
+      "ssb": "Voz SSB",
+      "rtty": "RTTY",
+      "cw": "CW",
+      "psk31": "PSK31",
+      "ft8": "FT8",
+      "js8": "JS8",
+      "wspr": "WSPR"
+    },
+    "antenna": {
+      "isotropic": "Sin especificar",
+      "dipole": "Dipolo",
+      "vertical": "Vertical",
+      "invertedL": "L invertida",
+      "yagi": "Directiva"
+    },
+    "tip": {
+      "mode": "{{mode}}: necesita {{db}} dB sobre el ruido. Toque para cambiar.",
+      "power": "Transmitiendo {{watts}} vatios. Toque para cambiar.",
+      "isotropic": "Ninguna antena supuesta. Toque para describir la suya.",
+      "antenna": "{{antenna}} a {{height}}. Toque para cambiar.",
+      "beam": "{{antenna}} a {{height}}, {{gain}} dBd, apuntando a {{degrees}}°. Toque para cambiar.",
+      "preset": "Cambiar entre sus estaciones guardadas."
+    },
+    "a11y": {
+      "openHint": "Abre los ajustes de su radio",
+      "mode": "Modo: {{mode}}, necesita {{db}} decibelios sobre el ruido",
+      "powerIs": "Potencia: {{watts}} vatios",
+      "isotropic": "Antena: ninguna supuesta",
+      "antennaIs": "Antena: {{antenna}} a {{height}}",
+      "pickMode": "Usar {{mode}}",
+      "pickAntenna": "Usar una antena {{antenna}}",
+      "power": "Potencia de transmisión en vatios",
+      "height": "Altura de la antena en metros",
+      "gain": "Ganancia de la antena sobre un dipolo, en decibelios",
+      "beam": "Orientación de la antena en grados",
+      "name": "Nombre de esta estación",
+      "addHint": "Copia esta estación para que pueda cambiar una cosa",
+      "preset": "Estación: {{name}}",
+      "presetHint": "Abre la lista de sus estaciones guardadas"
+    },
+    "nameSection": "Estación",
+    "unnamed": "Mi estación",
+    "add": "Añadir estación",
+    "remove": "Eliminar",
+    "manage": "Editar estaciones…",
+    "wattsUnit": "W",
+    "powerRange": "Desde {{min}} W hasta {{max}} W. Por debajo de {{min}} W el modelo deja de seguir la potencia."
+  },
+  "units": {
+    "metres": "{{value}} m",
+    "feet": "{{value}} ft",
+    "kilometres": "{{value}} km",
+    "miles": "{{value}} mi"
   }
 }

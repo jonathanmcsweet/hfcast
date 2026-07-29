@@ -83,6 +83,12 @@ export interface PredictionParams {
   date: string;
   /** Ask the server to drive the run from current conditions. */
   nowcast: boolean;
+  /**
+   * Power, mode and antenna, already as query parameters. Built by
+   * `stationParams` so the app and the server cannot disagree about the
+   * spelling of a field that silently changes every number returned.
+   */
+  station: Record<string, string>;
 }
 
 export function fetchPrediction(
@@ -95,6 +101,7 @@ export function fetchPrediction(
     toLabel: p.toLabel,
     date: p.date,
     nowcast: p.nowcast ? '1' : '',
+    ...p.station,
   });
 }
 
@@ -114,6 +121,7 @@ export function fetchForecast(
     toLabel: p.toLabel,
     date: p.date,
     days: String(p.days),
+    ...p.station,
   });
 }
 
@@ -150,6 +158,7 @@ export function fetchCoverage(p: {
   hour: number;
   date: string;
   nowcast?: boolean;
+  station: Record<string, string>;
 }): Promise<Coverage> {
   return getJson<Coverage>('/api/coverage', {
     from: p.from,
@@ -158,5 +167,6 @@ export function fetchCoverage(p: {
     hour: String(p.hour),
     date: p.date,
     nowcast: p.nowcast ? '1' : '',
+    ...p.station,
   });
 }

@@ -19,6 +19,8 @@ interface Props {
   onPressPlace: () => void;
   onRefresh: () => void;
   refreshing: boolean;
+  /** Opens the station settings from the menu. */
+  onOpenStation: () => void;
 }
 
 /**
@@ -34,6 +36,7 @@ export default function AppHeader({
   onPressPlace,
   onRefresh,
   refreshing,
+  onOpenStation,
 }: Props) {
   const theme = useTheme<AppTheme>();
   const { t } = useTranslation();
@@ -92,7 +95,7 @@ export default function AppHeader({
         accessibilityLabel={t('status.retry')}
         iconColor={ui.text2}
       />
-      <SettingsMenu />
+      <SettingsMenu onOpenStation={onOpenStation} />
     </View>
   );
 }

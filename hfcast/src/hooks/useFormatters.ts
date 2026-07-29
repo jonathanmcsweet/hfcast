@@ -1,7 +1,9 @@
 import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
+import { kmToMiles } from '../data/units';
 import { INTL_LOCALES } from '../i18n';
 import type { SupportedLanguage } from '../i18n';
+import { useUnits } from './useUnits';
 
 /**
  * All number and date rendering goes through here. Nothing in the UI should
@@ -11,6 +13,7 @@ import type { SupportedLanguage } from '../i18n';
 export function useFormatters() {
   const { i18n } = useTranslation();
   const locale = INTL_LOCALES[i18n.language as SupportedLanguage] ?? 'en-US';
+  const { system } = useUnits();
 
   return useMemo(() => {
     const percent = new Intl.NumberFormat(locale, {
@@ -23,9 +26,12 @@ export function useFormatters() {
     const integer = new Intl.NumberFormat(locale, {
       maximumFractionDigits: 0,
     });
+    // Intl carries the unit name in the reader's own language, so a mile
+    // is "mi" in English and "мили" where that is what it is called. The
+    // conversion is ours; the wording is not.
     const distance = new Intl.NumberFormat(locale, {
       style: 'unit',
-      unit: 'kilometer',
+      unit: system === 'metric' ? 'kilometer' : 'mile',
       maximumFractionDigits: 0,
     });
     const degrees = new Intl.NumberFormat(locale, {
@@ -99,7 +105,8 @@ export function useFormatters() {
       percent: (v: number) => percent.format(v),
       decimal: (v: number) => decimal.format(v),
       integer: (v: number) => integer.format(v),
-      distance: (km: number) => distance.format(km),
+      distance: (km: number) =>
+        distance.format(system === 'metric' ? km : kmToMiles(km)),
       degrees: (deg: number) => degrees.format(deg),
       decibels: (db: number) => `${decibels.format(db)} dB`,
       megahertz: (mhz: number) => `${decimal.format(mhz)} MHz`,
@@ -110,5 +117,5 @@ export function useFormatters() {
       dayAndTime: (d: Date) => dayAndTime.format(d),
       utcHour,
     };
-  }, [locale]);
+  }, [locale, system]);
 }

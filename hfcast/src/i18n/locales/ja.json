@@ -117,7 +117,15 @@
     },
     "menu": "設定",
     "themeSection": "テーマ",
-    "languageSection": "言語"
+    "languageSection": "言語",
+    "stationSection": "無線機",
+    "unitsSection": "単位",
+    "units": {
+      "auto": "端末に合わせる",
+      "autoNamed": "端末に合わせる（{{system}}）",
+      "metric": "メートル法",
+      "imperial": "ヤード・ポンド法"
+    }
   },
   "a11y": {
     "changeLocation": "送信地は {{place}} です。タップして変更します。",
@@ -138,5 +146,81 @@
   "crash": {
     "title": "問題が発生しました",
     "body": "この画面を描画できませんでした。予測ではなく、アプリの不具合です。"
+  },
+  "station": {
+    "title": "あなたの無線機",
+    "close": "閉じる",
+    "modeSection": "モード",
+    "modeHint": "難しい順です。音声で届かない経路もデジタルなら届くことがあります。",
+    "modeNeeds": "{{mode}} はこの経路で雑音より {{db}} dB 高い信号が必要です。",
+    "powerSection": "出力",
+    "power": "送信出力",
+    "watts": "{{watts}} W",
+    "antennaSection": "アンテナ",
+    "height": "地上高",
+    "heightNote": "高さが答えのほとんどを決めます。20 m バンドでは、1 波長の高さのダイポールは 4 分の 1 波長のものより長距離で約 9 dB 有利です。",
+    "isotropicNote": "全方向に等しい信号です。実在しませんが、あなたのアンテナについて何も仮定しません。",
+    "gain": "ダイポール比の利得",
+    "dbd": "{{gain}} dBd",
+    "beam": "ビーム方向",
+    "degrees": "{{degrees}}°",
+    "aimAt": "{{place}} に向ける、{{degrees}}°",
+    "reset": "初期値に戻す",
+    "mode": {
+      "fm": "FM",
+      "am": "AM",
+      "ssb": "SSB 音声",
+      "rtty": "RTTY",
+      "cw": "CW",
+      "psk31": "PSK31",
+      "ft8": "FT8",
+      "js8": "JS8",
+      "wspr": "WSPR"
+    },
+    "antenna": {
+      "isotropic": "指定なし",
+      "dipole": "ダイポール",
+      "vertical": "垂直",
+      "invertedL": "逆 L",
+      "yagi": "八木"
+    },
+    "tip": {
+      "mode": "{{mode}}：雑音より {{db}} dB 必要です。タップで変更。",
+      "power": "{{watts}} ワットで送信中。タップで変更。",
+      "isotropic": "アンテナを仮定していません。タップして入力してください。",
+      "antenna": "{{antenna}}、高さ {{height}}。タップで変更。",
+      "beam": "{{antenna}}、高さ {{height}}、{{gain}} dBd、{{degrees}}° 方向。タップで変更。",
+      "preset": "保存した局を切り替えます。"
+    },
+    "a11y": {
+      "openHint": "無線機の設定を開きます",
+      "mode": "モード：{{mode}}、雑音より {{db}} デシベル必要",
+      "powerIs": "出力：{{watts}} ワット",
+      "isotropic": "アンテナ：仮定なし",
+      "antennaIs": "アンテナ：{{antenna}}、高さ {{height}}",
+      "pickMode": "{{mode}} を使う",
+      "pickAntenna": "{{antenna}} を使う",
+      "power": "送信出力（ワット）",
+      "height": "アンテナの高さ（メートル）",
+      "gain": "ダイポール比のアンテナ利得（デシベル）",
+      "beam": "ビーム方向（度）",
+      "name": "この局の名前",
+      "addHint": "この局を複製して一部だけ変更できます",
+      "preset": "局：{{name}}",
+      "presetHint": "保存した局の一覧を開きます"
+    },
+    "nameSection": "局",
+    "unnamed": "自局",
+    "add": "局を追加",
+    "remove": "削除",
+    "manage": "局を編集…",
+    "wattsUnit": "W",
+    "powerRange": "{{min}} W から {{max}} W まで。{{min}} W 未満ではモデルが出力を追えなくなります。"
+  },
+  "units": {
+    "metres": "{{value}} m",
+    "feet": "{{value}} ft",
+    "kilometres": "{{value}} km",
+    "miles": "{{value}} mi"
   }
 }
