@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 
 import type { BandKey, Endpoint } from '../data/types';
 import { today } from '../store/usePathStore';
+import { useServerStore } from '../store/useServerStore';
 import {
   activePreset,
   stationKey,
@@ -23,21 +24,24 @@ import {
 
 export const queryKeys = {
   prediction: (
+    server: string,
     from: string,
     to: string,
     date: string,
     nowcast: boolean,
     station: string,
-  ) => ['prediction', from, to, date, nowcast, station] as const,
+  ) => ['prediction', server, from, to, date, nowcast, station] as const,
   geocode: (query: string, lang: string) => ['geocode', query, lang] as const,
-  sounding: (lat: number, lon: number) => ['sounding', lat, lon] as const,
+  sounding: (server: string, lat: number, lon: number) =>
+    ['sounding', server, lat, lon] as const,
   coverage: (
+    server: string,
     from: string,
     band: string,
     hour: number,
     date: string,
     station: string,
-  ) => ['coverage', from, band, hour, date, station] as const,
+  ) => ['coverage', server, from, band, hour, date, station] as const,
 };
 
 /**
@@ -67,9 +71,11 @@ export function usePrediction(from: Endpoint, to: Endpoint) {
   const date = today();
   const nowcast = true;
   const station = useStation();
+  const server = useServerStore((s) => s.address);
 
   return useQuery({
     queryKey: queryKeys.prediction(
+      server,
       from.grid,
       to.grid,
       date,
@@ -102,8 +108,9 @@ export function usePrediction(from: Endpoint, to: Endpoint) {
  * would be worse than none.
  */
 export function useSounding(from: Endpoint) {
+  const server = useServerStore((s) => s.address);
   return useQuery({
-    queryKey: queryKeys.sounding(from.lat, from.lon),
+    queryKey: queryKeys.sounding(server, from.lat, from.lon),
     queryFn: () => fetchSounding(from.lat, from.lon),
     // Stations sound every 5 to 15 minutes and the server caches for 5.
     staleTime: 5 * 60 * 1000,
@@ -138,8 +145,16 @@ export function useCoverage(
 ) {
   const date = today();
   const station = useStation();
+  const server = useServerStore((s) => s.address);
   return useQuery({
-    queryKey: queryKeys.coverage(from.grid, band, hour, date, station.key),
+    queryKey: queryKeys.coverage(
+      server,
+      from.grid,
+      band,
+      hour,
+      date,
+      station.key,
+    ),
     queryFn: () =>
       fetchCoverage({
         from: `${from.lat},${from.lon}`,

@@ -93,8 +93,11 @@
   "status": {
     "loading": "Calculando la previsión",
     "errorTitle": "No hay previsión disponible",
-    "errorBody": "No se pudo contactar con el servicio de predicción. Inícialo con «pnpm run dev:server» en la raíz del repositorio.",
-    "retry": "Reintentar"
+    "errorBody": "El servicio de predicción en {{address}} no respondió.",
+    "retry": "Reintentar",
+    "errorLoopback": "Esa dirección es este mismo dispositivo, así que no hay nada que pueda responder. Indica la dirección del equipo donde corre el servidor.",
+    "setServer": "Definir dirección del servidor",
+    "openStation": "Configurar tu equipo"
   },
   "offline": {
     "title": "Previsión guardada",
@@ -244,5 +247,15 @@
     "feet": "{{value}} ft",
     "kilometres": "{{value}} km",
     "miles": "{{value}} mi"
+  },
+  "server": {
+    "title": "Dirección del servidor",
+    "explain": "HFcast obtiene sus previsiones de un servidor de predicción. Indica la dirección del equipo donde corre — basta con el host y el puerto.",
+    "field": "Dirección del servidor",
+    "willUse": "Se usará {{address}}",
+    "invalid": "Esa no es una dirección utilizable.",
+    "default": "Predeterminada",
+    "cancel": "Cancelar",
+    "save": "Guardar"
   }
 }

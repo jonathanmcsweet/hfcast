@@ -12,6 +12,7 @@ import { THEME_MODES, useSettingsStore } from '../store/useSettingsStore';
 import type { ThemeMode } from '../store/useSettingsStore';
 import { spacing, typography } from '../theme';
 import type { AppTheme } from '../theme';
+import ServerAddressDialog from './ServerAddressDialog';
 
 /** The icon each mode shows, so a glance says which one is in force. */
 const THEME_ICONS: Record<ThemeMode, string> = {
@@ -46,6 +47,7 @@ interface Props {
 }
 
 export default function SettingsMenu({ onOpenStation }: Props) {
+  const [serverOpen, setServerOpen] = useState(false);
   const [open, setOpen] = useState(false);
   const theme = useTheme<AppTheme>();
   const { i18n, t } = useTranslation();
@@ -64,87 +66,106 @@ export default function SettingsMenu({ onOpenStation }: Props) {
   );
 
   return (
-    <Menu
-      visible={open}
-      onDismiss={() => setOpen(false)}
-      anchor={
-        <IconButton
-          icon="dots-vertical"
-          size={20}
-          onPress={() => setOpen(true)}
-          accessibilityLabel={t('settings.menu')}
-          iconColor={ui.text2}
-        />
-      }
-    >
-      {
-        /* First, and above the display settings, because it is the only
+    <>
+      <Menu
+        visible={open}
+        onDismiss={() => setOpen(false)}
+        anchor={
+          <IconButton
+            icon="dots-vertical"
+            size={20}
+            onPress={() => setOpen(true)}
+            accessibilityLabel={t('settings.menu')}
+            iconColor={ui.text2}
+          />
+        }
+      >
+        {
+          /* First, and above the display settings, because it is the only
            item here that changes what the forecast says rather than how
            it looks. */
-      }
-      {heading(t('settings.stationSection'))}
-      <Menu.Item
-        title={t('station.title')}
-        leadingIcon="radio"
-        onPress={() => {
-          setOpen(false);
-          onOpenStation();
-        }}
-      />
-
-      <Divider />
-
-      {heading(t('settings.themeSection'))}
-      {THEME_MODES.map((value) => (
+        }
+        {heading(t('settings.stationSection'))}
         <Menu.Item
-          key={value}
-          title={t(`settings.theme.${value}`)}
-          leadingIcon={mode === value ? 'check' : THEME_ICONS[value]}
+          title={t('station.title')}
+          leadingIcon="radio"
           onPress={() => {
             setOpen(false);
-            setMode(value);
+            onOpenStation();
           }}
         />
-      ))}
+        {
+          /* Here as well as on the error screen. Once a forecast is on screen
+           the address is working, so this is for moving between a laptop at
+           home and a tunnel elsewhere. */
+        }
+        <Menu.Item
+          title={t('server.title')}
+          leadingIcon="server-network"
+          onPress={() => {
+            setOpen(false);
+            setServerOpen(true);
+          }}
+        />
 
-      <Divider />
+        <Divider />
 
-      {
-        /* "Follow the device" names what it resolved to, because a reader
+        {heading(t('settings.themeSection'))}
+        {THEME_MODES.map((value) => (
+          <Menu.Item
+            key={value}
+            title={t(`settings.theme.${value}`)}
+            leadingIcon={mode === value ? 'check' : THEME_ICONS[value]}
+            onPress={() => {
+              setOpen(false);
+              setMode(value);
+            }}
+          />
+        ))}
+
+        <Divider />
+
+        {
+          /* "Follow the device" names what it resolved to, because a reader
            checking this menu is usually checking whether it got it right. */
-      }
-      {heading(t('settings.unitsSection'))}
-      {UNIT_PREFERENCES.map((value) => (
-        <Menu.Item
-          key={value}
-          title={value === 'auto'
-            ? t('settings.units.autoNamed', {
-              system: t(`settings.units.${resolved.system}`),
-            })
-            : t(`settings.units.${value}`)}
-          leadingIcon={units === value ? 'check' : UNIT_ICONS[value]}
-          onPress={() => {
-            setOpen(false);
-            setUnits(value);
-          }}
-        />
-      ))}
+        }
+        {heading(t('settings.unitsSection'))}
+        {UNIT_PREFERENCES.map((value) => (
+          <Menu.Item
+            key={value}
+            title={value === 'auto'
+              ? t('settings.units.autoNamed', {
+                system: t(`settings.units.${resolved.system}`),
+              })
+              : t(`settings.units.${value}`)}
+            leadingIcon={units === value ? 'check' : UNIT_ICONS[value]}
+            onPress={() => {
+              setOpen(false);
+              setUnits(value);
+            }}
+          />
+        ))}
 
-      <Divider />
+        <Divider />
 
-      {heading(t('settings.languageSection'))}
-      {SUPPORTED.map((lang) => (
-        <Menu.Item
-          key={lang}
-          title={LANGUAGE_NAMES[lang]}
-          leadingIcon={i18n.language === lang ? 'check' : undefined}
-          onPress={() => {
-            setOpen(false);
-            void setLanguage(lang as SupportedLanguage);
-          }}
-        />
-      ))}
-    </Menu>
+        {heading(t('settings.languageSection'))}
+        {SUPPORTED.map((lang) => (
+          <Menu.Item
+            key={lang}
+            title={LANGUAGE_NAMES[lang]}
+            leadingIcon={i18n.language === lang ? 'check' : undefined}
+            onPress={() => {
+              setOpen(false);
+              void setLanguage(lang as SupportedLanguage);
+            }}
+          />
+        ))}
+      </Menu>
+      <ServerAddressDialog
+        visible={serverOpen}
+        onDismiss={() => setServerOpen(false)}
+      />
+    </>
   );
 }
 

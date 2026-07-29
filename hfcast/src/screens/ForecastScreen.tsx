@@ -13,12 +13,14 @@ import PathHeader from '../components/PathHeader';
 import ReachCard from '../components/ReachCard';
 import ReachGrid from '../components/ReachGrid';
 import SectionHeading from '../components/SectionHeading';
+import ServerAddressDialog from '../components/ServerAddressDialog';
 import SpaceWeatherCard from '../components/SpaceWeatherCard';
 import StationModal from '../components/StationModal';
 
 import { usePrediction, useSounding } from '../api/queries';
 import { qualityFor } from '../data/quality';
 import { usePathStore } from '../store/usePathStore';
+import { isLoopback, useServerStore } from '../store/useServerStore';
 import { spacing, typography } from '../theme';
 import type { AppTheme } from '../theme';
 
@@ -29,6 +31,7 @@ export default function ForecastScreen() {
   const [now, setNow] = useState(() => new Date());
   const [pickerOpen, setPickerOpen] = useState(false);
   const [stationOpen, setStationOpen] = useState(false);
+  const [serverOpen, setServerOpen] = useState(false);
 
   const from = usePathStore((s) => s.from);
   const to = usePathStore((s) => s.to);
@@ -50,6 +53,7 @@ export default function ForecastScreen() {
   const { data: sounding } = useSounding(from);
 
   const ui = theme.colors.ui;
+  const server = useServerStore((s) => s.address);
   const nowHour = now.getUTCHours();
   const offline = Boolean(error);
 
@@ -77,14 +81,27 @@ export default function ForecastScreen() {
           {t('status.errorTitle')}
         </Text>
         <Text style={[typography.body, styles.centreText, { color: ui.text2 }]}>
-          {t('status.errorBody')}
+          {t('status.errorBody', { address: server })}
         </Text>
         {
-          /*
-          The reason is shown verbatim rather than flattened into one generic
-          line. "could not reach http://127.0.0.1:8787" points straight at a
-          server that was never started, which the generic wording does not.
-        */
+          /* An installed build shipped pointing at this device, so the most
+             likely reason is that the address is wrong rather than that a
+             server is down. Saying which of the two it is stops the screen
+             reading as "this app is broken". */
+        }
+        {isLoopback(server)
+          ? (
+            <Text
+              style={[typography.body, styles.centreText, { color: ui.text2 }]}
+            >
+              {t('status.errorLoopback')}
+            </Text>
+          )
+          : null}
+        {
+          /* The reason is shown verbatim as well. "no answer after 10s" and
+             "could not reach" are different faults, and the difference is
+             what tells a wrong port from a sleeping machine. */
         }
         <Text
           style={[typography.caption, styles.centreDetail, { color: ui.text3 }]}
@@ -93,11 +110,39 @@ export default function ForecastScreen() {
         </Text>
         <Button
           mode="contained"
+          onPress={() => setServerOpen(true)}
+          style={styles.retry}
+        >
+          {t('status.setServer')}
+        </Button>
+        <Button
+          mode="outlined"
           onPress={() => void refetch()}
           style={styles.retry}
         >
           {t('status.retry')}
         </Button>
+        {
+          /* The station is worth reaching from here too. It needs no server —
+             power, mode, antenna and its compass are all local — and this
+             screen is the whole app until a forecast arrives. */
+        }
+        <Button
+          mode="text"
+          onPress={() => setStationOpen(true)}
+          style={styles.retry}
+        >
+          {t('status.openStation')}
+        </Button>
+
+        <ServerAddressDialog
+          visible={serverOpen}
+          onDismiss={() => setServerOpen(false)}
+        />
+        <StationModal
+          visible={stationOpen}
+          onDismiss={() => setStationOpen(false)}
+        />
       </View>
     );
   }
