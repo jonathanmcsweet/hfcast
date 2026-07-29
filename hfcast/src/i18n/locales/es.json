@@ -226,11 +226,17 @@
     "verticalNote": "Una vertical rinde igual en todas las direcciones, así que no hay nada que orientar.",
     "alignFor": "Alinear para {{place}}, {{degrees}}°",
     "aim": {
-      "best": "{{place}} está a {{degrees}}° — {{offset}}° de su mejor dirección, así que cerca de ella.",
-      "offToOneSide": "{{place}} está a {{degrees}}° — {{offset}}° de su mejor dirección.",
-      "nearNull": "{{place}} está a {{degrees}}° — {{offset}}° de su mejor dirección, cerca de donde esta antena rinde menos."
+      "best": "{{place}} está a {{degrees}}°. Su dirección fuerte más cercana es {{lobe}}°, así que queda a {{offset}}° — cerca de ella.",
+      "offToOneSide": "{{place}} está a {{degrees}}°. Su dirección fuerte más cercana es {{lobe}}°, así que queda {{offset}}° a un lado.",
+      "nearNull": "{{place}} está a {{degrees}}°. Su dirección fuerte más cercana es {{lobe}}°, así que queda a {{offset}}° — cerca de donde esta antena rinde menos."
     },
-    "twoLobes": "{{first}}/{{second}}°"
+    "twoLobes": "{{first}}/{{second}}°",
+    "compass": {
+      "n": "N",
+      "e": "E",
+      "s": "S",
+      "w": "O"
+    }
   },
   "units": {
     "metres": "{{value}} m",
