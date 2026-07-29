@@ -112,3 +112,7 @@ frequency, so the bands start one column later.
 Every run is isotropic at both ends at 100 W, with a required SNR of 24 dB and
 3 MHz man-made noise of -145 dBW. Those are defaults for a modest amateur
 station and can be overridden per request with `watts`, `snr` and `noise`.
+
+Signal-to-noise is in a 1 Hz bandwidth, as is the noise figure. A mode's
+requirement converts as `in-channel SNR + 10*log10(bandwidth)`, so 24 dB is
+roughly CW by ear; SSB voice is near 40 dB, FT8 near 13, and WSPR near 6.
