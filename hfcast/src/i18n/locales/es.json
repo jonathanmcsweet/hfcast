@@ -162,7 +162,7 @@
     "isotropicNote": "Señal igual en todas las direcciones. No es una antena real, pero no supone nada sobre la suya.",
     "gain": "Ganancia sobre un dipolo",
     "dbd": "{{gain}} dBd",
-    "beam": "Orientación de la antena",
+    "beam": "¿Hacia dónde apunta?",
     "degrees": "{{degrees}}°",
     "aimAt": "Apuntar a {{place}}, {{degrees}}°",
     "reset": "Volver a los valores por defecto",
@@ -189,8 +189,9 @@
       "power": "Transmitiendo {{watts}} vatios. Toque para cambiar.",
       "isotropic": "Ninguna antena supuesta. Toque para describir la suya.",
       "antenna": "{{antenna}} a {{height}}. Toque para cambiar.",
-      "beam": "{{antenna}} a {{height}}, {{gain}} dBd, apuntando a {{degrees}}°. Toque para cambiar.",
-      "preset": "Cambiar entre sus estaciones guardadas."
+      "beam": "Apuntando a {{first}}°. Toque para cambiar.",
+      "preset": "Cambiar entre sus estaciones guardadas.",
+      "wire": "Favorece {{first}}° y {{second}}° por igual, en ángulo recto al hilo. Toque para cambiar."
     },
     "a11y": {
       "openHint": "Abre los ajustes de su radio",
@@ -207,7 +208,10 @@
       "name": "Nombre de esta estación",
       "addHint": "Copia esta estación para que pueda cambiar una cosa",
       "preset": "Estación: {{name}}",
-      "presetHint": "Abre la lista de sus estaciones guardadas"
+      "presetHint": "Abre la lista de sus estaciones guardadas",
+      "wire": "Dirección en la que va el hilo, en grados",
+      "facingOne": "Apuntando a {{first}} grados",
+      "facingTwo": "Favorece {{first}} y {{second}} grados por igual"
     },
     "nameSection": "Estación",
     "unnamed": "Mi estación",
@@ -215,7 +219,18 @@
     "remove": "Eliminar",
     "manage": "Editar estaciones…",
     "wattsUnit": "W",
-    "powerRange": "Desde {{min}} W hasta {{max}} W. Por debajo de {{min}} W el modelo deja de seguir la potencia."
+    "powerRange": "Desde {{min}} W hasta {{max}} W. Por debajo de {{min}} W el modelo deja de seguir la potencia.",
+    "wireRuns": "¿En qué dirección va el hilo?",
+    "favoursTwo": "Favorece {{first}}° y {{second}}° por igual, en ángulo recto al hilo. Por los extremos es donde menos rinde.",
+    "favoursOne": "Favorece {{first}}°.",
+    "verticalNote": "Una vertical rinde igual en todas las direcciones, así que no hay nada que orientar.",
+    "alignFor": "Alinear para {{place}}, {{degrees}}°",
+    "aim": {
+      "best": "{{place}} está a {{degrees}}° — {{offset}}° de su mejor dirección, así que cerca de ella.",
+      "offToOneSide": "{{place}} está a {{degrees}}° — {{offset}}° de su mejor dirección.",
+      "nearNull": "{{place}} está a {{degrees}}° — {{offset}}° de su mejor dirección, cerca de donde esta antena rinde menos."
+    },
+    "twoLobes": "{{first}}/{{second}}°"
   },
   "units": {
     "metres": "{{value}} m",

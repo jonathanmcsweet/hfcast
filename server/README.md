@@ -114,16 +114,16 @@ good enough for, and what antenna it leaves from. The defaults are a
 modest one — 100 W, isotropic at both ends, a CW threshold, and 3 MHz
 man-made noise of -145 dBW.
 
-| parameter   | what it sets                                   | default     |
-| ----------- | ---------------------------------------------- | ----------- |
-| `watts`     | transmit power, 1 to 10,000                    | `100`       |
-| `mode`      | the required signal-to-noise                   | `cw`        |
-| `snr`       | that threshold directly, dB                    | from `mode` |
-| `noise`     | man-made noise at 3 MHz, dBW below zero        | `145`       |
-| `ant`       | antenna family                                 | `isotropic` |
-| `antHeight` | height above ground, metres, 1 to 100          | `10`        |
-| `antGain`   | gain over a dipole, dB, 0 to 20. Yagi only     | `6`         |
-| `beam`      | where the beam points, degrees true. Yagi only | `0`         |
+| parameter   | what it sets                               | default     |
+| ----------- | ------------------------------------------ | ----------- |
+| `watts`     | transmit power, 1 to 10,000                | `100`       |
+| `mode`      | the required signal-to-noise               | `cw`        |
+| `snr`       | that threshold directly, dB                | from `mode` |
+| `noise`     | man-made noise at 3 MHz, dBW below zero    | `145`       |
+| `ant`       | antenna family                             | `isotropic` |
+| `antHeight` | height above ground, metres, 1 to 100      | `10`        |
+| `antGain`   | gain over a dipole, dB, 0 to 20. Yagi only | `6`         |
+| `beam`      | main beam bearing, degrees true            | `0`         |
 
 `mode` is one of `fm`, `am`, `ssb`, `rtty`, `cw`, `psk31`, `ft8`, `js8`,
 `wspr`. `ant` is one of `isotropic`, `dipole`, `vertical`, `yagi`,
@@ -140,6 +140,17 @@ Only the operator's own end takes an antenna. The far end belongs to a
 station this server knows nothing about, so it stays isotropic:
 inventing an antenna for them would move every number without being any
 more true.
+
+`beam` is read by every family whose pattern depends on azimuth: the
+dipole, the inverted L and the yagi. It decides the answer rather than
+refining it. Measured on Seattle to Tokyo at 14 MHz with a 20 m dipole,
+the same antenna gives 32.5 dB and 89% reliability broadside to the path
+and 16.9 dB and 0% off the ends of the wire. The vertical monopole
+ignores it — swept through the whole compass it moves 0 dB — so the app
+does not send one for it, which keeps it out of the cache key.
+
+A dipole and an inverted L favour two opposite directions equally: the
+engine's own output repeats exactly every 180 degrees.
 
 Antennas are generated as VOACAP definition files under
 `<itshfbc>/antennas/hfcast/`, named from a digest of their own contents.

@@ -162,7 +162,7 @@
     "isotropicNote": "An equal signal in every direction. Not a real antenna, but it assumes nothing about yours.",
     "gain": "Gain over a dipole",
     "dbd": "{{gain}} dBd",
-    "beam": "Beam heading",
+    "beam": "Where is it pointed?",
     "degrees": "{{degrees}}°",
     "aimAt": "Point at {{place}}, {{degrees}}°",
     "reset": "Back to defaults",
@@ -189,8 +189,9 @@
       "power": "Transmitting {{watts}} watts. Tap to change.",
       "isotropic": "No antenna assumed. Tap to describe yours.",
       "antenna": "{{antenna}} at {{height}}. Tap to change.",
-      "beam": "{{antenna}} at {{height}}, {{gain}} dBd, pointing {{degrees}}°. Tap to change.",
-      "preset": "Switch between your saved stations."
+      "beam": "Pointing {{first}}°. Tap to change.",
+      "preset": "Switch between your saved stations.",
+      "wire": "Favours {{first}}° and {{second}}° equally, at right angles to the wire. Tap to change."
     },
     "a11y": {
       "openHint": "Opens your radio settings",
@@ -207,7 +208,10 @@
       "name": "Name of this station",
       "addHint": "Copies this station so you can change one thing",
       "preset": "Station: {{name}}",
-      "presetHint": "Opens the list of your saved stations"
+      "presetHint": "Opens the list of your saved stations",
+      "wire": "Direction the wire runs, in degrees",
+      "facingOne": "Pointing {{first}} degrees",
+      "facingTwo": "Favours {{first}} and {{second}} degrees equally"
     },
     "nameSection": "Station",
     "unnamed": "My station",
@@ -215,7 +219,18 @@
     "remove": "Delete",
     "manage": "Edit stations…",
     "wattsUnit": "W",
-    "powerRange": "Anything from {{min}} W to {{max}} W. Below {{min}} W the model stops tracking power."
+    "powerRange": "Anything from {{min}} W to {{max}} W. Below {{min}} W the model stops tracking power.",
+    "wireRuns": "Which way does the wire run?",
+    "favoursTwo": "Favours {{first}}° and {{second}}° equally, at right angles to the wire. It hears least off the ends.",
+    "favoursOne": "Favours {{first}}°.",
+    "verticalNote": "A vertical is the same in every direction, so there is nothing to point.",
+    "alignFor": "Align for {{place}}, {{degrees}}°",
+    "aim": {
+      "best": "{{place}} is {{degrees}}° — {{offset}}° off your best direction, so close to it.",
+      "offToOneSide": "{{place}} is {{degrees}}° — {{offset}}° off your best direction.",
+      "nearNull": "{{place}} is {{degrees}}° — {{offset}}° off your best direction, near where this antenna is weakest."
+    },
+    "twoLobes": "{{first}}/{{second}}°"
   },
   "units": {
     "metres": "{{value}} m",
