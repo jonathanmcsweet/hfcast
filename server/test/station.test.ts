@@ -168,22 +168,30 @@ describe('antenna definitions', () => {
     }));
   });
 
-  it('points only the beam, because only the beam has a direction', async () => {
+  it('carries a bearing for every family whose pattern depends on one', async () => {
+    // Measured on 2026-07-29, Seattle to Tokyo at 14 MHz: swept through
+    // the compass a dipole moves 12 dB and an inverted L 12 dB. Pinning
+    // either at zero, as an earlier version did, reports the null off the
+    // ends of the wire as though it were the answer.
     const root = await tree();
-    const yagi = await txCard(root, {
-      type: 'yagi',
+    const carried = await Promise.all(
+      (['dipole', 'invertedL', 'yagi'] as const).map(async (type) =>
+        (await txCard(root, { type, heightM: 15, gainDbd: 6, beamDeg: 300 }))
+          ?.beamDeg
+      ),
+    );
+    assert.deepEqual(carried, [300, 300, 300]);
+  });
+
+  it('carries none for the vertical, which measured 0 dB over the compass', async () => {
+    const root = await tree();
+    const vertical = await txCard(root, {
+      type: 'vertical',
       heightM: 15,
       gainDbd: 6,
       beamDeg: 300,
     });
-    assert.equal(yagi?.beamDeg, 300);
-    const dipole = await txCard(root, {
-      type: 'dipole',
-      heightM: 15,
-      gainDbd: 6,
-      beamDeg: 300,
-    });
-    assert.equal(dipole?.beamDeg, 0);
+    assert.equal(vertical?.beamDeg, 0);
   });
 });
 

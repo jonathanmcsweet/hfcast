@@ -63,24 +63,36 @@ describe('the station as query parameters', () => {
     );
   });
 
-  it('leaves out the gain and the heading for antennas that have neither', () => {
-    // A dipole has no direction. Sending one would put it in the cache
-    // key, so turning a beam that is not there would refetch every answer
-    // and change none of them.
+  it('sends a dipole its bearing but not a gain figure', () => {
+    // The bearing matters: measured against the engine, turning a dipole
+    // through the compass is worth 12 dB and takes the reliability from
+    // 7% to 71%. An earlier version pinned it at zero and reported the
+    // null off the ends of the wire as though it were the answer.
+    //
+    // The gain does not: only a beam has one to state.
     const params = stationParams(
       station({
-        antenna: {
-          type: 'dipole',
-          heightM: 12,
-          gainDbd: 9,
-          beamDeg: 180,
-        },
+        antenna: { type: 'dipole', heightM: 12, gainDbd: 9, beamDeg: 180 },
       }),
     );
     assert.equal(params.ant, 'dipole');
     assert.equal(params.antHeight, '12');
+    assert.equal(params.beam, '180');
     assert.equal(params.antGain, undefined);
+  });
+
+  it('sends the vertical no bearing, because it measured 0 dB over the compass', () => {
+    // Sending one would put it in the cache key, so turning a direction
+    // the model never reads would refetch every answer and change none.
+    const params = stationParams(
+      station({
+        antenna: { type: 'vertical', heightM: 12, gainDbd: 9, beamDeg: 180 },
+      }),
+    );
+    assert.equal(params.ant, 'vertical');
+    assert.equal(params.antHeight, '12');
     assert.equal(params.beam, undefined);
+    assert.equal(params.antGain, undefined);
   });
 
   it('sends everything a beam has', () => {
@@ -156,15 +168,26 @@ describe('the station as a cache key', () => {
   });
 
   it('does not change when a field that antenna ignores changes', () => {
-    // Turning a beam heading with a dipole selected must not refetch: the
+    // A vertical is the same in every direction — measured at 0 dB over
+    // the whole compass — so turning its bearing must not refetch. The
     // server would return the same numbers.
+    const vertical = (beamDeg: number) =>
+      stationKey(
+        station({
+          antenna: { type: 'vertical', heightM: 12, gainDbd: 6, beamDeg },
+        }),
+      );
+    assert.equal(vertical(0), vertical(270));
+  });
+
+  it('changes when a dipole is turned, because the engine answers differently', () => {
     const dipole = (beamDeg: number) =>
       stationKey(
         station({
           antenna: { type: 'dipole', heightM: 12, gainDbd: 6, beamDeg },
         }),
       );
-    assert.equal(dipole(0), dipole(270));
+    assert.notEqual(dipole(0), dipole(90));
   });
 });
 

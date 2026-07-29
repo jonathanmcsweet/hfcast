@@ -11,6 +11,7 @@ import {
   useTheme,
 } from 'react-native-paper';
 
+import { isBidirectional, lobes } from '../data/orientation';
 import { useUnits } from '../hooks/useUnits';
 import {
   activePreset,
@@ -79,6 +80,9 @@ export default function StationStrip({ onPress, requiredSnrDb }: Props) {
 
   const preset = activePreset({ presets, activeId });
   const { watts, mode, antenna } = preset;
+  // Which way it actually favours, which is not the number stored for a
+  // wire: a dipole radiates at right angles to its run, both ways.
+  const facing = lobes(antenna.beamDeg, antenna.type).map(Math.round);
   const nameOf = (name: string) => name === '' ? t('station.unnamed') : name;
 
   const item = (
@@ -186,13 +190,6 @@ export default function StationStrip({ onPress, requiredSnrDb }: Props) {
         t(`station.antenna.${antenna.type}`),
         antenna.type === 'isotropic'
           ? t('station.tip.isotropic')
-          : usesBeam(antenna.type)
-          ? t('station.tip.beam', {
-            antenna: t(`station.antenna.${antenna.type}`),
-            height: units.height(antenna.heightM),
-            gain: antenna.gainDbd,
-            degrees: antenna.beamDeg,
-          })
           : t('station.tip.antenna', {
             antenna: t(`station.antenna.${antenna.type}`),
             height: units.height(antenna.heightM),
@@ -204,6 +201,40 @@ export default function StationStrip({ onPress, requiredSnrDb }: Props) {
             height: units.height(antenna.heightM),
           }),
       )}
+
+      {
+        /* Which way it faces, only where that means something. A vertical
+           has no direction — measured at 0 dB over the whole compass — so
+           a badge reading "0°" for one would be a number the model never
+           reads, shown as though it mattered. Two lobes are both listed,
+           because a dipole favouring 122 and 302 equally is the thing
+           newcomers are most often surprised by. */
+      }
+      {usesBeam(antenna.type)
+        ? item(
+          'facing',
+          isBidirectional(antenna.type) ? 'arrow-left-right' : 'navigation',
+          isBidirectional(antenna.type)
+            ? t('station.twoLobes', { first: facing[0], second: facing[1] })
+            : t('station.degrees', { degrees: facing[0] }),
+          t(
+            isBidirectional(antenna.type)
+              ? 'station.tip.wire'
+              : 'station.tip.beam',
+            {
+              antenna: t(`station.antenna.${antenna.type}`),
+              first: facing[0],
+              second: facing[1] ?? facing[0],
+            },
+          ),
+          t(
+            isBidirectional(antenna.type)
+              ? 'station.a11y.facingTwo'
+              : 'station.a11y.facingOne',
+            { first: facing[0], second: facing[1] ?? facing[0] },
+          ),
+        )
+        : null}
     </View>
   );
 }

@@ -240,6 +240,17 @@ export async function antennaFile(
   return name;
 }
 
+/**
+ * Families whose gain depends on which way they face.
+ *
+ * Measured against the engine on 2026-07-29, Seattle to Tokyo at 14 MHz:
+ * a dipole swings 12 dB over the compass and its reliability runs from
+ * 7% to 71%; an inverted L swings 12 dB; a vertical monopole swings 0.
+ * Pinning a dipole's bearing at zero, as an earlier version did, reports
+ * the null off the ends of the wire as though it were the answer.
+ */
+const DIRECTIONAL: readonly AntennaKey[] = ['dipole', 'invertedL', 'yagi'];
+
 /** What the engine's JSON takes for one end. */
 export interface AntennaCard {
   file: string;
@@ -262,9 +273,11 @@ export async function txCard(
   if (file === null) return null;
   return {
     file,
-    // Only the yagi has a direction to point. Giving the others a bearing
-    // would be harmless but misleading to read in a request.
-    beamDeg: antenna.type === 'yagi' ? antenna.beamDeg : 0,
+    // Every family whose pattern depends on azimuth carries its bearing.
+    // The vertical monopole does not: measured on a 14 MHz path it moves
+    // by 0 dB over the whole compass, so a bearing there would be a
+    // number the model never reads.
+    beamDeg: DIRECTIONAL.includes(antenna.type) ? antenna.beamDeg : 0,
   };
 }
 

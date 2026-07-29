@@ -162,7 +162,7 @@
     "isotropicNote": "Gleiches Signal in alle Richtungen. Keine echte Antenne, aber sie nimmt nichts über Ihre an.",
     "gain": "Gewinn über Dipol",
     "dbd": "{{gain}} dBd",
-    "beam": "Richtung der Antenne",
+    "beam": "Wohin zeigt sie?",
     "degrees": "{{degrees}}°",
     "aimAt": "Auf {{place}} richten, {{degrees}}°",
     "reset": "Zurück zu den Standardwerten",
@@ -189,8 +189,9 @@
       "power": "Sendet mit {{watts}} Watt. Zum Ändern tippen.",
       "isotropic": "Keine Antenne angenommen. Tippen, um Ihre zu beschreiben.",
       "antenna": "{{antenna}} in {{height}} Höhe. Zum Ändern tippen.",
-      "beam": "{{antenna}} in {{height}} Höhe, {{gain}} dBd, Richtung {{degrees}}°. Zum Ändern tippen.",
-      "preset": "Zwischen Ihren gespeicherten Stationen wechseln."
+      "beam": "Richtung {{first}}°. Zum Ändern tippen.",
+      "preset": "Zwischen Ihren gespeicherten Stationen wechseln.",
+      "wire": "Bevorzugt {{first}}° und {{second}}° gleichermaßen, im rechten Winkel zum Draht. Zum Ändern tippen."
     },
     "a11y": {
       "openHint": "Öffnet die Einstellungen Ihres Funkgeräts",
@@ -207,7 +208,10 @@
       "name": "Name dieser Station",
       "addHint": "Kopiert diese Station, damit Sie eine Sache ändern können",
       "preset": "Station: {{name}}",
-      "presetHint": "Öffnet die Liste Ihrer gespeicherten Stationen"
+      "presetHint": "Öffnet die Liste Ihrer gespeicherten Stationen",
+      "wire": "Verlauf des Drahtes in Grad",
+      "facingOne": "Richtung {{first}} Grad",
+      "facingTwo": "Bevorzugt {{first}} und {{second}} Grad gleichermaßen"
     },
     "nameSection": "Station",
     "unnamed": "Meine Station",
@@ -215,7 +219,18 @@
     "remove": "Löschen",
     "manage": "Stationen bearbeiten…",
     "wattsUnit": "W",
-    "powerRange": "Von {{min}} W bis {{max}} W. Unter {{min}} W folgt das Modell der Leistung nicht mehr."
+    "powerRange": "Von {{min}} W bis {{max}} W. Unter {{min}} W folgt das Modell der Leistung nicht mehr.",
+    "wireRuns": "In welche Richtung verläuft der Draht?",
+    "favoursTwo": "Bevorzugt {{first}}° und {{second}}° gleichermaßen, im rechten Winkel zum Draht. An den Enden ist sie am schwächsten.",
+    "favoursOne": "Bevorzugt {{first}}°.",
+    "verticalNote": "Eine Vertikalantenne wirkt in alle Richtungen gleich; es gibt nichts auszurichten.",
+    "alignFor": "Auf {{place}} ausrichten, {{degrees}}°",
+    "aim": {
+      "best": "{{place}} liegt bei {{degrees}}° — {{offset}}° neben der besten Richtung, also nah daran.",
+      "offToOneSide": "{{place}} liegt bei {{degrees}}° — {{offset}}° neben der besten Richtung.",
+      "nearNull": "{{place}} liegt bei {{degrees}}° — {{offset}}° neben der besten Richtung, nahe der schwächsten Stelle dieser Antenne."
+    },
+    "twoLobes": "{{first}}/{{second}}°"
   },
   "units": {
     "metres": "{{value}} m",

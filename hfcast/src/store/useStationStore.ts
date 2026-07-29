@@ -100,10 +100,21 @@ export const LIMITS = {
  * enough to sit beside three icons on a phone. */
 export const MAX_NAME_LENGTH = 24;
 
-/** Only the beam reads anything beyond the antenna's height. */
+/** Only a beam has a gain figure to state. */
 export const usesGain = (type: AntennaKey) => type === 'yagi';
-export const usesBeam = (type: AntennaKey) => type === 'yagi';
 export const usesHeight = (type: AntennaKey) => type !== 'isotropic';
+
+/**
+ * Which families have a direction at all.
+ *
+ * Measured against the engine rather than assumed: swept through the
+ * compass on a 14 MHz path, a dipole moves 12 dB and an inverted L 12 dB,
+ * and a vertical monopole moves by nothing. See `data/orientation.ts`.
+ * Sending a bearing for the vertical would put it in the cache key and
+ * refetch answers that cannot differ.
+ */
+export const usesBeam = (type: AntennaKey) =>
+  type === 'dipole' || type === 'invertedL' || type === 'yagi';
 
 /**
  * The station every earlier version of the app assumed without saying:

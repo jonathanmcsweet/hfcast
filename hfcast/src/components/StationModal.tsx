@@ -13,6 +13,15 @@ import {
   useTheme,
 } from 'react-native-paper';
 
+import {
+  alignment,
+  askedAsWire,
+  beamFromWire,
+  isBidirectional,
+  lobes,
+  offAxis,
+  wireFromBeam,
+} from '../data/orientation';
 import { parsePower, positionOf, POWER_STEPS, wattsAt } from '../data/power';
 import { useUnits } from '../hooks/useUnits';
 import {
@@ -102,6 +111,17 @@ export default function StationModal(
   // The control moves in whole feet or whole metres, whichever the reader
   // uses, so a step never lands on a converted fraction.
   const heightScale = units.heightScale(LIMITS.heightM);
+
+  // What the orientation control holds: the run of the wire for a dipole,
+  // the bearing itself for anything else. The store always keeps VOACAP's
+  // main-beam bearing, so the conversion lives here and nowhere else.
+  const control = askedAsWire(antenna.type)
+    ? wireFromBeam(antenna.beamDeg)
+    : antenna.beamDeg;
+  const facing = lobes(antenna.beamDeg, antenna.type).map(Math.round);
+  const offset = bearingToDestination === undefined
+    ? undefined
+    : offAxis(antenna.beamDeg, antenna.type, bearingToDestination);
 
   const heading = (text: string) => (
     <Text style={[typography.label, styles.heading, { color: ui.text4 }]}>
@@ -368,32 +388,96 @@ export default function StationModal(
             )
             : null}
 
+          {
+            /* A vertical is the only family with nothing to point.
+               Measured at 0 dB over the whole compass, so saying so is
+               true, and it stops the missing control reading as a gap. */
+          }
+          {antenna.type === 'vertical'
+            ? (
+              <Text
+                style={[typography.caption, styles.note, { color: ui.text3 }]}
+              >
+                {t('station.verticalNote')}
+              </Text>
+            )
+            : null}
+
           {usesBeam(antenna.type)
             ? (
               <>
+                {
+                  /* A wire is described by how it runs, a beam by where it
+                     points. Asking a dipole owner for its "beam heading"
+                     asks them to do the right-angle conversion in their
+                     head, and getting it wrong puts the path in the null.
+                     Turning a dipole through the compass is worth 12 dB
+                     and takes reliability from 7% to 71%. */
+                }
                 {dial(
-                  t('station.beam'),
-                  t('station.degrees', { degrees: antenna.beamDeg }),
-                  antenna.beamDeg,
+                  askedAsWire(antenna.type)
+                    ? t('station.wireRuns')
+                    : t('station.beam'),
+                  t('station.degrees', { degrees: control }),
+                  control,
                   0,
                   359,
                   1,
-                  (beamDeg) => setAntenna({ beamDeg }),
-                  t('station.a11y.beam'),
+                  (value) =>
+                    setAntenna({
+                      beamDeg: askedAsWire(antenna.type)
+                        ? beamFromWire(value)
+                        : value,
+                    }),
+                  askedAsWire(antenna.type)
+                    ? t('station.a11y.wire')
+                    : t('station.a11y.beam'),
                 )}
+
+                <Text
+                  style={[typography.caption, styles.note, { color: ui.text3 }]}
+                >
+                  {isBidirectional(antenna.type)
+                    ? t('station.favoursTwo', {
+                      first: facing[0],
+                      second: facing[1],
+                    })
+                    : t('station.favoursOne', { first: facing[0] })}
+                </Text>
+
                 {bearingToDestination === undefined ? null : (
-                  <Button
-                    mode="outlined"
-                    icon="crosshairs-gps"
-                    style={styles.aim}
-                    onPress={() =>
-                      setAntenna({ beamDeg: Math.round(bearingToDestination) })}
-                  >
-                    {t('station.aimAt', {
-                      place: destinationLabel ?? '',
-                      degrees: Math.round(bearingToDestination),
-                    })}
-                  </Button>
+                  <>
+                    <Text
+                      style={[typography.caption, styles.note, {
+                        color: ui.text3,
+                      }]}
+                    >
+                      {t(`station.aim.${alignment(offset ?? 0)}`, {
+                        place: destinationLabel ?? '',
+                        degrees: Math.round(bearingToDestination),
+                        offset: Math.round(offset ?? 0),
+                      })}
+                    </Text>
+                    <Button
+                      mode="outlined"
+                      icon="crosshairs-gps"
+                      style={styles.aim}
+                      onPress={() =>
+                        setAntenna({
+                          beamDeg: Math.round(bearingToDestination),
+                        })}
+                    >
+                      {t(
+                        askedAsWire(antenna.type)
+                          ? 'station.alignFor'
+                          : 'station.aimAt',
+                        {
+                          place: destinationLabel ?? '',
+                          degrees: Math.round(bearingToDestination),
+                        },
+                      )}
+                    </Button>
+                  </>
                 )}
               </>
             )
