@@ -2,7 +2,7 @@
   "expo": {
     "name": "HFcast",
     "slug": "hfcast",
-    "version": "0.2.0",
+    "version": "0.23.0",
     "orientation": "portrait",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": false,
@@ -18,7 +18,13 @@
       "permissions": [
         "ACCESS_COARSE_LOCATION",
         "ACCESS_FINE_LOCATION"
-      ]
+      ],
+      "splash": {
+        "backgroundColor": "#F7F8FC",
+        "dark": {
+          "backgroundColor": "#0B0D14"
+        }
+      }
     },
     "web": {
       "bundler": "metro"
@@ -30,6 +36,9 @@
     ],
     "plugins": [
       "expo-font"
-    ]
+    ],
+    "splash": {
+      "backgroundColor": "#F7F8FC"
+    }
   }
 }
