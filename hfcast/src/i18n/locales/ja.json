@@ -93,7 +93,7 @@
   "status": {
     "loading": "予報を計算しています",
     "errorTitle": "予報を取得できません",
-    "errorBody": "予測サービスに接続できませんでした。server ディレクトリで「pnpm start」を実行してください。",
+    "errorBody": "予測サービスに接続できませんでした。リポジトリのルートで「pnpm run dev:server」を実行してください。",
     "retry": "再試行"
   },
   "offline": {
