@@ -15,6 +15,14 @@ import {
   type ServerResponse,
 } from 'node:http';
 
+import {
+  ANTENNA_ORDER,
+  type AntennaChoice,
+  type AntennaKey,
+  DEFAULT_ANTENNA,
+  isAntennaKey,
+  normaliseAntenna,
+} from './antenna.ts';
 import { TtlCache } from './cache.ts';
 import { coverage } from './coverage.ts';
 import { gridToLatLon, isGrid, latLonToGrid } from './geo.ts';
@@ -26,6 +34,13 @@ import {
 } from './ionosonde.ts';
 import { endpointFromLatLon, isoDate, predict } from './predict.ts';
 import { fetchSpaceWeather } from './spaceweather.ts';
+import {
+  DEFAULT_MODE,
+  isModeKey,
+  MODE_ORDER,
+  type ModeKey,
+  requiredSnrFor,
+} from './station.ts';
 import {
   BAND_ORDER,
   type BandKey,
@@ -39,8 +54,16 @@ const HOST = process.env.HOST ?? '127.0.0.1';
 
 /** Defaults describing a modest amateur station. */
 const DEFAULT_WATTS = 100;
-const DEFAULT_REQUIRED_SNR_DB = 24;
 const DEFAULT_NOISE_DBW = 145;
+
+/**
+ * A transmitter below a watt is refused by one of the engines, and above
+ * ten kilowatts is not an amateur station and overflows the deck's power
+ * field. Clamped rather than refused: a slider that stops is friendlier
+ * than a request that fails.
+ */
+const MIN_WATTS = 1;
+const MAX_WATTS = 10_000;
 
 /** Space weather updates on the order of an hour; geocoding barely changes. */
 const spaceWeatherCache = new TtlCache<SpaceWeather>(15 * 60 * 1000, 1);
@@ -56,6 +79,50 @@ function num(value: string | null, fallback: number): number {
   const parsed = Number(value);
   if (!Number.isFinite(parsed)) throw new BadRequest(`not a number: ${value}`);
   return parsed;
+}
+
+/**
+ * The station behind a request: power, what it has to be good enough for,
+ * and the antenna.
+ *
+ * `mode` sets the required signal-to-noise, and an explicit `snr` still
+ * overrides it. Both are kept because they answer different questions: a
+ * reader picks a mode, and anyone measuring the engine wants the number
+ * itself without having to find a mode that happens to produce it.
+ */
+function parseStation(url: URL): {
+  watts: number;
+  requiredSnrDb: number;
+  noiseDbw: number;
+  antenna: AntennaChoice;
+} {
+  const mode = url.searchParams.get('mode');
+  if (mode !== null && mode.trim() !== '' && !isModeKey(mode)) {
+    throw new BadRequest(`mode must be one of ${MODE_ORDER.join(', ')}`);
+  }
+  const fromMode = requiredSnrFor(
+    isModeKey(mode ?? '') ? mode as ModeKey : DEFAULT_MODE,
+  );
+
+  const type = url.searchParams.get('ant');
+  if (type !== null && type.trim() !== '' && !isAntennaKey(type)) {
+    throw new BadRequest(`ant must be one of ${ANTENNA_ORDER.join(', ')}`);
+  }
+
+  return {
+    watts: Math.min(
+      MAX_WATTS,
+      Math.max(MIN_WATTS, num(url.searchParams.get('watts'), DEFAULT_WATTS)),
+    ),
+    requiredSnrDb: num(url.searchParams.get('snr'), fromMode),
+    noiseDbw: num(url.searchParams.get('noise'), DEFAULT_NOISE_DBW),
+    antenna: normaliseAntenna({
+      type: isAntennaKey(type ?? '') ? type as AntennaKey : 'isotropic',
+      heightM: num(url.searchParams.get('antHeight'), DEFAULT_ANTENNA.heightM),
+      gainDbd: num(url.searchParams.get('antGain'), DEFAULT_ANTENNA.gainDbd),
+      beamDeg: num(url.searchParams.get('beam'), 0),
+    }),
+  };
 }
 
 /** Accepts a Maidenhead locator or a "lat,lon" pair. */
@@ -137,9 +204,7 @@ async function handlePrediction(url: URL): Promise<PredictionResponse> {
     from,
     to,
     date,
-    watts: num(url.searchParams.get('watts'), DEFAULT_WATTS),
-    requiredSnrDb: num(url.searchParams.get('snr'), DEFAULT_REQUIRED_SNR_DB),
-    noiseDbw: num(url.searchParams.get('noise'), DEFAULT_NOISE_DBW),
+    ...parseStation(url),
     // Falling back to climatology when the upstream is down is deliberate:
     // a slightly stale basis beats no forecast, as long as it is labelled.
     ...(wantNowcast && spaceWeather
@@ -186,16 +251,16 @@ async function handleCoverage(url: URL) {
     date,
     band: band as BandKey,
     hour,
-    watts: num(url.searchParams.get('watts'), DEFAULT_WATTS),
-    requiredSnrDb: num(url.searchParams.get('snr'), DEFAULT_REQUIRED_SNR_DB),
-    noiseDbw: num(url.searchParams.get('noise'), DEFAULT_NOISE_DBW),
+    ...parseStation(url),
     ...(spaceWeather
       ? { ssnOverride: spaceWeather.effectiveSsn, basis: 'nowcast' as const }
       : {}),
   });
 }
 
-async function handleForecast(url: URL): Promise<PredictionResponse[]> {
+async function handleForecast(
+  url: URL,
+): Promise<readonly PredictionResponse[]> {
   const days = Math.min(14, Math.max(1, num(url.searchParams.get('days'), 5)));
   const start = parseDate(url.searchParams.get('date'));
   const from = parseEndpoint(
@@ -209,29 +274,30 @@ async function handleForecast(url: URL): Promise<PredictionResponse[]> {
     'to',
   );
 
-  const watts = num(url.searchParams.get('watts'), DEFAULT_WATTS);
-  const requiredSnrDb = num(
-    url.searchParams.get('snr'),
-    DEFAULT_REQUIRED_SNR_DB,
-  );
-  const noiseDbw = num(url.searchParams.get('noise'), DEFAULT_NOISE_DBW);
+  // Parsed once rather than per day: it is the same station on all of
+  // them, and a rejected value should be reported before any run starts.
+  const station = parseStation(url);
 
-  const out: PredictionResponse[] = [];
-  for (let i = 0; i < days; i += 1) {
-    const date = new Date(start.getTime() + i * 86_400_000);
-    // Sequential on purpose: each run is a process, and the box this is
-    // expected to run on has far less memory than it has cores.
-    const prediction = await predict({
-      from,
-      to,
-      date,
-      watts,
-      requiredSnrDb,
-      noiseDbw,
-    });
-    out.push({ prediction, spaceWeather: null });
-  }
-  return out;
+  const dates = Array.from(
+    { length: days },
+    (_, day) => new Date(start.getTime() + day * 86_400_000),
+  );
+
+  // A reduce rather than `Promise.all`, because these must run one at a
+  // time: each prediction is a separate process, and this box has far
+  // less memory than it has cores. Awaiting the accumulator before
+  // calling `predict` is what holds them in order — `map` and `Promise.all`
+  // would start all fourteen at once.
+  return await dates.reduce<Promise<readonly PredictionResponse[]>>(
+    async (soFar, date) => [
+      ...(await soFar),
+      {
+        prediction: await predict({ from, to, date, ...station }),
+        spaceWeather: null,
+      },
+    ],
+    Promise.resolve([]),
+  );
 }
 
 /**

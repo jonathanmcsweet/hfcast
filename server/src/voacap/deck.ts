@@ -24,11 +24,22 @@ export interface DeckOptions {
   ssn: number;
   /** Transmit power in watts. */
   watts: number;
-  /** Signal-to-noise ratio the mode needs, in dB. 24 suits SSB and CW. */
+  /**
+   * Signal-to-noise ratio the mode needs, in a 1 Hz bandwidth, dB. 24 is
+   * CW; see `station.ts` for how each mode converts to a number here.
+   */
   requiredSnrDb: number;
   /** Man-made noise at 3 MHz, as a positive number of dBW below zero. */
   noiseDbw: number;
   bands?: readonly BandKey[];
+  /**
+   * The operator's own antenna, as a path under `<itshfbc>/antennas`.
+   * Absent is the isotrope, which is what every run assumed before the
+   * app could describe a station.
+   */
+  txAntennaFile?: string;
+  /** Where that antenna points, degrees true. Only a beam reads it. */
+  txBeamDeg?: number;
 }
 
 /** Right-justify a number in a fixed-width field, Fortran style. */
@@ -64,9 +75,9 @@ function antennaRef(path: string): string {
 }
 
 /**
- * Isotropic at both ends. This understates what a real station with a beam can
- * do, but it is the only assumption that is honest without asking the user
- * about their antennas, and it keeps the numbers comparable between paths.
+ * The far end is always isotropic. It belongs to a station this server knows
+ * nothing about, so inventing an antenna for them would move every number
+ * without being any more true.
  */
 const ANTENNA_FILE = 'default/isotrope';
 
@@ -117,7 +128,9 @@ export function buildDeck(options: DeckOptions): string {
     `ANTENNA   ${field('1', 5)}${field('1', 5)}${field('2', 5)}${
       field('30', 5)
     }`
-    + `${field('0.000', 10)}${antennaRef(ANTENNA_FILE)}${field('0.0', 5)}${
+    + `${field('0.000', 10)}${
+      antennaRef(options.txAntennaFile ?? ANTENNA_FILE)
+    }${field((options.txBeamDeg ?? 0).toFixed(1), 5)}${
       field(kw.toFixed(4), 10)
     }`,
     `ANTENNA   ${field('2', 5)}${field('2', 5)}${field('2', 5)}${

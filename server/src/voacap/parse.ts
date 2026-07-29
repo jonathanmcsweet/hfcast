@@ -84,62 +84,111 @@ function normaliseHour(raw: number): number {
 const ROWS = ['REL', 'SNR', 'SNR LW', 'SNR UP', 'TANGLE'] as const;
 type RowLabel = (typeof ROWS)[number];
 
+/** One hour's block: the `FREQ` line that opens it and the rows under it. */
+interface HourBlock {
+  head: string;
+  rows: readonly string[];
+}
+
+/**
+ * Cuts the listing into hour blocks.
+ *
+ * A block opens on a `FREQ` line and runs to the next one. Found by
+ * locating the openings first and then slicing between them, rather than
+ * folding line by line: the boundary of one block is the start of the
+ * next, so the positions are the natural thing to compute. Anything
+ * before the first `FREQ` line is the echoed input deck and the page
+ * header, and belongs to no block.
+ */
+function hourBlocks(lines: readonly string[]): readonly HourBlock[] {
+  const starts = lines.flatMap((line, index) =>
+    labelOf(line) === 'FREQ' ? [index] : []
+  );
+  return starts.map((start, nth) => ({
+    head: lines[start] ?? '',
+    rows: lines.slice(start + 1, starts[nth + 1] ?? lines.length),
+  }));
+}
+
+/**
+ * Every value one block printed, as row label then slot index.
+ *
+ * A label appearing twice keeps the last one, which is what building the
+ * map from a list of entries does and what the block scan did before it.
+ */
+function valuesOf(block: HourBlock): Map<RowLabel, Map<number, number>> {
+  return new Map(
+    ROWS.map((row) => [
+      row,
+      new Map(
+        block.rows
+          .filter((line) => labelOf(line) === row)
+          .flatMap((line) =>
+            Array.from(
+              { length: SLOT_COUNT },
+              (_, index) => [index, slot(line, index)] as const,
+            )
+          )
+          .filter((entry): entry is [number, number] => entry[1] !== null),
+      ),
+    ]),
+  );
+}
+
 export function parseVoacapOutput(
   listing: string,
   bands: readonly BandKey[],
 ): ParsedPrediction {
-  const lines = listing.split('\n');
-  const cells: RawBandHour[] = [];
-  const mufByHour = Array<number>(24).fill(0);
+  const blocks = hourBlocks(listing.split('\n'))
+    .map((block) => ({
+      block,
+      hour: Number(block.head.slice(0, 6).trim()),
+      muf: Number(block.head.slice(6, FIRST_SLOT).trim()),
+    }))
+    // A `FREQ` line whose first column is not a number is a header
+    // repeated by the pagination, not an hour.
+    .filter((entry) => Number.isFinite(entry.hour))
+    .map((entry) => ({
+      ...entry,
+      hour: normaliseHour(entry.hour),
+      values: valuesOf(entry.block),
+    }));
 
-  for (let i = 0; i < lines.length; i += 1) {
-    const line = lines[i];
-    if (line === undefined) continue;
-    if (labelOf(line) !== 'FREQ') continue;
+  // Zero for an hour the listing never printed, which is how the rest of
+  // the server reads a missing MUF. A later block wins, as it did when
+  // this was an assignment into the array.
+  const muf = new Map(
+    blocks
+      .filter((entry) => Number.isFinite(entry.muf))
+      .map((entry) => [entry.hour, entry.muf]),
+  );
+  const mufByHour = Array.from({ length: 24 }, (_, hour) => muf.get(hour) ?? 0);
 
-    const hourRaw = Number(line.slice(0, 6).trim());
-    if (!Number.isFinite(hourRaw)) continue;
-    const hour = normaliseHour(hourRaw);
-
-    const muf = Number(line.slice(6, FIRST_SLOT).trim());
-    if (Number.isFinite(muf)) mufByHour[hour] = muf;
-
-    // Rows belonging to this hour run until the next FREQ line.
-    const bySlot = new Map<RowLabel, Map<number, number>>(
-      ROWS.map((row) => [row, new Map()]),
-    );
-
-    for (let j = i + 1; j < lines.length; j += 1) {
-      const row = lines[j];
-      if (row === undefined) break;
-      const label = labelOf(row);
-      if (label === 'FREQ') break;
-
-      const target = bySlot.get(label as RowLabel);
-      if (target === undefined) continue;
-      for (let s = 0; s < SLOT_COUNT; s += 1) {
-        const value = slot(row, s);
-        if (value !== null) target.set(s, value);
-      }
-    }
-
-    bands.forEach((band, index) => {
-      const rel = bySlot.get('REL')?.get(index);
-      const snr = bySlot.get('SNR')?.get(index);
-      if (rel === undefined || snr === undefined) return;
-      cells.push({
-        hour,
+  const cells: readonly RawBandHour[] = blocks.flatMap(({ hour, values }) =>
+    bands
+      .map((band, index) => ({
         band,
+        rel: values.get('REL')?.get(index),
+        snr: values.get('SNR')?.get(index),
+        snrLowDecile: values.get('SNR LW')?.get(index) ?? null,
+        snrUpDecile: values.get('SNR UP')?.get(index) ?? null,
+        takeoffAngleDeg: values.get('TANGLE')?.get(index) ?? null,
+      }))
+      // A band with no reliability or no signal-to-noise is a slot the
+      // listing did not print at all, not a closed band.
+      .filter((row) => row.rel !== undefined && row.snr !== undefined)
+      .map((row) => ({
+        hour,
+        band: row.band,
         // The listing clamps to two decimals; keep it in 0..1 regardless.
-        reliability: Math.min(1, Math.max(0, rel)),
-        snr,
-        snrLowDecile: bySlot.get('SNR LW')?.get(index) ?? null,
-        snrUpDecile: bySlot.get('SNR UP')?.get(index) ?? null,
-        takeoffAngleDeg: bySlot.get('TANGLE')?.get(index) ?? null,
-      });
-    });
-  }
+        reliability: Math.min(1, Math.max(0, row.rel as number)),
+        snr: row.snr as number,
+        snrLowDecile: row.snrLowDecile,
+        snrUpDecile: row.snrUpDecile,
+        takeoffAngleDeg: row.takeoffAngleDeg,
+      }))
+  );
 
   // No window: a method-30 listing prints neither the LUF nor the FOT.
-  return { mufByHour, cells, window: null };
+  return { mufByHour, cells: [...cells], window: null };
 }

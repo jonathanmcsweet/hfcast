@@ -2,10 +2,11 @@
  * Turns a path plus a date into a PathPrediction, running VOACAP when the
  * answer is not already cached.
  */
+import { type AntennaChoice, txCard } from './antenna.ts';
 import { TtlCache } from './cache.ts';
 import { latLonToGrid } from './geo.ts';
 import { bearingDeg, distanceKm } from './geo.ts';
-import { ssnForMonth } from './spaceweather.ts';
+import { resolveSsn } from './spaceweather.ts';
 import {
   BANDS_BY_FREQ,
   type Endpoint,
@@ -14,7 +15,7 @@ import {
 } from './types.ts';
 import { correctCells, factorsFor, stormWidening } from './voacap/correct.ts';
 import { buildDeck } from './voacap/deck.ts';
-import { runEngine } from './voacap/engine.ts';
+import { ITSHFBC_DIR, runEngine } from './voacap/engine.ts';
 import { parseVoacapOutput } from './voacap/parse.ts';
 import { runVoacap } from './voacap/run.ts';
 
@@ -49,6 +50,25 @@ export interface PredictRequest {
   watts: number;
   requiredSnrDb: number;
   noiseDbw: number;
+  /**
+   * The operator's own antenna. The far end stays isotropic: it belongs
+   * to a station this server knows nothing about.
+   */
+  antenna?: AntennaChoice;
+}
+
+/**
+ * The antenna's contribution to the cache key.
+ *
+ * Every field that reaches the definition file has to be here. Height
+ * alone moves a 14 MHz path by about 9 dB, so serving a 20 m dipole from
+ * a 5 m dipole's entry would be a wrong answer that looks entirely
+ * ordinary.
+ */
+function antennaKey(antenna: AntennaChoice | undefined): string {
+  if (antenna === undefined || antenna.type === 'isotropic') return 'iso';
+  const { type, heightM, gainDbd, beamDeg } = antenna;
+  return `${type}:${heightM}:${gainDbd}:${beamDeg}`;
 }
 
 function keyFor(request: PredictRequest, ssn: number): string {
@@ -63,6 +83,7 @@ function keyFor(request: PredictRequest, ssn: number): string {
     request.watts,
     request.requiredSnrDb,
     request.noiseDbw,
+    antennaKey(request.antenna),
     // The storm widening changes the corrected cells, so a stormy now-cast
     // must not be served from a quiet cache entry or the reverse.
     request.kpMax24h === undefined
@@ -77,17 +98,12 @@ export async function predict(
   const month = request.date.getUTCMonth() + 1;
   const year = request.date.getUTCFullYear();
 
-  let ssn: number;
-  let basis: PredictionBasis;
-
-  if (request.ssnOverride !== undefined) {
-    ssn = request.ssnOverride;
-    basis = request.basis ?? 'nowcast';
-  } else {
-    const resolved = await ssnForMonth(year, month);
-    ssn = resolved.ssn;
-    basis = resolved.predicted ? 'forecast' : 'climatology';
-  }
+  const { ssn, basis } = await resolveSsn(
+    year,
+    month,
+    request.ssnOverride,
+    request.basis,
+  );
 
   const key = keyFor(request, ssn);
   const cached = cache.get(key);
@@ -95,6 +111,12 @@ export async function predict(
     // Date and basis are per-request; the VOACAP run behind them is not.
     return { ...cached, date: isoDate(request.date), basis };
   }
+
+  // Written before the run, because the card names a file the engine
+  // opens. Null for an isotropic station, which names no file at all.
+  const txAntenna = request.antenna
+    ? await txCard(ITSHFBC_DIR, request.antenna)
+    : null;
 
   const engineRequest = {
     fromLat: request.from.lat,
@@ -109,11 +131,17 @@ export async function predict(
     watts: request.watts,
     requiredSnrDb: request.requiredSnrDb,
     noiseDbw: request.noiseDbw,
+    ...(txAntenna ? { txAntenna } : {}),
   };
 
   const parsed = USE_FORTRAN
     ? parseVoacapOutput(
-      await runVoacap(buildDeck(engineRequest)),
+      await runVoacap(buildDeck({
+        ...engineRequest,
+        ...(txAntenna
+          ? { txAntennaFile: txAntenna.file, txBeamDeg: txAntenna.beamDeg }
+          : {}),
+      })),
       BANDS_BY_FREQ,
     )
     : await runEngine(engineRequest);

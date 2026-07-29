@@ -123,16 +123,13 @@ export function nearestStation(
   lat: number,
   lon: number,
 ): Station & { km: number; } {
-  let best = STATIONS[0] as Station;
-  let bestKm = Number.POSITIVE_INFINITY;
-  for (const s of STATIONS) {
-    const km = distanceKm(lat, lon, s.lat, s.lon);
-    if (km < bestKm) {
-      bestKm = km;
-      best = s;
-    }
-  }
-  return { ...best, km: Math.round(bestKm) };
+  const nearest = STATIONS
+    .map((station) => ({
+      station,
+      km: distanceKm(lat, lon, station.lat, station.lon),
+    }))
+    .reduce((best, next) => (next.km < best.km ? next : best));
+  return { ...nearest.station, km: Math.round(nearest.km) };
 }
 
 /** The nearest station, or null when the closest one is too far to mean anything. */
@@ -163,27 +160,36 @@ export function fastCharDate(d: Date): string {
  * minutes ago describes the ionosphere better than a confident one from
  * an hour ago.
  */
-export function parseFastChar(
-  body: string,
-): { fof2: number; measuredAt: string; confidence: number; } | null {
-  let best: { fof2: number; measuredAt: string; confidence: number; } | null =
-    null;
-  for (const line of body.split('\n')) {
-    const trimmed = line.trim();
-    if (trimmed === '' || trimmed.startsWith('#')) continue;
-    const parts = trimmed.split(/\s+/);
-    if (parts.length < 3) continue;
-    const [stamp, score, value] = parts as [string, string, string];
-    const confidence = Number(score);
-    const fof2 = Number(value);
-    if (!Number.isFinite(confidence) || !Number.isFinite(fof2)) continue;
-    if (fof2 <= 0 || confidence < MIN_CONFIDENCE) continue;
-    const measuredAt = new Date(stamp).toISOString();
-    if (best === null || measuredAt > best.measuredAt) {
-      best = { fof2, measuredAt, confidence };
-    }
-  }
-  return best;
+export function parseFastChar(body: string): Reading | null {
+  return body
+    .split('\n')
+    .map((line) => line.trim())
+    .filter((line) => line !== '' && !line.startsWith('#'))
+    .map(readRow)
+    .filter((row): row is Reading => row !== null)
+    .reduce<Reading | null>(
+      (best, row) =>
+        best === null || row.measuredAt > best.measuredAt ? row : best,
+      null,
+    );
+}
+
+interface Reading {
+  fof2: number;
+  measuredAt: string;
+  confidence: number;
+}
+
+/** One data row, or null when it is not one this reader can use. */
+function readRow(line: string): Reading | null {
+  const parts = line.split(/\s+/);
+  if (parts.length < 3) return null;
+  const [stamp, score, value] = parts as [string, string, string];
+  const confidence = Number(score);
+  const fof2 = Number(value);
+  if (!Number.isFinite(confidence) || !Number.isFinite(fof2)) return null;
+  if (fof2 <= 0 || confidence < MIN_CONFIDENCE) return null;
+  return { fof2, measuredAt: new Date(stamp).toISOString(), confidence };
 }
 
 /**

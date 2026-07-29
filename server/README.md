@@ -107,12 +107,43 @@ In a method 30 listing each hour is a block starting with a line ending in
 `FREQ`. The first data column is the value at the MUF, not a requested
 frequency, so the bands start one column later.
 
-## Assumptions
+## The station
 
-Every run is isotropic at both ends at 100 W, with a required SNR of 24 dB and
-3 MHz man-made noise of -145 dBW. Those are defaults for a modest amateur
-station and can be overridden per request with `watts`, `snr` and `noise`.
+Every run describes a station: how much power, what the signal has to be
+good enough for, and what antenna it leaves from. The defaults are a
+modest one — 100 W, isotropic at both ends, a CW threshold, and 3 MHz
+man-made noise of -145 dBW.
+
+| parameter   | what it sets                                   | default     |
+| ----------- | ---------------------------------------------- | ----------- |
+| `watts`     | transmit power, 1 to 10,000                    | `100`       |
+| `mode`      | the required signal-to-noise                   | `cw`        |
+| `snr`       | that threshold directly, dB                    | from `mode` |
+| `noise`     | man-made noise at 3 MHz, dBW below zero        | `145`       |
+| `ant`       | antenna family                                 | `isotropic` |
+| `antHeight` | height above ground, metres, 1 to 100          | `10`        |
+| `antGain`   | gain over a dipole, dB, 0 to 20. Yagi only     | `6`         |
+| `beam`      | where the beam points, degrees true. Yagi only | `0`         |
+
+`mode` is one of `fm`, `am`, `ssb`, `rtty`, `cw`, `psk31`, `ft8`, `js8`,
+`wspr`. `ant` is one of `isotropic`, `dipole`, `vertical`, `yagi`,
+`invertedL`. An unknown value for either is a 400 naming the valid set.
+`snr` still overrides `mode` when both are given, so the threshold can be
+measured directly without finding a mode that happens to produce it.
 
 Signal-to-noise is in a 1 Hz bandwidth, as is the noise figure. A mode's
-requirement converts as `in-channel SNR + 10*log10(bandwidth)`, so 24 dB is
-roughly CW by ear; SSB voice is near 40 dB, FT8 near 13, and WSPR near 6.
+requirement converts as `in-channel SNR + 10*log10(bandwidth)`, so 24 dB
+is roughly CW by ear; SSB voice is near 38 dB, FT8 near 13, WSPR near 5.
+`src/station.ts` holds the table and where each figure comes from.
+
+Only the operator's own end takes an antenna. The far end belongs to a
+station this server knows nothing about, so it stays isotropic:
+inventing an antenna for them would move every number without being any
+more true.
+
+Antennas are generated as VOACAP definition files under
+`<itshfbc>/antennas/hfcast/`, named from a digest of their own contents.
+The server needs write access to that directory. Height is the parameter
+that decides most amateur answers: at 14 MHz a dipole one wavelength up
+beats the same dipole a quarter wave up by about 9 dB at the low angles a
+long path needs.
