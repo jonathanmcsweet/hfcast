@@ -23,14 +23,23 @@ verifies it. The server drives either that or `voacapl` directly.
 
 ## Running it
 
-The app needs the server, so start the server first. Each has its own
-README with the details:
+The app needs the server, so one command starts both. It waits for the
+server to answer before starting the app, and stops it again on exit.
 
 ```sh
 pnpm install
-pnpm dev:server     # http://127.0.0.1:8787
-pnpm dev:app        # then press w, i or a
+pnpm dev:app        # or `pnpm dev` — then press w, i or a
 ```
+
+If a server is already listening, that one is used and left running. To
+start either half alone:
+
+```sh
+pnpm dev:server     # the server, on http://127.0.0.1:8787
+pnpm dev:ui         # the app, against a server elsewhere or a mocked API
+```
+
+Each has its own README with the details.
 
 The server needs `voacapl` and an `itshfbc` data tree on the host. That
 is a manual build step, documented in [server/README.md](server/README.md).
