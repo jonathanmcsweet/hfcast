@@ -1,6 +1,6 @@
 {
   "name": "hfcast-workspace",
-  "version": "0.10.2",
+  "version": "0.11.0",
   "private": true,
   "description": "Tooling shared by the HFcast app and its prediction server",
   "license": "Apache-2.0",
@@ -11,8 +11,10 @@
     "lint:fix": "biome lint --write .",
     "check": "dprint check && biome lint .",
     "dev:server": "pnpm --dir server start",
-    "dev:app": "pnpm --dir hfcast start",
-    "test": "pnpm --dir server test"
+    "dev:app": "bash tools/dev.sh",
+    "test": "pnpm --dir server test",
+    "dev": "bash tools/dev.sh",
+    "dev:ui": "pnpm --dir hfcast start"
   },
   "devDependencies": {
     "@biomejs/biome": "^1.9.4",
