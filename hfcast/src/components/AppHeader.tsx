@@ -107,7 +107,12 @@ const styles = StyleSheet.create({
   },
   // The whole block opens the location pane, so it is sized as a touch
   // target rather than around its text.
+  //
+  // It also takes all the slack in the row. That is what holds the controls
+  // against the far edge: without it the row packs to the start and they sit
+  // wherever the place name happens to end, which moves as the name changes.
   place: {
+    flexGrow: 1,
     flexShrink: 1,
     justifyContent: 'center',
     minHeight: 44,
@@ -127,7 +132,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 5,
-    marginStart: 'auto',
+    // No auto margin: the place block takes the slack now, and a second
+    // one here would split the space and push the chip away from the
+    // controls it belongs beside.
     minHeight: 28,
     paddingHorizontal: spacing.sm,
     borderRadius: 8,

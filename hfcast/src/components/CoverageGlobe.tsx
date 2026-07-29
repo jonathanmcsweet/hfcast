@@ -50,8 +50,12 @@ const RINGS = land as [number, number][][];
  * it fell — the map contradicted its own scale. These values tint rather
  * than recolour; the dashed terminator does the work of showing where the
  * boundary is, and the legend names both.
+ *
+ * Light is the higher of the two, set by eye rather than by arithmetic. The
+ * same alpha does not read the same over a white card as over a dark one,
+ * and 0.07 left the night side barely visible.
  */
-const NIGHT_OPACITY = { dark: 0.16, light: 0.07 };
+const NIGHT_OPACITY = { dark: 0.16, light: 0.18 };
 
 const MIN_SCALE = 1;
 /** The design's ceiling. Past this the grid is coarser than the pixels. */
