@@ -226,11 +226,17 @@
     "verticalNote": "Eine Vertikalantenne wirkt in alle Richtungen gleich; es gibt nichts auszurichten.",
     "alignFor": "Auf {{place}} ausrichten, {{degrees}}°",
     "aim": {
-      "best": "{{place}} liegt bei {{degrees}}° — {{offset}}° neben der besten Richtung, also nah daran.",
-      "offToOneSide": "{{place}} liegt bei {{degrees}}° — {{offset}}° neben der besten Richtung.",
-      "nearNull": "{{place}} liegt bei {{degrees}}° — {{offset}}° neben der besten Richtung, nahe der schwächsten Stelle dieser Antenne."
+      "best": "{{place}} liegt bei {{degrees}}°. Die nächste starke Richtung ist {{lobe}}°, also {{offset}}° daneben — nah daran.",
+      "offToOneSide": "{{place}} liegt bei {{degrees}}°. Die nächste starke Richtung ist {{lobe}}°, also {{offset}}° zur Seite.",
+      "nearNull": "{{place}} liegt bei {{degrees}}°. Die nächste starke Richtung ist {{lobe}}°, also {{offset}}° daneben — nahe der schwächsten Stelle dieser Antenne."
     },
-    "twoLobes": "{{first}}/{{second}}°"
+    "twoLobes": "{{first}}/{{second}}°",
+    "compass": {
+      "n": "N",
+      "e": "O",
+      "s": "S",
+      "w": "W"
+    }
   },
   "units": {
     "metres": "{{value}} m",

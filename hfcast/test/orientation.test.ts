@@ -7,10 +7,16 @@ import {
   beamFromWire,
   isBidirectional,
   lobes,
+  nearestLobe,
   offAxis,
   usesOrientation,
   wireFromBeam,
 } from '../src/data/orientation.ts';
+import ar from '../src/i18n/locales/ar.json' with { type: 'json' };
+import de from '../src/i18n/locales/de.json' with { type: 'json' };
+import en from '../src/i18n/locales/en.json' with { type: 'json' };
+import es from '../src/i18n/locales/es.json' with { type: 'json' };
+import ja from '../src/i18n/locales/ja.json' with { type: 'json' };
 import { ANTENNA_ORDER, usesBeam } from '../src/store/useStationStore.ts';
 
 /**
@@ -116,6 +122,68 @@ describe('how far off the path falls', () => {
   it('takes the shorter way round the compass', () => {
     assert.equal(offAxis(350, 'yagi', 10), 20);
     assert.equal(offAxis(10, 'yagi', 350), 20);
+  });
+});
+
+describe('naming the direction the offset is measured from', () => {
+  // "80 degrees off your best direction" was asked about directly: what
+  // is my best direction? It was never stated. The sentence now names the
+  // lobe it measured from, and the compass draws the same figure.
+  it('names the lobe the offset was measured from', () => {
+    assert.equal(nearestLobe(90, 'dipole', 100), 90);
+    assert.equal(nearestLobe(90, 'dipole', 260), 270);
+    assert.equal(nearestLobe(302, 'yagi', 10), 302);
+  });
+
+  it('names a lobe the antenna actually has', () => {
+    const beam = 122;
+    const paths = [0, 45, 90, 135, 180, 225, 270, 315];
+    assert.deepEqual(
+      paths.map((p) =>
+        lobes(beam, 'dipole').includes(nearestLobe(beam, 'dipole', p))
+      ),
+      paths.map(() => true),
+    );
+  });
+
+  it('agrees with the offset it is quoted beside', () => {
+    // The two numbers appear in one sentence. If they came from different
+    // lobes the sentence would contradict itself.
+    const beam = 40;
+    const paths = [0, 30, 95, 180, 200, 330];
+    const separation = (a: number, b: number) => {
+      const raw = Math.abs(a - b) % 360;
+      return raw > 180 ? 360 - raw : raw;
+    };
+    assert.deepEqual(
+      paths.map((p) => separation(nearestLobe(beam, 'dipole', p), p)),
+      paths.map((p) => offAxis(beam, 'dipole', p)),
+    );
+  });
+});
+
+describe('the words the compass is drawn beside', () => {
+  const locales = { en, de, es, ja, ar };
+  const entries = Object.entries(locales);
+
+  it('gives every language a letter for each compass point', () => {
+    // Drawn in the rose itself, so they are translated rather than
+    // assumed to be the English four.
+    assert.deepEqual(
+      entries.map(([, l]) => Object.keys(l.station.compass).sort()),
+      entries.map(() => ['e', 'n', 's', 'w']),
+    );
+  });
+
+  it('states the direction the offset is measured from, in every language', () => {
+    // The placeholder is the fix. A translation that dropped it would put
+    // the old unanswerable wording back for that language alone.
+    const wanted = ['{{place}}', '{{degrees}}', '{{offset}}', '{{lobe}}'];
+    const sentences = entries.flatMap(([, l]) => Object.values(l.station.aim));
+    assert.deepEqual(
+      sentences.map((s) => wanted.every((token) => s.includes(token))),
+      sentences.map(() => true),
+    );
   });
 });
 

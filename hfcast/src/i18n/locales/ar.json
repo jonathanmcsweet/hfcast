@@ -226,11 +226,17 @@
     "verticalNote": "الهوائي العمودي متساوٍ في كل الاتجاهات، فلا شيء لتوجيهه.",
     "alignFor": "محاذاته نحو {{place}}، {{degrees}}°",
     "aim": {
-      "best": "{{place}} على {{degrees}}° — يبعد {{offset}}° عن أفضل اتجاه، أي قريب منه.",
-      "offToOneSide": "{{place}} على {{degrees}}° — يبعد {{offset}}° عن أفضل اتجاه.",
-      "nearNull": "{{place}} على {{degrees}}° — يبعد {{offset}}° عن أفضل اتجاه، قرب أضعف نقطة لهذا الهوائي."
+      "best": "{{place}} على {{degrees}}°. أقرب اتجاه قوي لديك هو {{lobe}}°، أي على بُعد {{offset}}° — قريب منه.",
+      "offToOneSide": "{{place}} على {{degrees}}°. أقرب اتجاه قوي لديك هو {{lobe}}°، أي على بُعد {{offset}}° إلى أحد الجانبين.",
+      "nearNull": "{{place}} على {{degrees}}°. أقرب اتجاه قوي لديك هو {{lobe}}°، أي على بُعد {{offset}}° — قرب أضعف نقطة لهذا الهوائي."
     },
-    "twoLobes": "{{first}}/{{second}}°"
+    "twoLobes": "{{first}}/{{second}}°",
+    "compass": {
+      "n": "ش",
+      "e": "ق",
+      "s": "ج",
+      "w": "غ"
+    }
   },
   "units": {
     "metres": "{{value}} م",

@@ -68,6 +68,23 @@ function separation(a: number, b: number): number {
 }
 
 /**
+ * The direction this antenna favours that lies closest to the path.
+ *
+ * Named rather than left implicit. "Eighty degrees off your best
+ * direction" asks the reader to hold a direction nobody stated; "eighty
+ * degrees off 302" does not, and 302 is also what the compass draws.
+ */
+export function nearestLobe(
+  beamDeg: number,
+  type: AntennaKey,
+  pathDeg: number,
+): number {
+  return lobes(beamDeg, type).reduce((best, lobe) =>
+    separation(lobe, pathDeg) < separation(best, pathDeg) ? lobe : best
+  );
+}
+
+/**
  * How far off its best direction the path falls, in degrees.
  *
  * The nearest lobe counts, so a bidirectional antenna is never described
@@ -78,9 +95,7 @@ export function offAxis(
   type: AntennaKey,
   pathDeg: number,
 ): number {
-  return Math.min(
-    ...lobes(beamDeg, type).map((lobe) => separation(lobe, pathDeg)),
-  );
+  return separation(nearestLobe(beamDeg, type, pathDeg), pathDeg);
 }
 
 /**
@@ -97,8 +112,13 @@ export function offAxis(
  */
 export type Alignment = 'best' | 'offToOneSide' | 'nearNull';
 
+/** Inside this of a lobe, the path reads as close to the best direction. */
+export const BEST_WITHIN_DEG = 30;
+/** Past this, it is falling into the null off the ends of the wire. */
+export const SIDE_WITHIN_DEG = 60;
+
 export function alignment(offsetDeg: number): Alignment {
-  if (offsetDeg <= 30) return 'best';
-  if (offsetDeg <= 60) return 'offToOneSide';
+  if (offsetDeg <= BEST_WITHIN_DEG) return 'best';
+  if (offsetDeg <= SIDE_WITHIN_DEG) return 'offToOneSide';
   return 'nearNull';
 }

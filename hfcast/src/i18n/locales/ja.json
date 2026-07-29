@@ -226,11 +226,17 @@
     "verticalNote": "垂直系は全方向で同じなので、向ける対象がありません。",
     "alignFor": "{{place}} に合わせる、{{degrees}}°",
     "aim": {
-      "best": "{{place}} は {{degrees}}° です。最良方向から {{offset}}° なので、ほぼ正面です。",
-      "offToOneSide": "{{place}} は {{degrees}}° です。最良方向から {{offset}}° ずれています。",
-      "nearNull": "{{place}} は {{degrees}}° です。最良方向から {{offset}}° で、このアンテナが最も弱くなる方向に近いです。"
+      "best": "{{place}} は {{degrees}}° です。最も近い強い方向は {{lobe}}° で、そこから {{offset}}° なので、ほぼ正面です。",
+      "offToOneSide": "{{place}} は {{degrees}}° です。最も近い強い方向は {{lobe}}° で、そこから {{offset}}° ずれています。",
+      "nearNull": "{{place}} は {{degrees}}° です。最も近い強い方向は {{lobe}}° で、そこから {{offset}}° あり、このアンテナが最も弱くなる方向に近いです。"
     },
-    "twoLobes": "{{first}}/{{second}}°"
+    "twoLobes": "{{first}}/{{second}}°",
+    "compass": {
+      "n": "北",
+      "e": "東",
+      "s": "南",
+      "w": "西"
+    }
   },
   "units": {
     "metres": "{{value}} m",

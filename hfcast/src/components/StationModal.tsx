@@ -19,6 +19,7 @@ import {
   beamFromWire,
   isBidirectional,
   lobes,
+  nearestLobe,
   offAxis,
   wireFromBeam,
 } from '../data/orientation';
@@ -39,6 +40,7 @@ import {
 } from '../store/useStationStore';
 import { numeric, radius, spacing, typography } from '../theme';
 import type { AppTheme } from '../theme';
+import CompassRose from './CompassRose';
 
 interface Props {
   visible: boolean;
@@ -434,6 +436,20 @@ export default function StationModal(
                     : t('station.a11y.beam'),
                 )}
 
+                {
+                  /* Drawn as well as described. The sentence below used to
+                     say a path was "80° off your best direction" without
+                     ever saying which direction that was, and for a wire
+                     it is not the number above either — it is the pair at
+                     right angles to it. The picture states both, and the
+                     degree figures on it are the ones in the sentences. */
+                }
+                <CompassRose
+                  beamDeg={antenna.beamDeg}
+                  type={antenna.type}
+                  pathDeg={bearingToDestination}
+                />
+
                 <Text
                   style={[typography.caption, styles.note, { color: ui.text3 }]}
                 >
@@ -456,6 +472,13 @@ export default function StationModal(
                         place: destinationLabel ?? '',
                         degrees: Math.round(bearingToDestination),
                         offset: Math.round(offset ?? 0),
+                        lobe: Math.round(
+                          nearestLobe(
+                            antenna.beamDeg,
+                            antenna.type,
+                            bearingToDestination,
+                          ),
+                        ),
                       })}
                     </Text>
                     <Button

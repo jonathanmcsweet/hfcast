@@ -226,11 +226,17 @@
     "verticalNote": "A vertical is the same in every direction, so there is nothing to point.",
     "alignFor": "Align for {{place}}, {{degrees}}°",
     "aim": {
-      "best": "{{place}} is {{degrees}}° — {{offset}}° off your best direction, so close to it.",
-      "offToOneSide": "{{place}} is {{degrees}}° — {{offset}}° off your best direction.",
-      "nearNull": "{{place}} is {{degrees}}° — {{offset}}° off your best direction, near where this antenna is weakest."
+      "best": "{{place}} is at {{degrees}}°. Your nearest strong direction is {{lobe}}°, so it is {{offset}}° away — close to it.",
+      "offToOneSide": "{{place}} is at {{degrees}}°. Your nearest strong direction is {{lobe}}°, so it is {{offset}}° off to one side.",
+      "nearNull": "{{place}} is at {{degrees}}°. Your nearest strong direction is {{lobe}}°, so it is {{offset}}° away — near where this antenna is weakest."
     },
-    "twoLobes": "{{first}}/{{second}}°"
+    "twoLobes": "{{first}}/{{second}}°",
+    "compass": {
+      "n": "N",
+      "e": "E",
+      "s": "S",
+      "w": "W"
+    }
   },
   "units": {
     "metres": "{{value}} m",
