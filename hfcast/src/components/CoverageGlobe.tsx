@@ -13,8 +13,12 @@ import land from '../assets/land.json';
 import {
   cellRing,
   circleAround,
+  discRing,
   EARTH_KM,
   greatCircle,
+  isNight,
+  nightIsInside,
+  opposedTo,
   pathOf,
   projector,
   projectRing,
@@ -190,6 +194,32 @@ export default function CoverageGlobe({
       p,
       circleAround(antiLon, -sunLat, (Math.PI / 2) * EARTH_KM),
     );
+    // One closed curve is the normal case. It only breaks into pieces when
+    // the terminator passes within half a degree of the point opposite the
+    // operator, and a broken curve cannot be filled — that is drawn as a
+    // line alone rather than as a guess.
+    const terminator = nightRuns.length === 1 ? nightRuns[0] : undefined;
+    const nightInside = terminator === undefined
+      ? true
+      : nightIsInside(
+        terminator,
+        p.cx,
+        p.cy,
+        isNight(from.lon, from.lat, now),
+      );
+    // When night is the outer region, the fill is the whole disc with the
+    // lit part cut out of it. The two rings are wound opposite ways so the
+    // cut works under either fill rule.
+    const nightFill = terminator === undefined
+      ? ''
+      : nightInside
+      ? pathOf(terminator, true)
+      : (() => {
+        const rim = discRing(p.cx, p.cy, p.radius);
+        return `${pathOf(rim, true)} ${
+          pathOf(opposedTo(terminator, rim), true)
+        }`;
+      })();
 
     const home = p.project(from.lon, from.lat);
     const target = to ? p.project(to.lon, to.lat) : null;
@@ -203,6 +233,8 @@ export default function CoverageGlobe({
       coast,
       distanceRings,
       nightRuns,
+      terminator,
+      nightFill,
       home,
       target,
       path,
@@ -338,15 +370,28 @@ export default function CoverageGlobe({
           </G>
 
           {
-            /* Night tints rather than recolours — see NIGHT_OPACITY. The
-             dashed edge is what makes the boundary readable. */
+            /* Night tints rather than recolours — see NIGHT_OPACITY.
+
+               The fill and the edge are drawn separately because they are
+               not the same shape. The edge is always the terminator; the
+               fill is whichever side of it is dark, and when that is the
+               outer side it takes the whole disc as a second subpath and
+               lets the even-odd rule punch the lit region out of it. */
           }
+          {geometry.terminator === undefined ? null : (
+            <Path
+              d={geometry.nightFill}
+              fillRule="evenodd"
+              fill={dark ? '#000000' : '#12151F'}
+              fillOpacity={dark ? NIGHT_OPACITY.dark : NIGHT_OPACITY.light}
+            />
+          )}
+
           {geometry.nightRuns.map((run) => (
             <Path
               key={`n${run.length}-${run[0]?.[0]}`}
-              d={pathOf(run, true)}
-              fill={dark ? '#000000' : '#12151F'}
-              fillOpacity={dark ? NIGHT_OPACITY.dark : NIGHT_OPACITY.light}
+              d={pathOf(run, geometry.terminator !== undefined)}
+              fill="none"
               stroke={ui.mapGuide}
               strokeWidth={px(0.9)}
               strokeDasharray={`${px(4)} ${px(4)}`}
