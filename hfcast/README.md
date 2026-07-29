@@ -112,9 +112,22 @@ npx expo prebuild --platform android    # generates android/, which is gitignore
 cd android && ./gradlew assembleRelease
 ```
 
-The APK lands at `android/app/build/outputs/apk/release/app-release.apk`. Copy
-it to the phone and open it, or `adb install` it over USB. Android will ask for
-permission to install from whichever app opened the file.
+The APK lands at `android/app/build/outputs/apk/release/app-release.apk`, about
+65 MB — one binary carrying all four ABIs, with the 3.5 MB JavaScript bundle
+inside it, so it runs with no dev server. Copy it to the phone and open it, or
+`adb install` it over USB. Android will ask for permission to install from
+whichever app opened the file.
+
+Measured on 16 cores with the NDK already downloaded: 7.5 minutes cold, 4.5
+minutes for a second build.
+
+**`app.json` has to declare a splash background colour.** Prebuild writes
+`res/drawable/splashscreen.xml` pointing at `@color/splashscreen_background`
+whatever the configuration says, but only writes that colour when
+`expo.splash.backgroundColor` exists. Without it, resource linking fails with
+`resource color/splashscreen_background not found` after several minutes of
+compiling. The two colours here match the app's own light and dark
+backgrounds, so the launch window does not flash white on a dark device.
 
 **It is signed with the debug keystore.** React Native's template does that so a
 release build works with no credential setup, which suits testing. Anything
