@@ -53,7 +53,87 @@ error from Metro itself.
 
 ## Getting an installable app
 
-`npm start` runs it in development. For a build you can actually install on a phone, use EAS:
+`npm start` runs it in development. For a build you can install on a phone,
+either build the APK locally or let Expo build it.
+
+### Building an APK locally
+
+No Android Studio, emulator or NDK needed: React Native 0.74 takes its native
+libraries prebuilt from Maven, so nothing here compiles C++. What it does need
+is a JDK, the Android SDK command-line tools, and memory — Gradle and Metro
+together want roughly 3 GB free, and a machine with less than that will have
+the build killed by the kernel partway through.
+
+Install a JDK 17 and the SDK tools once:
+
+```bash
+# JDK 17. A package manager is fine; this way needs no root.
+curl -L -o /tmp/jdk.tar.gz \
+  'https://api.adoptium.net/v3/binary/latest/17/ga/linux/x64/jdk/hotspot/normal/eclipse'
+mkdir -p ~/jdk17 && tar -xzf /tmp/jdk.tar.gz -C ~/jdk17 --strip-components=1
+
+# Android SDK command-line tools. The nested cmdline-tools/latest path is
+# required — sdkmanager refuses to run from anywhere else.
+curl -L -o /tmp/cmdline-tools.zip \
+  https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip
+mkdir -p ~/android-sdk/cmdline-tools
+unzip -q /tmp/cmdline-tools.zip -d ~/android-sdk/cmdline-tools
+mv ~/android-sdk/cmdline-tools/cmdline-tools ~/android-sdk/cmdline-tools/latest
+
+export JAVA_HOME=~/jdk17
+export ANDROID_HOME=~/android-sdk
+export PATH="$JAVA_HOME/bin:$ANDROID_HOME/cmdline-tools/latest/bin:$ANDROID_HOME/platform-tools:$PATH"
+
+yes | sdkmanager --licenses
+sdkmanager 'platform-tools' 'platforms;android-34' 'build-tools;34.0.0'
+```
+
+Then, from this directory:
+
+```bash
+npx expo prebuild --platform android    # generates android/, which is gitignored
+cd android && ./gradlew assembleRelease
+```
+
+The APK lands at `android/app/build/outputs/apk/release/app-release.apk`. Copy
+it to the phone and open it, or `adb install` it over USB. Android will ask for
+permission to install from whichever app opened the file.
+
+**It is signed with the debug keystore.** React Native's template does that so a
+release build works with no credential setup, which suits testing. Anything
+actually distributed needs its own keystore — a debug-signed APK cannot be
+updated by a properly signed one later, so the app has to be uninstalled first.
+
+**`android/` is generated.** `expo prebuild` rewrites it from `app.json`, so
+changes made inside it are lost. Configuration belongs in `app.json`, or in an
+`expo-build-properties` plugin entry.
+
+On a small machine, add to `android/gradle.properties` before building:
+
+```properties
+org.gradle.jvmargs=-Xmx1g -XX:MaxMetaspaceSize=512m
+org.gradle.daemon=false
+org.gradle.parallel=false
+org.gradle.workers.max=1
+```
+
+That trades speed for staying inside the memory it has. Metro runs as a separate
+Node process during the build and needs its own share on top; `metro.config.js`
+already scales its worker pool by system memory for the same reason.
+
+**The server URL is fixed when the APK is built.** `EXPO_PUBLIC_HFCAST_API` is
+read by Metro while bundling, so it belongs on the Gradle command:
+
+```bash
+EXPO_PUBLIC_HFCAST_API=https://your-server.example ./gradlew assembleRelease
+```
+
+Left unset it stays at `http://127.0.0.1:8787`, which on a phone means the phone
+itself, so anything needing a forecast shows a connection error. The station
+settings, the antenna compass, band and day selection, units, and theme and
+language switching are all still testable without a server.
+
+### Letting Expo build it
 
 ```bash
 npm install -g eas-cli
@@ -63,7 +143,11 @@ eas build --platform android --profile preview   # produces an APK
 eas build --platform ios --profile preview       # needs an Apple Developer account
 ```
 
-The Android `preview` profile gives you an APK you can sideload directly. iOS builds require a paid Apple Developer account and either TestFlight or a registered device UDID — there's no way around that, it's Apple's policy rather than a limitation here.
+This builds on Expo's servers, so the memory limits above do not apply, but it
+uploads the source there and needs an Expo account. The Android `preview`
+profile gives an APK you can sideload. iOS builds require a paid Apple Developer
+account and either TestFlight or a registered device UDID; that is Apple's
+policy rather than a limitation here.
 
 ## Architecture
 
@@ -147,5 +231,5 @@ Things worth knowing before you extend this:
 - **Tabular figures on Android.** `fontVariant: ['tabular-nums']` is honoured on iOS. On Android it depends on the bundled font exposing the `tnum` OpenType feature; Roboto does, but a custom font may not, in which case numeric columns will jitter slightly as values change.
 - **Times are UTC only.** Operators think in UTC, but a consumer-facing app aimed at newcomers should default to device-local time with a UTC toggle. That's the first thing I'd add.
 - **The heatmap flips under RTL.** `flexDirection: 'row'` reverses the time axis in Arabic. That's arguably correct for RTL reading order and arguably wrong for a time axis — worth deciding deliberately rather than inheriting.
-- **No app tests.** The server has them; the app does not. The pure functions in `src/data/` are the obvious place to start.
+- **Tests cover `src/data/` only.** The pure functions are tested; no component renders in a test, so nothing checks that the app starts. `npx expo export --platform web` is the cheapest thing that actually executes the module graph.
 - **Days inside one month are identical.** VOACAP is monthly climatology, so the day selector only changes the answer at a month boundary, or for today when a now-cast is available.
