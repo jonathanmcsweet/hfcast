@@ -93,7 +93,7 @@
   "status": {
     "loading": "Calculando la previsión",
     "errorTitle": "No hay previsión disponible",
-    "errorBody": "No se pudo contactar con el servicio de predicción. Inícialo con «pnpm start» en el directorio server.",
+    "errorBody": "No se pudo contactar con el servicio de predicción. Inícialo con «pnpm run dev:server» en la raíz del repositorio.",
     "retry": "Reintentar"
   },
   "offline": {

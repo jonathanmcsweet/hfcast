@@ -93,7 +93,7 @@
   "status": {
     "loading": "Working out the forecast",
     "errorTitle": "No forecast available",
-    "errorBody": "The prediction service could not be reached. Start it with \"pnpm start\" in the server directory.",
+    "errorBody": "The prediction service could not be reached. Start it with \"pnpm run dev:server\" from the repository root.",
     "retry": "Try again"
   },
   "offline": {
