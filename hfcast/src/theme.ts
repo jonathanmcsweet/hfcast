@@ -53,9 +53,15 @@ export const QUALITY_SCALE: QualityScale = 'signal';
  * that looked empty rather than closed. "Nothing works" and "nothing
  * loaded" are different things and must not look the same.
  *
+ * `closed` is the one state outside the signal hue. It was violet for a
+ * while, which made a grid where every band is shut read as a solid block
+ * of signal — the opposite of what it says. Neutral is the point: violet
+ * means the band does something, grey means it does not, and a wall of
+ * grey cannot be misread as coverage.
+ *
  * Contrast against the card, weakest state last:
- *   light  11.69 / 5.56 / 3.36 / 1.58
- *   dark    9.85 / 3.27 / 2.15 / 1.56
+ *   light  11.69 / 5.56 / 3.36 / 1.54
+ *   dark    9.85 / 3.27 / 2.15 / 1.80
  * Ordered by lightness in both, which is what keeps the scale readable in
  * greyscale and under any form of colour blindness, and every `onBase`
  * clears 4.5:1 on its own fill.
@@ -64,14 +70,14 @@ const signalLight: QualityColors = {
   reliable: { base: violet[900], onBase: violet[75] },
   patchy: { base: violet[700], onBase: violet[50] },
   weak: { base: violet[500], onBase: violet[950] },
-  closed: { base: violet[300], onBase: violet[950] },
+  closed: { base: slate[200], onBase: slate[700] },
 };
 
 const signalDark: QualityColors = {
   reliable: { base: violet[400], onBase: violet[950] },
   patchy: { base: violet[700], onBase: violet[50] },
   weak: { base: violet[800], onBase: violet[200] },
-  closed: { base: violet[900], onBase: slate[300] },
+  closed: { base: slate[700], onBase: slate[200] },
 };
 
 /**
