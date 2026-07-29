@@ -43,18 +43,35 @@ type QualityColors = Record<QualityKey, { base: string; onBase: string; }>;
 export type QualityScale = 'signal' | 'traffic';
 export const QUALITY_SCALE: QualityScale = 'signal';
 
+/**
+ * Both ramps have a floor: the darkest state still has to read as a filled
+ * cell against the card behind it.
+ *
+ * The first version did not. `closed` sat at 1.11:1 against the dark card
+ * and 1.14:1 against the light one, so a path where every band is shut —
+ * which is a real answer, and the one a very long path gives — drew a grid
+ * that looked empty rather than closed. "Nothing works" and "nothing
+ * loaded" are different things and must not look the same.
+ *
+ * Contrast against the card, weakest state last:
+ *   light  11.69 / 5.56 / 3.36 / 1.58
+ *   dark    9.85 / 3.27 / 2.15 / 1.56
+ * Ordered by lightness in both, which is what keeps the scale readable in
+ * greyscale and under any form of colour blindness, and every `onBase`
+ * clears 4.5:1 on its own fill.
+ */
 const signalLight: QualityColors = {
   reliable: { base: violet[900], onBase: violet[75] },
   patchy: { base: violet[700], onBase: violet[50] },
-  weak: { base: violet[400], onBase: violet[950] },
-  closed: { base: violet[100], onBase: slate[500] },
+  weak: { base: violet[500], onBase: violet[950] },
+  closed: { base: violet[300], onBase: violet[950] },
 };
 
 const signalDark: QualityColors = {
   reliable: { base: violet[400], onBase: violet[950] },
   patchy: { base: violet[700], onBase: violet[50] },
-  weak: { base: violet[850], onBase: violet[200] },
-  closed: { base: slate[900], onBase: slate[400] },
+  weak: { base: violet[800], onBase: violet[200] },
+  closed: { base: violet[900], onBase: slate[300] },
 };
 
 /**
