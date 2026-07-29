@@ -2,12 +2,20 @@ import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
 import {
+  angularDistanceDeg,
   cellRing,
+  circleAround,
   destination,
+  discRing,
   EARTH_KM,
   greatCircle,
+  isNight,
+  nightIsInside,
+  opposedTo,
+  polygonContains,
   projector,
   projectRing,
+  signedArea,
   subsolarPoint,
 } from '../src/data/projection.ts';
 
@@ -157,5 +165,93 @@ describe('the subsolar point', () => {
   it('is over the tropic of Capricorn at the December solstice', () => {
     const [, lat] = subsolarPoint(new Date(Date.UTC(2026, 11, 21, 12, 0)));
     assert.ok(lat < -22 && lat > -24, `declination ${lat}`);
+  });
+});
+
+describe('day and night', () => {
+  // Atlanta, five hours behind UTC.
+  const ATL_LON = -84.39;
+  const ATL_LAT = 33.75;
+  const at = (hour: number) => new Date(Date.UTC(2026, 6, 29, hour, 0));
+
+  it('measures the angle between two points', () => {
+    assert.ok(Math.abs(angularDistanceDeg(0, 0, 0, 90) - 90) < 1e-9);
+    assert.ok(Math.abs(angularDistanceDeg(0, 0, 180, 0) - 180) < 1e-9);
+    assert.equal(angularDistanceDeg(12, 34, 12, 34), 0);
+  });
+
+  it('puts mid-morning in daylight and the small hours in darkness', () => {
+    // 15:00 UTC is 10:00 in Atlanta, 09:00 UTC is 04:00.
+    assert.equal(isNight(ATL_LON, ATL_LAT, at(15)), false);
+    assert.equal(isNight(ATL_LON, ATL_LAT, at(9)), true);
+  });
+
+  it('has the far side of the earth in the opposite state', () => {
+    for (const hour of [0, 6, 12, 18]) {
+      const here = isNight(ATL_LON, ATL_LAT, at(hour));
+      const there = isNight(ATL_LON + 180, -ATL_LAT, at(hour));
+      assert.notEqual(here, there, `hour ${hour}`);
+    }
+  });
+
+  it('finds whether a polygon encloses a point', () => {
+    const square = [[0, 0], [10, 0], [10, 10], [0, 10]] as const;
+    assert.equal(polygonContains(square, 5, 5), true);
+    assert.equal(polygonContains(square, 15, 5), false);
+    assert.equal(polygonContains(square, 5, -1), false);
+  });
+
+  it('shades the dark side rather than the lit one', () => {
+    // The bug this guards against: the terminator is a closed curve, and
+    // which side of it is dark flips through the day. Filling the inside
+    // unconditionally shaded Atlanta in broad daylight.
+    const size = 322;
+    for (const hour of [0, 3, 6, 9, 12, 15, 18, 21]) {
+      const when = at(hour);
+      const [sunLon, sunLat] = subsolarPoint(when);
+      const antiLon = ((sunLon + 180 + 540) % 360) - 180;
+      const p = projector(ATL_LON, ATL_LAT, size);
+      const runs = projectRing(
+        p,
+        circleAround(antiLon, -sunLat, (Math.PI / 2) * EARTH_KM),
+      );
+      const terminator = runs[0];
+      assert.ok(terminator, `hour ${hour}: the terminator must project`);
+      assert.equal(runs.length, 1, `hour ${hour}: one closed curve`);
+
+      const dark = isNight(ATL_LON, ATL_LAT, when);
+      const inside = nightIsInside(terminator, p.cx, p.cy, dark);
+      // Whatever the geometry, the region that gets shaded must be the one
+      // the operator is in exactly when it is dark where they are.
+      const centreGetsShaded = inside === polygonContains(
+        terminator,
+        p.cx,
+        p.cy,
+      );
+      assert.equal(centreGetsShaded, dark, `hour ${hour}`);
+    }
+  });
+});
+
+describe('cutting one shape out of another', () => {
+  it('winds the two rings in opposite directions', () => {
+    // The night fill is the disc with the lit part removed. Under the
+    // non-zero rule that only makes a hole if the two rings wind opposite
+    // ways; under even-odd it works either way. Doing it here means the
+    // map does not depend on which rule the renderer applies.
+    const rim = discRing(100, 100, 50);
+    const inner = discRing(100, 100, 20);
+    const cut = opposedTo(inner, rim);
+    assert.notEqual(Math.sign(signedArea(cut)), Math.sign(signedArea(rim)));
+  });
+
+  it('leaves a ring alone when it already opposes', () => {
+    const rim = discRing(0, 0, 10);
+    const already = [...discRing(0, 0, 4)].reverse();
+    assert.deepEqual(opposedTo(already, rim), already);
+  });
+
+  it('gives the rim a non-zero area', () => {
+    assert.ok(Math.abs(signedArea(discRing(0, 0, 10))) > 300);
   });
 });

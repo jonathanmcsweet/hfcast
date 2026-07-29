@@ -267,3 +267,125 @@ export function cellRing(
   edge(lon - w, north, lon - w, south);
   return out;
 }
+
+/**
+ * The angle between two points on the sphere, in degrees.
+ */
+export function angularDistanceDeg(
+  lon1: number,
+  lat1: number,
+  lon2: number,
+  lat2: number,
+): number {
+  const cos = Math.sin(lat1 * DEG) * Math.sin(lat2 * DEG)
+    + Math.cos(lat1 * DEG) * Math.cos(lat2 * DEG)
+      * Math.cos((lon2 - lon1) * DEG);
+  return Math.acos(Math.min(1, Math.max(-1, cos))) / DEG;
+}
+
+/**
+ * Whether it is dark at a place at a given moment.
+ *
+ * Geometric night: more than 90° from the point the sun is overhead. It
+ * takes no account of twilight or of refraction at the horizon, which move
+ * the boundary by under a degree and do not change which half of the earth
+ * a place is on.
+ */
+export function isNight(lon: number, lat: number, when: Date): boolean {
+  const [sunLon, sunLat] = subsolarPoint(when);
+  return angularDistanceDeg(lon, lat, sunLon, sunLat) > 90;
+}
+
+/**
+ * Whether a closed polygon encloses a point, by ray casting.
+ */
+export function polygonContains(
+  points: readonly (readonly [number, number])[],
+  x: number,
+  y: number,
+): boolean {
+  let inside = false;
+  for (let i = 0, j = points.length - 1; i < points.length; j = i++) {
+    const a = points[i];
+    const b = points[j];
+    if (a === undefined || b === undefined) continue;
+    const [xi, yi] = a;
+    const [xj, yj] = b;
+    const straddles = yi > y !== yj > y;
+    if (straddles && x < ((xj - xi) * (y - yi)) / (yj - yi) + xi) {
+      inside = !inside;
+    }
+  }
+  return inside;
+}
+
+/**
+ * Which side of the projected terminator is the night side.
+ *
+ * The terminator is a closed curve on the map, and nothing about the curve
+ * itself says which of the two regions it separates is dark — that depends
+ * on where the sun is, and the answer flips through the day. Filling the
+ * inside unconditionally shaded the operator's own half of the world in
+ * broad daylight.
+ *
+ * The operator is at the centre of the projection and it is either dark
+ * there or it is not, which settles it: if it is night at the centre, the
+ * night side is whichever region contains the centre.
+ */
+export function nightIsInside(
+  terminator: readonly (readonly [number, number])[],
+  centreX: number,
+  centreY: number,
+  centreIsNight: boolean,
+): boolean {
+  return centreIsNight === polygonContains(terminator, centreX, centreY);
+}
+
+/**
+ * Twice the signed area of a closed polygon. The sign is the winding
+ * direction, which is the only part used here.
+ */
+export function signedArea(
+  points: readonly (readonly [number, number])[],
+): number {
+  let sum = 0;
+  for (let i = 0, j = points.length - 1; i < points.length; j = i++) {
+    const a = points[i];
+    const b = points[j];
+    if (a === undefined || b === undefined) continue;
+    sum += (b[0] - a[0]) * (b[1] + a[1]);
+  }
+  return sum / 2;
+}
+
+/**
+ * The rim of the disc as a ring of points.
+ *
+ * A polygon rather than two arcs so its winding direction is known and can
+ * be set against the terminator's. Cutting one shape out of another needs
+ * the two to wind opposite ways under the non-zero fill rule, and comes out
+ * the same either way under even-odd — so doing it this way means the map
+ * does not depend on which rule the renderer applies.
+ */
+export function discRing(
+  cx: number,
+  cy: number,
+  radius: number,
+  steps = 128,
+): (readonly [number, number])[] {
+  const out: (readonly [number, number])[] = [];
+  for (let i = 0; i < steps; i += 1) {
+    const angle = (i * 2 * Math.PI) / steps;
+    out.push([cx + radius * Math.cos(angle), cy + radius * Math.sin(angle)]);
+  }
+  return out;
+}
+
+/** The same ring wound the other way. */
+export function opposedTo(
+  ring: readonly (readonly [number, number])[],
+  reference: readonly (readonly [number, number])[],
+): readonly (readonly [number, number])[] {
+  const same = Math.sign(signedArea(ring)) === Math.sign(signedArea(reference));
+  return same ? [...ring].reverse() : ring;
+}
