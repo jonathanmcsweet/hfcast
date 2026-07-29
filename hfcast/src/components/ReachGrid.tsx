@@ -59,11 +59,11 @@ export default function ReachGrid({
             <Text style={[typography.label, { color: ui.text4 }]}>
               {hour === nowHour
                 ? t('grid.readoutNow', {
-                  hour: f.utcHour(hour),
+                  hour: f.utcClock(hour),
                   band: band.toUpperCase(),
                 })
                 : t('grid.readoutAt', {
-                  hour: f.utcHour(hour),
+                  hour: f.utcClock(hour),
                   band: band.toUpperCase(),
                 })}
             </Text>

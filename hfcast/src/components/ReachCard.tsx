@@ -83,7 +83,7 @@ export default function ReachCard({
             {t('reach.answer', {
               band,
               place: prediction.to.label,
-              hour: f.utcHour(hour),
+              hour: f.utcClock(hour),
               percent: f.percent(reliability),
             })}
           </Text>

@@ -37,10 +37,11 @@
     "footnoteSaved": "Dies sind gespeicherte Daten und können nichts zeigen, was sich seit dem Abruf geändert hat."
   },
   "sections": {
-    "allBands": "Alle Bänder, ganzer Tag",
     "allBandsHint": "Wie weit jedes Band trägt, Stunde für Stunde.",
     "legend": "Was die Farbtöne bedeuten",
-    "sun": "Die Sonne heute"
+    "sun": "Die Sonne heute",
+    "allBandsTo": "Alle Bänder nach {{place}}",
+    "noneReach": "Heute erreicht kein Band {{place}} zu irgendeiner Stunde."
   },
   "spaceWeather": {
     "flux": "Solarer Fluss",

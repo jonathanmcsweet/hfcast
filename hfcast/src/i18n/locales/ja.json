@@ -37,10 +37,11 @@
     "footnoteSaved": "これは保存されたデータのため、取得後の変化は反映されません。"
   },
   "sections": {
-    "allBands": "全バンド・全時間",
     "allBandsHint": "各バンドがどこまで届くか、1時間ごとに示します。",
     "legend": "色の濃さの意味",
-    "sun": "今日の太陽"
+    "sun": "今日の太陽",
+    "allBandsTo": "{{place}} への全バンド",
+    "noneReach": "今日はどの時間帯でも、{{place}} に届くバンドはありません。"
   },
   "spaceWeather": {
     "flux": "太陽電波フラックス",

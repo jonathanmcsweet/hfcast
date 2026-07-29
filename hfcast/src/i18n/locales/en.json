@@ -37,10 +37,11 @@
     "footnoteSaved": "This is saved data, so it cannot show anything that changed since it was fetched."
   },
   "sections": {
-    "allBands": "All bands, all day",
     "allBandsHint": "How far each band gets you, hour by hour.",
     "legend": "What the shades mean",
-    "sun": "The sun today"
+    "sun": "The sun today",
+    "allBandsTo": "All bands to {{place}}",
+    "noneReach": "No band reaches {{place}} at any hour today."
   },
   "spaceWeather": {
     "flux": "Solar flux",
