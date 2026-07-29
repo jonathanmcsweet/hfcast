@@ -18,6 +18,22 @@ interface Props {
 }
 
 /**
+ * The slider runs one higher than the hour it sets.
+ *
+ * `@react-native-community/slider` tests its value with `!props.value`, so a
+ * value of zero reads as no value at all and it passes `undefined` down to
+ * its web implementation, which calls `.toFixed()` on it. That throws during
+ * render, and an error in render unmounts the whole tree — selecting 00 UTC
+ * turned the screen white.
+ *
+ * Running the control over 1..24 keeps zero out of it entirely. The hour is
+ * translated at both ends, and the accessible value below reports the real
+ * 0..23 hour rather than the shifted one, so nothing outside this file sees
+ * the offset.
+ */
+const OFFSET = 1;
+
+/**
  * The clock. One control, driving every module on the screen.
  *
  * Both zones are shown at once, and this is not redundancy: operators log
@@ -49,15 +65,18 @@ export default function HourSlider({ hour, onChange, place, lon }: Props) {
         </Text>
       </View>
       <Slider
-        value={hour}
-        minimumValue={0}
-        maximumValue={23}
+        value={hour + OFFSET}
+        minimumValue={0 + OFFSET}
+        maximumValue={23 + OFFSET}
         step={1}
-        onValueChange={onChange}
+        onValueChange={(value) => onChange(value - OFFSET)}
         minimumTrackTintColor={ui.accent}
         maximumTrackTintColor={ui.line2}
         thumbTintColor={ui.accent}
         accessibilityLabel={t('a11y.hourSlider')}
+        // The control reports nothing by itself, so the hour is stated here
+        // — unshifted, because this is the number that gets announced.
+        accessibilityValue={{ min: 0, max: 23, now: hour }}
         style={styles.slider}
       />
     </View>
