@@ -9,7 +9,7 @@ import {
 } from 'react-native-paper';
 import { face, radius, spacing, typography } from '../theme';
 import type { AppTheme } from '../theme';
-import LocalePicker from './LocalePicker';
+import SettingsMenu from './SettingsMenu';
 
 interface Props {
   /** Where the operator is. Every forecast is worked out from here. */
@@ -92,7 +92,7 @@ export default function AppHeader({
         accessibilityLabel={t('status.retry')}
         iconColor={ui.text2}
       />
-      <LocalePicker />
+      <SettingsMenu />
     </View>
   );
 }

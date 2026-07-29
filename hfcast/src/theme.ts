@@ -55,16 +55,25 @@ export const QUALITY_SCALE: QualityScale = 'signal';
  *
  * `closed` is the one state outside the signal hue. It was violet for a
  * while, which made a grid where every band is shut read as a solid block
- * of signal — the opposite of what it says. Neutral is the point: violet
- * means the band does something, grey means it does not, and a wall of
- * grey cannot be misread as coverage.
+ * of signal — the opposite of what it says. Violet means the band does
+ * something; anything else means it does not.
+ *
+ * On the dark theme that is black: the cell falls below the card rather
+ * than sitting on it, so the gaps between cells become the lattice and a
+ * closed band reads as a hole. The light theme cannot do the same thing —
+ * nothing is lighter than a white card — so its closed state is the palest
+ * neutral that still reads as a tile.
  *
  * Contrast against the card, weakest state last:
  *   light  11.69 / 5.56 / 3.36 / 1.54
- *   dark    9.85 / 3.27 / 2.15 / 1.80
- * Ordered by lightness in both, which is what keeps the scale readable in
- * greyscale and under any form of colour blindness, and every `onBase`
- * clears 4.5:1 on its own fill.
+ *   dark    9.85 / 3.27 / 2.15 / 1.15
+ * Black's 1.15 is the lowest figure here and is deliberate: it is darker
+ * than the card rather than lighter, which the others are not, so it is
+ * told apart by direction as well as by amount. Both ramps stay ordered by
+ * lightness, which is what keeps the scale readable in greyscale and under
+ * any form of colour blindness, and every `onBase` clears 4.5:1 on its own
+ * fill. The table alternative under the grid is the answer for anyone this
+ * still fails.
  */
 const signalLight: QualityColors = {
   reliable: { base: violet[900], onBase: violet[75] },
@@ -77,7 +86,7 @@ const signalDark: QualityColors = {
   reliable: { base: violet[400], onBase: violet[950] },
   patchy: { base: violet[700], onBase: violet[50] },
   weak: { base: violet[800], onBase: violet[200] },
-  closed: { base: slate[700], onBase: slate[200] },
+  closed: { base: '#000000', onBase: slate[400] },
 };
 
 /**
@@ -173,6 +182,17 @@ interface UiColors {
   tagFg: string;
   /** The disclaimer surface. */
   discBg: string;
+  /**
+   * Coastlines on the globe.
+   *
+   * These were white in both themes, which works over a dark disc and
+   * disappears over a light one — the light map was drawing the continents
+   * in white on white. A map's own lines have to be read against the
+   * surface they are on, so they are a token rather than a constant.
+   */
+  mapLine: string;
+  /** Distance rings and the terminator. Quieter than the coastlines. */
+  mapGuide: string;
 }
 
 // Exported for the error boundary, which cannot call `useTheme` — it has to
@@ -199,6 +219,8 @@ export const uiLight: UiColors = {
   tagBg: cyan[200],
   tagFg: cyan[800],
   discBg: slate[50],
+  mapLine: slate[600],
+  mapGuide: slate[400],
 };
 
 const uiDark: UiColors = {
@@ -223,6 +245,8 @@ const uiDark: UiColors = {
   tagBg: cyan[700],
   tagFg: cyan[50],
   discBg: slate[900],
+  mapLine: slate[400],
+  mapGuide: slate[300],
 };
 
 const lightColors = {

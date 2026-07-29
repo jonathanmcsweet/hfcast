@@ -112,7 +112,16 @@
     "station": "Supone 100 W a un dipolo a 10 m de altura. Una antena mejor supera estas cifras; una antena de compromiso no las alcanza."
   },
   "settings": {
-    "changeLanguage": "Cambiar idioma"
+    "changeLanguage": "Cambiar idioma",
+    "changeTheme": "Cambiar el tema",
+    "theme": {
+      "system": "Seguir al dispositivo",
+      "light": "Claro",
+      "dark": "Oscuro"
+    },
+    "menu": "Ajustes",
+    "themeSection": "Tema",
+    "languageSection": "Idioma"
   },
   "a11y": {
     "changeLocation": "Transmitiendo desde {{place}}. Toca para cambiarlo.",

@@ -112,7 +112,16 @@
     "station": "Assumes 100 W into a dipole 10 m up. A better antenna beats these numbers; a compromise antenna will not reach them."
   },
   "settings": {
-    "changeLanguage": "Change language"
+    "changeLanguage": "Change language",
+    "changeTheme": "Change theme",
+    "theme": {
+      "system": "Follow the device",
+      "light": "Light",
+      "dark": "Dark"
+    },
+    "menu": "Settings",
+    "themeSection": "Theme",
+    "languageSection": "Language"
   },
   "a11y": {
     "changeLocation": "Transmitting from {{place}}. Tap to change.",
