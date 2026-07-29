@@ -3,11 +3,17 @@
   "compilerOptions": {
     "strict": true,
     "resolveJsonModule": true,
-    // Node's type stripping runs the TypeScript sources directly, so a
-    // test has to import the extension it is actually loading. Metro
-    // never sees these files.
+    // Node's type stripping runs the TypeScript sources directly, so an
+    // import has to name the extension it is actually loading. Metro
+    // resolves those files either way, so a source module a test imports
+    // can carry the extension too.
     "allowImportingTsExtensions": true,
     "noEmit": true,
+    // Expo's base sets no `module`, which leaves it at ES2015 — too old for
+    // the dynamic import a test needs to load a module after registering
+    // its mocks. Nothing is emitted from here, so this only affects
+    // checking; Metro and Babel do the real transform.
+    "module": "esnext",
     "baseUrl": ".",
     "paths": { "@/*": ["src/*"] }
   }

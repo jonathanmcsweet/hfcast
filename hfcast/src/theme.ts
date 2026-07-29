@@ -1,6 +1,8 @@
 import { StyleSheet } from 'react-native';
 import { MD3DarkTheme, MD3LightTheme } from 'react-native-paper';
-import { amber, cyan, indigo, rose, slate, violet } from './palette';
+// The extension is explicit so this module can be imported by a test under
+// Node, which does not infer one. Metro resolves it either way.
+import { amber, cyan, indigo, rose, slate, violet } from './palette.ts';
 
 /**
  * Propagation quality is a four-state scale, not a continuous gradient.
@@ -294,6 +296,29 @@ const darkColors = {
 };
 
 /**
+ * IBM Plex Sans, one file per weight.
+ *
+ * React Native cannot synthesise a weight from a font it has loaded: asking
+ * for `fontWeight: '600'` on a family whose only registered face is regular
+ * gives either the regular face or a smeared fake bold, depending on the
+ * platform. So the weight is chosen by naming the face, and `fontWeight`
+ * appears nowhere in the scale below.
+ *
+ * The names are the keys `@expo-google-fonts/ibm-plex-sans` exports, and
+ * `App.tsx` must load exactly these four before rendering.
+ *
+ * Declared here, above `plexFonts`, because that function reads it while this
+ * module is still evaluating. Below its first use it is in the temporal dead
+ * zone, and every import of the theme throws before React mounts.
+ */
+export const face = {
+  regular: 'IBMPlexSans_400Regular',
+  medium: 'IBMPlexSans_500Medium',
+  semibold: 'IBMPlexSans_600SemiBold',
+  bold: 'IBMPlexSans_700Bold',
+} as const;
+
+/**
  * The same faces for Paper's own components.
  *
  * Paper's variants carry a `fontWeight`, which is exactly what cannot select
@@ -415,25 +440,6 @@ export const radius = {
  * German runs about 35% longer than English — so every label slot has to
  * wrap rather than truncate, and no chip may carry a fixed width.
  */
-/**
- * IBM Plex Sans, one file per weight.
- *
- * React Native cannot synthesise a weight from a font it has loaded: asking
- * for `fontWeight: '600'` on a family whose only registered face is regular
- * gives either the regular face or a smeared fake bold, depending on the
- * platform. So the weight is chosen by naming the face, and `fontWeight`
- * appears nowhere in the scale below.
- *
- * The names are the keys `@expo-google-fonts/ibm-plex-sans` exports, and
- * `App.tsx` must load exactly these four before rendering.
- */
-export const face = {
-  regular: 'IBMPlexSans_400Regular',
-  medium: 'IBMPlexSans_500Medium',
-  semibold: 'IBMPlexSans_600SemiBold',
-  bold: 'IBMPlexSans_700Bold',
-} as const;
-
 export const typography = {
   /** Location name in the header. Replaces titleLarge. */
   locationName: {
