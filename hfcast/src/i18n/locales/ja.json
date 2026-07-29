@@ -93,8 +93,11 @@
   "status": {
     "loading": "予報を計算しています",
     "errorTitle": "予報を取得できません",
-    "errorBody": "予測サービスに接続できませんでした。リポジトリのルートで「pnpm run dev:server」を実行してください。",
-    "retry": "再試行"
+    "errorBody": "{{address}} の予測サービスから応答がありません。",
+    "retry": "再試行",
+    "errorLoopback": "このアドレスはこの端末自身なので、応答するものがありません。サーバーを動かしているマシンのアドレスを設定してください。",
+    "setServer": "サーバーアドレスを設定",
+    "openStation": "無線機を設定"
   },
   "offline": {
     "title": "保存された予報",
@@ -244,5 +247,15 @@
     "feet": "{{value}} ft",
     "kilometres": "{{value}} km",
     "miles": "{{value}} mi"
+  },
+  "server": {
+    "title": "サーバーアドレス",
+    "explain": "HFcast は予測サーバーから予報を取得します。サーバーを動かしているマシンのアドレスを入力してください。ホストとポートだけで十分です。",
+    "field": "サーバーアドレス",
+    "willUse": "{{address}} を使用します",
+    "invalid": "このアドレスは使用できません。",
+    "default": "既定値",
+    "cancel": "キャンセル",
+    "save": "保存"
   }
 }

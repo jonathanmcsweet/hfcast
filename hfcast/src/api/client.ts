@@ -5,13 +5,17 @@ import type {
   Sounding,
   SpaceWeather,
 } from '../data/types';
+import { serverAddress } from '../store/useServerStore';
 
 /**
- * Where the prediction server lives. Set EXPO_PUBLIC_HFCAST_API to point a
- * device or simulator at a machine other than the one running Metro.
+ * Where the prediction server lives, read at the moment of the request.
+ *
+ * It is a setting rather than a constant because an installed build cannot be
+ * rebuilt to change it, and the build-time default — this device — is never
+ * right on a phone. `EXPO_PUBLIC_HFCAST_API` still supplies the default; see
+ * `store/useServerStore.ts`.
  */
-export const API_BASE = process.env.EXPO_PUBLIC_HFCAST_API
-  ?? 'http://127.0.0.1:8787';
+const apiBase = (): string => serverAddress();
 
 export class ApiError extends Error {
   /** 0 when the request never reached the server at all. */
@@ -35,7 +39,9 @@ async function getJson<T>(
   path: string,
   params: Record<string, string>,
 ): Promise<T> {
-  const url = new URL(`${API_BASE}${path}`);
+  // Read once per request, so a change of address applies to the next one.
+  const base = apiBase();
+  const url = new URL(`${base}${path}`);
   for (const [key, value] of Object.entries(params)) {
     if (value !== '') url.searchParams.set(key, value);
   }
@@ -52,8 +58,8 @@ async function getJson<T>(
     const timedOut = controller.signal.aborted;
     throw new ApiError(
       timedOut
-        ? `no answer from ${API_BASE} after ${REQUEST_TIMEOUT_MS / 1000}s`
-        : `could not reach ${API_BASE}`,
+        ? `no answer from ${base} after ${REQUEST_TIMEOUT_MS / 1000}s`
+        : `could not reach ${base}`,
       0,
       { cause },
     );

@@ -161,17 +161,27 @@ system memory for the same reason.
 These settings live in generated files, so `expo prebuild` discards them. On a
 machine with memory to spare, skip them.
 
-**The server URL is fixed when the APK is built.** `EXPO_PUBLIC_HFCAST_API` is
-read by Metro while bundling, so it belongs on the Gradle command:
+**The server address is a setting, not a build flag.** It is under
+**Server address** in the settings menu, and on the error screen when there is
+no forecast yet — which is where it is needed, since that screen is the whole
+app until one arrives. So one APK can be pointed at a laptop on the same
+network today and a tunnel tomorrow.
+
+`EXPO_PUBLIC_HFCAST_API` still supplies the default for a fresh install, read by
+Metro while bundling, so it belongs on the Gradle command:
 
 ```bash
 EXPO_PUBLIC_HFCAST_API=https://your-server.example ./gradlew assembleRelease
 ```
 
-Left unset it stays at `http://127.0.0.1:8787`, which on a phone means the phone
-itself, so anything needing a forecast shows a connection error. The station
-settings, the antenna compass, band and day selection, units, and theme and
-language switching are all still testable without a server.
+Left unset it defaults to `http://127.0.0.1:8787`, which suits a simulator and
+is wrong on a phone — that address is the phone itself. The error screen says so
+in those words rather than reporting a failed connection, because it is a
+setting to change and not a fault to debug.
+
+Without a reachable server, the station settings and the antenna compass are
+still openable from that screen. Nothing else is: the forecast, the bands and
+the map all need a prediction, and the screen does not exist until there is one.
 
 ### Letting Expo build it
 

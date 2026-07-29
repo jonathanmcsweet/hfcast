@@ -93,8 +93,11 @@
   "status": {
     "loading": "Vorhersage wird berechnet",
     "errorTitle": "Keine Vorhersage verfügbar",
-    "errorBody": "Der Vorhersagedienst war nicht erreichbar. Starte ihn mit \"pnpm run dev:server\" im Wurzelverzeichnis des Repositorys.",
-    "retry": "Erneut versuchen"
+    "errorBody": "Der Vorhersagedienst unter {{address}} hat nicht geantwortet.",
+    "retry": "Erneut versuchen",
+    "errorLoopback": "Diese Adresse ist dieses Gerät selbst, dort kann also nichts antworten. Gib die Adresse des Rechners an, auf dem der Server läuft.",
+    "setServer": "Serveradresse festlegen",
+    "openStation": "Funkgerät einrichten"
   },
   "offline": {
     "title": "Gespeicherte Vorhersage",
@@ -244,5 +247,15 @@
     "feet": "{{value}} ft",
     "kilometres": "{{value}} km",
     "miles": "{{value}} mi"
+  },
+  "server": {
+    "title": "Serveradresse",
+    "explain": "HFcast bezieht seine Vorhersagen von einem Vorhersageserver. Gib die Adresse des Rechners an, auf dem er läuft — Host und Port genügen.",
+    "field": "Serveradresse",
+    "willUse": "Verwendet wird {{address}}",
+    "invalid": "Das ist keine verwendbare Adresse.",
+    "default": "Standard",
+    "cancel": "Abbrechen",
+    "save": "Speichern"
   }
 }

@@ -57,8 +57,14 @@ interface Props {
    * The threshold the current forecast was actually computed at, as the
    * server reported it. Shown rather than derived, so the modal cannot
    * name one number while the grid was worked out from another.
+   *
+   * Undefined when there is no forecast — this modal opens from the error
+   * screen too, so that power, mode and the antenna can still be set. The
+   * threshold line is then left out rather than guessed: the app holds no
+   * copy of the mode table, and a number invented here could disagree with
+   * the one the server uses.
    */
-  requiredSnrDb: number;
+  requiredSnrDb?: number;
 }
 
 /**
@@ -276,12 +282,18 @@ export default function StationModal(
               )
             )}
           </View>
-          <Text style={[typography.caption, styles.note, { color: ui.text3 }]}>
-            {t('station.modeNeeds', {
-              mode: t(`station.mode.${mode}`),
-              db: requiredSnrDb,
-            })}
-          </Text>
+          {requiredSnrDb === undefined
+            ? null
+            : (
+              <Text
+                style={[typography.caption, styles.note, { color: ui.text3 }]}
+              >
+                {t('station.modeNeeds', {
+                  mode: t(`station.mode.${mode}`),
+                  db: requiredSnrDb,
+                })}
+              </Text>
+            )}
 
           {heading(t('station.powerSection'))}
           {
