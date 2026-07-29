@@ -14,6 +14,7 @@ import ReachCard from '../components/ReachCard';
 import ReachGrid from '../components/ReachGrid';
 import SectionHeading from '../components/SectionHeading';
 import SpaceWeatherCard from '../components/SpaceWeatherCard';
+import StationModal from '../components/StationModal';
 
 import { usePrediction, useSounding } from '../api/queries';
 import { qualityFor } from '../data/quality';
@@ -27,6 +28,7 @@ export default function ForecastScreen() {
   const insets = useSafeAreaInsets();
   const [now, setNow] = useState(() => new Date());
   const [pickerOpen, setPickerOpen] = useState(false);
+  const [stationOpen, setStationOpen] = useState(false);
 
   const from = usePathStore((s) => s.from);
   const to = usePathStore((s) => s.to);
@@ -121,9 +123,15 @@ export default function ForecastScreen() {
           onPressPlace={() => setPickerOpen(true)}
           onRefresh={() => void refetch()}
           refreshing={isFetching}
+          onOpenStation={() => setStationOpen(true)}
         />
 
-        <BandSelector value={band} onChange={setBand} />
+        <BandSelector
+          value={band}
+          onChange={setBand}
+          onEditStation={() => setStationOpen(true)}
+          requiredSnrDb={prediction.requiredSnrDb}
+        />
 
         <ReachCard
           prediction={prediction}
@@ -196,6 +204,18 @@ export default function ForecastScreen() {
       <LocationPicker
         visible={pickerOpen}
         onDismiss={() => setPickerOpen(false)}
+      />
+
+      {
+        /* The bearing lets the beam be aimed at the other end in one tap,
+          which is what an operator does before calling. */
+      }
+      <StationModal
+        visible={stationOpen}
+        onDismiss={() => setStationOpen(false)}
+        bearingToDestination={prediction.bearingDeg}
+        destinationLabel={prediction.to.label}
+        requiredSnrDb={prediction.requiredSnrDb}
       />
     </View>
   );

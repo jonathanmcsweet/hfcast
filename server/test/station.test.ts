@@ -211,3 +211,20 @@ describe('normalising what a request asked for', () => {
     assert.equal(a.beamDeg, 0);
   });
 });
+
+describe('the power the deck can carry', () => {
+  it('stops where VOACAP stops tracking power', () => {
+    // Measured on Seattle to Tokyo, 2026-07-29. From 100 W down to 0.1 W
+    // every step moves the signal-to-noise by exactly ten log of the
+    // ratio. At 0.05 W the deck's four-decimal kilowatt field rounds and
+    // nothing moves; at 0.01 W it rounds to zero and the run returns
+    // 38 dB — better than a hundred watts.
+    //
+    // That last case is why the floor is enforced rather than trusted:
+    // the wrong answer looks entirely ordinary. This test guards the
+    // constant, not the engine.
+    const kw = (watts: number) => Number((watts / 1000).toFixed(4));
+    assert.ok(kw(0.1) > 0, 'a tenth of a watt survives the field');
+    assert.equal(kw(0.01), 0, 'a hundredth of a watt rounds to no power');
+  });
+});

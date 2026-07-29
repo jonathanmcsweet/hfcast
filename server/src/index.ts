@@ -57,12 +57,25 @@ const DEFAULT_WATTS = 100;
 const DEFAULT_NOISE_DBW = 145;
 
 /**
- * A transmitter below a watt is refused by one of the engines, and above
- * ten kilowatts is not an amateur station and overflows the deck's power
- * field. Clamped rather than refused: a slider that stops is friendlier
- * than a request that fails.
+ * The power the deck can actually carry.
+ *
+ * VOACAP takes power in kilowatts in a fixed four-decimal field, so a
+ * tenth of a watt is the smallest value that survives being written down.
+ * Measured on Seattle to Tokyo, 2026-07-29: from 100 W down to 0.1 W
+ * every step moves the signal-to-noise by exactly ten log of the ratio.
+ * At 0.05 W the field rounds and nothing moves, and at 0.01 W it rounds
+ * to zero and the run returns 38 dB — a better answer than 100 W.
+ *
+ * That last case is why this is a floor and not a suggestion: the wrong
+ * answer looks entirely ordinary. QRP operators work at a watt and below,
+ * so the range has to reach down there, and it has to stop where the
+ * model stops meaning anything.
+ *
+ * The ceiling is where an amateur station ends and the deck's ten-column
+ * field would overflow. Clamped rather than refused: a control that stops
+ * is friendlier than a request that fails.
  */
-const MIN_WATTS = 1;
+const MIN_WATTS = 0.1;
 const MAX_WATTS = 10_000;
 
 /** Space weather updates on the order of an hour; geocoding barely changes. */

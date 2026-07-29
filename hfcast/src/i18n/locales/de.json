@@ -117,7 +117,15 @@
     },
     "menu": "Einstellungen",
     "themeSection": "Design",
-    "languageSection": "Sprache"
+    "languageSection": "Sprache",
+    "stationSection": "Funkgerät",
+    "unitsSection": "Einheiten",
+    "units": {
+      "auto": "Dem Gerät folgen",
+      "autoNamed": "Dem Gerät folgen ({{system}})",
+      "metric": "Metrisch",
+      "imperial": "Angloamerikanisch"
+    }
   },
   "a11y": {
     "changeLocation": "Sendestandort {{place}}. Zum Ändern tippen.",
@@ -138,5 +146,81 @@
   "crash": {
     "title": "Etwas ist schiefgelaufen",
     "body": "Dieser Bildschirm konnte nicht gezeichnet werden. Das ist ein Fehler in der App, kein Problem mit der Vorhersage."
+  },
+  "station": {
+    "title": "Ihr Funkgerät",
+    "close": "Schließen",
+    "modeSection": "Betriebsart",
+    "modeHint": "Schwierigste zuerst. Eine digitale Betriebsart schafft Wege, die Sprache nicht schafft.",
+    "modeNeeds": "{{mode}} braucht auf diesem Weg {{db}} dB über dem Rauschen.",
+    "powerSection": "Leistung",
+    "power": "Sendeleistung",
+    "watts": "{{watts}} W",
+    "antennaSection": "Antenne",
+    "height": "Höhe über Grund",
+    "heightNote": "Die Höhe entscheidet das meiste. Auf 20 Metern ist ein Dipol in einer Wellenlänge Höhe auf langen Wegen etwa 9 dB besser als einer in einer Viertelwellenlänge.",
+    "isotropicNote": "Gleiches Signal in alle Richtungen. Keine echte Antenne, aber sie nimmt nichts über Ihre an.",
+    "gain": "Gewinn über Dipol",
+    "dbd": "{{gain}} dBd",
+    "beam": "Richtung der Antenne",
+    "degrees": "{{degrees}}°",
+    "aimAt": "Auf {{place}} richten, {{degrees}}°",
+    "reset": "Zurück zu den Standardwerten",
+    "mode": {
+      "fm": "FM",
+      "am": "AM",
+      "ssb": "SSB Sprache",
+      "rtty": "RTTY",
+      "cw": "CW",
+      "psk31": "PSK31",
+      "ft8": "FT8",
+      "js8": "JS8",
+      "wspr": "WSPR"
+    },
+    "antenna": {
+      "isotropic": "Nicht angegeben",
+      "dipole": "Dipol",
+      "vertical": "Vertikal",
+      "invertedL": "Inverted L",
+      "yagi": "Richtantenne"
+    },
+    "tip": {
+      "mode": "{{mode}}: braucht {{db}} dB über dem Rauschen. Zum Ändern tippen.",
+      "power": "Sendet mit {{watts}} Watt. Zum Ändern tippen.",
+      "isotropic": "Keine Antenne angenommen. Tippen, um Ihre zu beschreiben.",
+      "antenna": "{{antenna}} in {{height}} Höhe. Zum Ändern tippen.",
+      "beam": "{{antenna}} in {{height}} Höhe, {{gain}} dBd, Richtung {{degrees}}°. Zum Ändern tippen.",
+      "preset": "Zwischen Ihren gespeicherten Stationen wechseln."
+    },
+    "a11y": {
+      "openHint": "Öffnet die Einstellungen Ihres Funkgeräts",
+      "mode": "Betriebsart: {{mode}}, braucht {{db}} Dezibel über dem Rauschen",
+      "powerIs": "Leistung: {{watts}} Watt",
+      "isotropic": "Antenne: keine angenommen",
+      "antennaIs": "Antenne: {{antenna}} in {{height}} Höhe",
+      "pickMode": "{{mode}} verwenden",
+      "pickAntenna": "Antennentyp {{antenna}} verwenden",
+      "power": "Sendeleistung in Watt",
+      "height": "Antennenhöhe in Metern",
+      "gain": "Antennengewinn über Dipol, in Dezibel",
+      "beam": "Richtung der Antenne in Grad",
+      "name": "Name dieser Station",
+      "addHint": "Kopiert diese Station, damit Sie eine Sache ändern können",
+      "preset": "Station: {{name}}",
+      "presetHint": "Öffnet die Liste Ihrer gespeicherten Stationen"
+    },
+    "nameSection": "Station",
+    "unnamed": "Meine Station",
+    "add": "Station hinzufügen",
+    "remove": "Löschen",
+    "manage": "Stationen bearbeiten…",
+    "wattsUnit": "W",
+    "powerRange": "Von {{min}} W bis {{max}} W. Unter {{min}} W folgt das Modell der Leistung nicht mehr."
+  },
+  "units": {
+    "metres": "{{value}} m",
+    "feet": "{{value}} ft",
+    "kilometres": "{{value}} km",
+    "miles": "{{value}} mi"
   }
 }

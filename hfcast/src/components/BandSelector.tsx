@@ -7,10 +7,15 @@ import { BAND_ORDER } from '../data/types';
 import type { BandKey } from '../data/types';
 import { numeric, radius, spacing, typography } from '../theme';
 import type { AppTheme } from '../theme';
+import StationStrip from './StationStrip';
 
 interface Props {
   value: BandKey;
   onChange: (band: BandKey) => void;
+  /** Opens the station settings. Given by the screen that owns the modal. */
+  onEditStation: () => void;
+  /** The threshold the forecast on screen was computed at. */
+  requiredSnrDb: number;
 }
 
 /**
@@ -24,16 +29,29 @@ interface Props {
  * Band designations are not translated: 20m is 20m to operators everywhere,
  * the same reason grids and megahertz stay as they are.
  */
-export default function BandSelector({ value, onChange }: Props) {
+export default function BandSelector(
+  { value, onChange, onEditStation, requiredSnrDb }: Props,
+) {
   const theme = useTheme<AppTheme>();
   const { t } = useTranslation();
   const ui = theme.colors.ui;
 
   return (
     <View style={styles.wrap}>
-      <Text style={[typography.label, styles.label, { color: ui.text4 }]}>
-        {t('bands.label')}
-      </Text>
+      {
+        /* The station sits on the heading's own line, because the band and
+           the station are one statement: this band, at this power, on this
+           antenna, for this mode. */
+      }
+      <View style={styles.headingRow}>
+        <Text style={[typography.label, { color: ui.text4 }]}>
+          {t('bands.label')}
+        </Text>
+        <StationStrip
+          onPress={onEditStation}
+          requiredSnrDb={requiredSnrDb}
+        />
+      </View>
       {
         /* A real horizontal scroller, not a wrapping row: nine chips are
            wider than a phone, and a second line would push the map down. */
@@ -74,7 +92,17 @@ export default function BandSelector({ value, onChange }: Props) {
 
 const styles = StyleSheet.create({
   wrap: { marginTop: spacing.md },
-  label: { marginHorizontal: spacing.lg, marginBottom: spacing.sm },
+  // Wraps so a long station line drops below the heading on a narrow
+  // phone rather than squeezing "Band" out of the row.
+  headingRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    columnGap: spacing.md,
+    rowGap: spacing.xs,
+    marginHorizontal: spacing.lg,
+    marginBottom: spacing.sm,
+  },
   row: { paddingHorizontal: spacing.lg, gap: spacing.sm },
   chip: {
     minWidth: 44,

@@ -3,6 +3,12 @@ import { useQuery } from '@tanstack/react-query';
 import type { BandKey, Endpoint } from '../data/types';
 import { today } from '../store/usePathStore';
 import {
+  activePreset,
+  stationKey,
+  stationParams,
+  useStationStore,
+} from '../store/useStationStore';
+import {
   fetchCoverage,
   fetchGeocode,
   fetchPrediction,
@@ -16,13 +22,40 @@ import {
  */
 
 export const queryKeys = {
-  prediction: (from: string, to: string, date: string, nowcast: boolean) =>
-    ['prediction', from, to, date, nowcast] as const,
+  prediction: (
+    from: string,
+    to: string,
+    date: string,
+    nowcast: boolean,
+    station: string,
+  ) => ['prediction', from, to, date, nowcast, station] as const,
   geocode: (query: string, lang: string) => ['geocode', query, lang] as const,
   sounding: (lat: number, lon: number) => ['sounding', lat, lon] as const,
-  coverage: (from: string, band: string, hour: number, date: string) =>
-    ['coverage', from, band, hour, date] as const,
+  coverage: (
+    from: string,
+    band: string,
+    hour: number,
+    date: string,
+    station: string,
+  ) => ['coverage', from, band, hour, date, station] as const,
 };
+
+/**
+ * The station, as the part of a query key and the parameters it sends.
+ *
+ * Both come from one place so they cannot drift: a key that missed a
+ * field would serve a cached answer computed for a different antenna,
+ * which looks like an ordinary forecast and is not one.
+ */
+function useStation() {
+  const presets = useStationStore((s) => s.presets);
+  const activeId = useStationStore((s) => s.activeId);
+  // The preset's name and identifier are deliberately not in the key. Two
+  // presets set up identically should share a cached answer, and renaming
+  // one should not throw its forecast away.
+  const station = activePreset({ presets, activeId });
+  return { params: stationParams(station), key: stationKey(station) };
+}
 
 /**
  * Today's prediction for the path, covering all 24 hours.
@@ -33,9 +66,16 @@ export const queryKeys = {
 export function usePrediction(from: Endpoint, to: Endpoint) {
   const date = today();
   const nowcast = true;
+  const station = useStation();
 
   return useQuery({
-    queryKey: queryKeys.prediction(from.grid, to.grid, date, nowcast),
+    queryKey: queryKeys.prediction(
+      from.grid,
+      to.grid,
+      date,
+      nowcast,
+      station.key,
+    ),
     queryFn: () =>
       fetchPrediction({
         from: `${from.lat},${from.lon}`,
@@ -44,6 +84,7 @@ export function usePrediction(from: Endpoint, to: Endpoint) {
         toLabel: to.label,
         date,
         nowcast,
+        station: station.params,
       }),
     // A now-cast follows the solar indices, which SWPC updates a few times
     // a day. The climatology underneath it does not move within a month.
@@ -96,8 +137,9 @@ export function useCoverage(
   hour: number,
 ) {
   const date = today();
+  const station = useStation();
   return useQuery({
-    queryKey: queryKeys.coverage(from.grid, band, hour, date),
+    queryKey: queryKeys.coverage(from.grid, band, hour, date, station.key),
     queryFn: () =>
       fetchCoverage({
         from: `${from.lat},${from.lon}`,
@@ -106,6 +148,7 @@ export function useCoverage(
         hour,
         date,
         nowcast: true,
+        station: station.params,
       }),
     staleTime: 15 * 60 * 1000,
     retry: 1,

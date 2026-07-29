@@ -90,6 +90,15 @@ export interface PathPrediction {
   bearingDeg: number;
   /** The sunspot number the run actually used. */
   ssn: number;
+  /**
+   * The signal-to-noise this run required, in a 1 Hz bandwidth.
+   *
+   * Echoed so the app can say what the numbers mean without holding its
+   * own copy of the mode table. Two tables would drift, and the symptom
+   * would be a screen naming one threshold while the grid was computed at
+   * another.
+   */
+  requiredSnrDb: number;
   basis: PredictionBasis;
   /** 1-12. Climatology is monthly, so the month is part of the identity. */
   month: number;

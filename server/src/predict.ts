@@ -177,6 +177,7 @@ export async function predict(
       request.to.lon,
     ),
     ssn,
+    requiredSnrDb: request.requiredSnrDb,
     basis,
     month,
     year,

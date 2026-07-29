@@ -60,15 +60,27 @@ describe it in the pull request and the maintainer will record it.
 
 - NEVER embed another language (Python, etc.) inline in any other file
 
+## All Typescript, front end and back end
+
+- Always use a functional-first immutability-first coding style (user,
+  2026-07-29: this applies to the server too, not only the app)
+  - Prefer `map`, `filter` and `reduce` over `for` loops; build new values
+    instead of mutating them; `const` over `let`
+  - This is about building values. For iteration that only causes side
+    effects, biome's `noForEach` requires `for...of` over `.forEach` —
+    obey the linter there, or express the check as data instead
+  - Where a loop is kept, say in a comment what it does that the
+    functional form cannot. Sequencing that must not become concurrent is
+    the usual reason
+
 ## UI code: Typescript
 
-- Always use a functional-first immutability-first coding style
 - All network state management needs to be in React Query
 - All non-network app state management needs to be managed by Zustand
 
 ## Backend code
 
-- //TODO
+- Follow the Typescript rules above
 
 ## UX
 
