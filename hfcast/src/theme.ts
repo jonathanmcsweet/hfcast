@@ -152,7 +152,9 @@ interface UiColors {
   discBg: string;
 }
 
-const uiLight: UiColors = {
+// Exported for the error boundary, which cannot call `useTheme` — it has to
+// render when the tree around it has failed.
+export const uiLight: UiColors = {
   page: slate[25],
   card: slate[0],
   inset: slate[25],

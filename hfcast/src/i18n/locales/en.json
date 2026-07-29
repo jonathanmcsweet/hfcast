@@ -121,5 +121,9 @@
     "nvis": "Reaches by near-vertical incidence, so there is no skip zone.",
     "sounding": "Measured foF2 {{value}} from the sounder at {{station}}, {{distance}} away, at {{time}} UTC. This is a real measurement, not part of the forecast.",
     "coverage": "Coverage map. {{band}} reaches about {{percent}} percent of the world at this hour."
+  },
+  "crash": {
+    "title": "Something went wrong",
+    "body": "This screen could not be drawn. That is a fault in the app, not a problem with the forecast."
   }
 }

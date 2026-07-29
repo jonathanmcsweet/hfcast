@@ -121,5 +121,9 @@
     "nvis": "Llega por incidencia casi vertical, así que no hay zona de silencio.",
     "sounding": "foF2 medido de {{value}} por la ionosonda de {{station}}, a {{distance}}, a las {{time}} UTC. Es una medición real, no parte de la previsión.",
     "coverage": "Mapa de cobertura. {{band}} llega a cerca del {{percent}} por ciento del mundo a esta hora."
+  },
+  "crash": {
+    "title": "Algo ha fallado",
+    "body": "No se pudo dibujar esta pantalla. Es un fallo de la aplicación, no un problema con la predicción."
   }
 }

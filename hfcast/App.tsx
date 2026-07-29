@@ -19,6 +19,7 @@ import {
   queryClient,
   shouldPersistQuery,
 } from './src/api/persist';
+import ErrorBoundary from './src/components/ErrorBoundary';
 import i18n from './src/i18n';
 import ForecastScreen from './src/screens/ForecastScreen';
 import { darkTheme, lightTheme } from './src/theme';
@@ -71,7 +72,20 @@ export default function App() {
         <PaperProvider theme={theme}>
           <SafeAreaProvider>
             <StatusBar style={scheme === 'dark' ? 'light' : 'dark'} />
-            <ForecastScreen />
+            {
+              /* Translated through the instance rather than a hook: the
+                 boundary has to be able to render when what it wraps
+                 has failed. */
+            }
+            <ErrorBoundary
+              labels={{
+                title: i18n.t('crash.title'),
+                body: i18n.t('crash.body'),
+                retry: i18n.t('status.retry'),
+              }}
+            >
+              <ForecastScreen />
+            </ErrorBoundary>
           </SafeAreaProvider>
         </PaperProvider>
       </I18nextProvider>

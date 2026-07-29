@@ -121,5 +121,9 @@
     "nvis": "Erreicht über nahezu senkrechten Einfall, daher ohne tote Zone.",
     "sounding": "Gemessenes foF2 {{value}} von der Ionosonde in {{station}}, {{distance}} entfernt, um {{time}} UTC. Eine echte Messung, nicht Teil der Vorhersage.",
     "coverage": "Reichweitenkarte. {{band}} erreicht zu dieser Stunde etwa {{percent}} Prozent der Erde."
+  },
+  "crash": {
+    "title": "Etwas ist schiefgelaufen",
+    "body": "Dieser Bildschirm konnte nicht gezeichnet werden. Das ist ein Fehler in der App, kein Problem mit der Vorhersage."
   }
 }
