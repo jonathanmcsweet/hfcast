@@ -39,8 +39,16 @@ const RUN_TIMEOUT_MS = 30_000;
 /**
  * A pool of private trees.
  *
- * Lending a tree is inherently stateful, so the state is kept inside this
- * closure rather than at module scope, and nothing outside can reach it.
+ * The one place here that is deliberately not written in the functional
+ * style the rest follows. Lending a tree is a mutation by definition —
+ * whoever takes one must be the only holder until they give it back, and
+ * a waiter must be handed the exact tree a releaser let go of. Rebuilding
+ * the queues as new values would let two callers act on the same stale
+ * snapshot and run in the same directory, which is the collision the pool
+ * exists to prevent.
+ *
+ * So the state is kept inside this closure rather than at module scope,
+ * and nothing outside can reach it.
  */
 function createTreePool(size: number) {
   const idle: string[] = [];

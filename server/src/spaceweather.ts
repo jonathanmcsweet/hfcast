@@ -10,7 +10,7 @@
  *
  * The effective SSN here is an approximation, and callers must label it as one.
  */
-import type { SpaceWeather } from './types.ts';
+import type { PredictionBasis, SpaceWeather } from './types.ts';
 
 const SWPC = 'https://services.swpc.noaa.gov';
 const FETCH_TIMEOUT_MS = 8000;
@@ -148,4 +148,32 @@ export async function ssnForMonth(
     return { ssn: lastPredicted.predicted_ssn, predicted: true };
   }
   throw new Error(`no sunspot number available for ${tag}`);
+}
+
+/**
+ * The sunspot number a run should use, and the label for where it came
+ * from.
+ *
+ * An override means live readings: the caller already has an effective
+ * SSN and says what to call it. Without one the month's own figure is
+ * used, which is climatology when the month is past and a forecast when
+ * it is not.
+ *
+ * Shared by the path prediction and the coverage map so the two cannot
+ * label the same number differently.
+ */
+export async function resolveSsn(
+  year: number,
+  month: number,
+  override: number | undefined,
+  overrideBasis: PredictionBasis | undefined,
+): Promise<{ ssn: number; basis: PredictionBasis; }> {
+  if (override !== undefined) {
+    return { ssn: override, basis: overrideBasis ?? 'nowcast' };
+  }
+  const resolved = await ssnForMonth(year, month);
+  return {
+    ssn: resolved.ssn,
+    basis: resolved.predicted ? 'forecast' : 'climatology',
+  };
 }

@@ -20,6 +20,7 @@
 import { execFile } from 'node:child_process';
 import { homedir } from 'node:os';
 import path from 'node:path';
+import type { AntennaCard } from '../antenna.ts';
 import {
   BAND_MHZ,
   type BandKey,
@@ -55,6 +56,12 @@ export interface EngineRequest {
   /** Man-made noise at 3 MHz, as a positive number of dBW below zero. */
   noiseDbw: number;
   bands?: readonly BandKey[];
+  /**
+   * The operator's own antenna. Absent is the isotrope the binary
+   * defaults to. Only this end is ever described: the far end belongs to
+   * a station the server knows nothing about.
+   */
+  txAntenna?: AntennaCard;
 }
 
 /**
@@ -85,18 +92,29 @@ async function callPredict<T extends { error?: string; }>(
     child.stdin?.end(payload);
   });
 
-  let parsed: T;
-  try {
-    parsed = JSON.parse(stdout) as T;
-  } catch {
-    throw new Error(
-      `predict returned text that is not JSON: ${stdout.slice(0, 200)}`,
-    );
-  }
+  const parsed = readJson<T>(stdout);
   if (parsed.error !== undefined) {
     throw new Error(`predict refused the request: ${parsed.error}`);
   }
   return parsed;
+}
+
+/**
+ * The binary's stdout as an object.
+ *
+ * A separate function so the caller can bind the result with `const`: the
+ * failure has to become an error naming what was actually printed, since
+ * "unexpected token" says nothing about a binary that crashed and wrote
+ * a stack trace.
+ */
+function readJson<T>(text: string): T {
+  try {
+    return JSON.parse(text) as T;
+  } catch {
+    throw new Error(
+      `predict returned text that is not JSON: ${text.slice(0, 200)}`,
+    );
+  }
 }
 
 /** One cell as the binary emits it, before it is labelled with its band. */
@@ -151,11 +169,14 @@ export async function runEngine(
 
   const parsed = await callPredict<WirePrediction>(payload);
 
-  const cells: RawBandHour[] = [];
-  for (const cell of parsed.cells ?? []) {
-    const band = byFreq.get(cell.freqMhz);
-    if (band === undefined) continue;
-    cells.push({
+  const cells: RawBandHour[] = (parsed.cells ?? [])
+    .map((cell) => ({ cell, band: byFreq.get(cell.freqMhz) }))
+    // A frequency the request never asked for is dropped rather than
+    // guessed at a band.
+    .filter((row): row is { cell: WireCell; band: BandKey; } =>
+      row.band !== undefined
+    )
+    .map(({ cell, band }) => ({
       hour: cell.hour,
       band,
       reliability: Math.min(1, Math.max(0, cell.reliability)),
@@ -163,13 +184,18 @@ export async function runEngine(
       snrLowDecile: cell.snrLowDecile,
       snrUpDecile: cell.snrUpDecile,
       takeoffAngleDeg: cell.takeoffAngleDeg,
-    });
-  }
+    }));
 
-  const mufByHour = Array<number>(24).fill(0);
-  (parsed.mufByHour ?? []).forEach((muf, hour) => {
-    if (hour < 24 && Number.isFinite(muf)) mufByHour[hour] = muf;
-  });
+  // Zero for an hour the engine did not report, which is how the rest of
+  // the server already reads a missing MUF.
+  const reported = parsed.mufByHour ?? [];
+  const mufByHour = Array.from(
+    { length: 24 },
+    (_, hour) => {
+      const muf = reported[hour];
+      return muf !== undefined && Number.isFinite(muf) ? muf : 0;
+    },
+  );
 
   return { mufByHour, cells, window: windowOf(parsed) };
 }
@@ -238,6 +264,12 @@ export interface CoverageRequest {
   /** Cell size in degrees. */
   latStep: number;
   lonStep: number;
+  /**
+   * The operator's own antenna. A beam makes the map directional, which
+   * is the point: it shows where the station can be heard, not where an
+   * ideal one could.
+   */
+  txAntenna?: AntennaCard;
 }
 
 export interface Coverage {

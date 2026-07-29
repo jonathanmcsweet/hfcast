@@ -21,20 +21,22 @@ export function gridToLatLon(grid: string): { lat: number; lon: number; } {
   const field = [g.charCodeAt(0) - A, g.charCodeAt(1) - A] as const;
   const square = [g.charCodeAt(2) - ZERO, g.charCodeAt(3) - ZERO] as const;
 
-  let lon = field[0] * 20 + square[0] * 2 - 180;
-  let lat = field[1] * 10 + square[1] - 90;
+  const corner = {
+    lon: field[0] * 20 + square[0] * 2 - 180,
+    lat: field[1] * 10 + square[1] - 90,
+  };
 
-  if (g.length === 6) {
-    const sub = [g.charCodeAt(4) - A, g.charCodeAt(5) - A] as const;
-    lon += sub[0] * (2 / 24) + 1 / 24;
-    lat += sub[1] * (1 / 24) + 1 / 48;
-  } else {
-    // Centre of the 2 x 1 degree square.
-    lon += 1;
-    lat += 0.5;
-  }
+  // A locator names a rectangle, and the coordinate returned is its
+  // centre. Six characters divide the square into subsquares and name
+  // one; four leave the whole 2 by 1 degree square.
+  const offset = g.length === 6
+    ? {
+      lon: (g.charCodeAt(4) - A) * (2 / 24) + 1 / 24,
+      lat: (g.charCodeAt(5) - A) * (1 / 24) + 1 / 48,
+    }
+    : { lon: 1, lat: 0.5 };
 
-  return { lat, lon };
+  return { lat: corner.lat + offset.lat, lon: corner.lon + offset.lon };
 }
 
 /** Latitude and longitude to a 6-character Maidenhead locator. */

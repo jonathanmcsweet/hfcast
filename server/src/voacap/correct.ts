@@ -156,16 +156,13 @@ export function correctCells(
   factors: CorrectionFactors = VALIDATED,
 ): BandHourPrediction[] {
   // The centre is per band: each band has its own daily curve.
-  const centres = new Map<string, number>();
-  const byBand = new Map<string, number[]>();
-  for (const cell of cells) {
-    const list = byBand.get(cell.band);
-    if (list === undefined) byBand.set(cell.band, [cell.snr]);
-    else list.push(cell.snr);
-  }
-  for (const [band, values] of byBand) {
-    centres.set(band, median(values));
-  }
+  const bands = [...new Set(cells.map((cell) => cell.band))];
+  const centres = new Map(
+    bands.map((band) => [
+      band,
+      median(cells.filter((cell) => cell.band === band).map((c) => c.snr)),
+    ]),
+  );
 
   return cells.map((cell) => {
     const centre = centres.get(cell.band) ?? cell.snr;

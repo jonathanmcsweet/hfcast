@@ -7,10 +7,11 @@
  * would be 24 runs rather than one. That asymmetry is `HFAREA`'s, not a
  * choice made here.
  */
+import { type AntennaChoice, txCard } from './antenna.ts';
 import { TtlCache } from './cache.ts';
-import { ssnForMonth } from './spaceweather.ts';
+import { resolveSsn } from './spaceweather.ts';
 import type { BandKey, Endpoint, PredictionBasis } from './types.ts';
-import { type Coverage, runCoverage } from './voacap/engine.ts';
+import { type Coverage, ITSHFBC_DIR, runCoverage } from './voacap/engine.ts';
 
 /**
  * Cell size in degrees.
@@ -43,6 +44,12 @@ export interface CoverageRequest {
   /** Effective sunspot number from live readings, when there are any. */
   ssnOverride?: number;
   basis?: PredictionBasis;
+  /**
+   * The operator's own antenna. A beam makes the map lopsided, which is
+   * the honest picture: it shows where this station reaches, not where an
+   * ideal one would.
+   */
+  antenna?: AntennaChoice;
 }
 
 export interface CoverageResult extends Coverage {
@@ -74,7 +81,20 @@ function keyFor(request: CoverageRequest, ssn: number): string {
     watts,
     requiredSnrDb,
     noiseDbw,
+    antennaKey(request.antenna),
   ].join('|');
+}
+
+/**
+ * The antenna's contribution to the cache key. Every field reaching the
+ * definition file is here: height alone moves a 14 MHz path by about
+ * 9 dB, and a beam heading turns the map lopsided, so a shared entry
+ * would be a wrong map that looks like an ordinary one.
+ */
+function antennaKey(antenna: AntennaChoice | undefined): string {
+  if (antenna === undefined || antenna.type === 'isotropic') return 'iso';
+  const { type, heightM, gainDbd, beamDeg } = antenna;
+  return `${type}:${heightM}:${gainDbd}:${beamDeg}`;
 }
 
 export async function coverage(
@@ -83,20 +103,21 @@ export async function coverage(
   const month = request.date.getUTCMonth() + 1;
   const year = request.date.getUTCFullYear();
 
-  let ssn: number;
-  let basis: PredictionBasis;
-  if (request.ssnOverride !== undefined) {
-    ssn = request.ssnOverride;
-    basis = request.basis ?? 'nowcast';
-  } else {
-    const resolved = await ssnForMonth(year, month);
-    ssn = resolved.ssn;
-    basis = resolved.predicted ? 'forecast' : 'climatology';
-  }
+  const { ssn, basis } = await resolveSsn(
+    year,
+    month,
+    request.ssnOverride,
+    request.basis,
+  );
 
   const key = keyFor(request, ssn);
   const cached = cache.get(key);
   if (cached) return { ...cached, basis };
+
+  // Written before the run: the card names a file the engine opens.
+  const txAntenna = request.antenna
+    ? await txCard(ITSHFBC_DIR, request.antenna)
+    : null;
 
   const grid = await runCoverage({
     fromLat: request.from.lat,
@@ -111,19 +132,25 @@ export async function coverage(
     band: request.band,
     latStep: LAT_STEP,
     lonStep: LON_STEP,
+    ...(txAntenna ? { txAntenna } : {}),
   });
 
   // Weighted by the cosine of the latitude, because equal-angle cells are
   // not equal areas: without it the polar rows, which are slivers of the
   // sphere, would count as much as the equatorial ones and every band
   // would look worse than it is.
-  let hit = 0;
-  let total = 0;
-  for (const point of grid.points) {
-    const weight = Math.cos((point.lat * Math.PI) / 180);
-    total += weight;
-    if (point.reliability >= REACHABLE) hit += weight;
-  }
+  const { hit, total } = grid.points
+    .map((point) => ({
+      weight: Math.cos((point.lat * Math.PI) / 180),
+      reached: point.reliability >= REACHABLE,
+    }))
+    .reduce(
+      (sum, cell) => ({
+        hit: sum.hit + (cell.reached ? cell.weight : 0),
+        total: sum.total + cell.weight,
+      }),
+      { hit: 0, total: 0 },
+    );
 
   const result: CoverageResult = {
     ...grid,
