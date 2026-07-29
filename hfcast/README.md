@@ -16,6 +16,11 @@ pnpm start
 
 Then press `i` for the iOS simulator, `a` for an Android emulator, `w` for the browser, or scan the QR code with Expo Go on a phone that's on the same network.
 
+Expo Go still runs everything except one thing: the device-location button, which
+is a native module of this project and so cannot exist inside a pre-built
+sandbox app. It is absent there rather than broken — see
+[Device location without Google](#device-location-without-google).
+
 The versions pinned in `package.json` target Expo SDK 51. On a newer SDK run
 `npx expo install --fix` to move the native modules with it.
 
@@ -170,6 +175,45 @@ uploads the source there and needs an Expo account. The Android `preview`
 profile gives an APK you can sideload. iOS builds require a paid Apple Developer
 account and either TestFlight or a registered device UDID; that is Apple's
 policy rather than a limitation here.
+
+## Device location without Google
+
+`modules/aosp-location` is a local Expo module reading
+`android.location.LocationManager` directly. It exists to keep one proprietary
+artifact out of the build.
+
+`expo-location` reaches location through Google's fused provider, so using it
+links `com.google.android.gms:play-services-location`. That has two costs: F-Droid
+will not distribute a build containing it, and on a phone with no Google services
+— GrapheneOS without sandboxed Play, or a Fire tablet — the fused client is not
+present, so the feature fails anyway. `LocationManager` is AOSP, has been in the
+platform since Android 1, and is what Organic Maps and OsmAnd use.
+
+Nothing else in this project depends on Google code. `@expo-google-fonts/…` is
+packaging only: IBM Plex is under the SIL Open Font License and the files are in
+the npm package, so nothing is fetched at build or run time. The services the app
+talks to are Open-Meteo, NOAA SWPC and UMass Lowell GIRO.
+
+What the fused provider does better is battery-efficient continuous tracking,
+geofencing, and network location backed by Google's database of wireless
+networks. None of that applies here: the app asks once, to fill in a grid
+square, and a station's position then stops changing.
+
+Two consequences to know about:
+
+- **Usually satellites only.** A de-Googled phone typically has no network
+  provider, so a cold fix needs a view of the sky and can take a minute. The
+  module answers from a cached fix up to five minutes old before asking for a
+  new one, and gives up after 45 seconds.
+- **The button is absent, not broken, where it cannot work.** In Expo Go
+  (which cannot contain this project's native code) and on iOS (no
+  implementation yet), `isAvailable()` is false and the button is not rendered.
+  Typing a place name or a Maidenhead locator does the same job everywhere,
+  including the web build, which uses `navigator.geolocation` through
+  `index.web.ts` and needs no dependency at all.
+
+The Android permissions are declared in `app.json` under `android.permissions`,
+not by a config plugin.
 
 ## Architecture
 

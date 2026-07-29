@@ -87,7 +87,8 @@
     "searchFailed": "Die Suche ist derzeit nicht verfügbar.",
     "noResults": "Keine Orte gefunden.",
     "permissionDenied": "Die Standortfreigabe wurde abgelehnt. Suche stattdessen nach einem Ort.",
-    "unavailable": "Dein Standort konnte nicht gelesen werden. Suche stattdessen nach einem Ort."
+    "unavailable": "Dein Standort konnte nicht gelesen werden. Suche stattdessen nach einem Ort.",
+    "noProvider": "Die Ortung ist auf diesem Gerät ausgeschaltet. Schalte sie ein oder suche stattdessen einen Ort."
   },
   "status": {
     "loading": "Vorhersage wird berechnet",

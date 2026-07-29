@@ -87,7 +87,8 @@
     "searchFailed": "Search is unavailable right now.",
     "noResults": "No places found.",
     "permissionDenied": "Location permission was declined. Search for a place instead.",
-    "unavailable": "Your location could not be read. Search for a place instead."
+    "unavailable": "Your location could not be read. Search for a place instead.",
+    "noProvider": "Location is switched off on this device. Turn it on, or search for a place instead."
   },
   "status": {
     "loading": "Working out the forecast",

@@ -1,4 +1,3 @@
-import * as Location from 'expo-location';
 import React, { useCallback, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { FlatList, StyleSheet, View } from 'react-native';
@@ -16,6 +15,7 @@ import {
   useTheme,
 } from 'react-native-paper';
 
+import * as DeviceLocation from '../../modules/aosp-location';
 import { useGeocode } from '../api/queries';
 import { latLonToGrid } from '../data/grid';
 import type { Endpoint, Place } from '../data/types';
@@ -80,15 +80,19 @@ export default function LocationPicker({ visible, onDismiss }: Props) {
     setLocating(true);
     setLocationError(null);
     try {
-      const { status } = await Location.requestForegroundPermissionsAsync();
-      if (status !== 'granted') {
+      if (!await DeviceLocation.requestPermission()) {
         setLocationError(t('location.permissionDenied'));
         return;
       }
-      const position = await Location.getCurrentPositionAsync({
-        accuracy: Location.Accuracy.Low,
-      });
-      const { latitude, longitude } = position.coords;
+      // Said before the wait rather than after it: with no Google services
+      // there is usually no network provider, so this is satellites only and
+      // a cold fix takes a while. A message that arrives 45 seconds later
+      // reads as a fault rather than as an explanation.
+      if (!await DeviceLocation.hasProvider()) {
+        setLocationError(t('location.noProvider'));
+        return;
+      }
+      const { latitude, longitude } = await DeviceLocation.currentFix();
       const grid = latLonToGrid(latitude, longitude);
       setEnd('from');
       setFrom({ grid, label: grid, lat: latitude, lon: longitude });
@@ -131,7 +135,13 @@ export default function LocationPicker({ visible, onDismiss }: Props) {
           style={styles.segments}
         />
 
-        {end === 'from'
+        {
+          /* Absent where it could not work, rather than present and failing:
+             the module is not in Expo Go, and there is no iOS implementation
+             yet. Typing a place name or a grid does the same job and is the
+             path most operators use anyway. */
+        }
+        {end === 'from' && DeviceLocation.isAvailable()
           ? (
             <Button
               mode="contained-tonal"

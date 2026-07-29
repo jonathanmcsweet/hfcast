@@ -8,10 +8,7 @@
     "newArchEnabled": false,
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.example.hfcast",
-      "infoPlist": {
-        "NSLocationWhenInUseUsageDescription": "HFcast uses your location to work out the propagation path from where you are."
-      }
+      "bundleIdentifier": "com.example.hfcast"
     },
     "android": {
       "package": "com.example.hfcast",
@@ -32,12 +29,6 @@
       "web"
     ],
     "plugins": [
-      [
-        "expo-location",
-        {
-          "locationAlwaysAndWhenInUsePermission": "HFcast uses your location to work out the propagation path from where you are."
-        }
-      ],
       "expo-font"
     ]
   }
