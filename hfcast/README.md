@@ -58,11 +58,19 @@ either build the APK locally or let Expo build it.
 
 ### Building an APK locally
 
-No Android Studio, emulator or NDK needed: React Native 0.74 takes its native
-libraries prebuilt from Maven, so nothing here compiles C++. What it does need
-is a JDK, the Android SDK command-line tools, and memory — Gradle and Metro
-together want roughly 3 GB free, and a machine with less than that will have
-the build killed by the kernel partway through.
+No Android Studio or emulator needed, but the NDK is: React Native itself takes
+its native libraries prebuilt from Maven, and `expo-modules-core` does not — it
+compiles its own C++. Gradle installs the NDK on demand, which is a 2.5 GB
+download the first time.
+
+**Budget memory for it.** Three separate things want a gigabyte or more: the
+Gradle JVM, the Kotlin compiler, and Metro bundling the JavaScript. Attempted on
+a 4 GB machine with about 2 GB actually free, this build was killed by the kernel
+during `:expo-updates-gradle-plugin:compileKotlin`, and it presents as
+`Gradle build daemon disappeared unexpectedly` rather than as an out-of-memory
+message. 8 GB free is comfortable; 4 GB total is not enough. If a machine is all
+that is available, give it swap first — the failure is a memory spike, and swap
+absorbs a spike at the cost of speed.
 
 Install a JDK 17 and the SDK tools once:
 
@@ -86,6 +94,10 @@ export PATH="$JAVA_HOME/bin:$ANDROID_HOME/cmdline-tools/latest/bin:$ANDROID_HOME
 
 yes | sdkmanager --licenses
 sdkmanager 'platform-tools' 'platforms;android-34' 'build-tools;34.0.0'
+
+# Gradle will fetch this itself mid-build if it is missing. Doing it here
+# keeps the 2.5 GB download separate from the build that needs it.
+sdkmanager 'ndk;26.1.10909125'
 ```
 
 Then, from this directory:
@@ -111,15 +123,25 @@ changes made inside it are lost. Configuration belongs in `app.json`, or in an
 On a small machine, add to `android/gradle.properties` before building:
 
 ```properties
-org.gradle.jvmargs=-Xmx1g -XX:MaxMetaspaceSize=512m
+org.gradle.jvmargs=-Xmx1200m -XX:MaxMetaspaceSize=512m
 org.gradle.daemon=false
 org.gradle.parallel=false
 org.gradle.workers.max=1
+
+# The Kotlin compiler otherwise starts a second JVM of its own, and that
+# pair is what the kernel kills first.
+kotlin.compiler.execution.strategy=in-process
+kotlin.daemon.jvmargs=-Xmx512m
 ```
 
-That trades speed for staying inside the memory it has. Metro runs as a separate
-Node process during the build and needs its own share on top; `metro.config.js`
-already scales its worker pool by system memory for the same reason.
+That trades speed for staying inside the memory it has, and the Kotlin setting is
+the one that matters most: `--no-daemon` says nothing about the Kotlin compiler,
+which runs in a separate process by default. Metro also runs as its own Node
+process during the build; `metro.config.js` already scales its worker pool by
+system memory for the same reason.
+
+These settings live in generated files, so `expo prebuild` discards them. On a
+machine with memory to spare, skip them.
 
 **The server URL is fixed when the APK is built.** `EXPO_PUBLIC_HFCAST_API` is
 read by Metro while bundling, so it belongs on the Gradle command:
