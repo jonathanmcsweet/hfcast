@@ -3,92 +3,67 @@ import { useTranslation } from 'react-i18next';
 import { StyleSheet, View } from 'react-native';
 import { Text, useTheme } from 'react-native-paper';
 import { QUALITY_ORDER } from '../data/quality';
-import { spacing, typography } from '../theme';
+import { radius, spacing, typography } from '../theme';
 import type { AppTheme } from '../theme';
 
 /**
- * What the four colours mean, in words.
+ * The grid's key, along the bottom of it, as a chart has.
  *
- * A row per state rather than a wrapping strip of chips: the state name on
- * its own only renames the colour, and a legend that says nothing more than
- * "this one is called Patchy" is not worth the space. The description is the
- * part that answers what to do about it.
+ * It was a section of its own — a row per state, each with a sentence
+ * saying what to do about it — which put the explanation of a display below
+ * the fold from the display it explained. A key belongs against its chart.
  *
- * The name sits in a fixed column so the descriptions line up as a list. It
- * is sized for German, which runs about 35% longer than English — the column
- * wraps rather than truncates, so a longer word costs a line, never a
- * missing word.
+ * The sentences do not fit a horizontal strip and are not lost: they are
+ * read out as the label for the whole row, so the meaning survives for
+ * anyone who cannot use the colours, which is who needed them most.
  */
 export default function QualityLegend() {
   const theme = useTheme<AppTheme>();
   const { t } = useTranslation();
   const ui = theme.colors.ui;
 
+  const spoken = QUALITY_ORDER
+    .map((q) => `${t(`quality.${q}`)}: ${t(`qualityDescription.${q}`)}`)
+    .join('. ');
+
   return (
-    <View style={styles.wrap}>
-      <View style={styles.rows}>
-        {QUALITY_ORDER.map((q) => (
+    <View style={styles.row} accessible accessibilityLabel={spoken}>
+      {QUALITY_ORDER.map((q) => (
+        <View key={q} style={styles.item}>
+          {
+            /* The ring keeps the palest state visible against the card.
+               Without it "Closed" in the light theme is a white square on
+               white — and in the dark theme it is black on near-black. */
+          }
           <View
-            key={q}
-            style={styles.row}
-            accessible
-            accessibilityLabel={`${t(`quality.${q}`)}: ${
-              t(`qualityDescription.${q}`)
-            }`}
-          >
-            {
-              /* One swatch, not the design's two. The second shows the
-                 globe's wider-spaced version of this ramp, which has
-                 nothing to explain until the map is on screen. */
-            }
-            <View
-              style={[styles.swatch, {
-                backgroundColor: theme.colors.quality[q].base,
-                borderColor: ui.line2,
-              }]}
-            />
-            <Text
-              style={[typography.bodyStrong, styles.name, {
-                color: ui.ink,
-              }]}
-            >
-              {t(`quality.${q}`)}
-            </Text>
-            <Text
-              style={[typography.caption, styles.description, {
-                color: ui.text3,
-              }]}
-            >
-              {t(`qualityDescription.${q}`)}
-            </Text>
-          </View>
-        ))}
-      </View>
-      <Text style={[styles.footnote, { color: ui.text4 }]}>
-        {t('qualityLegend.footnote')}
-      </Text>
+            style={[styles.swatch, {
+              backgroundColor: theme.colors.quality[q].base,
+              borderColor: ui.line2,
+            }]}
+          />
+          <Text style={[typography.axis, { color: ui.text3 }]}>
+            {t(`quality.${q}`)}
+          </Text>
+        </View>
+      ))}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  wrap: { gap: spacing.md },
-  rows: { gap: spacing.sm },
+  // Wraps rather than scrolls: German runs about 35% longer than English,
+  // and four labels will not fit one line on a narrow phone.
   row: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     alignItems: 'center',
     gap: spacing.md,
-    minHeight: 32,
   },
-  // The ring keeps the palest state visible against the card behind it.
-  // Without it "Closed" in the light theme is a white square on white.
+  item: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs },
   swatch: {
-    width: 20,
-    height: 20,
-    borderRadius: 5,
+    width: 10,
+    height: 10,
+    borderRadius: radius.cell,
     borderWidth: StyleSheet.hairlineWidth,
   },
-  name: { width: 88 },
-  description: { flex: 1 },
-  footnote: { fontSize: 12, lineHeight: 16 },
 });

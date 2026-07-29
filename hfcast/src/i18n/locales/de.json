@@ -38,7 +38,6 @@
   },
   "sections": {
     "allBandsHint": "Wie weit jedes Band trägt, Stunde für Stunde.",
-    "legend": "Was die Farbtöne bedeuten",
     "sun": "Die Sonne heute",
     "allBandsTo": "Alle Bänder nach {{place}}",
     "noneReach": "Heute erreicht kein Band {{place}} zu irgendeiner Stunde."
@@ -73,9 +72,6 @@
     "patchy": "Kommt und geht",
     "weak": "Nur mit Geduld",
     "closed": "Dieses Band trägt jetzt nicht"
-  },
-  "qualityLegend": {
-    "footnote": "Mehr Kontrast zum Hintergrund bedeutet ein zuverlässigeres Band. Die vier Stufen sind nach Helligkeit geordnet und bleiben deshalb auch in Graustufen und bei jeder Form von Farbenblindheit lesbar."
   },
   "time": {
     "localAt": "Ortszeit in {{place}}",
