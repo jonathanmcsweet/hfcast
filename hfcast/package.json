@@ -1,6 +1,6 @@
 {
   "name": "hfcast",
-  "version": "0.21.2",
+  "version": "0.22.0",
   "license": "Apache-2.0",
   "main": "index.js",
   "scripts": {
@@ -30,7 +30,6 @@
     "expo-asset": "~10.0.10",
     "expo-font": "~12.0.10",
     "expo-localization": "~15.0.3",
-    "expo-location": "~17.0.1",
     "expo-status-bar": "~1.12.1",
     "expo-updates": "~0.25.24",
     "i18next": "^23.12.2",

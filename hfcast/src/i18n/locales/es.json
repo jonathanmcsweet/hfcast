@@ -87,7 +87,8 @@
     "searchFailed": "La búsqueda no está disponible ahora mismo.",
     "noResults": "No se encontraron lugares.",
     "permissionDenied": "Se rechazó el permiso de ubicación. Busca un lugar en su lugar.",
-    "unavailable": "No se pudo leer tu ubicación. Busca un lugar en su lugar."
+    "unavailable": "No se pudo leer tu ubicación. Busca un lugar en su lugar.",
+    "noProvider": "La ubicación está desactivada en este dispositivo. Actívala o busca un lugar en su lugar."
   },
   "status": {
     "loading": "Calculando la previsión",
