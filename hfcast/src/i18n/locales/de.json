@@ -260,5 +260,25 @@
     "default": "Standard",
     "cancel": "Abbrechen",
     "save": "Speichern"
+  },
+  "about": {
+    "title": "Über HFcast",
+    "close": "Schließen",
+    "what": "Eine Ausbreitungsvorhersage für einen Pfad, auf diesem Gerät mit VOACAP berechnet.",
+    "version": "Version {{version}}",
+    "builtOn": "Aufbauend auf der Arbeit von",
+    "disclaimerSection": "Haftungsausschluss",
+    "licencesSection": "Lizenzen",
+    "credit": {
+      "voacap": "VOACAP, das Ausbreitungsmodell",
+      "voacapl": "Die Linux-Portierung, aus der diese Engine übersetzt wurde",
+      "coefficients": "Die ionosphärischen Koeffizientenkarten",
+      "cities": "Die offline durchsuchte Ortsliste",
+      "naturalEarth": "Küstenlinien und Ländergrenzen",
+      "noaa": "Sonnenfleckenzahlen und Sonnenindizes",
+      "giro": "Gemessene Ionosonden-Messungen",
+      "openMeteo": "Ortssuche, wenn online",
+      "plex": "IBM Plex Sans, die Schriftart"
+    }
   }
 }
