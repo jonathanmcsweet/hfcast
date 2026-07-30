@@ -83,8 +83,21 @@ export default function AppHeader({
           style={styles.place}
         >
           <View style={styles.placeRow}>
+            {
+              /* One line, truncated in the middle rather than wrapped. Two
+                 long names — "Fredericksburg → Chattanooga" — used to take a
+                 second line and push the map down, and on a small screen the
+                 map is what the reader came for. The middle is what is cut
+                 because both ends are named there: the start of each name is
+                 what tells them apart.
+
+                 React Native Web has only tail truncation, so the browser
+                 build cuts the destination instead. Native is the build this
+                 ships as, and it is the one with small screens. */
+            }
             <Text
-              numberOfLines={2}
+              numberOfLines={1}
+              ellipsizeMode="middle"
               style={[typography.locationName, styles.placeName, {
                 color: ui.ink,
               }]}
@@ -161,11 +174,10 @@ export default function AppHeader({
 }
 
 const styles = StyleSheet.create({
-  wrap: {
-    paddingHorizontal: spacing.lg,
-    paddingTop: 2,
-    gap: spacing.sm,
-  },
+  // No gap. The name's own row is a 44 pt touch target, so its text already
+  // sits well above the bottom of it, and a gap on top of that read as the
+  // summary belonging to whatever came next rather than to the name.
+  wrap: { paddingHorizontal: spacing.lg, paddingTop: 2 },
   row: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   // The whole block opens the location pane, so it is sized as a touch
   // target rather than around its text.
@@ -180,16 +192,20 @@ const styles = StyleSheet.create({
     minHeight: 44,
     borderRadius: radius.inset,
   },
-  // Wraps rather than truncates: a long place name in German costs a line,
-  // never a missing word.
+  // One line. "Change" is what must never be pushed off, so it does not
+  // shrink and does not wrap; the names take what is left and truncate.
   placeRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    flexWrap: 'wrap',
     gap: spacing.xs,
   },
   placeName: { flexShrink: 1 },
-  change: { fontSize: 13, lineHeight: 18, fontFamily: face.bold },
+  change: {
+    fontSize: 13,
+    lineHeight: 18,
+    fontFamily: face.bold,
+    flexShrink: 0,
+  },
   chip: {
     flexDirection: 'row',
     alignItems: 'center',

@@ -61,12 +61,24 @@ export default function LocationPicker({ visible, onDismiss }: Props) {
 
   const { data: results, isFetching, error } = useGeocode(query, i18n.language);
 
+  /**
+   * Setting the near end moves to the far one instead of closing.
+   *
+   * Somebody who has just said where they are is very often about to say
+   * where they are calling — and the pane closing on them meant reopening it
+   * and finding the other tab. Choosing the far end does close, because
+   * there is nothing after it.
+   */
   const choose = useCallback(
     (endpoint: Endpoint) => {
-      if (end === 'from') setFrom(endpoint);
-      else setTo(endpoint);
       setQuery('');
-      onDismiss();
+      if (end === 'to') {
+        setTo(endpoint);
+        onDismiss();
+        return;
+      }
+      setFrom(endpoint);
+      setEnd('to');
     },
     [end, onDismiss, setFrom, setTo],
   );
@@ -94,15 +106,16 @@ export default function LocationPicker({ visible, onDismiss }: Props) {
       }
       const { latitude, longitude } = await DeviceLocation.currentFix();
       const grid = latLonToGrid(latitude, longitude);
-      setEnd('from');
       setFrom({ grid, label: grid, lat: latitude, lon: longitude });
-      onDismiss();
+      // As with choosing one by name: having just said where they are, the
+      // next thing somebody usually wants is where they are calling.
+      setEnd('to');
     } catch {
       setLocationError(t('location.unavailable'));
     } finally {
       setLocating(false);
     }
-  }, [onDismiss, setFrom, t]);
+  }, [setFrom, t]);
 
   return (
     <Portal>
@@ -122,6 +135,16 @@ export default function LocationPicker({ visible, onDismiss }: Props) {
             icon="swap-horizontal"
             onPress={swapEnds}
             accessibilityLabel={t('a11y.swapEnds')}
+          />
+          {
+            /* An explicit way out, now that choosing a location no longer
+               closes the pane. Tapping the scrim still works, but that is
+               not an affordance anyone can see. */
+          }
+          <IconButton
+            icon="close"
+            onPress={onDismiss}
+            accessibilityLabel={t('about.close')}
           />
         </View>
 

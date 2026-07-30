@@ -133,7 +133,19 @@ export default function StationStrip({ onPress, requiredSnrDb }: Props) {
             >
               <View style={styles.itemRow}>
                 <Icon source="radio" size={14} color={ui.text2} />
-                <Text style={[typography.axis, { color: ui.text2 }]}>
+                {
+                  /* Truncated, unlike the three items beside it. Those carry
+                     fixed vocabulary — CW, 100 W, Dipole — and a name is
+                     whatever somebody typed, so it is the only one here that
+                     can push the rest onto a second line. */
+                }
+                <Text
+                  numberOfLines={1}
+                  ellipsizeMode="tail"
+                  style={[typography.axis, styles.presetName, {
+                    color: ui.text2,
+                  }]}
+                >
                   {nameOf(preset.name)}
                 </Text>
                 <Icon source="menu-down" size={14} color={ui.text3} />
@@ -265,6 +277,12 @@ const styles = StyleSheet.create({
   preset: {
     borderWidth: StyleSheet.hairlineWidth,
     paddingHorizontal: spacing.sm,
+    // Wide enough for about a dozen characters, which covers "Base station"
+    // and most callsigns. Past that the name truncates rather than growing
+    // until the mode, power and antenna wrap onto a line of their own.
+    maxWidth: 160,
   },
+  // Shrinks inside that width; the two icons either side of it do not.
+  presetName: { flexShrink: 1 },
   itemRow: { flexDirection: 'row', alignItems: 'center', gap: 3 },
 });
