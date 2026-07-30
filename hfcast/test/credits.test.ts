@@ -7,6 +7,8 @@ import { CREDITS, DISCLAIMER, LICENCES } from '../src/data/credits.ts';
 import {
   APP_VERSION,
   APP_VERSION_CODE,
+  BUILD_TIER,
+  BUILD_TIERS,
   versionCodeFor,
 } from '../src/data/version.ts';
 
@@ -150,13 +152,47 @@ describe('the version the About screen reports', () => {
     // Android compares this integer, not the name, to decide what is an
     // upgrade. Two releases sharing a code means the second will not install
     // over the first, and nothing else in the build would notice.
-    assert.equal(APP_VERSION_CODE, versionCodeFor(APP_VERSION));
+    assert.equal(APP_VERSION_CODE, versionCodeFor(APP_VERSION, BUILD_TIER));
     assert.ok(APP_VERSION_CODE > 0);
   });
 
   it('keeps version codes ordered the way versions are', () => {
     const ordered = ['0.9.0', '0.28.0', '0.29.0', '1.0.0', '1.0.1', '2.0.0'];
-    const codes = ordered.map(versionCodeFor);
-    assert.deepEqual([...codes].sort((a, b) => a - b), codes, `${codes}`);
+    for (const tier of ['legacy', 'modern'] as const) {
+      const codes = ordered.map((v) => versionCodeFor(v, tier));
+      assert.deepEqual([...codes].sort((a, b) => a - b), codes, `${codes}`);
+    }
+  });
+
+  it('gives the build with the higher Android floor the higher code', () => {
+    // Where a store carries both APKs under one listing, this is the rule it
+    // enforces: the one that needs the newer Android has to have the larger
+    // code, or it will not accept the pair.
+    assert.ok(BUILD_TIERS.modern > BUILD_TIERS.legacy);
+    assert.ok(
+      versionCodeFor(APP_VERSION, 'modern')
+        > versionCodeFor(APP_VERSION, 'legacy'),
+    );
+  });
+
+  it('is the same version in both dependency sets', () => {
+    // The legacy build is the same release, built against older libraries. Two
+    // version numbers for one release is the sort of thing nobody notices until
+    // a bug report names a version that was never published.
+    const read = (...where: string[]) =>
+      JSON.parse(
+        readFileSync(path.join(import.meta.dirname, '..', ...where), 'utf8'),
+      ).version;
+
+    assert.equal(read('legacy', 'package.json'), read('package.json'));
+  });
+
+  it('never lets an older release outrank a newer one across tiers', () => {
+    // The tier digit must not be able to lift an old version above a new one.
+    // With ten tiers to a patch this holds, but it is the property the scheme
+    // exists to have, so it is checked rather than assumed.
+    assert.ok(
+      versionCodeFor('0.30.0', 'legacy') > versionCodeFor('0.29.9', 'modern'),
+    );
   });
 });

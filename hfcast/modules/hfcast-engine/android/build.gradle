@@ -7,7 +7,14 @@ def expoModulesCorePlugin = new File(project(":expo-modules-core").projectDir.ab
 apply from: expoModulesCorePlugin
 applyKotlinExpoModulesCorePlugin()
 useCoreDependencies()
-useDefaultAndroidSdkVersions()
+
+// Only Expo SDK 51 and later define this. Before that the Kotlin plugin above
+// set the SDK versions itself, so on SDK 50 — which the Android 5.0 build uses —
+// the call is both missing and unnecessary. Asking rather than assuming lets one
+// file build under both.
+if (project.ext.has('useDefaultAndroidSdkVersions')) {
+  useDefaultAndroidSdkVersions()
+}
 
 // The prediction engine itself is the Rust in rust/, built by
 // ../build-rust.sh into src/main/jniLibs. Gradle packages whatever is there;

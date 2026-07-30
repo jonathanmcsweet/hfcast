@@ -25,7 +25,9 @@ is a native module of this project and so cannot exist inside a pre-built
 sandbox app. It is absent there rather than broken — see
 [Device location without Google](#device-location-without-google).
 
-The versions pinned in `package.json` target Expo SDK 51. On a newer SDK run
+The versions pinned in `package.json` target Expo SDK 57, and those in
+`legacy/package.json` target SDK 50 — see
+[Two APKs](#two-apks-because-one-cannot-cover-both-ends). On a newer SDK run
 `npx expo install --fix` to move the native modules with it.
 
 `API_BASE` in `src/api/client.ts` defaults to `http://127.0.0.1:8787`, which
@@ -102,28 +104,69 @@ export ANDROID_HOME=~/android-sdk
 export PATH="$JAVA_HOME/bin:$ANDROID_HOME/cmdline-tools/latest/bin:$ANDROID_HOME/platform-tools:$PATH"
 
 yes | sdkmanager --licenses
-sdkmanager 'platform-tools' 'platforms;android-34' 'build-tools;34.0.0'
+sdkmanager 'platform-tools' 'platforms;android-36' 'build-tools;36.0.0'
 
 # Gradle will fetch this itself mid-build if it is missing. Doing it here
 # keeps the 2.5 GB download separate from the build that needs it.
-sdkmanager 'ndk;26.1.10909125'
+sdkmanager 'ndk;27.1.12297006'
 ```
 
 Then, from this directory:
 
 ```bash
-npx expo prebuild --platform android    # generates android/, which is gitignored
-cd android && ./gradlew assembleRelease
+tools/build-android.sh          # both APKs
+tools/build-android.sh modern   # just the one for Android 7.0 and up
 ```
 
-The APK lands at `android/app/build/outputs/apk/release/app-release.apk`, about
-65 MB — one binary carrying all four ABIs, with the 3.5 MB JavaScript bundle
-inside it, so it runs with no dev server. Copy it to the phone and open it, or
+They land in `build/apk/` — one binary each carrying all four ABIs, with the
+JavaScript bundle inside, so either runs with no dev server. The Android 7 one
+is about 92 MB and the Android 5 one about 72 MB; the difference is the new
+architecture's native code. Copy one to the phone and open it, or
 `adb install` it over USB. Android will ask for permission to install from
 whichever app opened the file.
 
-Measured on 16 cores with the NDK already downloaded: 7.5 minutes cold, 4.5
-minutes for a second build.
+Measured with the NDK already downloaded and Gradle's caches warm, on the four
+CPUs `HFCAST_BUILD_CPUS` allows: about 10 minutes per APK.
+
+### Two APKs, because one cannot cover both ends
+
+An APK declares one minimum Android version. So each release builds twice from
+the same source:
+
+|             | `hfcast-<version>-android7.apk` | `hfcast-<version>-android5.apk` |
+| ----------- | ------------------------------- | ------------------------------- |
+| Installs on | Android 7.0 and up              | Android 5.0 and up              |
+| Targets     | Android 16 (API 36)             | Android 14 (API 34)             |
+| Built with  | Expo SDK 57, React Native 0.86  | Expo SDK 50, React Native 0.73  |
+
+Every line of `src/`, `test/`, `modules/` and `app.json` is shared. What differs
+is the dependency set: this directory's `package.json` against
+`legacy/package.json`. `tools/legacy-config.ts` derives the legacy `app.json`
+from the real one rather than keeping a second copy, so the two cannot drift
+apart on anything but the SDK levels.
+
+React Native 0.81 raised its own floor to API 24, which is why the modern build
+stops at Android 7.0; Expo SDK 50 is the last release whose React Native still
+supports Android 5.0. Nothing reaches further back than that, so the 2014
+Fire HD 6 and other Android 4.x devices are out of reach whatever is done here.
+The _target_ level is a separate thing and takes no device away — API 36 is
+there because Google Play requires it, and SDK 50 cannot compile against it.
+
+### Which channel gets which file
+
+Only one of them picks for the user, so the rest need the filenames to be plain.
+
+| Channel         | Carries     | How the right one is chosen                                                                                                                       |
+| --------------- | ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| F-Droid         | both        | The index holds each APK's minimum SDK and architectures, and the client reads the device and offers one that fits. Nothing for the user to know. |
+| Direct download | both        | The page has to say which is which, in Android versions rather than in words like "legacy".                                                       |
+| Obtainium       | both        | It does not choose. With two files it asks, or the user sets a regular expression — `android7` and `android5` are in the names for that.          |
+| Google Play     | modern only | Its target API rule applies to every APK in a release, and Expo SDK 50 cannot compile against API 36.                                             |
+| Accrescent      | modern only | It takes an app bundle, and a bundle declares one minimum version.                                                                                |
+
+**The legacy build is not a maintained fork.** It is the same code; Expo SDK 50
+receives no security fixes. Anything added to `src/` has to work under React 18
+as well as 19, which is what `legacy/package.json` pins.
 
 **`app.json` has to declare a splash background colour.** Prebuild writes
 `res/drawable/splashscreen.xml` pointing at `@color/splashscreen_background`
@@ -142,10 +185,11 @@ updated by a properly signed one later, so the app has to be uninstalled first.
 changes made inside it are lost. Configuration belongs in `app.json`, or in an
 `expo-build-properties` plugin entry.
 
-On a small machine, add to `android/gradle.properties` before building:
+On a small machine, put these in `~/.gradle/gradle.properties` — outside the
+repository, where `expo prebuild` cannot discard them:
 
 ```properties
-org.gradle.jvmargs=-Xmx1200m -XX:MaxMetaspaceSize=512m
+org.gradle.jvmargs=-Xmx3584m -XX:MaxMetaspaceSize=768m
 org.gradle.daemon=false
 org.gradle.parallel=false
 org.gradle.workers.max=1
@@ -153,7 +197,7 @@ org.gradle.workers.max=1
 # The Kotlin compiler otherwise starts a second JVM of its own, and that
 # pair is what the kernel kills first.
 kotlin.compiler.execution.strategy=in-process
-kotlin.daemon.jvmargs=-Xmx512m
+kotlin.daemon.jvmargs=-Xmx1024m
 ```
 
 That trades speed for staying inside the memory it has, and the Kotlin setting is
@@ -162,8 +206,19 @@ which runs in a separate process by default. Metro also runs as its own Node
 process during the build; `metro.config.js` already scales its worker pool by
 system memory for the same reason.
 
-These settings live in generated files, so `expo prebuild` discards them. On a
-machine with memory to spare, skip them.
+**None of that covers the C++ step**, which is where an 8 GB machine with 16
+cores actually died. Gradle's settings say nothing about ninja, which compiles
+the native code and decides how many compilers to run from the number of CPUs it
+can see — sixteen of them, at a few hundred megabytes each. Ninja reads the
+process's CPU affinity, so limiting that limits it:
+
+```bash
+HFCAST_BUILD_CPUS=0-3 tools/build-android.sh
+```
+
+The failure this avoids reports itself as `Gradle build daemon disappeared
+unexpectedly`, with nothing about memory in it. On a machine with memory to
+spare, skip all of this.
 
 **An Android build needs no server at all** — it carries the engine and predicts
 on the device. The rest of this section applies to the builds that do not: Expo

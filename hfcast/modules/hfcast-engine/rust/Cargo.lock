@@ -32,7 +32,7 @@ dependencies = [
 
 [[package]]
 name = "hfcast"
-version = "0.58.0"
+version = "0.58.2"
 
 [[package]]
 name = "hfcast-jni"
