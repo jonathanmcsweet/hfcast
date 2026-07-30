@@ -8,7 +8,7 @@
 #
 # Needs the Android NDK and the four Rust targets:
 #
-#   sdkmanager 'ndk;26.1.10909125'
+#   sdkmanager 'ndk;27.1.12297006'
 #   rustup target add aarch64-linux-android armv7-linux-androideabi \
 #                     i686-linux-android x86_64-linux-android
 #
@@ -17,7 +17,7 @@
 set -euo pipefail
 
 here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-ndk_version="${NDK_VERSION:-26.1.10909125}"
+ndk_version="${NDK_VERSION:-27.1.12297006}"
 sdk="${ANDROID_HOME:-$HOME/android-sdk}"
 ndk="$sdk/ndk/$ndk_version/toolchains/llvm/prebuilt/linux-x86_64/bin"
 
@@ -27,10 +27,11 @@ if [[ ! -d $ndk ]]; then
   exit 1
 fi
 
-# The minimum API the app supports. 23 is what app.json's minSdkVersion
-# resolves to, and a library built against a newer one fails to load on an
-# older device rather than at build time.
-api=23
+# The minimum API this build supports, which differs between the two APKs: 24
+# for the modern one and 21 for the legacy one. A library built against a newer
+# API than the app declares fails to load on an older device rather than at
+# build time, which is why the caller passes it rather than it being assumed.
+api="${ANDROID_API:-24}"
 
 # Rust target, Android ABI directory, and the linker's own name for the target,
 # which differs from the Rust triple for 32-bit ARM.

@@ -12,7 +12,7 @@ import {
 } from 'react-native-paper';
 
 import { CREDITS, DISCLAIMER, LICENCES } from '../data/credits';
-import { APP_VERSION } from '../data/version';
+import { APP_VERSION, APP_VERSION_CODE } from '../data/version';
 import { radius, spacing, typography } from '../theme';
 import type { AppTheme } from '../theme';
 
@@ -76,8 +76,16 @@ export default function AboutModal({ visible, onDismiss }: Props) {
           <Text style={[typography.body, styles.para, { color: ui.text2 }]}>
             {t('about.what')}
           </Text>
+          {
+            /* The build number goes next to the version because two APKs carry
+               the same version name and differ only in how old a device they
+               install on. It is the one thing that tells them apart, and it is
+               a number, so it needs no translation. */
+          }
           <Text style={[typography.caption, styles.para, { color: ui.text3 }]}>
-            {t('about.version', { version: APP_VERSION })}
+            {t('about.version', {
+              version: `${APP_VERSION} (${APP_VERSION_CODE})`,
+            })}
           </Text>
 
           {heading(t('about.builtOn'))}

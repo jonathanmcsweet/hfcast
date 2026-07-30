@@ -42,6 +42,19 @@ export default function App() {
     IBMPlexSans_500Medium,
     IBMPlexSans_600SemiBold,
     IBMPlexSans_700Bold,
+    // Every icon in the app is a glyph in this one file, which
+    // `react-native-paper` reaches through `react-native-vector-icons`. Loading
+    // it here rather than leaving it to the build: Expo used to bundle these
+    // fonts as a side effect of shipping `@expo/vector-icons`, and SDK 57 does
+    // not, so the icons became empty boxes with no error anywhere. Asking for
+    // the file by name is the part that cannot silently stop happening.
+    //
+    // The key has to be the file's own basename. On Android
+    // `react-native-vector-icons` ignores the family name it was given and
+    // looks for the font by filename.
+    MaterialCommunityIcons: require(
+      'react-native-vector-icons/Fonts/MaterialCommunityIcons.ttf',
+    ),
   });
 
   // A font that failed to load is not a reason to show nothing: the system

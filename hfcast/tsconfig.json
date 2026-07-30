@@ -14,7 +14,14 @@
     // its mocks. Nothing is emitted from here, so this only affects
     // checking; Metro and Babel do the real transform.
     "module": "esnext",
-    "baseUrl": ".",
-    "paths": { "@/*": ["src/*"] }
+    // The tests and the tools in tools/ import `node:` modules, whose types are
+    // ambient declarations in @types/node. TypeScript 6 no longer pulls every
+    // @types package into the program on its own, so the one that is needed has
+    // to be named. Without this the imports resolve to nothing and every test
+    // file fails to check.
+    "types": ["node"],
+    // No `baseUrl`: TypeScript 6 deprecates it, and without one `paths` is
+    // read relative to this file, which is where it pointed anyway.
+    "paths": { "@/*": ["./src/*"] }
   }
 }

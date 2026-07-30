@@ -13,3 +13,8 @@ web-build/
 # Built by modules/hfcast-engine/build-rust.sh, one shared library per ABI.
 modules/*/android/src/main/jniLibs/
 modules/*/rust/target/
+
+# Where tools/build-android.sh puts the finished APKs, and the copy of this
+# tree it builds the legacy one in. Both are generated; only
+# legacy/package.json and legacy/pnpm-lock.yaml are kept.
+/build/

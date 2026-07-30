@@ -556,8 +556,16 @@ const styles = StyleSheet.create({
     gap: 2,
   },
   control: { margin: 0 },
+  // Written out rather than spread from `StyleSheet`, which has called this
+  // shape two different things and given them two different types: an object
+  // in React Native 0.86, an opaque registered style in 0.73. Both builds have
+  // to compile.
   overlay: {
-    ...StyleSheet.absoluteFillObject,
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    bottom: 0,
+    left: 0,
     alignItems: 'center',
     justifyContent: 'center',
     padding: spacing.lg,
