@@ -9,3 +9,7 @@ web-build/
 # time. Nothing in here is edited by hand.
 /android/
 /ios/
+
+# Built by modules/hfcast-engine/build-rust.sh, one shared library per ABI.
+modules/*/android/src/main/jniLibs/
+modules/*/rust/target/

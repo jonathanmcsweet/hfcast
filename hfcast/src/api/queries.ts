@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 
+import { canPredictLocally, predictLocally } from '../data/localPredict';
 import type { BandKey, Endpoint } from '../data/types';
 import { today } from '../store/usePathStore';
 import { useServerStore } from '../store/useServerStore';
@@ -58,7 +59,13 @@ function useStation() {
   // presets set up identically should share a cached answer, and renaming
   // one should not throw its forecast away.
   const station = activePreset({ presets, activeId });
-  return { params: stationParams(station), key: stationKey(station) };
+  return {
+    params: stationParams(station),
+    key: stationKey(station),
+    // The whole station too, for the engine in this build: it takes the
+    // antenna's own numbers rather than the query string the server reads.
+    station,
+  };
 }
 
 /**
@@ -72,26 +79,45 @@ export function usePrediction(from: Endpoint, to: Endpoint) {
   const nowcast = true;
   const station = useStation();
   const server = useServerStore((s) => s.address);
+  // The engine is in this build, or it is not; it cannot appear part way
+  // through a session, so this is not state.
+  const local = canPredictLocally();
 
   return useQuery({
     queryKey: queryKeys.prediction(
-      server,
+      // Which engine answered is part of the identity. The device's own
+      // engine works from a bundled sunspot table and the server's from live
+      // figures, so the two can differ, and a cached answer from one must not
+      // be shown as the other's.
+      local ? 'device' : server,
       from.grid,
       to.grid,
       date,
       nowcast,
       station.key,
     ),
-    queryFn: () =>
-      fetchPrediction({
-        from: `${from.lat},${from.lon}`,
-        to: `${to.lat},${to.lon}`,
-        fromLabel: from.label,
-        toLabel: to.label,
-        date,
-        nowcast,
-        station: station.params,
-      }),
+    queryFn: async () =>
+      local
+        ? {
+          prediction: await predictLocally({
+            from,
+            to,
+            date: new Date(`${date}T00:00:00Z`),
+            station: station.station,
+          }),
+          // Space weather is a network reading. The forecast does not depend
+          // on it, and the cards that show it handle its absence already.
+          spaceWeather: null,
+        }
+        : await fetchPrediction({
+          from: `${from.lat},${from.lon}`,
+          to: `${to.lat},${to.lon}`,
+          fromLabel: from.label,
+          toLabel: to.label,
+          date,
+          nowcast,
+          station: station.params,
+        }),
     // A now-cast follows the solar indices, which SWPC updates a few times
     // a day. The climatology underneath it does not move within a month.
     staleTime: 15 * 60 * 1000,
