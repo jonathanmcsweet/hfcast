@@ -490,6 +490,17 @@ export const radius = {
  * wrap rather than truncate, and no chip may carry a fixed width.
  */
 export const typography = {
+  /**
+   * The title of a screen that fills the frame, which is the first-run pane
+   * and nothing else. Larger than a card headline because it has no card
+   * around it to give it weight. The design sets it at 28/34.
+   */
+  screenTitle: {
+    fontSize: 28,
+    lineHeight: 34,
+    fontFamily: face.bold,
+    letterSpacing: -0.5,
+  },
   /** Location name in the header. Replaces titleLarge. */
   locationName: {
     fontSize: 20,

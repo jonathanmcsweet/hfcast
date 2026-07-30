@@ -50,9 +50,18 @@ export interface Endpoint {
 
 export interface PathPrediction {
   from: Endpoint;
-  to: Endpoint;
-  distanceKm: number;
-  bearingDeg: number;
+  /**
+   * The far end, or null for a survey — a forecast with no destination,
+   * where each cell is the share of directions reachable rather than the
+   * chance of one contact. See `survey.ts`.
+   *
+   * This is where the app's shape stops mirroring the server's, which always
+   * has both ends. The three fields that describe one path are null together
+   * and never separately.
+   */
+  to: Endpoint | null;
+  distanceKm: number | null;
+  bearingDeg: number | null;
   /** The sunspot number the run actually used. */
   ssn: number;
   /**
@@ -108,6 +117,12 @@ export interface SpaceWeather {
   observedSsn: number | null;
   /** Planetary K index, 0-9. */
   kp: number;
+  /**
+   * Highest Kp over roughly the last 24 hours. Ionospheric storm effects
+   * outlast the disturbance itself, so "was there a storm recently" is the
+   * question the spread widening asks. See `correct.ts`.
+   */
+  kpMax24h: number;
   /** SSN derived from f107 and kp, used to drive a now-cast. */
   effectiveSsn: number;
   observedAt: string;

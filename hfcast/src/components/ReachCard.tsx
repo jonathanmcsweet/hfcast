@@ -55,6 +55,10 @@ export default function ReachCard({
   const [width, setWidth] = useState(0);
   const { data: coverage, error } = useCoverage(prediction.from, band, hour);
 
+  // Null for a survey, where the card answers "how much of the world" rather
+  // than "will this reach one place".
+  const destination = prediction.to;
+
   const cell = cellFor(prediction, band, hour);
   const reliability = cell?.reliability ?? 0;
   const quality = qualityFor(reliability);
@@ -69,7 +73,9 @@ export default function ReachCard({
           {t('reach.title')}
         </Text>
         <Text style={[typography.caption, { color: ui.text3 }]}>
-          {t('reach.subtitle', { place: prediction.to.label })}
+          {destination
+            ? t('reach.subtitle', { place: destination.label })
+            : t('reach.subtitleAnywhere')}
         </Text>
       </View>
 
@@ -80,12 +86,18 @@ export default function ReachCard({
               color: ui.ink,
             }]}
           >
-            {t('reach.answer', {
-              band,
-              place: prediction.to.label,
-              hour: f.utcClock(hour),
-              percent: f.percent(reliability),
-            })}
+            {destination
+              ? t('reach.answer', {
+                band,
+                place: destination.label,
+                hour: f.utcClock(hour),
+                percent: f.percent(reliability),
+              })
+              : t('reach.answerAnywhere', {
+                band,
+                hour: f.utcClock(hour),
+                percent: f.percent(reliability),
+              })}
           </Text>
           <QualityChip quality={quality} large />
         </View>

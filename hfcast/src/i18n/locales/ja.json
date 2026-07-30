@@ -10,12 +10,17 @@
     "mapUnavailable": "到達範囲の地図を読み込めませんでした。",
     "reachLine": "{{band}} はこの時間、世界の約 {{percent}} に届きます。",
     "legendReach": "到達範囲",
-    "legendNight": "夜"
+    "legendNight": "夜",
+    "panHint": "地図は2本指で動かします",
+    "subtitleAnywhere": "受信地が未設定のため、全方位をまとめて表示しています。",
+    "answerAnywhere": "{{band}} は {{hour}} UTC に調査方位の約 {{percent}} に届きます。"
   },
   "path": {
     "summary": "{{distance}} · 方位 {{bearing}} · {{hops}} ホップ",
     "summaryOneHop": "{{distance}} · 方位 {{bearing}} · 1 ホップ",
-    "changeDestination": "受信地を変更"
+    "changeDestination": "受信地を変更",
+    "setDestination": "受信地を設定",
+    "noDestinationHint": "地図は全方位を示します。特定の経路を予報するには受信地を選んでください。"
   },
   "window": {
     "label": "使用可能な範囲",
@@ -34,13 +39,17 @@
     "showAsGrid": "図で表示",
     "bandColumn": "バンド",
     "footnoteHours": "時刻は UTC です。{{place}} の現地時刻は上の時計にあります。",
-    "footnoteSaved": "これは保存されたデータのため、取得後の変化は反映されません。"
+    "footnoteSaved": "これは保存されたデータのため、取得後の変化は反映されません。",
+    "unitDirections": "到達できる方位、%",
+    "chanceAnywhere": "調査方位の約 {{percent}} に到達"
   },
   "sections": {
     "allBandsHint": "各バンドがどこまで届くか、1時間ごとに示します。",
     "sun": "今日の太陽",
     "allBandsTo": "{{place}} への全バンド",
-    "noneReach": "今日はどの時間帯でも、{{place}} に届くバンドはありません。"
+    "noneReach": "今日はどの時間帯でも、{{place}} に届くバンドはありません。",
+    "allBandsAnywhere": "全バンド・全方位",
+    "noneReachAnywhere": "本日はどの時間帯もどのバンドも届きません。"
   },
   "spaceWeather": {
     "flux": "太陽電波フラックス",
@@ -83,20 +92,20 @@
     "from": "送信地",
     "to": "受信地",
     "useDevice": "現在地を使う",
-    "searchPlaceholder": "都市名またはグリッド",
+    "searchPlaceholder": "地名・座標・グリッドスクエア",
     "searchFailed": "現在、検索を利用できません。",
     "noResults": "該当する場所がありません。",
     "permissionDenied": "位置情報の許可が拒否されました。代わりに場所を検索してください。",
     "unavailable": "現在地を取得できませんでした。代わりに場所を検索してください。",
-    "noProvider": "この端末では位置情報が無効です。有効にするか、地名で検索してください。"
+    "noProvider": "この端末では位置情報が無効です。有効にするか、地名で検索してください。",
+    "noneSet": "なし",
+    "clearDestination": "代わりに全方位を予報する"
   },
   "status": {
     "loading": "予報を計算しています",
     "errorTitle": "予報を取得できません",
-    "errorBody": "{{address}} の予測サービスから応答がありません。",
+    "errorBody": "予報を計算できませんでした。",
     "retry": "再試行",
-    "errorLoopback": "このアドレスはこの端末自身なので、応答するものがありません。サーバーを動かしているマシンのアドレスを設定してください。",
-    "setServer": "サーバーアドレスを設定",
     "openStation": "無線機を設定"
   },
   "offline": {
@@ -129,7 +138,8 @@
       "autoNamed": "端末に合わせる（{{system}}）",
       "metric": "メートル法",
       "imperial": "ヤード・ポンド法"
-    }
+    },
+    "refresh": "今すぐ更新"
   },
   "a11y": {
     "changeLocation": "送信地は {{place}} です。タップして変更します。",
@@ -251,16 +261,6 @@
     "kilometres": "{{value}} km",
     "miles": "{{value}} mi"
   },
-  "server": {
-    "title": "サーバーアドレス",
-    "explain": "HFcast は予測サーバーから予報を取得します。サーバーを動かしているマシンのアドレスを入力してください。ホストとポートだけで十分です。",
-    "field": "サーバーアドレス",
-    "willUse": "{{address}} を使用します",
-    "invalid": "このアドレスは使用できません。",
-    "default": "既定値",
-    "cancel": "キャンセル",
-    "save": "保存"
-  },
   "about": {
     "title": "HFcast について",
     "close": "閉じる",
@@ -280,5 +280,18 @@
       "openMeteo": "オンライン時の地名検索",
       "plex": "IBM Plex Sans、書体"
     }
+  },
+  "firstRun": {
+    "kicker": "運用地",
+    "title": "どこから送信しますか？",
+    "subtitle": "すべての予報はここを基準に計算します。いつでも変更できます。",
+    "useGps": "現在地を使う",
+    "orType": "または入力する",
+    "formats": "地名・座標・グリッドスクエア",
+    "formatsHint": "上の例をタップすると、読み取り方がわかります。",
+    "footnote": "4文字のグリッドスクエアはHFには十分な精度です。スキップすると、自分の運用地を設定するまでグリニッジ（UTCの基準となる本初子午線）から計算します。",
+    "skip": "今はスキップ",
+    "continue": "続ける",
+    "recognised": "認識した形式"
   }
 }

@@ -1,9 +1,8 @@
 import * as Engine from '../../modules/hfcast-engine';
 import type { Station } from '../store/useStationStore';
 import { LAT_STEP, LON_STEP, reachOf } from './coverageGrid';
-import { engineStation } from './localPredict';
+import { engineStation, type Nowcast, ssnFor } from './localPredict';
 import { requiredSnrFor } from './modes';
-import { ssnForMonth } from './ssn';
 import {
   BAND_MHZ,
   type BandKey,
@@ -46,6 +45,8 @@ export interface LocalCoverageRequest {
   hour: number;
   date: Date;
   station: Station;
+  /** Absent offline, and then the run is climatology. */
+  nowcast?: Nowcast;
 }
 
 export async function coverLocally(
@@ -53,7 +54,7 @@ export async function coverLocally(
 ): Promise<Coverage> {
   const month = request.date.getUTCMonth() + 1;
   const year = request.date.getUTCFullYear();
-  const { ssn, basis } = ssnForMonth(year, month);
+  const { ssn, basis } = ssnFor(year, month, request.nowcast);
   const station = await engineStation(request.station);
 
   const answer = await Engine.predict<WireCoverage>({

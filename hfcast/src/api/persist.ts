@@ -23,7 +23,7 @@ import { QueryClient } from '@tanstack/react-query';
  * an error. The buster is what prevents that: on a mismatch the whole
  * cache is dropped and refetched.
  */
-export const CACHE_BUSTER = '2-prediction-window';
+export const CACHE_BUSTER = '3-device-nowcast';
 
 const STORAGE_KEY = 'hfcast.query-cache';
 
@@ -62,7 +62,14 @@ export const persister = createAsyncStoragePersister({
   throttleTime: 1000,
 });
 
-/** Persisted queries, and only those: see `persister` on why geocode is not. */
+/**
+ * Persisted queries, and only those: see `persister` on why geocode is not.
+ *
+ * Space weather is kept as well as the forecast. It is the reading the
+ * forecast on screen was computed from, so a launch with no network that
+ * restored one without the other would show a now-cast beside the message
+ * saying no conditions are known.
+ */
 export function shouldPersistQuery(queryKey: readonly unknown[]): boolean {
-  return queryKey[0] === 'prediction';
+  return queryKey[0] === 'prediction' || queryKey[0] === 'spaceWeather';
 }

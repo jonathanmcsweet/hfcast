@@ -6,6 +6,7 @@
  *   GET /api/spaceweather
  *   GET /api/geocode?q=            place name search, or a Maidenhead locator
  *   GET /api/prediction?from&to    one day, optionally as a now-cast
+ *   GET /api/survey?from           one day with no destination, every direction
  *   GET /api/forecast?from&to&days several days, one prediction each
  *   GET /api/ionosonde?at=lat,lon  measured foF2 from the nearest sounder
  */
@@ -41,6 +42,7 @@ import {
   type ModeKey,
   requiredSnrFor,
 } from './station.ts';
+import { survey } from './survey.ts';
 import {
   BAND_ORDER,
   type BandKey,
@@ -233,6 +235,40 @@ async function handlePrediction(url: URL): Promise<PredictionResponse> {
 }
 
 /**
+ * The same forecast with no destination: how much of the world hears this
+ * station, hour by hour and band by band.
+ *
+ * Forty-eight engine runs behind one request, so it is slower than a
+ * prediction and cached for the same fifteen minutes. See `survey.ts`.
+ */
+async function handleSurvey(url: URL): Promise<PredictionResponse> {
+  const from = parseEndpoint(
+    url.searchParams.get('from'),
+    url.searchParams.get('fromLabel'),
+    'from',
+  );
+  const date = parseDate(url.searchParams.get('date'));
+  const wantNowcast = url.searchParams.get('nowcast') === '1';
+
+  const spaceWeather = wantNowcast ? await trySpaceWeather() : null;
+
+  const prediction = await survey({
+    from,
+    date,
+    ...parseStation(url),
+    ...(wantNowcast && spaceWeather
+      ? {
+        ssnOverride: spaceWeather.effectiveSsn,
+        kpMax24h: spaceWeather.kpMax24h,
+        basis: 'nowcast' as const,
+      }
+      : {}),
+  });
+
+  return { prediction, spaceWeather };
+}
+
+/**
  * Coverage for one band at one hour.
  *
  * Takes the hour explicitly rather than deriving it from the clock: the
@@ -412,6 +448,8 @@ async function route(url: URL): Promise<unknown> {
       return await handleGeocode(url);
     case '/api/prediction':
       return await handlePrediction(url);
+    case '/api/survey':
+      return await handleSurvey(url);
     case '/api/coverage':
       return await handleCoverage(url);
     case '/api/forecast':

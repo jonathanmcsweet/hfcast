@@ -10,6 +10,7 @@ import {
   type BandKey,
   type Endpoint,
   type PathPrediction,
+  type PredictionBasis,
 } from './types';
 
 /**
@@ -22,9 +23,11 @@ import {
  * library compiled into the APK — so the numbers agree by construction rather
  * than by two implementations being kept in step.
  *
- * What is not the same is the sunspot number. The server asks NOAA; here it
- * comes from the table in `ssn.ts`, which is what makes an offline forecast
- * possible at all and also its main limitation.
+ * The sunspot number comes from one of two places. Online it is the effective
+ * SSN derived from current conditions, which is what the server does and what
+ * turns the run into a now-cast. Offline it is the monthly figure from the
+ * table in `ssn.ts`, which is what makes a forecast possible at all with no
+ * network and also its main limitation.
  */
 
 /** Man-made noise at a residential site, dBW in 1 Hz. VOACAP's own default. */
@@ -102,11 +105,41 @@ const bearingDeg = (
 
 export const canPredictLocally = (): boolean => Engine.isAvailable();
 
+/**
+ * Current conditions, when the device has them.
+ *
+ * The engine takes one sunspot number and no notion of a storm, so this is
+ * how live readings reach it: the effective SSN replaces the month's figure,
+ * and the recent Kp widens the spread the corrections apply. Absent means an
+ * ordinary climatology run, which is what an offline device does.
+ */
+export interface Nowcast {
+  effectiveSsn: number;
+  kpMax24h: number;
+}
+
+/**
+ * The sunspot number a run should use, and the label for where it came from.
+ *
+ * Mirrors `resolveSsn` on the server, including the rule that a now-cast
+ * keeps its label even though the number is no longer a monthly figure.
+ */
+export function ssnFor(
+  year: number,
+  month: number,
+  nowcast: Nowcast | undefined,
+): { ssn: number; basis: PredictionBasis; } {
+  if (nowcast) return { ssn: nowcast.effectiveSsn, basis: 'nowcast' };
+  return ssnForMonth(year, month);
+}
+
 export interface LocalRequest {
   from: Endpoint;
   to: Endpoint;
   date: Date;
   station: Station;
+  /** Absent offline, and then the run is climatology. */
+  nowcast?: Nowcast;
 }
 
 /**
@@ -147,7 +180,7 @@ export async function predictLocally(
 ): Promise<PathPrediction> {
   const month = request.date.getUTCMonth() + 1;
   const year = request.date.getUTCFullYear();
-  const { ssn, basis } = ssnForMonth(year, month);
+  const { ssn, basis } = ssnFor(year, month, request.nowcast);
   const station = await engineStation(request.station);
   const requiredSnrDb = requiredSnrFor(request.station.mode);
 
@@ -191,11 +224,15 @@ export async function predictLocally(
 
   if (raw.length === 0) throw new Error('the engine produced no usable rows');
 
-  // The same correction the server applies, from the same module. Kp is
-  // unknown offline, so no storm widening is added rather than a guessed
-  // amount: the factors were fitted on quiet conditions and that is the
-  // honest default.
-  const cells = correctCells(raw, requiredSnrDb, factorsFor(null));
+  // The same correction the server applies, from the same module. With no
+  // now-cast the Kp is unknown, so no storm widening is added rather than a
+  // guessed amount: the factors were fitted on quiet conditions and that is
+  // the honest default.
+  const cells = correctCells(
+    raw,
+    requiredSnrDb,
+    factorsFor(request.nowcast?.kpMax24h ?? null),
+  );
 
   const reported = answer.mufByHour ?? [];
   return {

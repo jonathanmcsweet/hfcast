@@ -10,12 +10,17 @@
     "mapUnavailable": "Die Reichweitenkarte konnte nicht geladen werden.",
     "reachLine": "{{band}} erreicht zu dieser Stunde etwa {{percent}} der Erde.",
     "legendReach": "Reichweite",
-    "legendNight": "Nacht"
+    "legendNight": "Nacht",
+    "panHint": "Mit zwei Fingern die Karte bewegen",
+    "subtitleAnywhere": "Kein Ziel gesetzt, daher alle Richtungen zugleich.",
+    "answerAnywhere": "{{band}} um {{hour}} UTC erreicht etwa {{percent}} der geprüften Richtungen."
   },
   "path": {
     "summary": "{{distance}} · Peilung {{bearing}} · {{hops}} Sprünge",
     "summaryOneHop": "{{distance}} · Peilung {{bearing}} · ein Sprung",
-    "changeDestination": "Ziel ändern"
+    "changeDestination": "Ziel ändern",
+    "setDestination": "Ziel festlegen",
+    "noDestinationHint": "Die Karte zeigt alle Richtungen. Wähle ein Ziel, um eine einzelne Strecke vorherzusagen."
   },
   "window": {
     "label": "Nutzbarer Bereich",
@@ -34,13 +39,17 @@
     "showAsGrid": "Als Raster anzeigen",
     "bandColumn": "Band",
     "footnoteHours": "Stunden in UTC. Die Ortszeit in {{place}} steht auf der Uhr darüber.",
-    "footnoteSaved": "Dies sind gespeicherte Daten und können nichts zeigen, was sich seit dem Abruf geändert hat."
+    "footnoteSaved": "Dies sind gespeicherte Daten und können nichts zeigen, was sich seit dem Abruf geändert hat.",
+    "unitDirections": "Erreichbare Richtungen, %",
+    "chanceAnywhere": "erreicht etwa {{percent}} der geprüften Richtungen"
   },
   "sections": {
     "allBandsHint": "Wie weit jedes Band trägt, Stunde für Stunde.",
     "sun": "Die Sonne heute",
     "allBandsTo": "Alle Bänder nach {{place}}",
-    "noneReach": "Heute erreicht kein Band {{place}} zu irgendeiner Stunde."
+    "noneReach": "Heute erreicht kein Band {{place}} zu irgendeiner Stunde.",
+    "allBandsAnywhere": "Alle Bänder, alle Richtungen",
+    "noneReachAnywhere": "Heute erreicht kein Band zu irgendeiner Stunde etwas."
   },
   "spaceWeather": {
     "flux": "Solarer Fluss",
@@ -83,20 +92,20 @@
     "from": "Von",
     "to": "Nach",
     "useDevice": "Meinen Standort verwenden",
-    "searchPlaceholder": "Ortsname oder Locator",
+    "searchPlaceholder": "Ort, Koordinaten, Locator",
     "searchFailed": "Die Suche ist derzeit nicht verfügbar.",
     "noResults": "Keine Orte gefunden.",
     "permissionDenied": "Die Standortfreigabe wurde abgelehnt. Suche stattdessen nach einem Ort.",
     "unavailable": "Dein Standort konnte nicht gelesen werden. Suche stattdessen nach einem Ort.",
-    "noProvider": "Die Ortung ist auf diesem Gerät ausgeschaltet. Schalte sie ein oder suche stattdessen einen Ort."
+    "noProvider": "Die Ortung ist auf diesem Gerät ausgeschaltet. Schalte sie ein oder suche stattdessen einen Ort.",
+    "noneSet": "keins",
+    "clearDestination": "Stattdessen alle Richtungen vorhersagen"
   },
   "status": {
     "loading": "Vorhersage wird berechnet",
     "errorTitle": "Keine Vorhersage verfügbar",
-    "errorBody": "Der Vorhersagedienst unter {{address}} hat nicht geantwortet.",
+    "errorBody": "Die Vorhersage konnte nicht berechnet werden.",
     "retry": "Erneut versuchen",
-    "errorLoopback": "Diese Adresse ist dieses Gerät selbst, dort kann also nichts antworten. Gib die Adresse des Rechners an, auf dem der Server läuft.",
-    "setServer": "Serveradresse festlegen",
     "openStation": "Funkgerät einrichten"
   },
   "offline": {
@@ -129,7 +138,8 @@
       "autoNamed": "Dem Gerät folgen ({{system}})",
       "metric": "Metrisch",
       "imperial": "Angloamerikanisch"
-    }
+    },
+    "refresh": "Jetzt aktualisieren"
   },
   "a11y": {
     "changeLocation": "Sendestandort {{place}}. Zum Ändern tippen.",
@@ -251,16 +261,6 @@
     "kilometres": "{{value}} km",
     "miles": "{{value}} mi"
   },
-  "server": {
-    "title": "Serveradresse",
-    "explain": "HFcast bezieht seine Vorhersagen von einem Vorhersageserver. Gib die Adresse des Rechners an, auf dem er läuft — Host und Port genügen.",
-    "field": "Serveradresse",
-    "willUse": "Verwendet wird {{address}}",
-    "invalid": "Das ist keine verwendbare Adresse.",
-    "default": "Standard",
-    "cancel": "Abbrechen",
-    "save": "Speichern"
-  },
   "about": {
     "title": "Über HFcast",
     "close": "Schließen",
@@ -280,5 +280,18 @@
       "openMeteo": "Ortssuche, wenn online",
       "plex": "IBM Plex Sans, die Schriftart"
     }
+  },
+  "firstRun": {
+    "kicker": "DEIN STANDORT",
+    "title": "Von wo sendest du?",
+    "subtitle": "Jede Vorhersage wird von hier aus berechnet. Du kannst das jederzeit ändern.",
+    "useGps": "Aktuellen Standort verwenden",
+    "orType": "ODER EINGEBEN",
+    "formats": "Ort · Koordinaten · Locator",
+    "formatsHint": "Tippe oben auf ein Beispiel, um zu sehen, wie es gelesen wird.",
+    "footnote": "Ein Locator mit 4 Zeichen ist für KW genau genug. Beim Überspringen rechnet HFCast von Greenwich aus — dem Nullmeridian, wo UTC beginnt — bis du deinen eigenen Standort setzt.",
+    "skip": "Vorerst überspringen",
+    "continue": "Weiter",
+    "recognised": "ERKANNT"
   }
 }

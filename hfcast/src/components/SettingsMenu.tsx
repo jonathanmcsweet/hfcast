@@ -13,7 +13,6 @@ import type { ThemeMode } from '../store/useSettingsStore';
 import { spacing, typography } from '../theme';
 import type { AppTheme } from '../theme';
 import AboutModal from './AboutModal';
-import ServerAddressDialog from './ServerAddressDialog';
 
 /** The icon each mode shows, so a glance says which one is in force. */
 const THEME_ICONS: Record<ThemeMode, string> = {
@@ -45,10 +44,15 @@ const UNIT_ICONS: Record<UnitPreference, string> = {
 interface Props {
   /** Opens the station settings, which live in a modal of their own. */
   onOpenStation: () => void;
+  /** Asks for new readings now rather than at the next poll. */
+  onRefresh: () => void;
+  /** True while a fetch is in flight, so the item cannot be pressed twice. */
+  refreshing: boolean;
 }
 
-export default function SettingsMenu({ onOpenStation }: Props) {
-  const [serverOpen, setServerOpen] = useState(false);
+export default function SettingsMenu(
+  { onOpenStation, onRefresh, refreshing }: Props,
+) {
   const [aboutOpen, setAboutOpen] = useState(false);
   const [open, setOpen] = useState(false);
   const theme = useTheme<AppTheme>();
@@ -97,16 +101,18 @@ export default function SettingsMenu({ onOpenStation }: Props) {
           }}
         />
         {
-          /* Here as well as on the error screen. Once a forecast is on screen
-           the address is working, so this is for moving between a laptop at
-           home and a tunnel elsewhere. */
+          /* The app polls for new readings on its own, so this is here for
+             whoever wants to ask now rather than wait — which is why it is in
+             a menu and no longer a button in the header competing with the
+             place name. */
         }
         <Menu.Item
-          title={t('server.title')}
-          leadingIcon="server-network"
+          title={t('settings.refresh')}
+          leadingIcon="refresh"
+          disabled={refreshing}
           onPress={() => {
             setOpen(false);
-            setServerOpen(true);
+            onRefresh();
           }}
         />
 
@@ -179,10 +185,6 @@ export default function SettingsMenu({ onOpenStation }: Props) {
           }}
         />
       </Menu>
-      <ServerAddressDialog
-        visible={serverOpen}
-        onDismiss={() => setServerOpen(false)}
-      />
       <AboutModal visible={aboutOpen} onDismiss={() => setAboutOpen(false)} />
     </>
   );
