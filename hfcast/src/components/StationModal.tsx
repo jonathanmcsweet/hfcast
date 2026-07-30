@@ -1,5 +1,5 @@
 import Slider from '@react-native-community/slider';
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ScrollView, StyleSheet, View } from 'react-native';
 import {
@@ -24,6 +24,7 @@ import {
   wireFromBeam,
 } from '../data/orientation';
 import { parsePower, positionOf, POWER_STEPS, wattsAt } from '../data/power';
+import { parseTypedNumber } from '../data/typedNumber';
 import { useUnits } from '../hooks/useUnits';
 import {
   activePreset,
@@ -103,8 +104,24 @@ export default function StationModal(
   const removePreset = useStationStore((s) => s.removePreset);
   const reset = useStationStore((s) => s.reset);
 
+  const setEditing = useStationStore((s) => s.setEditing);
+
   const preset = activePreset({ presets, activeId });
   const { watts, mode, antenna } = preset;
+
+  /*
+   * Hold the forecast while this is open.
+   *
+   * Every control here changes the answer, and on a device the answer is an
+   * engine run. Without this, deleting two digits of "100" ran a forecast at
+   * "10" and another at "1" on the way to setting 1 W. The cleanup clears the
+   * flag on unmount as well as on close, so a crash or a navigation cannot
+   * leave the forecast frozen.
+   */
+  useEffect(() => {
+    setEditing(visible);
+    return () => setEditing(false);
+  }, [visible, setEditing]);
 
   /**
    * The power field while it is being typed.
@@ -115,6 +132,16 @@ export default function StationModal(
    * it follows the slider.
    */
   const [typedPower, setTypedPower] = useState<string | null>(null);
+
+  /**
+   * The antenna height while it is being typed, for the same reason.
+   *
+   * Height was a slider alone, on the argument that a mast is "about ten
+   * metres" rather than 10.0. That is true of guessing and false of knowing:
+   * someone who has measured their mast should be able to say so, and dragging
+   * a slider to a particular metre is fiddly on a phone.
+   */
+  const [typedHeight, setTypedHeight] = useState<string | null>(null);
 
   // The control moves in whole feet or whole metres, whichever the reader
   // uses, so a step never lands on a converted fraction.
@@ -361,15 +388,64 @@ export default function StationModal(
           </View>
 
           {usesHeight(antenna.type)
-            ? dial(
-              t('station.height'),
-              units.height(antenna.heightM),
-              units.heightFromMetres(antenna.heightM),
-              heightScale.min,
-              heightScale.max,
-              heightScale.step,
-              (value) => setAntenna({ heightM: units.heightToMetres(value) }),
-              t('station.a11y.height'),
+            ? (
+              <>
+                {
+                  /* Typed as well as swept, like the power above it. Height
+                     moves a 20 m path by about 9 dB, so someone who knows their
+                     mast should be able to enter it rather than hunt for the
+                     metre with a fingertip. The field is in the reader's own
+                     unit, which is what the affix names. */
+                }
+                <TextInput
+                  mode="outlined"
+                  dense
+                  keyboardType="decimal-pad"
+                  inputMode="decimal"
+                  value={typedHeight
+                    ?? String(units.heightFromMetres(antenna.heightM))}
+                  onChangeText={(text) => {
+                    setTypedHeight(text);
+                    const parsed = parseTypedNumber(text);
+                    if (parsed !== null) {
+                      setAntenna({ heightM: units.heightToMetres(parsed) });
+                    }
+                  }}
+                  onBlur={() => setTypedHeight(null)}
+                  right={
+                    <TextInput.Affix
+                      text={units.system === 'metric'
+                        ? t('station.metresUnit')
+                        : t('station.feetUnit')}
+                    />
+                  }
+                  accessibilityLabel={t('station.a11y.height')}
+                  style={styles.field}
+                />
+                <Text
+                  style={[typography.caption, styles.note, { color: ui.text3 }]}
+                >
+                  {t('station.heightRange', {
+                    min: heightScale.min,
+                    max: heightScale.max,
+                  })}
+                </Text>
+                {dial(
+                  t('station.height'),
+                  units.height(antenna.heightM),
+                  units.heightFromMetres(antenna.heightM),
+                  heightScale.min,
+                  heightScale.max,
+                  heightScale.step,
+                  (value) => {
+                    // The slider is the authority again once it moves, so the
+                    // field stops showing what was typed.
+                    setTypedHeight(null);
+                    setAntenna({ heightM: units.heightToMetres(value) });
+                  },
+                  t('station.a11y.height'),
+                )}
+              </>
             )
             : (
               <Text

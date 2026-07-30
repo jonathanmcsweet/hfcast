@@ -57,9 +57,13 @@ export default function ForecastScreen() {
   const nowHour = now.getUTCHours();
   const offline = Boolean(error);
 
+  // The status bar overlaps these too, and the error screen is tall enough on a
+  // small phone to reach it.
+  const safe = { paddingTop: insets.top, paddingBottom: insets.bottom };
+
   if (isPending) {
     return (
-      <View style={[styles.centre, { backgroundColor: ui.page }]}>
+      <View style={[styles.centre, safe, { backgroundColor: ui.page }]}>
         <ActivityIndicator size="large" />
         <Text style={[typography.body, styles.centreText, { color: ui.text2 }]}>
           {t('status.loading')}
@@ -76,7 +80,7 @@ export default function ForecastScreen() {
   // refetch in `error`, which is exactly this case.
   if (!data) {
     return (
-      <View style={[styles.centre, { backgroundColor: ui.page }]}>
+      <View style={[styles.centre, safe, { backgroundColor: ui.page }]}>
         <Text style={[typography.cardHeadline, { color: ui.ink }]}>
           {t('status.errorTitle')}
         </Text>
@@ -159,7 +163,14 @@ export default function ForecastScreen() {
   return (
     <View style={[styles.root, { backgroundColor: ui.page }]}>
       <ScrollView
-        contentContainerStyle={{ paddingBottom: insets.bottom + spacing.xxl }}
+        contentContainerStyle={{
+          // The header scrolls with the content, so nothing else keeps it out
+          // from under the status bar. Without this the place name and its
+          // Change button sit beneath the clock on a phone that draws behind
+          // the bar, which puts the only way to change location out of reach.
+          paddingTop: insets.top,
+          paddingBottom: insets.bottom + spacing.xxl,
+        }}
         showsVerticalScrollIndicator={false}
       >
         <AppHeader

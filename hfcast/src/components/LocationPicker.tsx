@@ -172,7 +172,11 @@ export default function LocationPicker({ visible, onDismiss }: Props) {
           value={query}
           onChangeText={setQuery}
           placeholder={t('location.searchPlaceholder')}
-          autoCapitalize="characters"
+          // Not "characters". A locator is conventionally written in capitals
+          // and this box accepts one, but forcing every letter upper case turns
+          // "Wellington" into shouting for the far more common case of typing a
+          // place name. Locators are matched case-insensitively instead.
+          autoCapitalize="none"
           autoCorrect={false}
           style={styles.search}
         />
