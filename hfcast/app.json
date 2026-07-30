@@ -2,22 +2,29 @@
   "expo": {
     "name": "HFcast",
     "slug": "hfcast",
-    "version": "0.28.0",
+    "version": "0.29.0",
     "orientation": "portrait",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": false,
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.example.hfcast"
+      "bundleIdentifier": "solutions.cloudburner.hfcast"
     },
     "android": {
-      "package": "com.example.hfcast",
+      "package": "solutions.cloudburner.hfcast",
+      "versionCode": 2900,
       "adaptiveIcon": {
         "backgroundColor": "#0B0D14"
       },
       "permissions": [
         "ACCESS_COARSE_LOCATION",
         "ACCESS_FINE_LOCATION"
+      ],
+      "blockedPermissions": [
+        "android.permission.SYSTEM_ALERT_WINDOW",
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.WRITE_EXTERNAL_STORAGE",
+        "android.permission.VIBRATE"
       ],
       "splash": {
         "backgroundColor": "#F7F8FC",
@@ -35,7 +42,19 @@
       "web"
     ],
     "plugins": [
-      "expo-font"
+      "expo-font",
+      "./plugins/withReleaseSigning.ts",
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "compileSdkVersion": 34,
+            "targetSdkVersion": 34,
+            "buildToolsVersion": "34.0.0",
+            "minSdkVersion": 23
+          }
+        }
+      ]
     ],
     "splash": {
       "backgroundColor": "#F7F8FC"

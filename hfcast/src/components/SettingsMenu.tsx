@@ -12,6 +12,7 @@ import { THEME_MODES, useSettingsStore } from '../store/useSettingsStore';
 import type { ThemeMode } from '../store/useSettingsStore';
 import { spacing, typography } from '../theme';
 import type { AppTheme } from '../theme';
+import AboutModal from './AboutModal';
 import ServerAddressDialog from './ServerAddressDialog';
 
 /** The icon each mode shows, so a glance says which one is in force. */
@@ -48,6 +49,7 @@ interface Props {
 
 export default function SettingsMenu({ onOpenStation }: Props) {
   const [serverOpen, setServerOpen] = useState(false);
+  const [aboutOpen, setAboutOpen] = useState(false);
   const [open, setOpen] = useState(false);
   const theme = useTheme<AppTheme>();
   const { i18n, t } = useTranslation();
@@ -160,11 +162,28 @@ export default function SettingsMenu({ onOpenStation }: Props) {
             }}
           />
         ))}
+
+        <Divider />
+
+        {
+          /* Last, because nobody comes here for it — and present because the
+             font's licence requires its text to travel with the app, and
+             NTIA/ITS asks that VOACAP be credited. */
+        }
+        <Menu.Item
+          title={t('about.title')}
+          leadingIcon="information-outline"
+          onPress={() => {
+            setOpen(false);
+            setAboutOpen(true);
+          }}
+        />
       </Menu>
       <ServerAddressDialog
         visible={serverOpen}
         onDismiss={() => setServerOpen(false)}
       />
+      <AboutModal visible={aboutOpen} onDismiss={() => setAboutOpen(false)} />
     </>
   );
 }

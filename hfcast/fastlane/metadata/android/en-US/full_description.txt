@@ -1,0 +1,26 @@
+HFcast tells you which amateur radio bands will reach a place, hour by hour, and
+how likely a contact is on each.
+
+The forecast is real VOACAP — the propagation model the Institute for
+Telecommunication Sciences built and has maintained for decades — compiled into
+the app itself. There is no account, no server and no network request. Put the
+phone in aeroplane mode and it still works, because the model, its ionospheric
+coefficient maps and a worldwide list of places all ship inside the app.
+
+What it shows:
+
+* A reach map of where the selected band gets to, this hour, in every direction
+* Every band at every hour of the day, as reliability rather than a yes or no
+* The operating window — lowest and highest usable frequency — through the day
+* Your own station: power, mode, and an antenna with its height, gain and
+  bearing, all of which change the answer
+* A compass showing which way your antenna favours relative to the path
+
+It is climatology with a probability attached, in the way a weather forecast is.
+It says what usually happens on a path like yours in a month like this one, not
+what will happen this afternoon.
+
+Nothing about the app is tied to Google services. Location comes from Android's
+own provider, so it works on a de-Googled phone or an old tablet. Space weather
+and searching for places smaller than a city are the only features that use the
+network, and both are optional.

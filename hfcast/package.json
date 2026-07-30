@@ -1,6 +1,6 @@
 {
   "name": "hfcast",
-  "version": "0.28.0",
+  "version": "0.29.0",
   "license": "Apache-2.0",
   "main": "index.js",
   "scripts": {
@@ -28,6 +28,7 @@
     "@tanstack/react-query-persist-client": "5.101.4",
     "expo": "~51.0.28",
     "expo-asset": "~10.0.10",
+    "expo-build-properties": "~0.12.5",
     "expo-font": "~12.0.10",
     "expo-localization": "~15.0.3",
     "expo-status-bar": "~1.12.1",

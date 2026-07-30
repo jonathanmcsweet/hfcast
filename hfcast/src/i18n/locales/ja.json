@@ -260,5 +260,25 @@
     "default": "既定値",
     "cancel": "キャンセル",
     "save": "保存"
+  },
+  "about": {
+    "title": "HFcast について",
+    "close": "閉じる",
+    "what": "1 つの経路の伝播予測を、この端末上で VOACAP により計算します。",
+    "version": "バージョン {{version}}",
+    "builtOn": "次の成果に基づいています",
+    "disclaimerSection": "免責事項",
+    "licencesSection": "ライセンス",
+    "credit": {
+      "voacap": "VOACAP、伝播モデル",
+      "voacapl": "このエンジンの翻訳元となった Linux 移植版",
+      "coefficients": "電離層係数マップ",
+      "cities": "オフラインで検索する地名リスト",
+      "naturalEarth": "海岸線と国境",
+      "noaa": "黒点数と太陽指数",
+      "giro": "実測のイオノゾンデ観測",
+      "openMeteo": "オンライン時の地名検索",
+      "plex": "IBM Plex Sans、書体"
+    }
   }
 }

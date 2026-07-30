@@ -260,5 +260,25 @@
     "default": "Predeterminada",
     "cancel": "Cancelar",
     "save": "Guardar"
+  },
+  "about": {
+    "title": "Acerca de HFcast",
+    "close": "Cerrar",
+    "what": "Una previsión de propagación para un trayecto, calculada en este dispositivo con VOACAP.",
+    "version": "Versión {{version}}",
+    "builtOn": "Construido sobre el trabajo de",
+    "disclaimerSection": "Aviso legal",
+    "licencesSection": "Licencias",
+    "credit": {
+      "voacap": "VOACAP, el modelo de propagación",
+      "voacapl": "La adaptación a Linux desde la que se tradujo este motor",
+      "coefficients": "Los mapas de coeficientes ionosféricos",
+      "cities": "La lista de lugares buscada sin conexión",
+      "naturalEarth": "Costas y fronteras de países",
+      "noaa": "Números de manchas solares e índices solares",
+      "giro": "Sondeos ionosféricos medidos",
+      "openMeteo": "Búsqueda de lugares, con conexión",
+      "plex": "IBM Plex Sans, la tipografía"
+    }
   }
 }
