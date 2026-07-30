@@ -331,8 +331,13 @@ platform since Android 1, and is what Organic Maps and OsmAnd use.
 
 Nothing else in this project depends on Google code. `@expo-google-fonts/…` is
 packaging only: IBM Plex is under the SIL Open Font License and the files are in
-the npm package, so nothing is fetched at build or run time. The services the app
-talks to are Open-Meteo, NOAA SWPC and UMass Lowell GIRO.
+the npm package, so nothing is fetched at build or run time.
+
+The three services the app calls are [Open-Meteo](https://open-meteo.com/) for
+place search, [NOAA SWPC](https://www.swpc.noaa.gov/) for solar and geomagnetic
+readings, and [UMass Lowell GIRO](https://giro.uml.edu/) for measured
+soundings. All three are asked directly, without a key and without this
+project's server — see _Attribution_ below and the About screen in the app.
 
 What the fused provider does better is battery-efficient continuous tracking,
 geofencing, and network location backed by Google's database of wireless
@@ -434,6 +439,38 @@ Things worth knowing before you extend this:
 **Nothing concatenates numbers with units.** Percent placement, decimal separators, and digit shaping are all locale decisions. `useFormatters` is the only place `Intl` is touched.
 
 **Some strings are deliberately not translated.** Band designations (20m), Maidenhead grids (CN87), dB, MHz, and UTC are international by convention among operators. Translating them would be worse, not better.
+
+## Attribution
+
+The app carries all of this in its About screen, with links and the full text
+of every licence it has to travel with, because that is where a person who
+installed it can read it. `src/data/credits.ts` is the list, and
+`test/credits.test.ts` fails the build if a credit loses its terms, its link or
+its translation.
+
+| What                                                                                     | Whose                                            | Terms                                                             |
+| ---------------------------------------------------------------------------------------- | ------------------------------------------------ | ----------------------------------------------------------------- |
+| [VOACAP](https://its.ntia.gov/), the propagation model                                   | NTIA/ITS, maintained by Greg Hand                | US Government work, not subject to copyright protection in the US |
+| [voacapl](https://github.com/jawatson/voacapl), the port this engine was translated from | J.A. Watson                                      | [CC0](https://creativecommons.org/publicdomain/zero/1.0/)         |
+| [The ionospheric coefficient maps](https://www.itu.int/rec/R-REC-P.1239/)                | CCIR Report 340 and URSI, published by ITU-R     | published for implementers free from copyright assertions         |
+| The place list searched offline                                                          | NTIA/ITS, from the VOACAP distribution           | US Government work                                                |
+| [Coastlines and country borders](https://www.naturalearthdata.com/)                      | Natural Earth                                    | public domain                                                     |
+| [Sunspot numbers and solar indices](https://www.swpc.noaa.gov/)                          | NOAA Space Weather Prediction Center             | US Government work                                                |
+| [Measured ionosonde soundings](https://giro.uml.edu/)                                    | UMass Lowell Global Ionosphere Radio Observatory | used with attribution                                             |
+| [Place search, when online](https://open-meteo.com/)                                     | Open-Meteo                                       | [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/)         |
+| [IBM Plex Sans](https://github.com/IBM/plex), the typeface                               | IBM                                              | SIL Open Font License 1.1                                         |
+
+Two of these are obligations rather than courtesies. The SIL Open Font License
+requires its notice and text to travel with the font, which is inside the APK,
+so `tools/build-licences.ts` copies the text out of the installed package into
+`src/assets/licences.json` rather than anyone pasting it. CC BY 4.0 asks for a
+link to the licence as part of the attribution itself, which is why every
+credit carries a URL.
+
+NTIA/ITS asks that nothing imply a US Government endorsement. The About screen
+carries that wording verbatim, in English in every language, because it is
+their statement of their position and a translation would be this project
+speaking for them.
 
 ## Known rough edges
 

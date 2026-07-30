@@ -279,7 +279,9 @@
       "giro": "Measured ionosonde soundings",
       "openMeteo": "Place search, when online",
       "plex": "IBM Plex Sans, the typeface"
-    }
+    },
+    "openSource": "Open the site for {{who}}",
+    "openTerms": "Read the {{terms}} licence"
   },
   "firstRun": {
     "kicker": "YOUR LOCATION",
