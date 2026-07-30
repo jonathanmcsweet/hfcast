@@ -2,7 +2,7 @@
   "expo": {
     "name": "HFcast",
     "slug": "hfcast",
-    "version": "0.33.3",
+    "version": "0.34.0",
     "orientation": "portrait",
     "userInterfaceStyle": "automatic",
     "ios": {
@@ -11,7 +11,7 @@
     },
     "android": {
       "package": "solutions.cloudburner.hfcast",
-      "versionCode": 33031,
+      "versionCode": 34001,
       "adaptiveIcon": {
         "backgroundColor": "#0B0D14"
       },
@@ -26,7 +26,7 @@
         "android.permission.VIBRATE"
       ],
       "splash": {
-        "backgroundColor": "#F7F8FC",
+        "backgroundColor": "#0B0D14",
         "dark": {
           "backgroundColor": "#0B0D14"
         }
@@ -56,7 +56,7 @@
       ]
     ],
     "splash": {
-      "backgroundColor": "#F7F8FC"
+      "backgroundColor": "#0B0D14"
     }
   }
 }

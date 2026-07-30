@@ -85,6 +85,13 @@ export const CREDITS: readonly Credit[] = [
     termsUrl: 'https://creativecommons.org/licenses/by/4.0/',
   },
   {
+    id: 'aurora',
+    who: 'NASA / Samantha Cristoforetti, ESA',
+    terms: 'public domain',
+    url:
+      'https://commons.wikimedia.org/wiki/File:ISS-42_Aurora_borealis_over_North_Atlantic_Ocean.jpg',
+  },
+  {
     id: 'plex',
     who: 'IBM',
     terms: 'SIL Open Font License 1.1',
