@@ -2,12 +2,14 @@ import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
 import { antennaFileName, antennaOnDisk } from '../src/data/antennaFile.ts';
+import { CITY_COUNT, searchCities } from '../src/data/cities.ts';
 import {
   LAT_STEP,
   LON_STEP,
   REACHABLE,
   reachOf,
 } from '../src/data/coverageGrid.ts';
+import { gridToLatLon, isGrid, latLonToGrid } from '../src/data/grid.ts';
 import {
   SSN_TABLE_DATE,
   SSN_TABLE_RANGE,
@@ -172,5 +174,134 @@ describe('the coverage grid the map is drawn on', () => {
   it('reports nothing rather than dividing by zero', () => {
     // An empty grid is a failed run, and 0 is the honest summary of it.
     assert.equal(reachOf([]), 0);
+  });
+});
+
+describe('choosing a place without a network', () => {
+  it('holds a worldwide list, not a handful', () => {
+    // A list this size is the difference between a feature and a token: if it
+    // covered only the Americas the search would fail silently for most of
+    // the world, which reads as a broken app rather than a missing city.
+    assert.ok(CITY_COUNT > 3000, `${CITY_COUNT}`);
+  });
+
+  it('finds cities on every continent', () => {
+    const first = (query: string) => searchCities(query)[0];
+    for (
+      const name of [
+        'Seattle',
+        'Tokyo',
+        'Nairobi',
+        'Reykjavik',
+        'Wellington',
+        'Montevideo',
+        'Mumbai',
+      ]
+    ) {
+      const found = first(name);
+      assert.ok(found, `no match for ${name}`);
+      assert.equal(found.name, name);
+    }
+  });
+
+  it('puts a name that starts with the query before one that contains it', () => {
+    // Typing "york" means York more often than New York, and both should be
+    // offered rather than the alphabet deciding.
+    const names = searchCities('york').map((place) => place.name);
+    const york = names.indexOf('York');
+    const newYork = names.findIndex((name) => name.includes(' York'));
+    assert.ok(york >= 0, names.join(', '));
+    if (newYork >= 0) assert.ok(york < newYork, names.join(', '));
+  });
+
+  it('ignores case and accents', () => {
+    // The list is plain ASCII, but a reader with a Spanish keyboard types the
+    // accent, and refusing them would be worse than not folding at all.
+    assert.equal(
+      searchCities('zurich')[0]?.name,
+      searchCities('ZÜRICH')[0]?.name,
+    );
+    assert.ok(searchCities('bogotá').length > 0);
+  });
+
+  it('gives every place a locator and a plausible position', () => {
+    // A place with no grid would break the query key, and one at 0,0 would
+    // silently forecast a path to the Atlantic.
+    const sample = searchCities('a');
+    assert.ok(sample.length > 0);
+    for (const place of sample) {
+      assert.match(place.grid, /^[A-R]{2}[0-9]{2}[A-X]{2}$/);
+      assert.ok(Math.abs(place.lat) <= 90 && Math.abs(place.lon) <= 180);
+      assert.ok(place.lat !== 0 || place.lon !== 0);
+    }
+  });
+
+  it('finds nothing for nothing, rather than everything', () => {
+    assert.deepEqual(searchCities(''), []);
+    assert.deepEqual(searchCities('   '), []);
+  });
+});
+
+describe('a typed Maidenhead locator, offline', () => {
+  it('accepts 4 and 6 characters in either case', () => {
+    // The search box no longer forces capitals, so lower case has to work.
+    assert.ok(isGrid('CN87'));
+    assert.ok(isGrid('cn87us'));
+    assert.ok(!isGrid('CN8'));
+    assert.ok(!isGrid('Seattle'));
+  });
+
+  it('lands in the square it names', () => {
+    // Round trip: the centre of a square is inside that square.
+    for (const grid of ['CN87us', 'PM95', 'JO65', 'FN31pr']) {
+      const { lat, lon } = gridToLatLon(grid);
+      assert.equal(
+        latLonToGrid(lat, lon).slice(0, grid.length).toUpperCase(),
+        grid.toUpperCase(),
+      );
+    }
+  });
+
+  it('agrees with a known locator', () => {
+    // CN87 is Seattle's square: 2 degrees of longitude from -124 to -122 and
+    // 1 of latitude from 47 to 48, so its centre is -123, 47.5.
+    const { lat, lon } = gridToLatLon('CN87');
+    assert.equal(lat, 47.5);
+    assert.equal(lon, -123);
+  });
+});
+
+describe('cities the source names as it did in 2001', () => {
+  it('finds a renamed city under the name in use now', () => {
+    // These files predate several renames. A reader typing the name on their
+    // own map finding nothing reads as a missing city, not a dated list.
+    const pairs: readonly [string, string][] = [
+      ['Mumbai', 'Bombay'],
+      ['Kolkata', 'Calcutta'],
+      ['Chennai', 'Madras'],
+      ['Yangon', 'Rangoon'],
+      ['Kyiv', 'Kiev'],
+      ['Beijing', 'Peking'],
+    ];
+    for (const [current, old] of pairs) {
+      const byCurrent = searchCities(current)[0];
+      assert.ok(byCurrent, `no match for ${current}`);
+      assert.equal(byCurrent.name, current);
+
+      // And still under the old one, because an operator who has worked the
+      // place for thirty years may well type that.
+      const byOld = searchCities(old).find((place) => place.name === current);
+      assert.ok(byOld, `${old} no longer finds ${current}`);
+    }
+  });
+
+  it('never shows the old name as the label', () => {
+    // The alternate is for matching only. Showing "Leningrad" as a place name
+    // would be the app asserting something false.
+    const stale = ['Bombay', 'Leningrad', 'Rangoon', 'Calcutta'];
+    for (const name of stale) {
+      const labels = searchCities(name).map((place) => place.name);
+      assert.ok(!labels.includes(name), `${name} is still a label`);
+    }
   });
 });

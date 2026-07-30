@@ -155,6 +155,20 @@ const clamp = (value: number, { min, max }: { min: number; max: number; }) =>
 interface StationState {
   presets: readonly StationPreset[];
   activeId: string;
+  /**
+   * True while the station dialog is open.
+   *
+   * Every setting here changes the forecast, and on a device the forecast is an
+   * engine run rather than a request to a server. Writing each keystroke
+   * straight through meant deleting two digits of "100" started a run at "10"
+   * and another at "1", so setting 1 W from 100 W computed two forecasts nobody
+   * asked for. The queries stop while this is true and run once when it clears.
+   *
+   * Deliberately not persisted: a dialog is not open when the app starts, and a
+   * saved `true` would leave the forecast permanently frozen.
+   */
+  editing: boolean;
+  setEditing: (editing: boolean) => void;
   setWatts: (watts: number) => void;
   setMode: (mode: ModeKey) => void;
   setAntenna: (antenna: Partial<Antenna>) => void;
@@ -186,6 +200,9 @@ export const useStationStore = create<StationState>()(
     (set) => ({
       presets: [FIRST_PRESET],
       activeId: FIRST_PRESET.id,
+      editing: false,
+
+      setEditing: (editing) => set({ editing }),
 
       setWatts: (watts) =>
         set((state) =>

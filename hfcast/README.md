@@ -241,6 +241,15 @@ Three things the device does differently:
 - **Space weather** needs the network and is absent offline. The forecast does not
   depend on it.
 
+Choosing a place works offline too. A Maidenhead locator is arithmetic, so it is
+resolved on the device; a place name is looked up in `src/assets/cities.json`,
+which is VOACAP's own `itshfbc/geocity` index built by `tools/build-cities.ts` —
+3,997 places in 118 KB. The network geocoder is still asked when that list returns
+few matches, so an online reader still reaches somewhere smaller than a city. The
+list is from about 2001 and names thirteen cities as they were then; the generator
+corrects those and keeps the old names searchable. Its country names are not
+corrected — see the roadmap.
+
 Cost, measured with the engine compiled in: a point-to-point forecast over five
 bands is 15 ms, and a 192-point coverage map is 48 ms — both on a desktop, with
 the ARM build under `qemu-aarch64-static` about 17 times slower for the map. The

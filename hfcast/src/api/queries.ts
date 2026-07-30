@@ -1,8 +1,11 @@
-import { useQuery } from '@tanstack/react-query';
+import { keepPreviousData, useQuery } from '@tanstack/react-query';
+import { useMemo } from 'react';
 
+import { searchCities } from '../data/cities';
+import { gridToLatLon, isGrid } from '../data/grid';
 import { canMapLocally, coverLocally } from '../data/localCoverage';
 import { canPredictLocally, predictLocally } from '../data/localPredict';
-import type { BandKey, Endpoint } from '../data/types';
+import type { BandKey, Endpoint, Place } from '../data/types';
 import { useSettled } from '../hooks/useSettled';
 import { today } from '../store/usePathStore';
 import { useServerStore } from '../store/useServerStore';
@@ -24,6 +27,15 @@ import {
  * request depends on, so changing the path or the language refetches without
  * any manual invalidation.
  */
+
+/**
+ * Enough local matches that the network is not worth asking.
+ *
+ * The bundled list holds cities, so a query it answers several times over is a
+ * query about a city, and the geocoder would mostly repeat it. Below this the
+ * reader may be after somewhere smaller, which is what the network is for.
+ */
+const LOCAL_ENOUGH = 5;
 
 export const queryKeys = {
   prediction: (
@@ -57,6 +69,10 @@ export const queryKeys = {
 function useStation() {
   const presets = useStationStore((s) => s.presets);
   const activeId = useStationStore((s) => s.activeId);
+  // True while the station dialog is open. Every control in it changes the
+  // answer, so a forecast per keystroke was the cost of writing straight
+  // through — see `editing` in the store.
+  const editing = useStationStore((s) => s.editing);
   // The preset's name and identifier are deliberately not in the key. Two
   // presets set up identically should share a cached answer, and renaming
   // one should not throw its forecast away.
@@ -67,6 +83,7 @@ function useStation() {
     // The whole station too, for the engine in this build: it takes the
     // antenna's own numbers rather than the query string the server reads.
     station,
+    editing,
   };
 }
 
@@ -120,6 +137,11 @@ export function usePrediction(from: Endpoint, to: Endpoint) {
           nowcast,
           station: station.params,
         }),
+    // Held while the station dialog is open, and run once when it closes.
+    enabled: !station.editing,
+    // So the screen behind the dialog keeps the forecast it already had
+    // rather than falling back to the loading state on every adjustment.
+    placeholderData: keepPreviousData,
     // A now-cast follows the solar indices, which SWPC updates a few times
     // a day. The climatology underneath it does not move within a month.
     staleTime: 15 * 60 * 1000,
@@ -147,15 +169,60 @@ export function useSounding(from: Endpoint) {
   });
 }
 
-/** Place search. Also accepts a Maidenhead locator, resolved without a network call upstream. */
+/**
+ * Place search: the bundled list first, the network only for what it lacks.
+ *
+ * Three ways to name a place, in the order they are tried.
+ *
+ * A Maidenhead locator is arithmetic, so it is answered here and never fetched.
+ * It used to be: the server resolved one without calling a geocoder, but
+ * reaching the server was still a network call, so a grid square could not be
+ * typed offline.
+ *
+ * A place name is looked up in VOACAP's own city list, which ships with the app.
+ * That covers 4,064 places worldwide and nothing smaller — no villages, no
+ * streets — so the network geocoder is still asked, and its answers are added
+ * after the local ones. With no network that request simply fails and the local
+ * results stand, which is the whole point.
+ */
 export function useGeocode(query: string, lang: string) {
   const trimmed = query.trim();
-  return useQuery({
+
+  // Synchronous and not state: the same query always gives the same places, so
+  // there is nothing to cache and nothing to invalidate.
+  const local = useMemo<Place[]>(() => {
+    if (trimmed === '') return [];
+    if (isGrid(trimmed)) {
+      const { lat, lon } = gridToLatLon(trimmed);
+      const grid = trimmed.toUpperCase();
+      return [{ name: grid, country: '', admin1: '', lat, lon, grid }];
+    }
+    return searchCities(trimmed);
+  }, [trimmed]);
+
+  const remote = useQuery({
     queryKey: queryKeys.geocode(trimmed.toLowerCase(), lang),
     queryFn: () => fetchGeocode(trimmed, lang),
-    enabled: trimmed.length >= 2,
+    // A locator needs no lookup at all, and neither does a query the list
+    // already answers well. Asking anyway would spend a request, and offline it
+    // would put a failure on screen beside results that are already correct.
+    enabled: trimmed.length >= 2 && !isGrid(trimmed)
+      && local.length < LOCAL_ENOUGH,
     staleTime: 24 * 60 * 60 * 1000,
   });
+
+  // Local first, then anything the network adds that is not already held.
+  const seen = new Set(local.map((place) => place.grid));
+  const extra = (remote.data ?? []).filter((place) => !seen.has(place.grid));
+
+  return {
+    ...remote,
+    data: [...local, ...extra],
+    // A failed lookup is only worth reporting when nothing was found without
+    // it. Offline with results on screen, the failure is not the reader's
+    // problem.
+    error: local.length > 0 ? null : remote.error,
+  };
 }
 
 /**
@@ -218,6 +285,10 @@ export function useCoverage(
           nowcast: true,
           station: station.params,
         }),
+    // As for the prediction: an area run is the more expensive of the two, so
+    // holding it while the station is being adjusted matters more here.
+    enabled: !station.editing,
+    placeholderData: keepPreviousData,
     staleTime: 15 * 60 * 1000,
     retry: 1,
   });

@@ -7,6 +7,8 @@
  * which is also how power behaves. Every doubling is the same 3 dB
  * wherever it happens, so equal travel should mean equal decibels.
  */
+// Extension given because Node's own resolver reads this in the tests.
+import { parseTypedNumber } from './typedNumber.ts';
 
 /** Slider positions. Fine enough that a step is under a tenth of a dB. */
 export const POWER_STEPS = 1000;
@@ -52,17 +54,10 @@ export function roundPower(watts: number): number {
 /**
  * A typed power, or null when the text is not one yet.
  *
- * Null rather than a fallback, so a half-typed value is left alone
- * instead of being corrected under the reader's fingers. Accepts a comma
- * as the decimal separator, because most of the world writes it that way
- * and the field takes a number rather than a locale-formatted one.
+ * The rule is shared with the antenna height field, which wants exactly the
+ * same behaviour while a value is half typed.
  */
-export function parsePower(text: string): number | null {
-  const cleaned = text.replace(',', '.').trim();
-  if (cleaned === '') return null;
-  const value = Number(cleaned);
-  return Number.isFinite(value) && value > 0 ? value : null;
-}
+export const parsePower = parseTypedNumber;
 
 /** Power as text for the entry field: no trailing zeroes, no separators. */
 export const powerText = (watts: number): string => String(watts);
