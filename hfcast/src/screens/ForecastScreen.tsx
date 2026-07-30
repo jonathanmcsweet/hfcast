@@ -27,8 +27,7 @@ export default function ForecastScreen() {
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const [now, setNow] = useState(() => new Date());
-  // Which end the location pane opens on. Null means closed.
-  const [picking, setPicking] = useState<'from' | 'to' | null>(null);
+  const [pickerOpen, setPickerOpen] = useState(false);
   const [stationOpen, setStationOpen] = useState(false);
 
   const from = usePathStore((s) => s.from);
@@ -184,8 +183,7 @@ export default function ForecastScreen() {
               bearingDeg: prediction.bearingDeg,
             }}
           offline={offline}
-          onPressPlace={() => setPicking('from')}
-          onPressDestination={() => setPicking('to')}
+          onPressPlace={() => setPickerOpen(true)}
           onRefresh={refresh}
           refreshing={weather.isFetching}
           onOpenStation={() => setStationOpen(true)}
@@ -267,10 +265,14 @@ export default function ForecastScreen() {
         />
       </ScrollView>
 
+      {
+        /* One pane for both ends, reached from the path name. It opens on
+           whichever end it was last left on, which is the near one until
+           somebody changes it. */
+      }
       <LocationPicker
-        visible={picking !== null}
-        end={picking ?? 'from'}
-        onDismiss={() => setPicking(null)}
+        visible={pickerOpen}
+        onDismiss={() => setPickerOpen(false)}
       />
 
       {

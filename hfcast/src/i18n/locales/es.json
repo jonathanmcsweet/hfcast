@@ -18,9 +18,7 @@
   "path": {
     "summary": "{{distance}} · rumbo {{bearing}} · {{hops}} saltos",
     "summaryOneHop": "{{distance}} · rumbo {{bearing}} · un salto",
-    "changeDestination": "Cambiar destino",
-    "setDestination": "Elegir destino",
-    "noDestinationHint": "El mapa muestra todas las direcciones. Elige un destino para prever una ruta."
+    "noDestinationHint": "El mapa muestra todas las direcciones. Toca el nombre de arriba para elegir un destino."
   },
   "window": {
     "label": "Ventana utilizable",

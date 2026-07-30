@@ -18,9 +18,7 @@
   "path": {
     "summary": "{{distance}} · الاتجاه {{bearing}} · {{hops}} قفزات",
     "summaryOneHop": "{{distance}} · الاتجاه {{bearing}} · قفزة واحدة",
-    "changeDestination": "تغيير الوجهة",
-    "setDestination": "تحديد وجهة",
-    "noDestinationHint": "تعرض الخريطة كل الاتجاهات. اختر وجهة لتوقع مسار واحد."
+    "noDestinationHint": "تعرض الخريطة كل الاتجاهات. اضغط على الاسم بالأعلى لاختيار وجهة."
   },
   "window": {
     "label": "النافذة الصالحة",

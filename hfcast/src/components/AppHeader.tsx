@@ -30,10 +30,8 @@ interface Props {
   destination: HeaderDestination | null;
   /** Shown only when a fetch failed and saved data is on screen. */
   offline: boolean;
-  /** Opens the location pane on the near end. */
+  /** Opens the location pane, which chooses either end. */
   onPressPlace: () => void;
-  /** Opens the location pane on the far end. */
-  onPressDestination: () => void;
   onRefresh: () => void;
   refreshing: boolean;
   /** Opens the station settings from the menu. */
@@ -51,13 +49,17 @@ interface Props {
  *
  * There is no refresh button. The app polls for new readings on its own, and a
  * manual refresh is in the menu for whoever wants one.
+ *
+ * There is no Change destination button either. The path name is the control —
+ * it carries both ends and its own "Change" affordance, and the pane it opens
+ * chooses either end. A second button below it said the same thing twice and
+ * took a whole row to do it.
  */
 export default function AppHeader({
   place,
   destination,
   offline,
   onPressPlace,
-  onPressDestination,
   onRefresh,
   refreshing,
   onOpenStation,
@@ -154,21 +156,6 @@ export default function AppHeader({
             {t('path.noDestinationHint')}
           </Text>
         )}
-
-      <TouchableRipple
-        onPress={onPressDestination}
-        accessibilityRole="button"
-        style={[styles.button, {
-          borderColor: ui.line2,
-          backgroundColor: ui.card,
-        }]}
-      >
-        <Text style={[typography.bodyStrong, { color: ui.accent }]}>
-          {destination
-            ? t('path.changeDestination')
-            : t('path.setDestination')}
-        </Text>
-      </TouchableRipple>
     </View>
   );
 }
@@ -225,12 +212,4 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
   },
   dot: { width: 7, height: 7, borderRadius: 4, borderWidth: 1.5 },
-  button: {
-    alignSelf: 'flex-start',
-    minHeight: 44,
-    justifyContent: 'center',
-    paddingHorizontal: 14,
-    borderRadius: radius.inset,
-    borderWidth: StyleSheet.hairlineWidth,
-  },
 });

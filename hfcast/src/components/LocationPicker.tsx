@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { FlatList, StyleSheet, View } from 'react-native';
 import {
@@ -27,11 +27,6 @@ type End = 'from' | 'to';
 
 interface Props {
   visible: boolean;
-  /**
-   * The end to open on. The header has a control for each, so arriving on
-   * the wrong one would mean a correction before every use.
-   */
-  end: End;
   onDismiss: () => void;
 }
 
@@ -49,9 +44,7 @@ const placeToEndpoint = (place: Place): Endpoint => ({
  * type "Tokyo" and an operator can type "PM95". Device location only applies to
  * the near end; the far end is always searched.
  */
-export default function LocationPicker(
-  { visible, end: openOn, onDismiss }: Props,
-) {
+export default function LocationPicker({ visible, onDismiss }: Props) {
   const theme = useTheme<AppTheme>();
   const { t, i18n } = useTranslation();
 
@@ -61,20 +54,12 @@ export default function LocationPicker(
   const setTo = usePathStore((s) => s.setTo);
   const swapEnds = usePathStore((s) => s.swapEnds);
 
-  const [end, setEnd] = useState<End>(openOn);
+  const [end, setEnd] = useState<End>('from');
   const [query, setQuery] = useState('');
   const [locating, setLocating] = useState(false);
   const [locationError, setLocationError] = useState<string | null>(null);
 
   const { data: results, isFetching, error } = useGeocode(query, i18n.language);
-
-  // The modal stays mounted between openings, so its own state outlives a
-  // dismissal. Following `openOn` on the way in is what makes the two header
-  // controls land on different ends; the segmented buttons still move it
-  // afterwards.
-  useEffect(() => {
-    if (visible) setEnd(openOn);
-  }, [visible, openOn]);
 
   const choose = useCallback(
     (endpoint: Endpoint) => {

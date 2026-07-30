@@ -18,9 +18,7 @@
   "path": {
     "summary": "{{distance}} · bearing {{bearing}} · {{hops}} hops",
     "summaryOneHop": "{{distance}} · bearing {{bearing}} · one hop",
-    "changeDestination": "Change destination",
-    "setDestination": "Set a destination",
-    "noDestinationHint": "The map shows every direction. Choose a destination to forecast one path."
+    "noDestinationHint": "The map shows every direction. Tap the name above to aim at one place."
   },
   "window": {
     "label": "Usable window",

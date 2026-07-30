@@ -18,9 +18,7 @@
   "path": {
     "summary": "{{distance}} · Peilung {{bearing}} · {{hops}} Sprünge",
     "summaryOneHop": "{{distance}} · Peilung {{bearing}} · ein Sprung",
-    "changeDestination": "Ziel ändern",
-    "setDestination": "Ziel festlegen",
-    "noDestinationHint": "Die Karte zeigt alle Richtungen. Wähle ein Ziel, um eine einzelne Strecke vorherzusagen."
+    "noDestinationHint": "Die Karte zeigt alle Richtungen. Tippe oben auf den Namen, um ein Ziel zu wählen."
   },
   "window": {
     "label": "Nutzbarer Bereich",
