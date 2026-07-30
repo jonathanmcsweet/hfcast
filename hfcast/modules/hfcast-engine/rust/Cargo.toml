@@ -1,0 +1,24 @@
+[package]
+name = "hfcast-jni"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[lib]
+# One shared library per Android ABI, loaded by System.loadLibrary.
+crate-type = ["cdylib"]
+
+[dependencies]
+# The engine itself, by path: it is a sibling repository inside this
+# monorepo, exactly as the server's use of the `predict` binary assumes.
+hfcast = { path = "../../../../hfcast-engine" }
+jni = "0.21"
+
+[profile.release]
+# The engine ships 653 KB of data and a lot of tables; size matters in an
+# APK, and none of this is hot enough to need the extra unrolling.
+opt-level = 2
+lto = true
+codegen-units = 1
+panic = "abort"
+strip = true

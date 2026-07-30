@@ -1,0 +1,27 @@
+apply plugin: 'com.android.library'
+
+group = 'com.hfcast.engine'
+version = '1.0.0'
+
+def expoModulesCorePlugin = new File(project(":expo-modules-core").projectDir.absolutePath, "ExpoModulesCorePlugin.gradle")
+apply from: expoModulesCorePlugin
+applyKotlinExpoModulesCorePlugin()
+useCoreDependencies()
+useDefaultAndroidSdkVersions()
+
+// The prediction engine itself is the Rust in rust/, built by
+// ../build-rust.sh into src/main/jniLibs. Gradle packages whatever is there;
+// it does not build it, because a Cargo build inside a Gradle task hides
+// which of the two failed.
+android {
+  namespace "com.hfcast.engine"
+  defaultConfig {
+    versionCode 1
+    versionName "1.0.0"
+  }
+  sourceSets {
+    main {
+      jniLibs.srcDirs = ['src/main/jniLibs']
+    }
+  }
+}
