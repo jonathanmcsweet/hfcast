@@ -295,6 +295,57 @@ describe('cities the source names as it did in 2001', () => {
     }
   });
 
+  it('names countries as they are now, not as the source does', () => {
+    // Countries are derived from the coordinate against Natural Earth rather
+    // than read from the file, because the file is thirty years out of date in
+    // places and misspells others. A position does not go out of date.
+    const countryOf = (city: string) => {
+      const place = searchCities(city)[0];
+      assert.ok(place, `no match for ${city}`);
+      return place.country;
+    };
+    assert.equal(countryOf('Kinshasa'), 'Dem. Rep. Congo'); // not Zaire
+    assert.equal(countryOf('Yangon'), 'Myanmar'); // not Burma
+    assert.equal(countryOf('Bogota'), 'Colombia'); // not "Columbia"
+    assert.equal(countryOf('Quito'), 'Ecuador'); // not "Equador"
+    assert.equal(countryOf('Belgrade'), 'Serbia'); // not Yugoslavia
+    assert.equal(countryOf('Colombo'), 'Sri Lanka'); // not "SRI Lanka"
+  });
+
+  it('gives every place a country', () => {
+    // Nearly a fifth of the source rows name no country at all. Two places
+    // genuinely resolve to none — a disputed reef and a mid-ocean point — and
+    // everything else should have one.
+    const missing = searchCities('a').filter((place) => place.country === '');
+    assert.deepEqual(missing.map((place) => place.name), []);
+  });
+
+  it('keeps the state or constituent country beside it', () => {
+    // Natural Earth carries countries, not states, so the source's own
+    // sub-national field is what distinguishes the two Aberdeens.
+    const found = searchCities('Aberdeen');
+    const regions = found.map((place) => `${place.admin1}|${place.country}`);
+    assert.ok(
+      regions.includes('Scotland|United Kingdom'),
+      regions.join(', '),
+    );
+    assert.ok(
+      regions.includes('SD|United States of America'),
+      regions.join(', '),
+    );
+  });
+
+  it('does not shout a place name', () => {
+    // The source is all capitals throughout, including accented and
+    // slash-separated names that an ASCII test leaves untouched.
+    const shouted = searchCities('a').filter((place) => {
+      const first = place.name.split(/[ \-./',]/)[0] ?? '';
+      return first.length > 1 && first === first.toUpperCase()
+        && first !== first.toLowerCase();
+    });
+    assert.deepEqual(shouted.map((place) => place.name), []);
+  });
+
   it('never shows the old name as the label', () => {
     // The alternate is for matching only. Showing "Leningrad" as a place name
     // would be the app asserting something false.
