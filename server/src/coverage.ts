@@ -66,7 +66,7 @@ export interface CoverageResult extends Coverage {
  * cell, which saturates at "reliable" for almost every band and hour and
  * so says nothing about the difference between them.
  */
-const REACHABLE = 0.4;
+export const REACHABLE = 0.4;
 
 function keyFor(request: CoverageRequest, ssn: number): string {
   const { from, band, hour, watts, requiredSnrDb, noiseDbw, date } = request;

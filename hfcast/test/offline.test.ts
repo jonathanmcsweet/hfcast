@@ -3,10 +3,17 @@ import { describe, it } from 'node:test';
 
 import { antennaFileName, antennaOnDisk } from '../src/data/antennaFile.ts';
 import {
+  LAT_STEP,
+  LON_STEP,
+  REACHABLE,
+  reachOf,
+} from '../src/data/coverageGrid.ts';
+import {
   SSN_TABLE_DATE,
   SSN_TABLE_RANGE,
   ssnForMonth,
 } from '../src/data/ssn.ts';
+import type { CoveragePoint } from '../src/data/types.ts';
 import type { Antenna } from '../src/store/useStationStore.ts';
 
 /**
@@ -126,5 +133,44 @@ describe('the antenna file the engine reads', () => {
     // The count on the second line is where the reader stops.
     const lines = dipole.text.split('\n');
     assert.equal(Number(lines[1]?.trim().split(/\s+/)[0]), 8);
+  });
+});
+
+describe('the coverage grid the map is drawn on', () => {
+  const at = (lat: number, reliability: number): CoveragePoint => ({
+    lat,
+    lon: 0,
+    reliability,
+  });
+
+  it('tiles the sphere with no gap and no overlap', () => {
+    // The map draws a cell around each point, so a step that does not divide
+    // the sphere evenly would leave a seam or a double-covered row.
+    assert.equal(180 % LAT_STEP, 0);
+    assert.equal((360 / LON_STEP) % 1, 0);
+    assert.equal((180 / LAT_STEP) * (360 / LON_STEP), 192);
+  });
+
+  it('counts a polar row for less than an equatorial one', () => {
+    // Equal-angle cells are not equal areas. Without the weighting a band
+    // reaching only the poles would score the same as one reaching only the
+    // equator, and every band would look worse than it is.
+    const polar = reachOf([at(82.5, 1), at(0, 0)]);
+    const equatorial = reachOf([at(82.5, 0), at(0, 1)]);
+    assert.ok(polar < equatorial, `${polar} !< ${equatorial}`);
+    assert.ok(polar > 0);
+  });
+
+  it('reads the threshold as reachable, not just above it', () => {
+    // The boundary belongs to the reachable side, matching `patchy` in the
+    // quality bands: a cell exactly at the threshold is drawn as reached, so
+    // the number and the picture have to agree about it.
+    assert.equal(reachOf([at(0, REACHABLE)]), 1);
+    assert.equal(reachOf([at(0, REACHABLE - 0.001)]), 0);
+  });
+
+  it('reports nothing rather than dividing by zero', () => {
+    // An empty grid is a failed run, and 0 is the honest summary of it.
+    assert.equal(reachOf([]), 0);
   });
 });
