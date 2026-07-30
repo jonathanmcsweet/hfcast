@@ -279,7 +279,9 @@
       "giro": "実測のイオノゾンデ観測",
       "openMeteo": "オンライン時の地名検索",
       "plex": "IBM Plex Sans、書体"
-    }
+    },
+    "openSource": "{{who}} のサイトを開く",
+    "openTerms": "{{terms}} ライセンスを読む"
   },
   "firstRun": {
     "kicker": "運用地",

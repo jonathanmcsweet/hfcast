@@ -279,7 +279,9 @@
       "giro": "Sondeos ionosféricos medidos",
       "openMeteo": "Búsqueda de lugares, con conexión",
       "plex": "IBM Plex Sans, la tipografía"
-    }
+    },
+    "openSource": "Abrir el sitio de {{who}}",
+    "openTerms": "Leer la licencia {{terms}}"
   },
   "firstRun": {
     "kicker": "TU UBICACIÓN",

@@ -279,7 +279,9 @@
       "giro": "Gemessene Ionosonden-Messungen",
       "openMeteo": "Ortssuche, wenn online",
       "plex": "IBM Plex Sans, die Schriftart"
-    }
+    },
+    "openSource": "Website von {{who}} öffnen",
+    "openTerms": "Lizenz {{terms}} lesen"
   },
   "firstRun": {
     "kicker": "DEIN STANDORT",

@@ -93,6 +93,10 @@ describe('the credits', () => {
         'naturalEarth',
         'noaa',
         'plex',
+        // The two the device now asks for itself, having stopped going
+        // through a server. Both are somebody else's service.
+        'giro',
+        'openMeteo',
       ]
     ) {
       assert.ok(ids.includes(required), `no credit for ${required}`);
@@ -103,6 +107,32 @@ describe('the credits', () => {
     for (const credit of CREDITS) {
       assert.ok(credit.who.length > 0, `${credit.id} names nobody`);
       assert.ok(credit.terms.length > 0, `${credit.id} states no terms`);
+    }
+  });
+
+  it('gives every credit somewhere to be followed up', () => {
+    // An attribution nobody can act on is a courtesy that discharges
+    // nothing. https rather than http: these are opened on a device.
+    for (const credit of CREDITS) {
+      assert.match(credit.url, /^https:\/\/\S+$/, `${credit.id} has no url`);
+    }
+  });
+
+  it('links the licence text for terms it does not carry in full', () => {
+    // CC BY 4.0 asks for "a URI or hyperlink to the license" as part of the
+    // attribution itself, so for Open-Meteo this is an obligation. The
+    // licences carried in full under `LICENCES` need no link.
+    const carried = new Set(
+      LICENCES.map((licence) => licence.name.toLowerCase()),
+    );
+    for (const credit of CREDITS) {
+      const published = /^(cc0|cc by)/i.test(credit.terms);
+      if (!published || carried.has(credit.terms.toLowerCase())) continue;
+      assert.match(
+        credit.termsUrl ?? '',
+        /^https:\/\/(creativecommons\.org)\/\S+$/,
+        `${credit.id} states ${credit.terms} but links no licence`,
+      );
     }
   });
 
@@ -124,7 +154,17 @@ describe('the credits', () => {
           `${lang} is missing about.credit.${credit.id}`,
         );
       }
-      for (const key of ['title', 'close', 'what', 'version', 'builtOn']) {
+      for (
+        const key of [
+          'title',
+          'close',
+          'what',
+          'version',
+          'builtOn',
+          'openSource',
+          'openTerms',
+        ]
+      ) {
         assert.ok(
           typeof about[key] === 'string' && about[key].length > 0,
           `${lang} is missing about.${key}`,

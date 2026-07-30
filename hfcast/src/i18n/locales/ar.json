@@ -279,7 +279,9 @@
       "giro": "قياسات المسبار الأيوني",
       "openMeteo": "البحث عن الأماكن عند الاتصال",
       "plex": "IBM Plex Sans، الخط"
-    }
+    },
+    "openSource": "فتح موقع {{who}}",
+    "openTerms": "قراءة رخصة {{terms}}"
   },
   "firstRun": {
     "kicker": "موقعك",
