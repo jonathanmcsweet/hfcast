@@ -18,9 +18,7 @@
   "path": {
     "summary": "{{distance}} · 方位 {{bearing}} · {{hops}} ホップ",
     "summaryOneHop": "{{distance}} · 方位 {{bearing}} · 1 ホップ",
-    "changeDestination": "受信地を変更",
-    "setDestination": "受信地を設定",
-    "noDestinationHint": "地図は全方位を示します。特定の経路を予報するには受信地を選んでください。"
+    "noDestinationHint": "地図は全方位を示します。上の名前をタップすると受信地を選べます。"
   },
   "window": {
     "label": "使用可能な範囲",
