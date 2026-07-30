@@ -1,7 +1,9 @@
 import { useQuery } from '@tanstack/react-query';
 
+import { canMapLocally, coverLocally } from '../data/localCoverage';
 import { canPredictLocally, predictLocally } from '../data/localPredict';
 import type { BandKey, Endpoint } from '../data/types';
+import { useSettled } from '../hooks/useSettled';
 import { today } from '../store/usePathStore';
 import { useServerStore } from '../store/useServerStore';
 import {
@@ -159,22 +161,39 @@ export function useGeocode(query: string, lang: string) {
 /**
  * Coverage for the selected band at the selected hour.
  *
- * One request per hour, because an area run computes one hour. Kept
- * generous on staleness for the same reason a prediction is: the
- * climatology underneath does not move within a month, and a user
- * sweeping the clock should not refetch an hour they have already seen.
+ * One run per hour, because an area run computes one hour. Kept generous on
+ * staleness for the same reason a prediction is: the climatology underneath
+ * does not move within a month, and a user sweeping the clock should not
+ * recompute an hour they have already seen.
+ *
+ * An area run is 192 paths where a forecast is one, so on the device this is
+ * the expensive query. Each answered hour stays cached for the session, which
+ * is what makes moving the clock cheap after the first pass.
+ *
+ * The hour is taken once the slider settles rather than on every value it
+ * reports. The engine runs one request at a time, so a swept day would queue
+ * two dozen runs and leave the map trailing the finger by many seconds, most of
+ * them computing an hour already passed.
  */
 export function useCoverage(
   from: Endpoint,
   band: BandKey,
-  hour: number,
+  reportedHour: number,
 ) {
   const date = today();
   const station = useStation();
   const server = useServerStore((s) => s.address);
+  const local = canMapLocally();
+  // Long enough to swallow a sweep, short enough that choosing one hour feels
+  // immediate. The engine's own run is of the same order on a slow device.
+  const hour = useSettled(reportedHour, 350);
+
   return useQuery({
     queryKey: queryKeys.coverage(
-      server,
+      // As for a prediction: which engine answered is part of the identity,
+      // because the device works from the bundled sunspot table and the
+      // server from live figures.
+      local ? 'device' : server,
       from.grid,
       band,
       hour,
@@ -182,15 +201,23 @@ export function useCoverage(
       station.key,
     ),
     queryFn: () =>
-      fetchCoverage({
-        from: `${from.lat},${from.lon}`,
-        fromLabel: from.label,
-        band,
-        hour,
-        date,
-        nowcast: true,
-        station: station.params,
-      }),
+      local
+        ? coverLocally({
+          from,
+          band,
+          hour,
+          date: new Date(`${date}T00:00:00Z`),
+          station: station.station,
+        })
+        : fetchCoverage({
+          from: `${from.lat},${from.lon}`,
+          fromLabel: from.label,
+          band,
+          hour,
+          date,
+          nowcast: true,
+          station: station.params,
+        }),
     staleTime: 15 * 60 * 1000,
     retry: 1,
   });

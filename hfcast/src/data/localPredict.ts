@@ -110,28 +110,35 @@ export interface LocalRequest {
 }
 
 /**
- * Writes the station's antenna where the engine can read it.
+ * The two request fields that describe where the engine reads its data and
+ * which antenna it transmits from.
  *
- * Null for an isotropic station, which names no file — the engine's own
- * default. Written on every prediction rather than cached: the file is a few
+ * Both the path forecast and the coverage map need exactly this pair, and
+ * getting it in one place means a map and a forecast cannot end up describing
+ * different antennas.
+ *
+ * The antenna file is written on every run rather than cached: it is a few
  * hundred bytes, the cache directory can be emptied by the system at any
- * moment, and a missing antenna file would fail the run rather than fall back
- * to something reasonable.
+ * moment, and a missing antenna file fails the run rather than falling back to
+ * something reasonable.
  */
-async function antennaFor(station: Station): Promise<
-  { antenna: EngineAntenna; scratchDir: string; } | null
-> {
+export async function engineStation(station: Station): Promise<{
+  itshfbc: string;
+  txAntenna?: EngineAntenna;
+}> {
   const onDisk = antennaOnDisk(station.antenna);
-  if (onDisk === null) return null;
+  // An isotropic station names no file, so the coefficients are all the
+  // engine needs, and they are inside the library.
+  if (onDisk === null) return { itshfbc: Engine.EMBEDDED };
   await Engine.writeFile(onDisk.path, onDisk.text);
   return {
-    antenna: {
+    itshfbc: Engine.overlayRoot(Engine.scratchDirectory()),
+    txAntenna: {
       file: onDisk.file,
       // Only the families whose pattern depends on azimuth carry a bearing,
-      // as on the server: a vertical measured 0 dB over the whole compass.
+      // as on the server: a vertical measures 0 dB over the whole compass.
       beamDeg: usesBeam(station.antenna.type) ? station.antenna.beamDeg : 0,
     },
-    scratchDir: Engine.scratchDirectory(),
   };
 }
 
@@ -141,7 +148,7 @@ export async function predictLocally(
   const month = request.date.getUTCMonth() + 1;
   const year = request.date.getUTCFullYear();
   const { ssn, basis } = ssnForMonth(year, month);
-  const withAntenna = await antennaFor(request.station);
+  const station = await engineStation(request.station);
   const requiredSnrDb = requiredSnrFor(request.station.mode);
 
   const bands: readonly BandKey[] = BAND_ORDER;
@@ -150,11 +157,7 @@ export async function predictLocally(
   );
 
   const answer = await Engine.predict<WirePrediction>({
-    // With no antenna file to read, the coefficients are all the engine
-    // needs, and they are inside the library.
-    itshfbc: withAntenna === null
-      ? Engine.EMBEDDED
-      : Engine.overlayRoot(withAntenna.scratchDir),
+    ...station,
     fromLat: request.from.lat,
     fromLon: request.from.lon,
     toLat: request.to.lat,
@@ -168,7 +171,6 @@ export async function predictLocally(
     requiredSnrDb,
     noiseDbw: NOISE_DBW,
     bands: bands.map((band) => BAND_MHZ[band]),
-    ...(withAntenna ? { txAntenna: withAntenna.antenna } : {}),
   });
 
   const raw: RawBandHour[] = (answer.cells ?? [])

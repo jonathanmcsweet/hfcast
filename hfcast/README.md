@@ -6,8 +6,12 @@ The design premise: VOACAP output is climatology with a probability attached, wh
 
 ## Running it
 
-The app reads its forecasts from `hfcast-server`, so start that first — see
-`server/README.md`. Then:
+Where the forecast comes from depends on the build. An Android build made from
+this directory carries the engine and computes everything on the device, with no
+network and no server — see
+[Predicting on the device](#predicting-on-the-device). Expo Go, the web build and
+iOS have no engine to load, so they read from `hfcast-server`; start that first,
+see `server/README.md`. Then:
 
 ```bash
 pnpm install
@@ -161,6 +165,10 @@ system memory for the same reason.
 These settings live in generated files, so `expo prebuild` discards them. On a
 machine with memory to spare, skip them.
 
+**An Android build needs no server at all** — it carries the engine and predicts
+on the device. The rest of this section applies to the builds that do not: Expo
+Go, the web build and iOS.
+
 **The server address is a setting, not a build flag.** It is under
 **Server address** in the settings menu, and on the error screen when there is
 no forecast yet — which is where it is needed, since that screen is the whole
@@ -179,9 +187,10 @@ is wrong on a phone — that address is the phone itself. The error screen says 
 in those words rather than reporting a failed connection, because it is a
 setting to change and not a fault to debug.
 
-Without a reachable server, the station settings and the antenna compass are
-still openable from that screen. Nothing else is: the forecast, the bands and
-the map all need a prediction, and the screen does not exist until there is one.
+Without a reachable server — and without the engine, so this means Expo Go, the
+web build or iOS — the station settings and the antenna compass are still openable
+from that screen. Nothing else is: the forecast, the bands and the map all need a
+prediction, and the screen does not exist until there is one.
 
 ### Letting Expo build it
 
@@ -198,6 +207,50 @@ uploads the source there and needs an Expo account. The Android `preview`
 profile gives an APK you can sideload. iOS builds require a paid Apple Developer
 account and either TestFlight or a registered device UDID; that is Apple's
 policy rather than a limitation here.
+
+## Predicting on the device
+
+`modules/hfcast-engine` compiles VOACAP into the APK, so an Android build needs
+no server and no network. The forecast and the coverage map are both computed
+locally.
+
+The Rust engine is built as one shared library per ABI with the coefficient files
+compiled into it, reached through the same JSON interface the server uses over a
+pipe — so the device and the server cannot disagree about a number they were both
+given the same inputs for. `modules/hfcast-engine/build-rust.sh` builds the four
+libraries; they are committed under `android/src/main/jniLibs/`, so an ordinary
+build does not need Rust installed.
+
+Nothing switches this on. `Engine.isAvailable()` is true when the library loaded,
+and `usePrediction` and `useCoverage` each pick the device or the server from it.
+Which one answered is part of the React Query key, so an answer from one is never
+shown as the other's. Expo Go, the web build and iOS have no library to load and
+keep using the server unchanged.
+
+Three things the device does differently:
+
+- **The sunspot number** comes from `src/data/ssn.json` rather than NOAA. VOACAP
+  takes the smoothed SSN as an input, not a refinement, so without a figure there
+  is no prediction at all — this is what makes offline work possible, and it is
+  also the main limitation. 3.5 KB covering 2020 to 2030, frozen at the date in
+  the file.
+- **The antenna** is written to the module's cache directory as a `.voa` file and
+  the engine is pointed at `<embedded>+<dir>`, reading that first and the
+  compiled-in files after. The engine names an antenna by filename and the card
+  holds 21 columns, so the name comes from the rounded parameters.
+- **Space weather** needs the network and is absent offline. The forecast does not
+  depend on it.
+
+Cost, measured with the engine compiled in: a point-to-point forecast over five
+bands is 15 ms, and a 192-point coverage map is 48 ms — both on a desktop, with
+the ARM build under `qemu-aarch64-static` about 17 times slower for the map. The
+map is the expensive one, so `useCoverage` waits for the hour slider to settle
+rather than starting a run per value it reports.
+
+Correction factors and the mode table are copies of the server's, because Metro
+will not resolve modules outside this directory. `server/test/shared-with-app.test.ts`
+pins every fitted number against this app's source; if it fails, the two were
+changed on one side only.
 
 ## Device location without Google
 
@@ -259,8 +312,11 @@ src/screens/ForecastScreen  composition
 
 ### Where the data comes from
 
-`hfcast-server` runs real VOACAP through `voacapl` and returns `PathPrediction`.
-Everything downstream of `src/data/types.ts` reads that shape and nothing else.
+Two paths produce the same shape. On Android the engine in this APK computes it
+(see [Predicting on the device](#predicting-on-the-device)); elsewhere
+`hfcast-server` runs the same engine and returns it over HTTP. Everything
+downstream of `src/data/types.ts` reads that shape and nothing else, and does not
+know which produced it.
 
 The `basis` field says which sunspot number drove the run — observed, predicted,
 or inferred from current conditions — and the hero and the disclaimer both

@@ -3,6 +3,7 @@ import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { describe, it } from 'node:test';
 
+import { LAT_STEP, LON_STEP, REACHABLE } from '../src/coverage.ts';
 import { MODES } from '../src/station.ts';
 import {
   SPREAD_FACTOR_LOW,
@@ -14,9 +15,10 @@ import {
 } from '../src/voacap/correct.ts';
 
 /**
- * The app computes predictions itself now, with the engine compiled into the
- * APK, so the same two tables exist on both sides: the correction factors
- * fitted against WSPR reports, and the signal-to-noise each mode needs.
+ * The app computes predictions and coverage maps itself now, with the engine
+ * compiled into the APK, so the same three tables exist on both sides: the
+ * correction factors fitted against WSPR reports, the signal-to-noise each
+ * mode needs, and the grid a coverage map is run on.
  *
  * They are copies rather than one shared module, and that is a decision with a
  * reason. Metro refuses to resolve anything outside the app's own directory,
@@ -93,5 +95,24 @@ describe('the mode table the app and the server both read', () => {
       ]),
     );
     assert.deepEqual([...found].sort(), [...mine].sort());
+  });
+});
+
+describe('the coverage grid the app and the server both run', () => {
+  const source = appFile('coverageGrid.ts');
+
+  it('agrees on the cell size and the reach threshold', () => {
+    // The response carries the steps it was run on, so a mismatch would not
+    // misplace a cell. What it would do is make one path's map coarser than
+    // the other's, and make the reach percentages beside them not comparable.
+    const pairs: readonly [string, number][] = [
+      ['LAT_STEP', LAT_STEP],
+      ['LON_STEP', LON_STEP],
+      ['REACHABLE', REACHABLE],
+    ];
+    assert.deepEqual(
+      pairs.map(([name]) => constantIn(source, name)),
+      pairs.map(([, value]) => value),
+    );
   });
 });
