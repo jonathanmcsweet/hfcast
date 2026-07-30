@@ -1,6 +1,5 @@
 import type {
   Coverage,
-  Place,
   PredictionResponse,
   Sounding,
   SpaceWeather,
@@ -160,10 +159,6 @@ export function fetchSounding(
   lon: number,
 ): Promise<Sounding | null> {
   return getJson<Sounding | null>('/api/ionosonde', { at: `${lat},${lon}` });
-}
-
-export function fetchGeocode(query: string, lang: string): Promise<Place[]> {
-  return getJson<Place[]>('/api/geocode', { q: query, lang });
 }
 
 export function fetchSpaceWeather(): Promise<SpaceWeather> {
