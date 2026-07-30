@@ -111,12 +111,16 @@
     "chip": "Sin conexión"
   },
   "disclaimer": {
-    "titleLive": "Datos en directo, no climatología",
     "titleSaved": "Datos guardados",
     "climatology": "Climatología mensual, no una previsión en directo. Supone un número de manchas solares suavizado de {{ssn}} y condiciones geomagnéticas tranquilas.",
     "forecast": "Climatología mensual con un número de manchas solares previsto de {{ssn}}. Las previsiones más lejanas son menos seguras.",
-    "nowcast": "Basada en lecturas actuales, con un número de manchas solares efectivo de {{ssn}}. Estima la ionosfera, no esta ruta.",
-    "station": "Supone 100 W a un dipolo a 10 m de altura. Una antena mejor supera estas cifras; una antena de compromiso no las alcanza."
+    "nowcast": "Promedios mensuales, con el número de manchas solares tomado de lecturas de las últimas horas ({{ssn}}). Ese único valor rige las 24 horas, así que no puede ver una tormenta que llegue más tarde hoy.",
+    "station": "Supone 100 W a un dipolo a 10 m de altura. Una antena mejor supera estas cifras; una antena de compromiso no las alcanza.",
+    "title": {
+      "nowcast": "Condiciones de hoy, modelo mensual",
+      "climatology": "Promedios mensuales de este mes",
+      "forecast": "Promedios mensuales, ciclo previsto"
+    }
   },
   "settings": {
     "changeLanguage": "Cambiar idioma",

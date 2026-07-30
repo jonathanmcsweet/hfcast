@@ -54,8 +54,18 @@ export default function DisclaimerCard({ ssn, basis, saved = false }: Props) {
         style={styles.head}
       >
         <View style={styles.headRow}>
+          {
+            /* The title names the basis, not whether a fetch succeeded. It
+               used to say "Live data, not climatology" on every run that was
+               not restored from the cache — including runs the space weather
+               never reached, which are climatology, and including now-casts,
+               which are also climatology with a different sunspot number in
+               them. Both readings of it were wrong. */
+          }
           <Text style={[styles.title, { color: ui.text2 }]}>
-            {saved ? t('disclaimer.titleSaved') : t('disclaimer.titleLive')}
+            {saved
+              ? t('disclaimer.titleSaved')
+              : t(`disclaimer.title.${effective}`)}
           </Text>
           <Text style={[styles.caret, { color: ui.accent }]}>
             {open ? '−' : '+'}
