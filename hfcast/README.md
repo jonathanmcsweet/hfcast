@@ -448,17 +448,18 @@ installed it can read it. `src/data/credits.ts` is the list, and
 `test/credits.test.ts` fails the build if a credit loses its terms, its link or
 its translation.
 
-| What                                                                                     | Whose                                            | Terms                                                             |
-| ---------------------------------------------------------------------------------------- | ------------------------------------------------ | ----------------------------------------------------------------- |
-| [VOACAP](https://its.ntia.gov/), the propagation model                                   | NTIA/ITS, maintained by Greg Hand                | US Government work, not subject to copyright protection in the US |
-| [voacapl](https://github.com/jawatson/voacapl), the port this engine was translated from | J.A. Watson                                      | [CC0](https://creativecommons.org/publicdomain/zero/1.0/)         |
-| [The ionospheric coefficient maps](https://www.itu.int/rec/R-REC-P.1239/)                | CCIR Report 340 and URSI, published by ITU-R     | published for implementers free from copyright assertions         |
-| The place list searched offline                                                          | NTIA/ITS, from the VOACAP distribution           | US Government work                                                |
-| [Coastlines and country borders](https://www.naturalearthdata.com/)                      | Natural Earth                                    | public domain                                                     |
-| [Sunspot numbers and solar indices](https://www.swpc.noaa.gov/)                          | NOAA Space Weather Prediction Center             | US Government work                                                |
-| [Measured ionosonde soundings](https://giro.uml.edu/)                                    | UMass Lowell Global Ionosphere Radio Observatory | used with attribution                                             |
-| [Place search, when online](https://open-meteo.com/)                                     | Open-Meteo                                       | [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/)         |
-| [IBM Plex Sans](https://github.com/IBM/plex), the typeface                               | IBM                                              | SIL Open Font License 1.1                                         |
+| What                                                                                                                            | Whose                                            | Terms                                                             |
+| ------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------ | ----------------------------------------------------------------- |
+| [VOACAP](https://its.ntia.gov/), the propagation model                                                                          | NTIA/ITS, maintained by Greg Hand                | US Government work, not subject to copyright protection in the US |
+| [voacapl](https://github.com/jawatson/voacapl), the port this engine was translated from                                        | J.A. Watson                                      | [CC0](https://creativecommons.org/publicdomain/zero/1.0/)         |
+| [The ionospheric coefficient maps](https://www.itu.int/rec/R-REC-P.1239/)                                                       | CCIR Report 340 and URSI, published by ITU-R     | published for implementers free from copyright assertions         |
+| The place list searched offline                                                                                                 | NTIA/ITS, from the VOACAP distribution           | US Government work                                                |
+| [Coastlines and country borders](https://www.naturalearthdata.com/)                                                             | Natural Earth                                    | public domain                                                     |
+| [Sunspot numbers and solar indices](https://www.swpc.noaa.gov/)                                                                 | NOAA Space Weather Prediction Center             | US Government work                                                |
+| [Measured ionosonde soundings](https://giro.uml.edu/)                                                                           | UMass Lowell Global Ionosphere Radio Observatory | used with attribution                                             |
+| [Place search, when online](https://open-meteo.com/)                                                                            | Open-Meteo                                       | [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/)         |
+| [The aurora on the launch screen](https://commons.wikimedia.org/wiki/File:ISS-42_Aurora_borealis_over_North_Atlantic_Ocean.jpg) | NASA / Samantha Cristoforetti, ESA               | public domain                                                     |
+| [IBM Plex Sans](https://github.com/IBM/plex), the typeface                                                                      | IBM                                              | SIL Open Font License 1.1                                         |
 
 Two of these are obligations rather than courtesies. The SIL Open Font License
 requires its notice and text to travel with the font, which is inside the APK,

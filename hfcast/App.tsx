@@ -9,7 +9,7 @@ import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client
 import { StatusBar } from 'expo-status-bar';
 import React from 'react';
 import { I18nextProvider } from 'react-i18next';
-import { useColorScheme } from 'react-native';
+import { StyleSheet, useColorScheme, View } from 'react-native';
 import { PaperProvider } from 'react-native-paper';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
@@ -20,6 +20,7 @@ import {
   shouldPersistQuery,
 } from './src/api/persist';
 import ErrorBoundary from './src/components/ErrorBoundary';
+import LaunchOverlay from './src/components/LaunchOverlay';
 import i18n from './src/i18n';
 import ForecastScreen from './src/screens/ForecastScreen';
 import { useSettingsStore } from './src/store/useSettingsStore';
@@ -60,7 +61,14 @@ export default function App() {
   // A font that failed to load is not a reason to show nothing: the system
   // font is worse-looking, not unreadable, and an operator in the field
   // needs the forecast more than the typeface.
-  if (!fontsLoaded && !fontError) return null;
+  //
+  // While they are loading the frame is filled with the launch screen's own
+  // background rather than left empty. The fonts are bundled, so this lasts a
+  // frame or two — but an empty frame is white, and white between a dark
+  // system splash and a dark photograph is a flash.
+  if (!fontsLoaded && !fontError) {
+    return <View style={styles.launching} />;
+  }
 
   return (
     // The children render before the cache has been read back, which is
@@ -95,18 +103,32 @@ export default function App() {
                  boundary has to be able to render when what it wraps
                  has failed. */
             }
-            <ErrorBoundary
-              labels={{
-                title: i18n.t('crash.title'),
-                body: i18n.t('crash.body'),
-                retry: i18n.t('status.retry'),
-              }}
-            >
-              <ForecastScreen />
-            </ErrorBoundary>
+            <View style={styles.root}>
+              <ErrorBoundary
+                labels={{
+                  title: i18n.t('crash.title'),
+                  body: i18n.t('crash.body'),
+                  retry: i18n.t('status.retry'),
+                }}
+              >
+                <ForecastScreen />
+              </ErrorBoundary>
+              {
+                /* Over the screen rather than in place of it, so the screen
+                   mounts and does its work underneath while this is still up.
+                   It removes itself once there is a forecast to show. */
+              }
+              <LaunchOverlay />
+            </View>
           </SafeAreaProvider>
         </PaperProvider>
       </I18nextProvider>
     </PersistQueryClientProvider>
   );
 }
+
+const styles = StyleSheet.create({
+  root: { flex: 1 },
+  // The launch screen's own background, so the two cannot differ.
+  launching: { flex: 1, backgroundColor: '#0B0D14' },
+});

@@ -280,7 +280,8 @@
       "noaa": "Sonnenfleckenzahlen und Sonnenindizes",
       "giro": "Gemessene Ionosonden-Messungen",
       "openMeteo": "Ortssuche, wenn online",
-      "plex": "IBM Plex Sans, die Schriftart"
+      "plex": "IBM Plex Sans, die Schriftart",
+      "aurora": "Das Polarlicht auf dem Startbildschirm"
     },
     "openSource": "Website von {{who}} öffnen",
     "openTerms": "Lizenz {{terms}} lesen"
@@ -297,5 +298,17 @@
     "skip": "Vorerst überspringen",
     "continue": "Weiter",
     "recognised": "ERKANNT"
+  },
+  "launch": {
+    "kicker": "Kurzwellenausbreitung",
+    "title": "Welches Band bringt dich hin",
+    "credit": "ISS-Expedition 42 · NASA/S. Cristoforetti, gemeinfrei",
+    "a11y": "Startet: {{step}}",
+    "step": {
+      "flux": "Sonnenfluss",
+      "ionosonde": "Nächste Ionosonde",
+      "model": "Streckenmodell",
+      "bands": "Deine Bänder"
+    }
   }
 }
