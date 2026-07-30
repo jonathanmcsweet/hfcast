@@ -3,7 +3,12 @@ import { useMemo } from 'react';
 
 import { searchCities } from '../data/cities';
 import { formatLatLon, parseCoordinates } from '../data/coords';
+import { fetchGeocode as fetchGeocodeDirect } from '../data/geocode';
 import { gridToLatLon, isGrid, latLonToGrid } from '../data/grid';
+import {
+  fetchSounding as fetchSoundingDirect,
+  usefulStation,
+} from '../data/ionosonde';
 import { canMapLocally, coverLocally } from '../data/localCoverage';
 import {
   canPredictLocally,
@@ -24,7 +29,6 @@ import {
 import {
   API_BASE,
   fetchCoverage,
-  fetchGeocode,
   fetchPrediction,
   fetchSounding,
   fetchSpaceWeather,
@@ -257,10 +261,28 @@ export function usePrediction(from: Endpoint, to: Endpoint | null) {
  * would be worse than none.
  */
 export function useSounding(from: Endpoint) {
+  // As for space weather, the source follows the engine. GIRO restricts its
+  // CORS header to its own origin, which blocks a browser and not a native
+  // app, so a device asks GIRO and the web build asks the server.
+  const local = canPredictLocally();
+
+  // A station has to be near enough to describe the same ionosphere. Checked
+  // before the query rather than inside it so most of the world makes no
+  // request at all — the answer is known to be null from the coordinates.
+  const covered = usefulStation(from.lat, from.lon) !== null;
+
   return useQuery({
-    queryKey: queryKeys.sounding(API_BASE, from.lat, from.lon),
-    queryFn: () => fetchSounding(from.lat, from.lon),
-    // Stations sound every 5 to 15 minutes and the server caches for 5.
+    queryKey: queryKeys.sounding(
+      local ? 'device' : API_BASE,
+      from.lat,
+      from.lon,
+    ),
+    queryFn: () =>
+      local
+        ? fetchSoundingDirect(from.lat, from.lon)
+        : fetchSounding(from.lat, from.lon),
+    enabled: !local || covered,
+    // Stations sound every 5 to 15 minutes.
     staleTime: 5 * 60 * 1000,
     gcTime: 15 * 60 * 1000,
     retry: false,
@@ -314,7 +336,10 @@ export function useGeocode(query: string, lang: string) {
 
   const remote = useQuery({
     queryKey: queryKeys.geocode(trimmed.toLowerCase(), lang),
-    queryFn: () => fetchGeocode(trimmed, lang),
+    // Asked for directly, on every platform. Open-Meteo's geocoder needs no
+    // key and allows browsers, so unlike the ionosonde there is no reason to
+    // route it through a server the installed app cannot reach anyway.
+    queryFn: () => fetchGeocodeDirect(trimmed, lang),
     // A locator and a coordinate need no lookup at all, and neither does a
     // query the list already answers well. Asking anyway would spend a
     // request, and offline it would put a failure on screen beside results
