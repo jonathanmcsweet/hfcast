@@ -104,6 +104,18 @@ const containView = (v: MapView): MapView => {
 const DRAG_SLOP = 3;
 
 /**
+ * Fingers on the map before it moves.
+ *
+ * One finger belongs to the page. The map fills most of the screen, so
+ * claiming a single-finger drag meant a scroll that began over the map panned
+ * the map instead — a gesture that reads as "move the list" doing something
+ * else entirely, with no way to tell in advance which it would be. Two fingers
+ * is the pattern a scrollable map inside a scrollable page usually takes, and
+ * it also leaves the single finger free for tapping a square.
+ */
+const PAN_FINGERS = 2;
+
+/**
  * The coverage map: where this band reaches, right now, in every direction.
  *
  * Centred on the operator in an azimuthal equidistant projection, so a ring
@@ -272,16 +284,24 @@ export default function CoverageGlobe({
       PanResponder.create({
         // False on start so a press still reaches the buttons above.
         onStartShouldSetPanResponder: () => false,
-        onMoveShouldSetPanResponder: (_event, gesture) =>
+        onMoveShouldSetPanResponder: (event, gesture) =>
           viewRef.current.scale > MIN_SCALE
+          && event.nativeEvent.touches.length >= PAN_FINGERS
           && (Math.abs(gesture.dx) > DRAG_SLOP
             || Math.abs(gesture.dy) > DRAG_SLOP),
         onPanResponderGrant: () => {
           dragFrom.current = viewRef.current;
         },
-        onPanResponderMove: (_event, gesture) => {
+        onPanResponderMove: (event, gesture) => {
           const start = dragFrom.current;
           if (start === null) return;
+          // A finger lifted mid-drag ends the pan rather than turning it into
+          // a one-finger one. Otherwise letting go of one finger would carry
+          // on moving the map, which is the behaviour this avoids.
+          if (event.nativeEvent.touches.length < PAN_FINGERS) {
+            dragFrom.current = null;
+            return;
+          }
           // The map follows the finger, so the window moves the other way.
           // Screen pixels become disc pixels by dividing by the scale.
           setView(
@@ -539,6 +559,24 @@ export default function CoverageGlobe({
           </View>
         )
         : null}
+
+      {
+        /* Only once there is somewhere to pan to. A gesture nobody can guess
+           has to be said, and saying it before it works would be noise on
+           every other screenful. */
+      }
+      {zoomedIn
+        ? (
+          <View
+            pointerEvents="none"
+            style={[styles.hint, { backgroundColor: ui.card }]}
+          >
+            <Text style={[typography.caption, { color: ui.text3 }]}>
+              {t('reach.panHint')}
+            </Text>
+          </View>
+        )
+        : null}
     </View>
   );
 }
@@ -571,4 +609,13 @@ const styles = StyleSheet.create({
     padding: spacing.lg,
   },
   message: { textAlign: 'center' },
+  hint: {
+    position: 'absolute',
+    bottom: spacing.xs,
+    start: spacing.xs,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 4,
+    borderRadius: 8,
+    opacity: 0.92,
+  },
 });

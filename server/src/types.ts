@@ -85,9 +85,17 @@ export interface Endpoint {
 
 export interface PathPrediction {
   from: Endpoint;
-  to: Endpoint;
-  distanceKm: number;
-  bearingDeg: number;
+  /**
+   * The far end, or null for a survey — the forecast `/api/survey` returns,
+   * where each cell is the share of directions reachable rather than the
+   * chance of one contact.
+   *
+   * The three fields describing one path are null together, never separately.
+   * `/api/prediction` always fills all three.
+   */
+  to: Endpoint | null;
+  distanceKm: number | null;
+  bearingDeg: number | null;
   /** The sunspot number the run actually used. */
   ssn: number;
   /**

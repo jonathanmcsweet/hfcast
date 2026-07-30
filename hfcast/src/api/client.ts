@@ -5,17 +5,19 @@ import type {
   Sounding,
   SpaceWeather,
 } from '../data/types';
-import { serverAddress } from '../store/useServerStore';
-
 /**
- * Where the prediction server lives, read at the moment of the request.
+ * Where the prediction server lives.
  *
- * It is a setting rather than a constant because an installed build cannot be
- * rebuilt to change it, and the build-time default — this device — is never
- * right on a phone. `EXPO_PUBLIC_HFCAST_API` still supplies the default; see
- * `store/useServerStore.ts`.
+ * A build-time constant, and no longer something a user can be asked for. The
+ * engine is compiled into the app, so a phone computes its own forecasts and
+ * has no server to point at; what still reaches this client is the web build,
+ * which has no engine, and there the default is the machine serving the page.
+ *
+ * `EXPO_PUBLIC_HFCAST_API` overrides it for a development build pointed
+ * somewhere else.
  */
-const apiBase = (): string => serverAddress();
+export const API_BASE = process.env.EXPO_PUBLIC_HFCAST_API
+  ?? 'http://127.0.0.1:8787';
 
 export class ApiError extends Error {
   /** 0 when the request never reached the server at all. */
@@ -39,8 +41,7 @@ async function getJson<T>(
   path: string,
   params: Record<string, string>,
 ): Promise<T> {
-  // Read once per request, so a change of address applies to the next one.
-  const base = apiBase();
+  const base = API_BASE;
   const url = new URL(`${base}${path}`);
   for (const [key, value] of Object.entries(params)) {
     if (value !== '') url.searchParams.set(key, value);
@@ -105,6 +106,24 @@ export function fetchPrediction(
     to: p.to,
     fromLabel: p.fromLabel,
     toLabel: p.toLabel,
+    date: p.date,
+    nowcast: p.nowcast ? '1' : '',
+    ...p.station,
+  });
+}
+
+/**
+ * The same day with no destination: how much of the world hears this station.
+ *
+ * Forty-eight runs behind one request, so it is the slow route. Only the web
+ * build asks for it — a device computes its own, see `data/localSurvey.ts`.
+ */
+export function fetchSurvey(
+  p: Omit<PredictionParams, 'to' | 'toLabel'>,
+): Promise<PredictionResponse> {
+  return getJson<PredictionResponse>('/api/survey', {
+    from: p.from,
+    fromLabel: p.fromLabel,
     date: p.date,
     nowcast: p.nowcast ? '1' : '',
     ...p.station,

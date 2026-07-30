@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { FlatList, StyleSheet, View } from 'react-native';
 import {
@@ -23,12 +23,17 @@ import { usePathStore } from '../store/usePathStore';
 import { radius, spacing, typography } from '../theme';
 import type { AppTheme } from '../theme';
 
+type End = 'from' | 'to';
+
 interface Props {
   visible: boolean;
+  /**
+   * The end to open on. The header has a control for each, so arriving on
+   * the wrong one would mean a correction before every use.
+   */
+  end: End;
   onDismiss: () => void;
 }
-
-type End = 'from' | 'to';
 
 const placeToEndpoint = (place: Place): Endpoint => ({
   grid: place.grid,
@@ -44,7 +49,9 @@ const placeToEndpoint = (place: Place): Endpoint => ({
  * type "Tokyo" and an operator can type "PM95". Device location only applies to
  * the near end; the far end is always searched.
  */
-export default function LocationPicker({ visible, onDismiss }: Props) {
+export default function LocationPicker(
+  { visible, end: openOn, onDismiss }: Props,
+) {
   const theme = useTheme<AppTheme>();
   const { t, i18n } = useTranslation();
 
@@ -54,12 +61,20 @@ export default function LocationPicker({ visible, onDismiss }: Props) {
   const setTo = usePathStore((s) => s.setTo);
   const swapEnds = usePathStore((s) => s.swapEnds);
 
-  const [end, setEnd] = useState<End>('from');
+  const [end, setEnd] = useState<End>(openOn);
   const [query, setQuery] = useState('');
   const [locating, setLocating] = useState(false);
   const [locationError, setLocationError] = useState<string | null>(null);
 
   const { data: results, isFetching, error } = useGeocode(query, i18n.language);
+
+  // The modal stays mounted between openings, so its own state outlives a
+  // dismissal. Following `openOn` on the way in is what makes the two header
+  // controls land on different ends; the segmented buttons still move it
+  // afterwards.
+  useEffect(() => {
+    if (visible) setEnd(openOn);
+  }, [visible, openOn]);
 
   const choose = useCallback(
     (endpoint: Endpoint) => {
@@ -130,10 +145,37 @@ export default function LocationPicker({ visible, onDismiss }: Props) {
           onValueChange={(next) => setEnd(next as End)}
           buttons={[
             { value: 'from', label: `${t('location.from')}: ${from.label}` },
-            { value: 'to', label: `${t('location.to')}: ${to.label}` },
+            {
+              value: 'to',
+              label: `${t('location.to')}: ${
+                to?.label ?? t('location.noneSet')
+              }`,
+            },
           ]}
           style={styles.segments}
         />
+
+        {
+          /* Only offered once there is one to clear. The forecast without a
+             destination is a whole mode rather than an empty state, so
+             leaving it has to be as easy as entering it. */
+        }
+        {end === 'to' && to !== null
+          ? (
+            <Button
+              mode="text"
+              icon="close-circle-outline"
+              onPress={() => {
+                setTo(null);
+                setQuery('');
+                onDismiss();
+              }}
+              style={styles.clear}
+            >
+              {t('location.clearDestination')}
+            </Button>
+          )
+          : null}
 
         {
           /* Absent where it could not work, rather than present and failing:
@@ -243,6 +285,7 @@ const styles = StyleSheet.create({
   headerRow: { flexDirection: 'row', alignItems: 'center' },
   title: { flex: 1 },
   segments: { marginTop: spacing.sm },
+  clear: { marginTop: spacing.xs, alignSelf: 'flex-start' },
   gps: { marginTop: spacing.md, minHeight: 52, justifyContent: 'center' },
   search: { marginTop: spacing.md },
   spinner: { marginTop: spacing.md },

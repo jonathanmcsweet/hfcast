@@ -10,12 +10,17 @@
     "mapUnavailable": "The coverage map could not be loaded.",
     "reachLine": "{{band}} reaches about {{percent}} of the world at this hour.",
     "legendReach": "Reach",
-    "legendNight": "Night"
+    "legendNight": "Night",
+    "panHint": "Two fingers move the map",
+    "subtitleAnywhere": "No destination set, so this is every direction at once.",
+    "answerAnywhere": "{{band}} at {{hour}} UTC reaches about {{percent}} of the directions sampled."
   },
   "path": {
     "summary": "{{distance}} · bearing {{bearing}} · {{hops}} hops",
     "summaryOneHop": "{{distance}} · bearing {{bearing}} · one hop",
-    "changeDestination": "Change destination"
+    "changeDestination": "Change destination",
+    "setDestination": "Set a destination",
+    "noDestinationHint": "The map shows every direction. Choose a destination to forecast one path."
   },
   "window": {
     "label": "Usable window",
@@ -34,13 +39,17 @@
     "showAsGrid": "Show as grid",
     "bandColumn": "Band",
     "footnoteHours": "Hours are UTC. Local time at {{place}} is on the clock above.",
-    "footnoteSaved": "This is saved data, so it cannot show anything that changed since it was fetched."
+    "footnoteSaved": "This is saved data, so it cannot show anything that changed since it was fetched.",
+    "unitDirections": "Directions reachable, %",
+    "chanceAnywhere": "reaches about {{percent}} of sampled directions"
   },
   "sections": {
     "allBandsHint": "How far each band gets you, hour by hour.",
     "sun": "The sun today",
     "allBandsTo": "All bands to {{place}}",
-    "noneReach": "No band reaches {{place}} at any hour today."
+    "noneReach": "No band reaches {{place}} at any hour today.",
+    "allBandsAnywhere": "All bands, every direction",
+    "noneReachAnywhere": "No band reaches anywhere at any hour today."
   },
   "spaceWeather": {
     "flux": "Solar flux",
@@ -83,20 +92,20 @@
     "from": "From",
     "to": "To",
     "useDevice": "Use my location",
-    "searchPlaceholder": "City name or grid square",
+    "searchPlaceholder": "Town, coordinates, grid square",
     "searchFailed": "Search is unavailable right now.",
     "noResults": "No places found.",
     "permissionDenied": "Location permission was declined. Search for a place instead.",
     "unavailable": "Your location could not be read. Search for a place instead.",
-    "noProvider": "Location is switched off on this device. Turn it on, or search for a place instead."
+    "noProvider": "Location is switched off on this device. Turn it on, or search for a place instead.",
+    "noneSet": "none",
+    "clearDestination": "Forecast every direction instead"
   },
   "status": {
     "loading": "Working out the forecast",
     "errorTitle": "No forecast available",
-    "errorBody": "The prediction service at {{address}} did not answer.",
+    "errorBody": "The forecast could not be worked out.",
     "retry": "Try again",
-    "errorLoopback": "That address is this device itself, so there is nothing there to answer. Set the address of the machine running the server.",
-    "setServer": "Set server address",
     "openStation": "Set up your radio"
   },
   "offline": {
@@ -129,7 +138,8 @@
       "autoNamed": "Follow the device ({{system}})",
       "metric": "Metric",
       "imperial": "Imperial"
-    }
+    },
+    "refresh": "Refresh now"
   },
   "a11y": {
     "changeLocation": "Transmitting from {{place}}. Tap to change.",
@@ -251,16 +261,6 @@
     "kilometres": "{{value}} km",
     "miles": "{{value}} mi"
   },
-  "server": {
-    "title": "Server address",
-    "explain": "HFcast reads its forecasts from a prediction server. Enter the address of the machine running it — a host and port is enough.",
-    "field": "Server address",
-    "willUse": "Will use {{address}}",
-    "invalid": "That is not an address this can use.",
-    "default": "Default",
-    "cancel": "Cancel",
-    "save": "Save"
-  },
   "about": {
     "title": "About HFcast",
     "close": "Close",
@@ -280,5 +280,18 @@
       "openMeteo": "Place search, when online",
       "plex": "IBM Plex Sans, the typeface"
     }
+  },
+  "firstRun": {
+    "kicker": "YOUR LOCATION",
+    "title": "Where are you transmitting from?",
+    "subtitle": "Every forecast is worked out from here. You can change it any time.",
+    "useGps": "Use my current location",
+    "orType": "OR TYPE IT IN",
+    "formats": "Place · coordinates · grid square",
+    "formatsHint": "Tap an example above to see how each one reads.",
+    "footnote": "A 4-character grid square is precise enough for HF. Skip and HFCast works from Greenwich — the prime meridian, where UTC starts — until you set your own.",
+    "skip": "Skip for now",
+    "continue": "Continue",
+    "recognised": "RECOGNISED"
   }
 }

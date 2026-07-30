@@ -15,20 +15,30 @@ import type { BandKey, Endpoint } from '../data/types';
  * re-entering a location through a search that needs the network.
  */
 
-/** Seattle to Tokyo, the path the app shipped with. Used until a location is chosen. */
-const DEFAULT_FROM: Endpoint = {
-  grid: 'CN87',
-  label: 'Seattle',
-  lat: 47.61,
-  lon: -122.33,
+/**
+ * Greenwich, where UTC starts.
+ *
+ * The location a skipped first run falls back to. It used to be Seattle, which
+ * is a real place somebody lives and reads as a mistake rather than as a
+ * default; the prime meridian at least explains itself, since every hour on
+ * this screen is UTC.
+ */
+export const GREENWICH: Endpoint = {
+  grid: 'IO91',
+  label: 'Greenwich',
+  lat: 51.4779,
+  lon: -0.0014,
 };
 
-const DEFAULT_TO: Endpoint = {
-  grid: 'PM95',
-  label: 'Tokyo',
-  lat: 35.68,
-  lon: 139.77,
-};
+const DEFAULT_FROM: Endpoint = GREENWICH;
+
+/**
+ * No destination, which is an ordinary state rather than an unset one.
+ *
+ * The map answers who can hear you without one, and the grid below reports
+ * the share of directions reachable instead of the chance of one contact.
+ */
+const DEFAULT_TO: Endpoint | null = null;
 
 /**
  * The band the app opens on.
@@ -41,16 +51,26 @@ export const DEFAULT_BAND: BandKey = '40m';
 
 interface PathState {
   from: Endpoint;
-  to: Endpoint;
+  to: Endpoint | null;
   /** The band every module is showing. Always set — there is no "auto". */
   band: BandKey;
   /** The hour every module is showing, 0..23. */
   hour: number;
+  /**
+   * Whether the operator has been asked where they are.
+   *
+   * False only until the first-run pane has been answered or skipped. It is
+   * not "has a location", because skipping sets one — it records that the
+   * question has been put, so it is never asked twice.
+   */
+  ready: boolean;
   setFrom: (endpoint: Endpoint) => void;
-  setTo: (endpoint: Endpoint) => void;
+  setTo: (endpoint: Endpoint | null) => void;
   swapEnds: () => void;
   setBand: (band: BandKey) => void;
   setHour: (hour: number) => void;
+  /** Marks the first run answered, with whatever location it settled on. */
+  finishFirstRun: (from: Endpoint) => void;
 }
 
 /**
@@ -58,7 +78,7 @@ interface PathState {
  * `migrate`. Without it a stored `Endpoint` from an older build would be
  * spread into state unchecked.
  */
-const PERSIST_VERSION = 2;
+const PERSIST_VERSION = 3;
 
 export const usePathStore = create<PathState>()(
   persist(
@@ -67,12 +87,19 @@ export const usePathStore = create<PathState>()(
       to: DEFAULT_TO,
       band: DEFAULT_BAND,
       hour: new Date().getUTCHours(),
+      ready: false,
       setFrom: (from) => set({ from }),
       setTo: (to) => set({ to }),
-      swapEnds: () => set((state) => ({ from: state.to, to: state.from })),
+      // Nothing to swap when there is only one end. Doing nothing rather
+      // than moving the operator to where they were not transmitting from.
+      swapEnds: () =>
+        set((state) =>
+          state.to === null ? state : { from: state.to, to: state.from }
+        ),
       setBand: (band) => set({ band }),
       setHour: (hour) =>
         set({ hour: Math.min(23, Math.max(0, Math.round(hour))) }),
+      finishFirstRun: (from) => set({ from, ready: true }),
     }),
     {
       name: 'hfcast.path',
@@ -85,6 +112,7 @@ export const usePathStore = create<PathState>()(
         from: state.from,
         to: state.to,
         band: state.band,
+        ready: state.ready,
       }),
       migrate: (persisted, version) => {
         // Version 1 stored `pinnedBand`, which could be null to mean
@@ -100,7 +128,15 @@ export const usePathStore = create<PathState>()(
             from: old.from ?? DEFAULT_FROM,
             to: old.to ?? DEFAULT_TO,
             band: old.pinnedBand ?? DEFAULT_BAND,
+            ready: old.from !== undefined,
           };
+        }
+        // Version 2 had no `ready` and required both ends. Anyone with a
+        // stored path has already chosen a location, whatever the app asked
+        // at the time, so they are not shown the first-run pane.
+        if (version === 2) {
+          const old = persisted as Partial<PathState>;
+          return { ...old, ready: true };
         }
         if (version === PERSIST_VERSION) {
           return persisted as Partial<PathState>;
