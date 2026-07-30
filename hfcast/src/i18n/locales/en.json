@@ -111,12 +111,16 @@
     "chip": "Offline"
   },
   "disclaimer": {
-    "titleLive": "Live data, not climatology",
     "titleSaved": "Saved data",
     "climatology": "Monthly climatology, not a live forecast. Assumes smoothed sunspot number {{ssn}} and quiet geomagnetic conditions.",
     "forecast": "Monthly climatology using a predicted sunspot number of {{ssn}}. Forecasts further ahead are less certain.",
-    "nowcast": "Driven by current readings, with an effective sunspot number of {{ssn}}. This estimates the ionosphere, not this path.",
-    "station": "Assumes 100 W into a dipole 10 m up. A better antenna beats these numbers; a compromise antenna will not reach them."
+    "nowcast": "Monthly averages, with the sunspot number set from readings taken in the last few hours ({{ssn}}). That one reading drives all 24 hours, so it cannot see a storm that arrives later today.",
+    "station": "Assumes 100 W into a dipole 10 m up. A better antenna beats these numbers; a compromise antenna will not reach them.",
+    "title": {
+      "nowcast": "Today's conditions, monthly model",
+      "climatology": "Monthly averages for this month",
+      "forecast": "Monthly averages, predicted cycle"
+    }
   },
   "settings": {
     "changeLanguage": "Change language",

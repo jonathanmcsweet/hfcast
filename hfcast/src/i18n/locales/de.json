@@ -111,12 +111,16 @@
     "chip": "Offline"
   },
   "disclaimer": {
-    "titleLive": "Aktuelle Daten, keine Klimatologie",
     "titleSaved": "Gespeicherte Daten",
     "climatology": "Monatliche Klimatologie, keine Live-Vorhersage. Nimmt eine geglättete Sonnenfleckenzahl von {{ssn}} und ruhige geomagnetische Bedingungen an.",
     "forecast": "Monatliche Klimatologie mit einer vorhergesagten Sonnenfleckenzahl von {{ssn}}. Weiter entfernte Vorhersagen sind unsicherer.",
-    "nowcast": "Auf aktuellen Messwerten beruhend, mit einer effektiven Sonnenfleckenzahl von {{ssn}}. Dies schätzt die Ionosphäre, nicht diese Strecke.",
-    "station": "Nimmt 100 W an einem Dipol in 10 m Höhe an. Eine bessere Antenne übertrifft diese Werte; eine Behelfsantenne erreicht sie nicht."
+    "nowcast": "Monatsmittel, wobei die Sonnenfleckenzahl aus Messungen der letzten Stunden stammt ({{ssn}}). Dieser eine Wert gilt für alle 24 Stunden, ein später am Tag aufziehender Sturm ist also nicht enthalten.",
+    "station": "Nimmt 100 W an einem Dipol in 10 m Höhe an. Eine bessere Antenne übertrifft diese Werte; eine Behelfsantenne erreicht sie nicht.",
+    "title": {
+      "nowcast": "Heutige Bedingungen, Monatsmodell",
+      "climatology": "Monatsmittel für diesen Monat",
+      "forecast": "Monatsmittel, vorhergesagter Zyklus"
+    }
   },
   "settings": {
     "changeLanguage": "Sprache ändern",
