@@ -3,11 +3,14 @@ import { describe, it } from 'node:test';
 
 import { LAT_STEP, LON_STEP } from '../src/data/coverageGrid.ts';
 import {
+  MAX_PATCH_POINTS,
   PATCH_HALF_LAT_DEG,
   PATCH_LAT_STEP,
   PATCH_LON_STEP,
   PATCH_MAX_HALF_LON_DEG,
+  PATCH_STEPS,
   patchBounds,
+  patchGrid,
 } from '../src/data/coveragePatch.ts';
 import { nvisReachKm } from '../src/data/quality.ts';
 import type { CoveragePoint } from '../src/data/types.ts';
@@ -190,5 +193,91 @@ describe('how far the near-vertical region reaches', () => {
       nvisReachKm(from, [{ lat: 41, lon: -105, reliability: 0.9 }]),
       null,
     );
+  });
+});
+
+describe('choosing how fine to run', () => {
+  const count = (g: NonNullable<ReturnType<typeof patchGrid>>) =>
+    Math.ceil((g.latMax - g.latMin) / g.latStep)
+    * Math.ceil((g.lonMax - g.lonMin) / g.lonStep);
+
+  it('offers only steps that nest inside a coarse cell', () => {
+    // Whichever rung is chosen, the fine cells have to line up with the
+    // coarse ones under them rather than lying across their edges.
+    for (const [latStep, lonStep] of PATCH_STEPS) {
+      assert.equal((180 / latStep) % 1, 0, `${latStep} does not divide 180`);
+      assert.equal((360 / lonStep) % 1, 0, `${lonStep} does not divide 360`);
+      assert.equal(
+        (LAT_STEP / latStep) % 1,
+        0,
+        `${latStep} does not divide the coarse step`,
+      );
+      assert.equal(
+        (LON_STEP / lonStep) % 1,
+        0,
+        `${lonStep} does not divide the coarse step`,
+      );
+    }
+  });
+
+  it('lists them coarsest first, which is what the search relies on', () => {
+    const lats = PATCH_STEPS.map(([lat]) => lat);
+    assert.deepEqual([...lats].sort((a, b) => b - a), lats);
+  });
+
+  it('stays inside the budget at every latitude and zoom', () => {
+    // The whole cost control. A rectangle that got finer without getting
+    // smaller would be the whole-globe run this exists to avoid.
+    for (const lat of [0, 20, 40, 60, 75, 85]) {
+      for (const half of [10, 8, 6, 4, 2, 1]) {
+        const grid = patchGrid(lat, 0, half);
+        assert.ok(grid, `no grid at ${lat} with half ${half}`);
+        assert.ok(
+          count(grid) <= MAX_PATCH_POINTS,
+          `${count(grid)} points at ${lat} with half ${half}`,
+        );
+      }
+    }
+  });
+
+  it('buys a finer grid with a smaller rectangle rather than a cheaper run', () => {
+    // Zooming in shrinks the rectangle, and the step follows it down.
+    const wide = patchGrid(40, 0, 10);
+    const tight = patchGrid(40, 0, 2);
+    assert.ok(wide && tight);
+    assert.ok(
+      tight.latStep < wide.latStep,
+      `${tight.latStep} vs ${wide.latStep}`,
+    );
+    assert.ok(tight.lonStep < wide.lonStep);
+  });
+
+  it('runs the default view at the step the fixed patch always used', () => {
+    // The whole-globe view must not change: the projection is centred on
+    // the station, so the view centre and the station are the same place.
+    const grid = patchGrid(39.74, -104.98);
+    assert.ok(grid);
+    assert.equal(grid.latStep, PATCH_LAT_STEP);
+    assert.equal(grid.lonStep, PATCH_LON_STEP);
+    assert.deepEqual(
+      {
+        latMin: grid.latMin,
+        latMax: grid.latMax,
+        lonMin: grid.lonMin,
+        lonMax: grid.lonMax,
+      },
+      patchBounds(39.74, -104.98),
+    );
+  });
+
+  it('is never coarser than the map it is drawn over', () => {
+    const grid = patchGrid(0, 0, 10);
+    assert.ok(grid);
+    assert.ok(grid.latStep <= LAT_STEP);
+    assert.ok(grid.lonStep <= LON_STEP);
+  });
+
+  it('gives up where the fixed rectangle would', () => {
+    assert.equal(patchGrid(-18, 179), null);
   });
 });
