@@ -15,7 +15,12 @@
     "subtitleAnywhere": "Kein Ziel gesetzt, daher alle Richtungen zugleich.",
     "answerAnywhere": "{{band}} um {{hour}} UTC erreicht etwa {{percent}} der geprüften Richtungen.",
     "legendNvis": "Keine tote Zone",
-    "nvisReach": "{{band}} reicht ohne tote Zone bis etwa {{distance}}."
+    "nvisReach": "{{band}} reicht ohne tote Zone bis etwa {{distance}}.",
+    "mapSharpening": "Die Karte wird genauer",
+    "detailWorld": "Feine Auflösung, ganze Welt.",
+    "detailNear": "Feine Auflösung nur in der Nähe von {{place}}.",
+    "detailMeasuring": "Das Gerät wird gemessen, bevor feine Details hinzukommen.",
+    "detailCoarse": "Nur grobe Auflösung. Dieses Gerät ist für das feine Gitter zu langsam."
   },
   "path": {
     "summary": "{{distance}} · Peilung {{bearing}} · {{hops}} Sprünge",

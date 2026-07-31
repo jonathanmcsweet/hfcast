@@ -4,7 +4,11 @@ import { useMemo } from 'react';
 import { searchCities } from '../data/cities';
 import { formatLatLon, parseCoordinates } from '../data/coords';
 import { patchGrid, patchKey } from '../data/coveragePatch';
-import { fineGlobeAffordable, medianOf } from '../data/engineBudget';
+import {
+  fineGlobeAffordable,
+  marginalMsPerPoint,
+  projectedFineMs,
+} from '../data/engineBudget';
 import { fetchGeocode as fetchGeocodeDirect } from '../data/geocode';
 import { gridToLatLon, isGrid, latLonToGrid } from '../data/grid';
 import {
@@ -522,6 +526,36 @@ export function useCoverage(
  * Where the server answers, there is nothing to gate: it shards across
  * processes and replies in about 440 ms whatever the phone is.
  */
+/**
+ * Whether the fine grid will be asked for, and why.
+ *
+ * Separated from the query so the map's decision and the line under the
+ * map that explains it read the same fact. Two copies of this rule would
+ * be a line that says the grid is coming while the query sits disabled —
+ * which is worse than saying nothing, because a reader would keep
+ * waiting.
+ */
+export function useFineGate() {
+  const local = canMapLocally();
+  // Subscribed rather than read once, so a device that has just taken
+  // its first measurement turns the globe on without needing another
+  // reason to re-render.
+  const samples = useEngineCost((state) => state.samples);
+  const msPerPoint = marginalMsPerPoint(samples);
+  return {
+    /** True when this device runs the engine itself. */
+    local,
+    /** How many timed runs are held. */
+    sampleCount: samples.length,
+    /** Null until runs of two different sizes have been seen. */
+    msPerPoint,
+    /** What the fine grid is expected to cost here, in milliseconds. */
+    projectedMs: projectedFineMs(msPerPoint),
+    /** Nothing to weigh where the server answers. */
+    affordable: !local || fineGlobeAffordable(msPerPoint),
+  };
+}
+
 export function useFineGlobe(
   from: Endpoint,
   band: BandKey,
@@ -533,11 +567,7 @@ export function useFineGlobe(
   const local = canMapLocally();
   const nowcast = nowcastFrom(useSpaceWeather().data);
   const hour = useSettled(reportedHour, 350);
-  // Subscribed rather than read once, so a device that has just taken
-  // its first measurement turns the globe on without needing another
-  // reason to re-render.
-  const samples = useEngineCost((state) => state.samples);
-  const affordable = !local || fineGlobeAffordable(medianOf(samples));
+  const { affordable } = useFineGate();
 
   return useQuery({
     queryKey: queryKeys.fineGlobe(

@@ -14,21 +14,28 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 
-import { medianOf } from '../data/engineBudget';
+import {
+  type CostSample,
+  fineGlobeAffordable,
+  marginalMsPerPoint,
+  projectedFineMs,
+} from '../data/engineBudget';
 
 /**
  * How many readings are kept.
  *
- * Enough that one slow run cannot move the median, few enough that a
- * device which has genuinely changed — a tablet taken off a charger and
- * throttled, a phone that has warmed up — is followed within a few band
- * changes rather than held to what it managed last week.
+ * Enough that one slow run cannot move the fitted slope, and enough to
+ * hold runs of both sizes the app makes — the 192-point coarse grid and
+ * the few-hundred-point viewport patch — since a fit needs at least two
+ * different sizes. Few enough that a device which has genuinely changed,
+ * a tablet taken off a charger and throttled, is followed within a few
+ * band changes rather than held to what it managed last week.
  */
-export const COST_SAMPLES = 7;
+export const COST_SAMPLES = 12;
 
 interface EngineCostState {
-  /** Milliseconds per grid point, newest last. */
-  samples: number[];
+  /** Timed runs, newest last, each with the size it covered. */
+  samples: CostSample[];
   /**
    * Records one run.
    *
@@ -37,7 +44,11 @@ interface EngineCostState {
    * device is running one.
    */
   record: (elapsedMs: number, points: number) => void;
-  /** The median cost per point, or null before the first run. */
+  /**
+   * The marginal cost of one more point, or null until runs of two
+   * different sizes have been seen. A single size cannot separate a
+   * run's fixed cost from its per-point cost.
+   */
   msPerPoint: () => number | null;
 }
 
@@ -55,16 +66,57 @@ export const useEngineCost = create<EngineCostState>()(
           return;
         }
         set((state) => ({
-          samples: [...state.samples, elapsedMs / points].slice(-COST_SAMPLES),
+          samples: [...state.samples, { points, ms: elapsedMs }].slice(
+            -COST_SAMPLES,
+          ),
         }));
+
+        // Said out loud, because this decision is otherwise invisible.
+        // The fine grid either appears or it does not, and a device that
+        // never shows it looks the same whether the gate refused, the
+        // measurement never arrived, or the run failed. Three different
+        // faults with one symptom is not something a screen can be read
+        // for — so the numbers behind the verdict go to the log, where
+        // `adb logcat` can reach them on a device that cannot be
+        // debugged any other way.
+        //
+        // One line per engine run, which is a handful per band change.
+        const fitted = marginalMsPerPoint(get().samples);
+        const projected = projectedFineMs(fitted);
+        console.log(
+          `[hfcast] engine ${points} points in ${Math.round(elapsedMs)} ms`
+            + ` | samples ${get().samples.length}`
+            + ` | ms/point ${fitted === null ? 'unknown' : fitted.toFixed(4)}`
+            + ` | fine grid ${
+              projected === null ? 'unprojected' : `${Math.round(projected)} ms`
+            }`
+            + ` | affordable ${fineGlobeAffordable(fitted)}`,
+        );
       },
 
-      msPerPoint: () => medianOf(get().samples),
+      msPerPoint: () => marginalMsPerPoint(get().samples),
     }),
     {
       name: 'hfcast-engine-cost',
       storage: createJSONStorage(() => AsyncStorage),
-      version: 1,
+      // Only the readings are stored. The two functions beside them are
+      // rebuilt on every launch and JSON would drop them regardless;
+      // naming what is kept also makes the migration below type-check
+      // against the stored shape rather than the whole store.
+      partialize: (state) => ({ samples: state.samples }),
+      version: 2,
+      // The stored shape changed from bare numbers to {points, ms} pairs
+      // when the cost model was corrected. A bare number says how long a
+      // run took but not how large it was, and a slope cannot be fitted
+      // through sizes that were never recorded — so the old readings are
+      // dropped and the device measures itself again, which costs one
+      // band change.
+      //
+      // Written out rather than left to happen: with no `migrate`,
+      // zustand drops the state anyway but prints an error while doing
+      // it, and an error in the log for behaviour that is intended sends
+      // the next reader looking for a fault that is not there.
+      migrate: () => ({ samples: [] }),
     },
   ),
 );

@@ -15,7 +15,12 @@
     "subtitleAnywhere": "No destination set, so this is every direction at once.",
     "answerAnywhere": "{{band}} at {{hour}} UTC reaches about {{percent}} of the directions sampled.",
     "legendNvis": "No skip zone",
-    "nvisReach": "{{band}} reaches out to about {{distance}} with no skip zone."
+    "nvisReach": "{{band}} reaches out to about {{distance}} with no skip zone.",
+    "mapSharpening": "Adding detail to the map",
+    "detailWorld": "Fine detail, whole world.",
+    "detailNear": "Fine detail near {{place}} only.",
+    "detailMeasuring": "Measuring this device before it adds fine detail.",
+    "detailCoarse": "Coarse detail only. This device is too slow for the fine grid."
   },
   "path": {
     "summary": "{{distance}} · bearing {{bearing}} · {{hops}} hops",

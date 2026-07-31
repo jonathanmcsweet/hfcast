@@ -258,6 +258,12 @@ export async function coverPatchLocally(
   const { ssn, basis } = ssnFor(year, month, request.nowcast);
   const station = await engineStation(request.station);
 
+  // Timed like the coarse run, and for a reason the coarse run alone
+  // cannot serve: the fine grid's cost is fitted from runs of different
+  // sizes, and this one is a few hundred points against the coarse
+  // grid's 192. One size cannot separate a run's fixed cost from its
+  // per-point cost, so without this pair the gate has nothing to fit.
+  const startedAt = Date.now();
   const answer = await Engine.predict<WireCoverage>({
     ...station,
     mode: 'area',
@@ -275,11 +281,14 @@ export async function coverPatchLocally(
     lonStep: grid.lonStep,
     ...box,
   });
+  const elapsedMs = Date.now() - startedAt;
 
   const points = (answer.points ?? []).map(asPoint);
   if (points.length === 0) {
     throw new Error('the engine produced no patch points');
   }
+
+  useEngineCost.getState().record(elapsedMs, points.length);
 
   return {
     band: request.band,
