@@ -49,6 +49,23 @@ class HfcastEngineModule : Module() {
     }
 
     /**
+     * How many cores a batch may spread across.
+     *
+     * The caller decides how many threads to ask for, and the only fact it
+     * cannot work out for itself is how many this device has. Reported here
+     * rather than guessed at four, which was too few on every phone shipped
+     * in the last decade and too many on none of them.
+     *
+     * `availableProcessors` is what the runtime will actually schedule on,
+     * so a device that has parked its big cores reports the smaller number.
+     * That is the right answer for a batch about to start, and it is why
+     * this is a call rather than a constant read once.
+     */
+    Function("cores") {
+      return@Function Runtime.getRuntime().availableProcessors()
+    }
+
+    /**
      * Writes one file the engine will read, under the scratch directory.
      *
      * Here rather than in JavaScript so the app needs no filesystem library of

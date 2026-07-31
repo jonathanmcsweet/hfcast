@@ -3,7 +3,15 @@ import { useEngineCost } from '../store/useEngineCost';
 import type { Station } from '../store/useStationStore';
 import { LAT_STEP, LON_STEP, reachOf } from './coverageGrid';
 import { patchGrid, patchRequestBounds } from './coveragePatch';
-import { PROBE_LAT_STEP, PROBE_LON_STEP } from './engineBudget';
+import {
+  calibrationWorthwhile,
+  PROBE_LARGE_LAT_STEP,
+  PROBE_LARGE_LON_STEP,
+  PROBE_SMALL_LAT_STEP,
+  PROBE_SMALL_LON_STEP,
+  stripsFor,
+  threadsFor,
+} from './engineBudget';
 import { FINE_LAT_STEP, FINE_LON_STEP, packGlobe } from './fineGlobe';
 import { engineStation, type Nowcast, ssnFor } from './localPredict';
 import { requiredSnrFor } from './modes';
@@ -58,6 +66,10 @@ const asPoint = (p: CoveragePoint): CoveragePoint => ({
 
 export const canMapLocally = (): boolean => Engine.isAvailable();
 
+/** How many points a set of strip answers covers between them. */
+const countPoints = (answers: readonly WireCoverage[]): number =>
+  answers.reduce((sum, answer) => sum + (answer.points ?? []).length, 0);
+
 export interface LocalCoverageRequest {
   from: Endpoint;
   band: BandKey;
@@ -77,20 +89,67 @@ export interface LocalCoverageRequest {
   region?: MapRegion | null;
 }
 
+/** What the engine is asked, apart from the grid it covers. */
+type AreaAsk = Record<string, unknown>;
+
 /**
- * How the fine grid is cut on a device, and how many threads run it.
+ * Runs one whole-world grid across this device's cores, and times it.
  *
- * Equal, because a strip is handed to a thread and an extra strip only
- * adds a coefficient load. Four is where a modern phone's cores stop
- * being idle without asking a four-core tablet to run more threads than
- * it has; the plan calls for measuring two and four on real hardware,
- * and this is the number that changes when that is done.
+ * The strips come from the device's own core count rather than from a
+ * number written here, and the same function cuts the calibration probes
+ * and the fine grid — which is what lets a line fitted through the two
+ * probes say what the fine grid will cost. Three runs of different sizes
+ * cut the same way share one fixed cost and one per-point cost; three
+ * runs cut differently do not, and a fit across them would describe no
+ * run that ever happens.
  *
- * Not the emulator: it runs five to ten times slow and its ratios do
- * not carry over to a device.
+ * Where the module is too old to run a batch, everything here runs
+ * whole, probes included. That stays consistent for the same reason: the
+ * fit then describes unsharded runs, which is what this device does.
  */
-const DEVICE_STRIPS = 4;
-const DEVICE_THREADS = 4;
+async function shardedWholeWorld(
+  ask: AreaAsk,
+  latStep: number,
+  lonStep: number,
+): Promise<{ answers: WireCoverage[]; elapsedMs: number; }> {
+  const cores = Engine.cores();
+  // Cut into latitude strips so the batch can use more than one core.
+  // The arithmetic is the server's, copied character for character, so
+  // the two paths run the same lattice — see `shard.ts`. Null means the
+  // grid should not be split, and then it runs whole.
+  const strips = Engine.canBatch()
+    ? latShards(undefined, latStep, lonStep, stripsFor(cores))
+    : null;
+  const request = { ...ask, latStep, lonStep };
+
+  const startedAt = Date.now();
+  const answers = strips === null
+    ? [await Engine.predict<WireCoverage>(request)]
+    : await Engine.predictMany<WireCoverage>(
+      strips.map((bounds) => ({ ...request, ...bounds })),
+      threadsFor(cores),
+    );
+  return { answers, elapsedMs: Date.now() - startedAt };
+}
+
+/** The part of a request that does not depend on the grid. */
+async function areaAsk(request: LocalCoverageRequest, ssn: number) {
+  const station = await engineStation(request.station);
+  return {
+    ...station,
+    mode: 'area' as const,
+    fromLat: request.from.lat,
+    fromLon: request.from.lon,
+    month: request.date.getUTCMonth() + 1,
+    year: request.date.getUTCFullYear(),
+    ssn,
+    watts: request.station.watts,
+    requiredSnrDb: requiredSnrFor(request.station.mode),
+    noiseDbw: NOISE_DBW,
+    hour: request.hour,
+    freqMhz: BAND_MHZ[request.band],
+  };
+}
 
 export async function coverLocally(
   request: LocalCoverageRequest,
@@ -162,55 +221,71 @@ export async function coverLocally(
  * objects the engine produced are released rather than cached.
  */
 /**
- * Times one deliberately larger run, so the fine grid's cost can be
- * fitted from something other than noise.
+ * Times two deliberately sized runs, so the fine grid's cost can be
+ * fitted rather than guessed at.
  *
- * The app's ordinary runs are 192 points and a few hundred, which are
- * too close together to separate a run's fixed cost from its per-point
- * cost — see `MIN_LEVERAGE`. This covers the whole world at a quarter of
- * the coarse map's step, which is the same geometry with sixteen times
- * the points, and that is leverage enough.
+ * The app's ordinary runs are 192 points and a few hundred, all
+ * unsharded and all about the same size. Neither fact suits the
+ * question: sizes that close cannot separate a run's fixed cost from its
+ * per-point cost (see `MIN_LEVERAGE`), and a single-threaded run says
+ * nothing about a grid that will be spread over eight cores except
+ * through a guess about what the spreading recovers. The previous
+ * version made that guess and was wrong by about a factor of two.
  *
- * Its answer is thrown away. The only product is the time, which
- * `record` keeps, and it happens once per device because the readings
- * are persisted.
+ * So these two runs are the fine grid in miniature: whole-world, cut
+ * into the same strips, across the same threads. A line through them
+ * passes through the fine grid, and no constant stands between the
+ * measurement and the decision.
  *
- * Deliberately not split into strips. The run it is compared against is
- * a single run, and a fit across runs of different widths would measure
- * the strips rather than the engine.
+ * Their answers are thrown away. The only product is the two times,
+ * which the store keeps, and this happens once per device because the
+ * readings are persisted.
+ *
+ * The large probe is skipped where the small one already settles the
+ * question — see `calibrationWorthwhile`. On a slow device it is the
+ * expensive one, and it is the one there is least reason to run.
  */
 export async function calibrateLocally(
   request: LocalCoverageRequest,
 ): Promise<number> {
-  const month = request.date.getUTCMonth() + 1;
-  const year = request.date.getUTCFullYear();
-  const { ssn } = ssnFor(year, month, request.nowcast);
-  const station = await engineStation(request.station);
+  const { ssn } = ssnFor(
+    request.date.getUTCFullYear(),
+    request.date.getUTCMonth() + 1,
+    request.nowcast,
+  );
+  const ask = await areaAsk(request, ssn);
+  const cost = useEngineCost.getState();
 
-  const startedAt = Date.now();
-  const answer = await Engine.predict<WireCoverage>({
-    ...station,
-    mode: 'area',
-    fromLat: request.from.lat,
-    fromLon: request.from.lon,
-    month,
-    year,
-    ssn,
-    watts: request.station.watts,
-    requiredSnrDb: requiredSnrFor(request.station.mode),
-    noiseDbw: NOISE_DBW,
-    hour: request.hour,
-    freqMhz: BAND_MHZ[request.band],
-    latStep: PROBE_LAT_STEP,
-    lonStep: PROBE_LON_STEP,
-  });
-  const elapsedMs = Date.now() - startedAt;
+  const small = await shardedWholeWorld(
+    ask,
+    PROBE_SMALL_LAT_STEP,
+    PROBE_SMALL_LON_STEP,
+  );
+  const smallPoints = countPoints(small.answers);
+  if (smallPoints === 0) {
+    throw new Error('the engine produced no calibration points');
+  }
+  cost.recordSharded(small.elapsedMs, smallPoints);
 
-  const count = (answer.points ?? []).length;
-  if (count === 0) throw new Error('the engine produced no calibration points');
+  // Read back rather than reasoned about here: `recordSharded` keeps the
+  // fastest reading at each size, so a device that has probed before may
+  // already hold a better number than the one just taken.
+  if (!calibrationWorthwhile(useEngineCost.getState().sharded)) {
+    return small.elapsedMs;
+  }
 
-  useEngineCost.getState().record(elapsedMs, count);
-  return elapsedMs;
+  const large = await shardedWholeWorld(
+    ask,
+    PROBE_LARGE_LAT_STEP,
+    PROBE_LARGE_LON_STEP,
+  );
+  const largePoints = countPoints(large.answers);
+  if (largePoints === 0) {
+    throw new Error('the engine produced no calibration points');
+  }
+  cost.recordSharded(large.elapsedMs, largePoints);
+
+  return small.elapsedMs + large.elapsedMs;
 }
 
 export async function coverFineLocally(
@@ -219,39 +294,13 @@ export async function coverFineLocally(
   const month = request.date.getUTCMonth() + 1;
   const year = request.date.getUTCFullYear();
   const { ssn, basis } = ssnFor(year, month, request.nowcast);
-  const station = await engineStation(request.station);
+  const ask = await areaAsk(request, ssn);
 
-  const ask = {
-    ...station,
-    mode: 'area' as const,
-    fromLat: request.from.lat,
-    fromLon: request.from.lon,
-    month,
-    year,
-    ssn,
-    watts: request.station.watts,
-    requiredSnrDb: requiredSnrFor(request.station.mode),
-    noiseDbw: NOISE_DBW,
-    hour: request.hour,
-    freqMhz: BAND_MHZ[request.band],
-    latStep: FINE_LAT_STEP,
-    lonStep: FINE_LON_STEP,
-  };
-
-  // Cut into latitude strips so the batch can use more than one core.
-  // The arithmetic is the server's, copied character for character, so
-  // the two paths run the same lattice — see `shard.ts`. Null means the
-  // grid should not be split, and then it runs whole.
-  const strips = Engine.canBatch()
-    ? latShards(undefined, FINE_LAT_STEP, FINE_LON_STEP, DEVICE_STRIPS)
-    : null;
-
-  const answers = strips === null
-    ? [await Engine.predict<WireCoverage>(ask)]
-    : await Engine.predictMany<WireCoverage>(
-      strips.map((bounds) => ({ ...ask, ...bounds })),
-      DEVICE_THREADS,
-    );
+  const { answers, elapsedMs } = await shardedWholeWorld(
+    ask,
+    FINE_LAT_STEP,
+    FINE_LON_STEP,
+  );
 
   // Concatenated in strip order. The engine emits rows south to north,
   // the strips are cut south to north, so this is the sequence one run
@@ -263,6 +312,12 @@ export async function coverFineLocally(
   if (points.length === 0) {
     throw new Error('the engine produced no fine coverage points');
   }
+
+  // The best sample this device will ever take: the run the projection
+  // exists to predict, at its true size, cut exactly as the probes were.
+  // Recorded so the fit stops being an extrapolation as soon as the grid
+  // has run once.
+  useEngineCost.getState().recordSharded(elapsedMs, points.length);
 
   const first = answers[0] as WireCoverage;
   return packGlobe(request.band, request.hour, {

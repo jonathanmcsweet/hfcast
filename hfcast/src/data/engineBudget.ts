@@ -3,20 +3,24 @@
  *
  * One decision made at build time would be wrong somewhere. The range of
  * devices this app runs on spans roughly a factor of ten: a current
- * phone runs the fine grid in one to two seconds, and a quad-A53 tablet
- * of the kind the legacy build exists for would take four to six. Ship
- * it on and the slow end freezes; ship it off and the fast end is held
- * back by the slow end.
+ * phone runs the fine grid in a fraction of a second across its cores,
+ * and a quad-A53 tablet of the kind the legacy build exists for would
+ * take seconds. Ship it on and the slow end freezes; ship it off and the
+ * fast end is held back by the slow end.
  *
- * So each device decides for itself, from a measurement it already
- * produces. The coarse coverage run is 192 points and happens whenever
- * the band or the hour changes, so timing it costs nothing and gives a
- * cost per point in the engine's own units — the same engine, the same
- * antenna, the same coefficient files. Multiply by the size of the fine
- * grid, divide by what the strips recover, and compare with the budget.
+ * So each device decides for itself, from runs it times on its own
+ * hardware. Nothing here reads a device model. A model name describes a
+ * phone; these numbers measure the work.
  *
- * Nothing here reads a device model or a core count. Those describe a
- * phone; this measures the work.
+ * The measurement is of the run that will actually happen — the fine
+ * grid cut into strips across the device's cores — and not of a
+ * single-threaded run divided by an assumed speedup. An earlier version
+ * did the latter, with the speedup written down as 2.5. The engine's own
+ * measurements put eight-way sharding at 5.7, so that constant refused
+ * the fine grid on hardware that runs it in a third of a second. A
+ * guessed divisor cannot be corrected by guessing a better one, so it is
+ * gone: what the strips recover is now measured per device, like
+ * everything else here.
  */
 
 /**
@@ -39,52 +43,46 @@ export const FINE_GRID_POINTS = 34560;
 export const FINE_BUDGET_MS = 2500;
 
 /**
- * What cutting the grid into strips actually recovers.
+ * How many threads a batch runs across, given the device's core count.
  *
- * Measured on this desktop at the fine step: 1,353 ms whole against
- * 376 ms in four strips, which is 3.6. This is deliberately lower.
- * Four strips on a phone share memory bandwidth and a thermal budget in
- * a way a desktop does not, and the cost of being wrong is not
- * symmetric: too low and a capable device misses a feature it would
- * have enjoyed, too high and a slow device locks up for six seconds.
+ * Every core, up to eight. The engine is arithmetic on data already in
+ * memory, so it scales with cores until it runs out of them; the cap is
+ * there because a phone reporting more than eight is reporting cores
+ * this run has no way to keep fed, and because a thread per core is
+ * already the point at which the run competes with the interface it is
+ * drawing for.
  *
- * Replace this with a measured figure once `predictMany` has run on real
- * hardware. It has not yet.
+ * Two at the bottom, not one. A device reporting a single core is more
+ * likely to be reporting badly than to have one, and two strips on one
+ * core cost only the second strip's coefficient load.
  */
-export const STRIP_SPEEDUP = 2.5;
+export const MAX_THREADS = 8;
 
-/**
- * How long the fine grid would take on a device costing `msPerPoint`.
- *
- * Null in, null out: with no measurement there is no projection, and a
- * caller must decide what to do about that rather than be handed a
- * number that looks measured.
- */
-export function projectedFineMs(
-  msPerPoint: number | null,
-  speedup: number = STRIP_SPEEDUP,
-): number | null {
-  if (msPerPoint === null || !Number.isFinite(msPerPoint)) return null;
-  if (msPerPoint <= 0) return null;
-  return (msPerPoint * FINE_GRID_POINTS) / speedup;
+export function threadsFor(cores: number): number {
+  const usable = Number.isFinite(cores) && cores >= 1 ? Math.floor(cores) : 4;
+  return Math.min(MAX_THREADS, Math.max(2, usable));
 }
 
 /**
- * Whether to run the fine grid on this device.
+ * How many strips the grid is cut into, per thread.
  *
- * False while there is no measurement. The first coarse run of a
- * session produces one, so this costs a device at most one band change
- * before it knows — and starting off and turning on is the safe
- * direction. Starting on would mean every unknown device, including
- * every slow one, takes the full run once before finding out.
+ * More strips than threads, deliberately. Phone cores are not equal —
+ * a big.LITTLE phone pairs four fast cores with four slow ones, and the
+ * slow ones can take two to three times as long over the same strip. Cut
+ * one strip per thread and the run ends when the slowest core finishes
+ * its share, so the fast cores sit idle waiting for it. Cut two strips
+ * per thread and a core that finishes early takes the next strip off the
+ * pool's queue, which turns an even split into work-stealing without any
+ * code that steals work.
+ *
+ * The cost is one extra coefficient load per extra strip, about 16 ms,
+ * paid in parallel with the others. Two is where that stops being worth
+ * it: at four the loads outweigh what the balancing recovers.
  */
-export function fineGlobeAffordable(
-  msPerPoint: number | null,
-  budgetMs: number = FINE_BUDGET_MS,
-): boolean {
-  const projected = projectedFineMs(msPerPoint);
-  return projected !== null && projected <= budgetMs;
-}
+export const STRIPS_PER_THREAD = 2;
+
+export const stripsFor = (cores: number): number =>
+  threadsFor(cores) * STRIPS_PER_THREAD;
 
 /**
  * One timed run: how many points, and how long it took.
@@ -92,6 +90,21 @@ export function fineGlobeAffordable(
 export interface CostSample {
   points: number;
   ms: number;
+}
+
+/**
+ * What a run costs on this device: a fixed part and a per-point part.
+ *
+ * Both are needed. The fixed part is the coefficient load and the
+ * crossing into the native module — for a sharded run, one load per
+ * strip — and it does not shrink as the grid grows. Projecting from the
+ * per-point figure alone understates a sharded run by that whole amount.
+ */
+export interface RunCost {
+  /** What the run costs before it computes a single point. */
+  fixedMs: number;
+  /** What one more grid point adds. */
+  msPerPoint: number;
 }
 
 /**
@@ -107,37 +120,54 @@ export interface CostSample {
  * that runs the fine grid comfortably.
  *
  * Four times is enough for the work to outweigh the noise, and it is
- * what the calibration run below is sized to provide.
+ * what the two calibration grids below are sized to provide.
  */
 export const MIN_LEVERAGE = 4;
 
 /**
- * The grid the calibration run covers: the whole world, at a quarter of
- * the coarse map's step in each direction.
+ * The two grids the device times itself on.
  *
- * Deliberately the same shape as the run it is compared against. The
- * coarse map is already a whole-world grid at 15 by 22.5 degrees, so
- * quartering the step gives the same geometry, the same spread of path
- * lengths and the same work per point — only more of them. A rectangle
- * somewhere else would have measured a different question.
+ * Both cover the whole world, because the grid they are used to predict
+ * covers the whole world: the same spread of path lengths, the same
+ * proportion of paths over the poles, the same work per point. A
+ * rectangle somewhere else would have measured a different question.
  *
- * 48 rows by 64 columns, which is 16 times the coarse run and well past
- * `MIN_LEVERAGE`.
+ * Both are cut into the same strips as the fine grid, so all three runs
+ * share one fixed cost and one per-point cost and a line through the two
+ * of them passes through the third. This is the whole reason there are
+ * two: one run cannot separate a sharded grid's per-strip loads from its
+ * arithmetic, and the difference between those is the factor of two that
+ * the old guessed speedup got wrong.
+ *
+ * 48 by 64 and 96 by 144 — 3,072 and 13,824 points, a leverage of 4.5,
+ * and together about 40 percent of one fine grid. That is the price of
+ * knowing, paid once per device and then persisted.
  */
-export const PROBE_LAT_STEP = 3.75;
-export const PROBE_LON_STEP = 5.625;
-export const PROBE_POINTS = (180 / PROBE_LAT_STEP) * (360 / PROBE_LON_STEP);
+export const PROBE_SMALL_LAT_STEP = 3.75;
+export const PROBE_SMALL_LON_STEP = 5.625;
+export const PROBE_SMALL_POINTS = (180 / PROBE_SMALL_LAT_STEP)
+  * (360 / PROBE_SMALL_LON_STEP);
+
+export const PROBE_LARGE_LAT_STEP = 1.875;
+export const PROBE_LARGE_LON_STEP = 2.5;
+export const PROBE_LARGE_POINTS = (180 / PROBE_LARGE_LAT_STEP)
+  * (360 / PROBE_LARGE_LON_STEP);
 
 /**
  * How far over budget a device may look before it is refused without
- * measuring properly.
+ * finishing the measurement.
  *
- * The calibration run costs a device about a third of a second, and on
- * a slow one it would cost seconds. Spending that to confirm what is
- * already obvious is not worth it, so a device whose roughest estimate
- * is many times the budget is refused on that estimate alone. Eight is
- * chosen so the rough figure's own overstatement — it counts fixed cost
- * as though it were per-point — cannot push a capable device past it.
+ * The small probe is cheap and runs on every device that has the engine.
+ * The large one costs four and a half times as much, and on a slow
+ * device that is seconds — so it is only run where its answer could
+ * still come out either way.
+ *
+ * Eight, because the figure it is compared against is the small probe
+ * read the way that most flatters the device's chances: its fixed cost
+ * spread across its points as though it were per-point work. That
+ * overstates by about three at this size, and eight leaves room for that
+ * plus noise without letting a device that is genuinely ten times too
+ * slow spend seconds confirming it.
  */
 export const HOPELESS_FACTOR = 8;
 
@@ -145,10 +175,9 @@ export const HOPELESS_FACTOR = 8;
  * How many grid sizes are remembered.
  *
  * Sizes, not runs: one entry each, holding the fastest run seen at that
- * size. The app produces a handful — the 192-point coarse grid, the
- * calibration run, and one per zoom level the viewport patch settles on
- * — so twelve holds every size a reader is likely to reach without
- * letting the list grow without limit.
+ * size. The app produces a handful — the two probes, the fine grid
+ * itself, and the ordinary runs — so twelve holds every size a reader is
+ * likely to reach without letting the list grow without limit.
  */
 export const COST_SAMPLES = 12;
 
@@ -159,9 +188,8 @@ export const COST_SAMPLES = 12;
  * by the scheduler, by the phone deciding to cool down — but it cannot
  * be hurried, so the noise is one-sided and the smallest reading is the
  * best estimate of the true cost. And keeping one entry per size rather
- * than a rolling window of runs stops the calibration run, which happens
- * once, from being pushed out by the coarse runs, which happen
- * constantly.
+ * than a rolling window of runs stops the probes, which happen once,
+ * from being pushed out by the coarse runs, which happen constantly.
  *
  * Over capacity, the entry dropped is the one nearest the middle. The
  * smallest and the largest are what give the fit its leverage, so those
@@ -185,76 +213,27 @@ export const keepFastest = (
 };
 
 /**
- * The cost per point a run appears to have, fixed cost included.
- *
- * Always an overstatement of the marginal cost, because every run's
- * fixed cost is divided among its points. That makes it useful in one
- * direction only: if this says the fine grid fits the budget, it fits.
- * The smallest reading is taken rather than the average, for the reason
- * `record` keeps minima — a run can be delayed but never hurried.
- */
-export function naiveMsPerPoint(
-  samples: readonly CostSample[],
-): number | null {
-  const rates = samples
-    .filter((s) => s.points > 0 && Number.isFinite(s.ms) && s.ms > 0)
-    .map((s) => s.ms / s.points);
-  return rates.length === 0 ? null : Math.min(...rates);
-}
-
-/**
- * Whether it is worth timing a deliberately larger run on this device.
- *
- * Only when the question is open: there is no trustworthy slope yet,
- * and the rough figure does not already put the device far out of
- * reach. Answering false here is not a refusal — it means the answer is
- * already known, one way or the other.
- */
-export function calibrationWorthwhile(
-  samples: readonly CostSample[],
-  budgetMs: number = FINE_BUDGET_MS,
-): boolean {
-  if (marginalMsPerPoint(samples) !== null) return false;
-  const rough = projectedFineMs(naiveMsPerPoint(samples));
-  return rough !== null && rough <= budgetMs * HOPELESS_FACTOR;
-}
-
-/**
- * The marginal cost of one more grid point, in milliseconds.
+ * Both parts of a run's cost, fitted across runs of different sizes.
  *
  * Not simply "time divided by points". A run has a fixed cost — loading
- * coefficients, crossing into the native module, writing the antenna —
- * that a small grid spreads over very few points. Measured on this
- * desktop: 192 points in 20 ms is 0.104 ms a point, while 34,560 points
- * in 1,353 ms is 0.039. The same engine, a factor of 2.7 apart, because
- * the first figure is mostly fixed cost.
+ * coefficients once per strip, crossing into the native module, writing
+ * the antenna — that a small grid spreads over very few points. Measured
+ * on this desktop, unsharded: 192 points in 20 ms is 0.104 ms a point,
+ * while 34,560 points in 1,353 ms is 0.039. The same engine, a factor of
+ * 2.7 apart, because the first figure is mostly fixed cost.
  *
- * The first version of this gate used the small run's figure directly
- * and multiplied it by 34,560. That inflates the projection by the same
- * factor, more on a phone where the fixed cost is a larger share, and it
- * refused the fine grid on hardware that runs it comfortably — a Pixel 8
- * among them. Fitting a line through one point assumes the intercept is
- * zero, and here it is not.
+ * Least squares rather than a difference of two, because timings on a
+ * phone are noisy and every sample should count.
  *
- * So the slope is fitted across runs of different sizes. The app makes
- * them already: the coarse grid is 192 points and the viewport patch is
- * a few hundred, both on every view. Least squares rather than a
- * difference of two, because timings on a phone are noisy and every
- * sample should count.
- *
- * Null until there are runs of at least two different sizes, because
- * one size cannot separate the fixed cost from the marginal one.
+ * Null until there are runs of at least two sizes far enough apart —
+ * see `MIN_LEVERAGE`. One size cannot separate the fixed cost from the
+ * marginal one, and two close sizes separate them into noise.
  */
-export function marginalMsPerPoint(
-  samples: readonly CostSample[],
-): number | null {
+export function fitRunCost(samples: readonly CostSample[]): RunCost | null {
   const usable = samples.filter(
     (s) => s.points > 0 && Number.isFinite(s.ms) && s.ms > 0,
   );
   if (usable.length < 2) return null;
-  // Two different sizes are not enough; they have to be far enough
-  // apart. See `MIN_LEVERAGE` — this is the check whose absence made the
-  // gate fit a line through noise and refuse a capable phone.
   const sizes = usable.map((s) => s.points);
   if (Math.max(...sizes) < Math.min(...sizes) * MIN_LEVERAGE) return null;
 
@@ -272,9 +251,94 @@ export function marginalMsPerPoint(
   );
   if (spread <= 0) return null;
 
-  const slope = together / spread;
+  const msPerPoint = together / spread;
   // A slope of zero or less is not a measurement of anything — it means
   // the noise beat the signal, usually because the two sizes were close
   // together. Better to wait for a run that separates them.
-  return slope > 0 ? slope : null;
+  if (msPerPoint <= 0) return null;
+
+  // A negative intercept is noise too, but a harmless kind: it says the
+  // fit found no fixed cost. Clamped rather than refused, because the
+  // slope it came with is still the number the projection needs.
+  return {
+    fixedMs: Math.max(0, meanMs - msPerPoint * meanPoints),
+    msPerPoint,
+  };
+}
+
+/**
+ * The marginal cost of one more grid point, in milliseconds.
+ *
+ * The slope alone, for callers that want to report it. The projection
+ * uses `fitRunCost` directly, because it needs the intercept too.
+ */
+export function marginalMsPerPoint(
+  samples: readonly CostSample[],
+): number | null {
+  return fitRunCost(samples)?.msPerPoint ?? null;
+}
+
+/**
+ * How long the fine grid would take on a device costing `cost`.
+ *
+ * Null in, null out: with no measurement there is no projection, and a
+ * caller must decide what to do about that rather than be handed a
+ * number that looks measured.
+ */
+export function projectedFineMs(cost: RunCost | null): number | null {
+  if (cost === null) return null;
+  if (!Number.isFinite(cost.msPerPoint) || cost.msPerPoint <= 0) return null;
+  if (!Number.isFinite(cost.fixedMs) || cost.fixedMs < 0) return null;
+  return cost.fixedMs + cost.msPerPoint * FINE_GRID_POINTS;
+}
+
+/**
+ * Whether to run the fine grid on this device.
+ *
+ * False while there is no measurement. The probes produce one within a
+ * second of the first map, and starting off and turning on is the safe
+ * direction — starting on would mean every unknown device, including
+ * every slow one, takes the full run once before finding out.
+ */
+export function fineGlobeAffordable(
+  cost: RunCost | null,
+  budgetMs: number = FINE_BUDGET_MS,
+): boolean {
+  const projected = projectedFineMs(cost);
+  return projected !== null && projected <= budgetMs;
+}
+
+/**
+ * The cost a run appears to have if its fixed part is ignored.
+ *
+ * Always an overstatement of the marginal cost, because the run's fixed
+ * cost is divided among its points. That makes it useful in one
+ * direction only: if this says the fine grid fits the budget, it fits.
+ * The smallest reading is taken rather than the average, for the reason
+ * `keepFastest` keeps minima — a run can be delayed but never hurried.
+ */
+export function naiveCost(samples: readonly CostSample[]): RunCost | null {
+  const rates = samples
+    .filter((s) => s.points > 0 && Number.isFinite(s.ms) && s.ms > 0)
+    .map((s) => s.ms / s.points);
+  return rates.length === 0
+    ? null
+    : { fixedMs: 0, msPerPoint: Math.min(...rates) };
+}
+
+/**
+ * Whether the large probe is worth running on this device.
+ *
+ * Only when the question is still open: there is no trustworthy fit yet,
+ * and the small probe does not already put the device far out of reach.
+ * Answering false is not a refusal — it means the answer is already
+ * known, one way or the other.
+ */
+export function calibrationWorthwhile(
+  sharded: readonly CostSample[],
+  budgetMs: number = FINE_BUDGET_MS,
+): boolean {
+  if (fitRunCost(sharded) !== null) return false;
+  const rough = projectedFineMs(naiveCost(sharded));
+  return rough !== null && rough <= budgetMs * HOPELESS_FACTOR;
 }

@@ -171,11 +171,13 @@ export default function ReachCard({
   // line under the map can say which of its outcomes happened.
   const gate = useFineGate();
   const detail = detailKey(Boolean(fine), Boolean(patch), gate);
-  // Times one larger run, once per device, where the ordinary runs are
-  // too alike in size to fit a cost through. Nothing here reads its
-  // result: it writes to the same store the gate reads, so a device that
-  // passes turns the fine grid on by itself.
-  useEngineCalibration(prediction.from, band);
+  // Times two probe runs, once per device, because the ordinary runs are
+  // too alike in size to fit a cost through and none of them is cut into
+  // strips. Nothing here reads the result: it writes to the same store
+  // the gate reads, so a device that passes turns the fine grid on by
+  // itself. Held until the coarse map has landed, so the probes never
+  // stand between the reader and the map.
+  useEngineCalibration(prediction.from, band, Boolean(coverage));
 
   // Null for a survey, where the card answers "how much of the world" rather
   // than "will this reach one place".
