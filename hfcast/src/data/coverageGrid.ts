@@ -1,4 +1,4 @@
-import type { CoveragePoint } from './types';
+import type { CoveragePoint } from './types.ts';
 
 /**
  * The coverage grid, and what "reachable" means on it.

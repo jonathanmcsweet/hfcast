@@ -20,3 +20,31 @@ nodeLinker: hoisted
 # pnpm 11 fails the install rather than running unreviewed ones; the gate is
 # turned off here for the same reason as at the repository root.
 strictDepBuilds: false
+
+# pnpm 11 holds back releases younger than its minimum age, which would pin this
+# project to whatever Expo shipped some weeks ago rather than to the SDK it was
+# upgraded to. Each entry names a version that was chosen deliberately. pnpm
+# writes this list itself on install; it is kept rather than removed, because
+# without it the next install quietly resolves different versions.
+minimumReleaseAgeExclude:
+  - '@expo/cli@57.0.11'
+  - '@expo/inline-modules@0.1.4'
+  - '@expo/local-build-cache-provider@57.0.5'
+  - '@expo/log-box@57.0.2'
+  - '@expo/metro-runtime@57.0.8'
+  - '@expo/prebuild-config@57.0.10'
+  - babel-preset-expo@57.0.5
+  - expo-asset@57.0.8
+  - expo-build-properties@57.0.8
+  - expo-constants@57.0.8
+  - expo-modules-core@57.0.8
+  - expo-updates@57.0.11
+  - expo@57.0.9
+
+# Skia ships its Android and Apple binaries as separate packages and its
+# postinstall copies them into the place its Gradle script reads,
+# `libs/android`. Without it the Android build has no Skia to link and
+# fails at the native step. Reviewed: the script only copies files
+# between directories inside node_modules.
+allowBuilds:
+  '@shopify/react-native-skia': true

@@ -69,15 +69,26 @@ TypeScript runs through Node's type stripping, so there is no build step.
 
 ## Routes
 
-| Route                            | Purpose                                               |
-| -------------------------------- | ----------------------------------------------------- |
-| `GET /health`                    | liveness                                              |
-| `GET /api/spaceweather`          | current F10.7, Kp and effective SSN                   |
-| `GET /api/geocode?q=`            | place name search, or a locator resolved directly     |
-| `GET /api/prediction?from&to`    | one day, `nowcast=1` to drive from current conditions |
-| `GET /api/forecast?from&to&days` | several days, one prediction each                     |
+| Route                                    | Purpose                                               |
+| ---------------------------------------- | ----------------------------------------------------- |
+| `GET /health`                            | liveness                                              |
+| `GET /api/spaceweather`                  | current F10.7, Kp and effective SSN                   |
+| `GET /api/geocode?q=`                    | place name search, or a locator resolved directly     |
+| `GET /api/prediction?from&to`            | one day, `nowcast=1` to drive from current conditions |
+| `GET /api/forecast?from&to&days`         | several days, one prediction each                     |
+| `GET /api/survey?from`                   | one day with no destination, as reach by direction    |
+| `GET /api/coverage?from&band&hour`       | the whole world, one band, one hour                   |
+| `GET /api/coverage/patch?from&band&hour` | the same hour over a fine grid near `from`            |
+| `GET /api/ionosonde?lat&lon`             | a measured foF2 from a sounder near the point         |
 
 `from` and `to` accept either a Maidenhead locator (`CN87`) or `lat,lon`.
+
+The two coverage routes are separate because they are meant to be fetched
+separately: the whole world is the answer and has to be drawn as soon as
+it exists, and the fine grid is detail that arrives behind it. The patch
+answers `null` for a station within about three degrees of the
+antimeridian, which is a fact about where it is rather than a failure —
+the grid cannot cross that meridian. See `src/coveragePatch.ts`.
 
 ## Sunspot numbers
 
@@ -126,8 +137,9 @@ man-made noise of -145 dBW.
 | `beam`      | main beam bearing, degrees true            | `0`         |
 
 `mode` is one of `fm`, `am`, `ssb`, `rtty`, `cw`, `psk31`, `ft8`, `js8`,
-`wspr`. `ant` is one of `isotropic`, `dipole`, `vertical`, `yagi`,
-`invertedL`. An unknown value for either is a 400 naming the valid set.
+`wspr`. `ant` is one of `isotropic`, `dipole`, `invertedV`, `vertical`,
+`yagi`, `invertedL`. An unknown value for either is a 400 naming the
+valid set.
 `snr` still overrides `mode` when both are given, so the threshold can be
 measured directly without finding a mode that happens to produce it.
 
@@ -142,7 +154,7 @@ inventing an antenna for them would move every number without being any
 more true.
 
 `beam` is read by every family whose pattern depends on azimuth: the
-dipole, the inverted L and the yagi. It decides the answer rather than
+dipole, the inverted V, the inverted L and the yagi. It decides the answer rather than
 refining it. Measured on Seattle to Tokyo at 14 MHz with a 20 m dipole,
 the same antenna gives 32.5 dB and 89% reliability broadside to the path
 and 16.9 dB and 0% off the ends of the wire. The vertical monopole

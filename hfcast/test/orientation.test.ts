@@ -33,9 +33,17 @@ import { ANTENNA_ORDER, usesBeam } from '../src/store/useStationStore.ts';
  */
 
 describe('which antennas have a direction', () => {
-  it('asks the three families the engine measured as directional', () => {
+  it('asks the families the engine measured as directional', () => {
+    // The inverted V is here because it is written as a dipole card, so
+    // it has the dipole's own measured 12 dB swing over the compass. It
+    // is the same pattern at a lower effective height.
     const directional = ANTENNA_ORDER.filter(usesOrientation);
-    assert.deepEqual(directional, ['dipole', 'invertedL', 'yagi']);
+    assert.deepEqual(directional, [
+      'dipole',
+      'invertedV',
+      'invertedL',
+      'yagi',
+    ]);
   });
 
   it('does not ask the vertical, which measured 0 dB over the compass', () => {
@@ -53,11 +61,13 @@ describe('which antennas have a direction', () => {
     );
   });
 
-  it('asks only the dipole about its wire', () => {
+  it('asks the two broadside wires about their run', () => {
     // The inverted L is a wire too, but its pattern is not a simple
     // broadside one, so adding a right angle to its run would be
-    // inventing physics. It is asked the way a beam is.
+    // inventing physics. It is asked the way a beam is. The inverted V
+    // is asked as a wire because the model under it is the dipole's.
     assert.equal(askedAsWire('dipole'), true);
+    assert.equal(askedAsWire('invertedV'), true);
     assert.equal(askedAsWire('invertedL'), false);
     assert.equal(askedAsWire('yagi'), false);
   });

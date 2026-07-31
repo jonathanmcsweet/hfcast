@@ -39,19 +39,20 @@ export default function BandSelector(
   return (
     <View style={styles.wrap}>
       {
-        /* The station sits on the heading's own line, because the band and
-           the station are one statement: this band, at this power, on this
-           antenna, for this mode. */
+        /* The station on its own line, above the label rather than beside
+           it. Sharing a line put the word "Band" over the station's icons,
+           where it read as their heading — and the station already has a
+           heading, which is the control itself. */
       }
-      <View style={styles.headingRow}>
-        <Text style={[typography.label, { color: ui.text4 }]}>
-          {t('bands.label')}
-        </Text>
+      <View style={styles.stationRow}>
         <StationStrip
           onPress={onEditStation}
           requiredSnrDb={requiredSnrDb}
         />
       </View>
+      <Text style={[typography.label, styles.label, { color: ui.text4 }]}>
+        {t('bands.label')}
+      </Text>
       {
         /* A real horizontal scroller, not a wrapping row: nine chips are
            wider than a phone, and a second line would push the map down. */
@@ -92,17 +93,13 @@ export default function BandSelector(
 
 const styles = StyleSheet.create({
   wrap: { marginTop: spacing.md },
-  // Wraps so a long station line drops below the heading on a narrow
-  // phone rather than squeezing "Band" out of the row.
-  headingRow: {
+  stationRow: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
     alignItems: 'center',
-    columnGap: spacing.md,
-    rowGap: spacing.xs,
     marginHorizontal: spacing.lg,
-    marginBottom: spacing.sm,
+    marginBottom: spacing.md,
   },
+  label: { marginHorizontal: spacing.lg, marginBottom: spacing.sm },
   row: { paddingHorizontal: spacing.lg, gap: spacing.sm },
   chip: {
     minWidth: 44,

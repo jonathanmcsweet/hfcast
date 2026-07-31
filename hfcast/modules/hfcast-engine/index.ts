@@ -19,6 +19,11 @@ interface Native {
   writeFile(name: string, contents: string): Promise<string>;
   /** One request object as JSON, one answer object as JSON. */
   predict(request: string): Promise<string>;
+  /**
+   * A batch of requests as JSON, run across `threads`, answered in the
+   * order they were given. Absent from older builds of the module.
+   */
+  predictMany?(requests: string[], threads: number): Promise<string[]>;
 }
 
 const native = requireOptionalNativeModule<Native>('HfcastEngine');
@@ -70,4 +75,38 @@ export async function predict<T>(request: unknown): Promise<T> {
   const answer = JSON.parse(text) as T & { error?: string; };
   if (typeof answer.error === 'string') throw new Error(answer.error);
   return answer;
+}
+
+/** Whether this build can run a batch across several threads. */
+export const canBatch = (): boolean =>
+  native !== null && typeof native.predictMany === 'function';
+
+/**
+ * Runs several requests as one batch, across several threads.
+ *
+ * For the whole-world fine grid, which is 34,560 points and far too much
+ * for the single thread every other call uses. The caller cuts the grid
+ * into latitude strips that produce the same numbers as one run.
+ *
+ * Answers come back in the order the requests were given.
+ */
+export async function predictMany<T>(
+  requests: readonly unknown[],
+  threads: number,
+): Promise<T[]> {
+  if (native === null) throw new Error('The engine is not in this build');
+  const batch = native.predictMany;
+  if (batch === undefined) {
+    throw new Error('This build of the engine cannot run a batch');
+  }
+  const texts = await batch.call(
+    native,
+    requests.map((request) => JSON.stringify(request)),
+    threads,
+  );
+  return texts.map((text) => {
+    const answer = JSON.parse(text) as T & { error?: string; };
+    if (typeof answer.error === 'string') throw new Error(answer.error);
+    return answer;
+  });
 }

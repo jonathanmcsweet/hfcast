@@ -2,19 +2,21 @@
   "expo": {
     "name": "HFcast",
     "slug": "hfcast",
-    "version": "0.29.0",
+    "version": "0.42.0",
+    "icon": "./src/assets/icon.png",
     "orientation": "portrait",
     "userInterfaceStyle": "automatic",
-    "newArchEnabled": false,
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "solutions.cloudburner.hfcast"
     },
     "android": {
       "package": "solutions.cloudburner.hfcast",
-      "versionCode": 2900,
+      "versionCode": 42001,
       "adaptiveIcon": {
-        "backgroundColor": "#0B0D14"
+        "foregroundImage": "./src/assets/icon-foreground.png",
+        "monochromeImage": "./src/assets/icon-monochrome.png",
+        "backgroundColor": "#2A1656"
       },
       "permissions": [
         "ACCESS_COARSE_LOCATION",
@@ -27,7 +29,7 @@
         "android.permission.VIBRATE"
       ],
       "splash": {
-        "backgroundColor": "#F7F8FC",
+        "backgroundColor": "#0B0D14",
         "dark": {
           "backgroundColor": "#0B0D14"
         }
@@ -48,16 +50,16 @@
         "expo-build-properties",
         {
           "android": {
-            "compileSdkVersion": 34,
-            "targetSdkVersion": 34,
-            "buildToolsVersion": "34.0.0",
-            "minSdkVersion": 23
+            "compileSdkVersion": 36,
+            "targetSdkVersion": 36,
+            "buildToolsVersion": "36.0.0",
+            "minSdkVersion": 24
           }
         }
       ]
     ],
     "splash": {
-      "backgroundColor": "#F7F8FC"
+      "backgroundColor": "#0B0D14"
     }
   }
 }

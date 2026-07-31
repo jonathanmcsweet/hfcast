@@ -13,6 +13,8 @@
  * whole rim. That is why the far edge is clipped rather than drawn.
  */
 
+import type { MapRegion } from './types';
+
 const DEG = Math.PI / 180;
 
 /** Mean Earth radius, km. The same value the engine's hop arithmetic uses. */
@@ -35,6 +37,16 @@ export interface Projector {
   readonly cy: number;
   /** Null when the point is beyond the clip angle. */
   project(lon: number, lat: number): readonly [number, number] | null;
+  /**
+   * A screen point back to a longitude and latitude, or null outside the
+   * drawn disc.
+   *
+   * The inverse exists in closed form here, which is not true of every
+   * projection: distance from the centre is the angular distance to
+   * scale, and the direction from the centre is the bearing, so a point
+   * on the screen names a bearing and a range and those name a place.
+   */
+  invert(x: number, y: number): readonly [number, number] | null;
   /** Pixels per kilometre along any radius from the centre. */
   readonly pxPerKm: number;
 }
@@ -78,6 +90,28 @@ export function projector(
       const scale = radius / Math.PI;
       return [radius + x * scale, radius - y * scale] as const;
     },
+    invert(x: number, y: number) {
+      const scale = radius / Math.PI;
+      const dx = (x - radius) / scale;
+      // Screen y grows downward and latitude grows upward.
+      const dy = (radius - y) / scale;
+      const c = Math.hypot(dx, dy);
+      if (c > clip) return null;
+      // The centre is the one point with no bearing from itself, and the
+      // formulas below divide by `c`.
+      if (c === 0) return [centreLon, centreLat] as const;
+
+      const sinC = Math.sin(c);
+      const cosC = Math.cos(c);
+      const phi = Math.asin(
+        Math.min(1, Math.max(-1, cosC * sinLat0 + (dy * sinC * cosLat0) / c)),
+      );
+      const lambda = lon0
+        + Math.atan2(dx * sinC, c * cosLat0 * cosC - dy * sinLat0 * sinC);
+      // Folded into -180..180, which is what every other coordinate here
+      // is in.
+      return [((lambda / DEG + 540) % 360) - 180, phi / DEG] as const;
+    },
   };
 }
 
@@ -107,14 +141,23 @@ export function projectRing(
   return runs;
 }
 
-/** An SVG path from a list of projected points. */
+/**
+ * An SVG path from a list of projected points.
+ *
+ * Two decimals, because the viewBox multiplies rounding error by the
+ * zoom. The coordinates are written once, in the base space, and the
+ * deepest zoom magnifies whatever error they carry: at one decimal the
+ * worst case is 0.05 px, which is invisible at 1x and 1.5 px of wobble
+ * at the 30x ceiling — every line in the map wiggled. Two decimals is
+ * 0.15 px at 30x, under what a screen can show.
+ */
 export function pathOf(
   points: readonly (readonly [number, number])[],
   close = false,
 ): string {
   if (points.length === 0) return '';
   const parts = points.map(([x, y], i) =>
-    `${i === 0 ? 'M' : 'L'}${x.toFixed(1)} ${y.toFixed(1)}`
+    `${i === 0 ? 'M' : 'L'}${x.toFixed(2)} ${y.toFixed(2)}`
   );
   return parts.join(' ') + (close ? ' Z' : '');
 }
@@ -269,6 +312,39 @@ export function cellRing(
 }
 
 /**
+ * The outline of a whole grid of cells, as a ring of lon/lat.
+ *
+ * The bounds are the first and last *point* on each axis, as the engine
+ * echoes them, so the outline is half a step further out on all four
+ * sides — the outer edge of the outermost cells. Getting that wrong by
+ * half a step leaves a hairline of whatever is underneath showing round
+ * the edge.
+ *
+ * Subdivided more finely than a single cell, because it is several cells
+ * long and the same number of segments over a longer edge is a coarser
+ * curve.
+ */
+export function gridOutline(
+  bounds: {
+    readonly lonMin: number;
+    readonly lonMax: number;
+    readonly latMin: number;
+    readonly latMax: number;
+  },
+  lonStep: number,
+  latStep: number,
+  perEdge = 16,
+): (readonly [number, number])[] {
+  return cellRing(
+    (bounds.lonMin + bounds.lonMax) / 2,
+    (bounds.latMin + bounds.latMax) / 2,
+    bounds.lonMax - bounds.lonMin + lonStep,
+    bounds.latMax - bounds.latMin + latStep,
+    perEdge,
+  );
+}
+
+/**
  * The angle between two points on the sphere, in degrees.
  */
 export function angularDistanceDeg(
@@ -389,3 +465,146 @@ export function opposedTo(
   const same = Math.sign(signedArea(ring)) === Math.sign(signedArea(reference));
   return same ? [...ring].reverse() : ring;
 }
+
+/** Kilometres in a degree of latitude. Only the scale of a box needs it. */
+const KM_PER_DEGREE = 111.19;
+
+/**
+ * What the map is showing: how far in, and on what.
+ *
+ * The centre is a fraction of the disc rather than a pixel, so a layout
+ * change does not move the view.
+ */
+export interface MapView {
+  scale: number;
+  cxF: number;
+  cyF: number;
+}
+
+/**
+ * The scale at which the whole disc fits the frame.
+ *
+ * Owned here rather than by the map component, because two pieces of
+ * arithmetic assume it: `regionOf` reads "at or below this" as "showing
+ * the whole globe", and `containView` pins the centre when the window is
+ * the disc. A component free to change its own minimum would move one
+ * without the other.
+ */
+export const MIN_SCALE = 1;
+
+/**
+ * Where the view puts a disc point on the screen, in both the forms the
+ * map needs to draw it.
+ *
+ * The map is drawn on two surfaces at once: a Skia canvas carrying the
+ * cell field, and an SVG layer over it carrying the coast, the rings,
+ * the night cap and the markers. They place a point by different means —
+ * SVG through a `viewBox` string, Skia through a matrix — and if the two
+ * ever disagree the coastlines slide off the cells. That is the first
+ * fault a reader sees, and it does not look like a rounding error; it
+ * looks like the map is wrong about where land is.
+ *
+ * So neither renderer computes this. Both take it from here, and
+ * `projection.test.ts` checks that a point lands on the same pixel
+ * through both.
+ *
+ * `scale`, `tx` and `ty` are a similarity transform: multiply, then
+ * offset. That is all an azimuthal disc under a square window needs —
+ * the window is square and the zoom is uniform, so there is no rotation
+ * and no aspect to carry.
+ */
+export interface ViewTransform {
+  /** For `<Svg viewBox=…>`. */
+  viewBox: string;
+  /** Uniform, so one number serves both axes. */
+  scale: number;
+  tx: number;
+  ty: number;
+}
+
+export function viewTransform(view: MapView, size: number): ViewTransform {
+  // The viewBox is text, and text is rounded. Both layers are then
+  // derived from the rounded numbers rather than from the exact ones,
+  // because SVG can only use what the string says.
+  //
+  // Rounding the window's *width* is what makes this matter: it changes
+  // the scale SVG actually applies, by size/round(w) against size/w, and
+  // that error multiplies with distance from the window's corner. At the
+  // 30x ceiling it reached 1.35 px — small as a number, but it is the
+  // coastlines sliding off the cells, which reads as the map being wrong
+  // about where land is.
+  const round = (n: number) => Number(n.toFixed(2));
+
+  const windowSize = round(size / view.scale);
+  const minX = round(view.cxF * size - windowSize / 2);
+  const minY = round(view.cyF * size - windowSize / 2);
+
+  // SVG is given the window in disc units and fits it to the element.
+  // Skia is given the same mapping written out: a point at `minX` lands
+  // at 0, and one disc unit becomes `scale` pixels.
+  const scale = size / windowSize;
+
+  return {
+    viewBox: [minX, minY, windowSize, windowSize]
+      .map((n) => n.toFixed(2))
+      .join(' '),
+    scale,
+    tx: -minX * scale,
+    ty: -minY * scale,
+  };
+}
+
+/** A disc point in screen pixels. The canvas draws through this. */
+export const toScreen = (
+  t: ViewTransform,
+  x: number,
+  y: number,
+): [number, number] => [x * t.scale + t.tx, y * t.scale + t.ty];
+
+/**
+ * The part of the world the map is showing, in degrees.
+ *
+ * The centre comes back through the projection's inverse, which is
+ * closed form here, so it is the place under the middle of the frame
+ * rather than an estimate. The half-extent is the visible half-width
+ * turned into kilometres and then into degrees of latitude; on an
+ * azimuthal equidistant projection distance from the centre is to
+ * scale, which is exactly the property that makes this a division
+ * rather than a search.
+ *
+ * Null at a whole-globe view, and wherever the middle of the frame is
+ * off the disc — panned to a corner. Both mean the same thing to the
+ * caller: there is no region worth running, use the default.
+ */
+export function regionOf(
+  p: Projector,
+  view: MapView,
+  size: number,
+): MapRegion | null {
+  if (view.scale <= MIN_SCALE) return null;
+  const centre = p.invert(view.cxF * size, view.cyF * size);
+  if (centre === null) return null;
+  const [lon, lat] = centre;
+  const halfKm = size / (2 * view.scale) / p.pxPerKm;
+  return { lat, lon, halfLatDeg: halfKm / KM_PER_DEGREE };
+}
+
+export const clamp = (v: number, lo: number, hi: number) =>
+  Math.min(hi, Math.max(lo, v));
+
+/**
+ * Keeps the visible window inside the disc.
+ *
+ * At 1x the window is the whole disc, so the only centre that fits is the
+ * middle — which is what stops a drag from sliding the globe off its own
+ * frame when there is nothing to pan to. Zoomed in, it stops the edge of
+ * the world being dragged into the middle of the card.
+ */
+export const containView = (v: MapView): MapView => {
+  const half = 1 / (2 * v.scale);
+  return {
+    scale: v.scale,
+    cxF: clamp(v.cxF, half, 1 - half),
+    cyF: clamp(v.cyF, half, 1 - half),
+  };
+};

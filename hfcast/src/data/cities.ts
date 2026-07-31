@@ -82,6 +82,35 @@ const foldedAlt: readonly string[] = data.cities.map((city) =>
   fold(str(city[4]))
 );
 
+/**
+ * Each region as its separate words, folded.
+ *
+ * Held per region rather than per city — 384 of them against 4,064 — and
+ * split into words because the source writes a region two ways at once:
+ * "FL, United States of America" and "(Sc) IL, United States of America".
+ * A reader typing "IL" means the second word of the second one, and a
+ * substring test over the whole string would also find the "il" inside
+ * Brazil and Chile.
+ */
+const regionWords: readonly (readonly string[])[] = data.regions.map((region) =>
+  fold(region)
+    .split(/[^a-z0-9]+/)
+    .filter((word) => word !== '')
+);
+
+/**
+ * Whether a city's region has a word starting with `where`.
+ *
+ * A prefix rather than an exact match, so both "IL" and "Illinois" would
+ * work on a source that wrote either, and so "United" narrows to the
+ * United States without the reader typing the rest of it.
+ */
+const inRegion = (index: number, where: string): boolean => {
+  const city = data.cities[index] ?? [];
+  const words = regionWords[num(city[1])] ?? [];
+  return words.some((word) => word.startsWith(where));
+};
+
 const placeAt = (index: number): Place => {
   const city = data.cities[index] ?? [];
   const lat = num(city[2]);
@@ -105,9 +134,23 @@ const placeAt = (index: number): Place => {
  *
  * Prefix first because that is what a reader typing a name means: "york" should
  * offer York before New York, and both should appear.
+ *
+ * A comma splits the name from where it is: "Springfield, IL" is a name and a
+ * region, and only Springfields in Illinois come back. This is how anybody
+ * writes a place that shares its name with others, and there are five
+ * Springfields in the United States alone — without it, typing the state made
+ * the list longer rather than shorter, because the whole string was matched
+ * against the name and nothing matched at all.
  */
 export function searchCities(query: string): Place[] {
-  const needle = fold(query.trim());
+  const trimmed = query.trim();
+  const comma = trimmed.indexOf(',');
+  // Trimmed on both sides of the comma: "Springfield, IL" is how the
+  // separator is written, and the space after it is not part of the region.
+  const needle = fold(
+    (comma === -1 ? trimmed : trimmed.slice(0, comma)).trim(),
+  );
+  const where = fold(comma === -1 ? '' : trimmed.slice(comma + 1).trim());
   if (needle === '') return [];
 
   const prefix: number[] = [];
@@ -116,6 +159,7 @@ export function searchCities(query: string): Place[] {
   // because it walks four thousand entries on every keystroke and stops as soon
   // as it has enough. The older name matches too, so "Bombay" finds Mumbai.
   for (let i = 0; i < folded.length; i += 1) {
+    if (where !== '' && !inRegion(i, where)) continue;
     const name = folded[i] ?? '';
     const alt = foldedAlt[i] ?? '';
     if (name.startsWith(needle) || (alt !== '' && alt.startsWith(needle))) {

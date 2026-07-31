@@ -1,21 +1,27 @@
+import { packGlobe } from '../data/fineGlobe';
 import type {
+  BandKey,
   Coverage,
-  Place,
+  CoveragePatch,
+  FineGlobe,
+  MapRegion,
   PredictionResponse,
   Sounding,
   SpaceWeather,
 } from '../data/types';
-import { serverAddress } from '../store/useServerStore';
-
 /**
- * Where the prediction server lives, read at the moment of the request.
+ * Where the prediction server lives.
  *
- * It is a setting rather than a constant because an installed build cannot be
- * rebuilt to change it, and the build-time default — this device — is never
- * right on a phone. `EXPO_PUBLIC_HFCAST_API` still supplies the default; see
- * `store/useServerStore.ts`.
+ * A build-time constant, and no longer something a user can be asked for. The
+ * engine is compiled into the app, so a phone computes its own forecasts and
+ * has no server to point at; what still reaches this client is the web build,
+ * which has no engine, and there the default is the machine serving the page.
+ *
+ * `EXPO_PUBLIC_HFCAST_API` overrides it for a development build pointed
+ * somewhere else.
  */
-const apiBase = (): string => serverAddress();
+export const API_BASE = process.env.EXPO_PUBLIC_HFCAST_API
+  ?? 'http://127.0.0.1:8787';
 
 export class ApiError extends Error {
   /** 0 when the request never reached the server at all. */
@@ -39,8 +45,7 @@ async function getJson<T>(
   path: string,
   params: Record<string, string>,
 ): Promise<T> {
-  // Read once per request, so a change of address applies to the next one.
-  const base = apiBase();
+  const base = API_BASE;
   const url = new URL(`${base}${path}`);
   for (const [key, value] of Object.entries(params)) {
     if (value !== '') url.searchParams.set(key, value);
@@ -112,6 +117,24 @@ export function fetchPrediction(
 }
 
 /**
+ * The same day with no destination: how much of the world hears this station.
+ *
+ * Forty-eight runs behind one request, so it is the slow route. Only the web
+ * build asks for it — a device computes its own, see `data/localSurvey.ts`.
+ */
+export function fetchSurvey(
+  p: Omit<PredictionParams, 'to' | 'toLabel'>,
+): Promise<PredictionResponse> {
+  return getJson<PredictionResponse>('/api/survey', {
+    from: p.from,
+    fromLabel: p.fromLabel,
+    date: p.date,
+    nowcast: p.nowcast ? '1' : '',
+    ...p.station,
+  });
+}
+
+/**
  * Several days in one request, for filling the cache before going
  * offline. The server never now-casts here and always answers with
  * `spaceWeather: null`, so this covers the days after today only —
@@ -143,10 +166,6 @@ export function fetchSounding(
   return getJson<Sounding | null>('/api/ionosonde', { at: `${lat},${lon}` });
 }
 
-export function fetchGeocode(query: string, lang: string): Promise<Place[]> {
-  return getJson<Place[]>('/api/geocode', { q: query, lang });
-}
-
 export function fetchSpaceWeather(): Promise<SpaceWeather> {
   return getJson<SpaceWeather>('/api/spaceweather', {});
 }
@@ -173,6 +192,78 @@ export function fetchCoverage(p: {
     hour: String(p.hour),
     date: p.date,
     nowcast: p.nowcast ? '1' : '',
+    ...p.station,
+  });
+}
+
+/**
+ * The fine grid, over the whole world.
+ *
+ * About 2.2 MB on the wire, and packed into typed arrays before it is
+ * returned so the objects it arrived as are released straight away and
+ * never reach a cache. See `fineGlobe.ts`.
+ *
+ * Asked once per band and hour, with nothing about the view in it: the
+ * whole point of a whole-world answer is that panning and zooming never
+ * need another one.
+ */
+export async function fetchFineGlobe(p: {
+  from: string;
+  fromLabel: string;
+  band: BandKey;
+  hour: number;
+  date: string;
+  nowcast?: boolean;
+  station: Record<string, string>;
+}): Promise<FineGlobe> {
+  const answer = await getJson<Coverage>('/api/coverage/fine', {
+    from: p.from,
+    fromLabel: p.fromLabel,
+    band: p.band,
+    hour: String(p.hour),
+    date: p.date,
+    nowcast: p.nowcast ? '1' : '',
+    ...p.station,
+  });
+  return packGlobe(p.band, p.hour, answer);
+}
+
+/**
+ * The fine grid around the operator, for the same band and hour.
+ *
+ * A separate request rather than a bigger one, so the coarse map is drawn
+ * from the first answer and this fills in behind it. Null where the
+ * station is near the antimeridian and there is no rectangle to ask for.
+ */
+export function fetchCoveragePatch(p: {
+  from: string;
+  fromLabel: string;
+  band: string;
+  hour: number;
+  date: string;
+  nowcast?: boolean;
+  station: Record<string, string>;
+  /**
+   * Where the map is pointed and how much of it is showing. Absent asks
+   * for the fine grid around the station, which is what a whole-globe
+   * view wants.
+   */
+  region?: MapRegion | null;
+}): Promise<CoveragePatch | null> {
+  return getJson<CoveragePatch | null>('/api/coverage/patch', {
+    from: p.from,
+    fromLabel: p.fromLabel,
+    band: p.band,
+    hour: String(p.hour),
+    date: p.date,
+    nowcast: p.nowcast ? '1' : '',
+    ...(p.region
+      ? {
+        atLat: String(p.region.lat),
+        atLon: String(p.region.lon),
+        halfLat: String(p.region.halfLatDeg),
+      }
+      : {}),
     ...p.station,
   });
 }

@@ -16,23 +16,28 @@ import type { AntennaKey } from '../store/useStationStore';
 
 /** Families whose gain depends on where they point. */
 export const usesOrientation = (type: AntennaKey) =>
-  type === 'dipole' || type === 'invertedL' || type === 'yagi';
+  type === 'dipole' || type === 'invertedV' || type === 'invertedL'
+  || type === 'yagi';
 
 /**
  * Families described by the run of their wire rather than by where they
  * point.
  *
- * Only the dipole. Somebody with a wire in a tree knows it runs
- * north-east to south-west; they do not know, and should not have to
+ * The dipole and the inverted V. Somebody with a wire in a tree knows it
+ * runs north-east to south-west; they do not know, and should not have to
  * work out, that this means it favours north-west and south-east. A
- * dipole radiates broadside, so the conversion is exact.
+ * dipole radiates broadside, so the conversion is exact, and an inverted V
+ * is a dipole with its ends pulled down — the run of the wire is still
+ * the thing its owner can point at, and the model underneath it is the
+ * dipole's.
  *
  * The inverted L is not here even though it is also a wire: its pattern
  * is not a simple broadside one, so asking for the wire and adding a
  * right angle would be inventing physics. It is asked the same way as a
  * beam.
  */
-export const askedAsWire = (type: AntennaKey) => type === 'dipole';
+export const askedAsWire = (type: AntennaKey) =>
+  type === 'dipole' || type === 'invertedV';
 
 /**
  * Families that favour two opposite directions equally.
@@ -43,7 +48,7 @@ export const askedAsWire = (type: AntennaKey) => type === 'dipole';
  * it is said rather than assumed.
  */
 export const isBidirectional = (type: AntennaKey) =>
-  type === 'dipole' || type === 'invertedL';
+  type === 'dipole' || type === 'invertedV' || type === 'invertedL';
 
 const wrap = (deg: number) => ((deg % 360) + 360) % 360;
 

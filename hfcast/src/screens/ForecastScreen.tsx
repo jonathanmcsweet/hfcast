@@ -8,19 +8,17 @@ import AppHeader from '../components/AppHeader';
 import BandSelector from '../components/BandSelector';
 import Collapsible from '../components/Collapsible';
 import DisclaimerCard from '../components/DisclaimerCard';
+import FirstRunLocation from '../components/FirstRunLocation';
 import LocationPicker from '../components/LocationPicker';
-import PathHeader from '../components/PathHeader';
 import ReachCard from '../components/ReachCard';
 import ReachGrid from '../components/ReachGrid';
 import SectionHeading from '../components/SectionHeading';
-import ServerAddressDialog from '../components/ServerAddressDialog';
 import SpaceWeatherCard from '../components/SpaceWeatherCard';
 import StationModal from '../components/StationModal';
 
-import { usePrediction, useSounding } from '../api/queries';
+import { usePrediction, useSounding, useSpaceWeather } from '../api/queries';
 import { qualityFor } from '../data/quality';
 import { usePathStore } from '../store/usePathStore';
-import { isLoopback, useServerStore } from '../store/useServerStore';
 import { spacing, typography } from '../theme';
 import type { AppTheme } from '../theme';
 
@@ -31,10 +29,11 @@ export default function ForecastScreen() {
   const [now, setNow] = useState(() => new Date());
   const [pickerOpen, setPickerOpen] = useState(false);
   const [stationOpen, setStationOpen] = useState(false);
-  const [serverOpen, setServerOpen] = useState(false);
 
   const from = usePathStore((s) => s.from);
   const to = usePathStore((s) => s.to);
+  const ready = usePathStore((s) => s.ready);
+  const finishFirstRun = usePathStore((s) => s.finishFirstRun);
   const band = usePathStore((s) => s.band);
   const setBand = usePathStore((s) => s.setBand);
   const hour = usePathStore((s) => s.hour);
@@ -45,21 +44,43 @@ export default function ForecastScreen() {
     return () => clearInterval(id);
   }, []);
 
-  const { data, error, isPending, isFetching, dataUpdatedAt, refetch } =
-    usePrediction(from, to);
+  const { data, error, isPending, refetch } = usePrediction(from, to);
+
+  // Current conditions, and the only thing on this screen that needs a
+  // network. It drives the now-cast as well as the card, so a failure here
+  // costs accuracy rather than the forecast.
+  const weather = useSpaceWeather();
 
   // Measured foF2 near the transmitting end, when a sounder is close
   // enough. Independent of the forecast: it never delays or blocks it.
   const { data: sounding } = useSounding(from);
 
   const ui = theme.colors.ui;
-  const server = useServerStore((s) => s.address);
   const nowHour = now.getUTCHours();
-  const offline = Boolean(error);
+
+  // Offline is about the readings, not the forecast. On a device the engine
+  // is compiled in, so a forecast is always available and only the live
+  // conditions can be missing — which is exactly what the chip warns about.
+  const offline = Boolean(weather.error);
+
+  // Both refresh paths ask for the same two things: new readings, and the
+  // forecast that follows from them. On the device the forecast recomputes on
+  // its own once the readings change, but the web build fetches both.
+  const refresh = () => {
+    void weather.refetch();
+    void refetch();
+  };
 
   // The status bar overlaps these too, and the error screen is tall enough on a
   // small phone to reach it.
   const safe = { paddingTop: insets.top, paddingBottom: insets.bottom };
+
+  // Before anything else, and before any forecast is computed: a first launch
+  // has no location, and the forecast it would show is about nowhere the
+  // reader chose. The queries above still run, which is deliberate — the
+  // space weather poll starts while the pane is open, so the first forecast
+  // after it is answered is already a now-cast.
+  if (!ready) return <FirstRunLocation onDone={finishFirstRun} />;
 
   if (isPending) {
     return (
@@ -85,51 +106,27 @@ export default function ForecastScreen() {
           {t('status.errorTitle')}
         </Text>
         <Text style={[typography.body, styles.centreText, { color: ui.text2 }]}>
-          {t('status.errorBody', { address: server })}
+          {t('status.errorBody')}
         </Text>
         {
-          /* An installed build shipped pointing at this device, so the most
-             likely reason is that the address is wrong rather than that a
-             server is down. Saying which of the two it is stops the screen
-             reading as "this app is broken". */
-        }
-        {isLoopback(server)
-          ? (
-            <Text
-              style={[typography.body, styles.centreText, { color: ui.text2 }]}
-            >
-              {t('status.errorLoopback')}
-            </Text>
-          )
-          : null}
-        {
-          /* The reason is shown verbatim as well. "no answer after 10s" and
-             "could not reach" are different faults, and the difference is
-             what tells a wrong port from a sleeping machine. */
+          /* The reason is shown verbatim. On a device this is an engine
+             fault, which is rare and specific; on the web build it is the
+             server, and "no answer after 10s" and "could not reach" are
+             different faults worth telling apart. */
         }
         <Text
           style={[typography.caption, styles.centreDetail, { color: ui.text3 }]}
         >
           {error instanceof Error ? error.message : String(error)}
         </Text>
-        <Button
-          mode="contained"
-          onPress={() => setServerOpen(true)}
-          style={styles.retry}
-        >
-          {t('status.setServer')}
-        </Button>
-        <Button
-          mode="outlined"
-          onPress={() => void refetch()}
-          style={styles.retry}
-        >
+        <Button mode="contained" onPress={refresh} style={styles.retry}>
           {t('status.retry')}
         </Button>
         {
-          /* The station is worth reaching from here too. It needs no server —
-             power, mode, antenna and its compass are all local — and this
-             screen is the whole app until a forecast arrives. */
+          /* The station is worth reaching from here too. It needs nothing
+             this screen is missing — power, mode, antenna and its compass are
+             all local — and this screen is the whole app until a forecast
+             arrives. */
         }
         <Button
           mode="text"
@@ -139,10 +136,6 @@ export default function ForecastScreen() {
           {t('status.openStation')}
         </Button>
 
-        <ServerAddressDialog
-          visible={serverOpen}
-          onDismiss={() => setServerOpen(false)}
-        />
         <StationModal
           visible={stationOpen}
           onDismiss={() => setStationOpen(false)}
@@ -151,7 +144,12 @@ export default function ForecastScreen() {
     );
   }
 
-  const { prediction, spaceWeather } = data;
+  const { prediction } = data;
+
+  // From the query of its own, whichever fetched it. The prediction response
+  // carries a copy on the web build; this is the one source so the card and
+  // the run it drove cannot disagree.
+  const spaceWeather = weather.data ?? null;
 
   // A grid of 216 identical closed cells is a true answer that looks like a
   // failed one. Very long paths give exactly that — the engine's best cell
@@ -175,10 +173,19 @@ export default function ForecastScreen() {
       >
         <AppHeader
           place={prediction.from.label}
+          destination={prediction.to === null
+              || prediction.distanceKm === null
+              || prediction.bearingDeg === null
+            ? null
+            : {
+              label: prediction.to.label,
+              distanceKm: prediction.distanceKm,
+              bearingDeg: prediction.bearingDeg,
+            }}
           offline={offline}
           onPressPlace={() => setPickerOpen(true)}
-          onRefresh={() => void refetch()}
-          refreshing={isFetching}
+          onRefresh={refresh}
+          refreshing={weather.isFetching}
           onOpenStation={() => setStationOpen(true)}
         />
 
@@ -196,20 +203,19 @@ export default function ForecastScreen() {
           onHourChange={setHour}
         />
 
-        <PathHeader
-          prediction={prediction}
-          onPressDestination={() => setPickerOpen(true)}
-        />
-
         {
           /* Named for the destination, because this grid is about one path.
              The map above answers the other question — who can hear you —
              and the two were reading as the same thing. */
         }
         <SectionHeading
-          title={t('sections.allBandsTo', { place: prediction.to.label })}
+          title={prediction.to
+            ? t('sections.allBandsTo', { place: prediction.to.label })
+            : t('sections.allBandsAnywhere')}
           hint={allClosed
-            ? t('sections.noneReach', { place: prediction.to.label })
+            ? (prediction.to
+              ? t('sections.noneReach', { place: prediction.to.label })
+              : t('sections.noneReachAnywhere'))
             : t('sections.allBandsHint')}
         />
         <ReachGrid
@@ -230,16 +236,18 @@ export default function ForecastScreen() {
              old it is must not be something the reader has to open a
              section to discover. */
         }
+        {
+          /* The time is when these readings were fetched, not when the
+             forecast was computed. They are different clocks now that the
+             two are separate queries, and the tag is about the readings. A
+             card with nothing in it gets no time at all rather than 1970. */
+        }
         <Collapsible
           title={t('sections.sun')}
-          tag={offline
-            ? t('spaceWeather.asOf', {
-              time: dataUpdatedAt
-                ? new Date(dataUpdatedAt).toISOString().slice(11, 16)
-                : '',
-            })
-            : t('spaceWeather.updated', {
-              time: new Date(dataUpdatedAt).toISOString().slice(11, 16),
+          tag={weather.dataUpdatedAt === 0
+            ? undefined
+            : t(offline ? 'spaceWeather.asOf' : 'spaceWeather.updated', {
+              time: new Date(weather.dataUpdatedAt).toISOString().slice(11, 16),
             })}
           tagStale={offline}
         >
@@ -257,6 +265,11 @@ export default function ForecastScreen() {
         />
       </ScrollView>
 
+      {
+        /* One pane for both ends, reached from the path name. It opens on
+           whichever end it was last left on, which is the near one until
+           somebody changes it. */
+      }
       <LocationPicker
         visible={pickerOpen}
         onDismiss={() => setPickerOpen(false)}
@@ -264,13 +277,15 @@ export default function ForecastScreen() {
 
       {
         /* The bearing lets the beam be aimed at the other end in one tap,
-          which is what an operator does before calling. */
+          which is what an operator does before calling. With no destination
+          there is nothing to aim at, and the control is absent rather than
+          pointing somewhere arbitrary. */
       }
       <StationModal
         visible={stationOpen}
         onDismiss={() => setStationOpen(false)}
-        bearingToDestination={prediction.bearingDeg}
-        destinationLabel={prediction.to.label}
+        bearingToDestination={prediction.bearingDeg ?? undefined}
+        destinationLabel={prediction.to?.label}
         requiredSnrDb={prediction.requiredSnrDb}
       />
     </View>

@@ -18,7 +18,7 @@
  * `paritycheck` proves it over the request shapes this server sends.
  */
 import { execFile } from 'node:child_process';
-import { homedir } from 'node:os';
+import { cpus, homedir } from 'node:os';
 import path from 'node:path';
 import type { AntennaCard } from '../antenna.ts';
 import {
@@ -28,6 +28,7 @@ import {
   type OperatingWindow,
 } from '../types.ts';
 import type { ParsedPrediction, RawBandHour } from './parse.ts';
+import { type AreaBounds, latShards } from './shard.ts';
 
 export const PREDICT_BIN = process.env.HFCAST_PREDICT
   ?? path.join(homedir(), 'workspace/hfcast-engine/target/release/predict');
@@ -38,6 +39,35 @@ export const ITSHFBC_DIR = process.env.HFCAST_ITSHFBC
 
 /** A run times out well before any sensible HTTP client does. */
 const RUN_TIMEOUT_MS = 30_000;
+
+/**
+ * How many processes a large area grid is split across.
+ *
+ * The engine is single-threaded, so a grid runs on one core however many
+ * the host has. Measured on a 16-core host over the 34,560-point grid,
+ * every count giving identical points:
+ *
+ * | strips | 1 | 2 | 3 | 4 | 6 | 8 | 12 | 16 |
+ * | --- | --: | --: | --: | --: | --: | --: | --: | --: |
+ * | ms | 1300 | 681 | 471 | 377 | 272 | 227 | 221 | 241 |
+ *
+ * Eight is where it stops paying: twelve is two percent better and
+ * sixteen is worse, because each process re-reads the coefficient tables
+ * and they start to contend. Capped at the core count as well, so a
+ * small host does not oversubscribe itself. On a host with more than
+ * eight cores the cap also leaves cores free for other requests; on
+ * eight or fewer it does not, and nothing here limits how many requests
+ * split at once. That is accepted while the only grids large enough to
+ * split are ones no caller sends — a global limit belongs with whoever
+ * adds such a caller.
+ *
+ * `HFCAST_COVERAGE_SHARDS=1` turns splitting off.
+ */
+export const COVERAGE_SHARDS = (() => {
+  const asked = Number(process.env.HFCAST_COVERAGE_SHARDS);
+  if (Number.isInteger(asked) && asked >= 1) return asked;
+  return Math.max(1, Math.min(8, cpus().length));
+})();
 
 export interface EngineRequest {
   fromLat: number;
@@ -239,14 +269,35 @@ interface WireCoveragePoint {
   lat: number;
   lon: number;
   reliability: number;
+  /**
+   * Transmit take-off angle in degrees, or null where the engine printed
+   * no number. Steep means near-vertical incidence: the signal leaves
+   * steeply and comes back down close to where it started, with no skip
+   * zone, which is the whole of what the fine grid is for.
+   */
+  takeoffAngleDeg?: number | null;
 }
 
 interface WireCoverage {
   latStep?: number;
   lonStep?: number;
+  latMin?: number;
+  latMax?: number;
+  lonMin?: number;
+  lonMax?: number;
   points?: WireCoveragePoint[];
   error?: string;
 }
+
+/**
+ * The rectangle an area run covers, in degrees.
+ *
+ * Absent, the engine runs the whole world, which is what every caller did
+ * before a rectangle could be asked for. Defined beside the splitting,
+ * which is the other thing that has to know where the lattice falls, and
+ * re-exported here because this is where callers reach for it.
+ */
+export type { AreaBounds };
 
 export interface CoverageRequest {
   fromLat: number;
@@ -270,9 +321,14 @@ export interface CoverageRequest {
    * ideal one could.
    */
   txAntenna?: AntennaCard;
+  /**
+   * The region to cover. Absent means the whole world, which is what the
+   * map behind everything else is drawn from.
+   */
+  bounds?: AreaBounds;
 }
 
-export interface Coverage {
+export interface Coverage extends Partial<AreaBounds> {
   band: BandKey;
   hour: number;
   latStep: number;
@@ -290,24 +346,60 @@ export interface Coverage {
  */
 export async function runCoverage(
   request: CoverageRequest,
+  shards: number = COVERAGE_SHARDS,
 ): Promise<Coverage> {
-  const { band, ...rest } = request;
-  const parsed = await callPredict<WireCoverage>(JSON.stringify({
-    ...rest,
-    mode: 'area',
-    freqMhz: BAND_MHZ[band],
-    itshfbc: ITSHFBC_DIR,
-  }));
+  const { band, bounds, ...rest } = request;
+  const ask = (over: AreaBounds | undefined) =>
+    callPredict<WireCoverage>(JSON.stringify({
+      ...rest,
+      mode: 'area',
+      freqMhz: BAND_MHZ[band],
+      itshfbc: ITSHFBC_DIR,
+      // All four edges together or none: the engine refuses a partial
+      // rectangle rather than filling the rest in from the world.
+      ...(over ?? {}),
+    }));
+
+  const strips = latShards(
+    bounds,
+    request.latStep,
+    request.lonStep,
+    shards,
+  );
+  // Concatenated south to north, which is the order one whole run emits
+  // its rows in, so a split grid is the same sequence and not just the
+  // same set.
+  const parts = strips === null
+    ? [await ask(bounds)]
+    : await Promise.all(strips.map(ask));
+
+  const first = parts[0] as WireCoverage;
+  const last = parts[parts.length - 1] as WireCoverage;
 
   return {
     band,
     hour: request.hour,
-    latStep: parsed.latStep ?? request.latStep,
-    lonStep: parsed.lonStep ?? request.lonStep,
-    points: (parsed.points ?? []).map((p) => ({
-      lat: p.lat,
-      lon: p.lon,
-      reliability: Math.min(1, Math.max(0, p.reliability)),
-    })),
+    latStep: first.latStep ?? request.latStep,
+    lonStep: first.lonStep ?? request.lonStep,
+    // The engine snaps a rectangle to its own lattice, so what comes back
+    // is the grid that ran rather than the one asked for. A whole-world
+    // request reports no rectangle whether it was split or not: the
+    // strips are this function's business, not its caller's.
+    ...(bounds
+      ? {
+        latMin: first.latMin ?? bounds.latMin,
+        latMax: last.latMax ?? bounds.latMax,
+        lonMin: first.lonMin ?? bounds.lonMin,
+        lonMax: first.lonMax ?? bounds.lonMax,
+      }
+      : {}),
+    points: parts.flatMap((part) =>
+      (part.points ?? []).map((p) => ({
+        lat: p.lat,
+        lon: p.lon,
+        reliability: Math.min(1, Math.max(0, p.reliability)),
+        takeoffAngleDeg: p.takeoffAngleDeg ?? null,
+      }))
+    ),
   };
 }

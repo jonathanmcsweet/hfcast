@@ -20,6 +20,17 @@ export interface Credit {
   readonly who: string;
   /** Licence or status, as they state it. Not translated. */
   readonly terms: string;
+  /** Where the work itself lives. Shown so a credit can be followed up. */
+  readonly url: string;
+  /**
+   * The licence's own text, where it is published rather than carried.
+   *
+   * CC BY 4.0 asks for "a URI or hyperlink to the license" as part of the
+   * attribution itself, so for Open-Meteo this is an obligation and not a
+   * convenience. The licences the app carries in full — see `LICENCES` — do
+   * not need one.
+   */
+  readonly termsUrl?: string;
 }
 
 export const CREDITS: readonly Credit[] = [
@@ -27,46 +38,64 @@ export const CREDITS: readonly Credit[] = [
     id: 'voacap',
     who: 'NTIA/ITS, maintained by Greg Hand',
     terms: 'US Government work, not subject to copyright protection in the US',
+    url: 'https://its.ntia.gov/',
   },
   {
     id: 'voacapl',
     who: 'J.A. Watson',
     terms: 'CC0',
+    url: 'https://github.com/jawatson/voacapl',
+    termsUrl: 'https://creativecommons.org/publicdomain/zero/1.0/',
   },
   {
     id: 'coefficients',
     who: 'CCIR Report 340 and URSI, published by ITU-R',
     terms: 'published for implementers free from copyright assertions',
+    url: 'https://www.itu.int/rec/R-REC-P.1239/',
   },
   {
     id: 'cities',
     who: 'NTIA/ITS, from the VOACAP distribution',
     terms: 'US Government work, not subject to copyright protection in the US',
+    url: 'https://its.ntia.gov/',
   },
   {
     id: 'naturalEarth',
     who: 'Natural Earth',
     terms: 'public domain',
+    url: 'https://www.naturalearthdata.com/',
   },
   {
     id: 'noaa',
     who: 'NOAA Space Weather Prediction Center',
     terms: 'US Government work, not subject to copyright protection in the US',
+    url: 'https://www.swpc.noaa.gov/',
   },
   {
     id: 'giro',
     who: 'UMass Lowell Global Ionosphere Radio Observatory',
     terms: 'used with attribution',
+    url: 'https://giro.uml.edu/',
   },
   {
     id: 'openMeteo',
     who: 'Open-Meteo',
     terms: 'CC BY 4.0',
+    url: 'https://open-meteo.com/',
+    termsUrl: 'https://creativecommons.org/licenses/by/4.0/',
+  },
+  {
+    id: 'aurora',
+    who: 'NASA / Samantha Cristoforetti, ESA',
+    terms: 'public domain',
+    url:
+      'https://commons.wikimedia.org/wiki/File:ISS-42_Aurora_borealis_over_North_Atlantic_Ocean.jpg',
   },
   {
     id: 'plex',
     who: 'IBM',
     terms: 'SIL Open Font License 1.1',
+    url: 'https://github.com/IBM/plex',
   },
 ];
 
