@@ -7,9 +7,6 @@ import { inflateSync } from 'node:zlib';
 import {
   CELLS,
   furthestArt,
-  MARKER,
-  MARKER_COLOUR,
-  MARKER_STROKE,
   roundedRectPath,
   SAFE_RADIUS,
 } from '../tools/icon-art.ts';
@@ -38,12 +35,9 @@ const attributes = (xml: string, name: string): readonly string[] =>
 describe('the vector drawables and the generator agree', () => {
   const foreground = read('res/drawable/ic_launcher_foreground.xml');
   const monochrome = read('res/drawable/ic_launcher_monochrome.xml');
-  const expected = [
-    ...CELLS.map((cell) => roundedRectPath(cell.rect)),
-    roundedRectPath(MARKER),
-  ];
+  const expected = CELLS.map((cell) => roundedRectPath(cell.rect));
 
-  it('draws the same nine cells and marker as the colour layer', () => {
+  it('draws the same nine cells as the colour layer', () => {
     assert.deepEqual(attributes(foreground, 'pathData'), expected);
   });
 
@@ -52,16 +46,25 @@ describe('the vector drawables and the generator agree', () => {
   });
 
   it('uses the same ramp colours, in the same order', () => {
-    // The last fill is the marker's, which is a stroke over a transparent
-    // fill — hence the '#00000000' the drawable carries for it.
-    assert.deepEqual(attributes(foreground, 'fillColor'), [
-      ...CELLS.map((cell) => cell.colour),
-      '#00000000',
-    ]);
-    assert.deepEqual(attributes(foreground, 'strokeColor'), [MARKER_COLOUR]);
-    assert.deepEqual(attributes(foreground, 'strokeWidth'), [
-      String(MARKER_STROKE),
-    ]);
+    assert.deepEqual(
+      attributes(foreground, 'fillColor'),
+      CELLS.map((cell) => cell.colour),
+    );
+  });
+
+  it('has no line work in either layer', () => {
+    // The amber marker was removed from the design so that colour keeps one
+    // meaning in the product. A stroke reappearing here means the two have
+    // been changed apart again.
+    for (
+      const [name, xml] of [
+        ['colour', foreground],
+        ['themed', monochrome],
+      ] as const
+    ) {
+      assert.deepEqual(attributes(xml, 'strokeColor'), [], `${name} layer`);
+      assert.deepEqual(attributes(xml, 'strokeWidth'), [], `${name} layer`);
+    }
   });
 
   it('carries the ramp as alpha in the themed layer', () => {
@@ -80,17 +83,16 @@ describe('the constraints a launcher enforces', () => {
     assert.ok(reach <= SAFE_RADIUS, `${reach} dp from centre`);
   });
 
-  it('runs the marker through the gutters without touching a cell', () => {
-    const half = MARKER_STROKE / 2;
-    const left = MARKER.x - half;
-    const right = MARKER.x + MARKER.w + half;
-    const columns = [...new Set(CELLS.map((cell) => cell.rect.x))].sort(
-      (a, b) => a - b,
-    );
-    const width = CELLS[0]?.rect.w ?? 0;
-    const [first, , third] = columns;
-    assert.ok(left > (first ?? 0) + width, `marker reaches ${left}`);
-    assert.ok(right < (third ?? 0), `marker reaches ${right}`);
+  it('centres the grid on the canvas', () => {
+    // Off-centre art is cropped unevenly by a circular mask, which is the one
+    // launcher shape that gives the error nowhere to hide.
+    const centre = 108 / 2;
+    const spans = (pick: (cell: (typeof CELLS)[number]) => number[]) =>
+      CELLS.flatMap(pick);
+    const xs = spans((cell) => [cell.rect.x, cell.rect.x + cell.rect.w]);
+    const ys = spans((cell) => [cell.rect.y, cell.rect.y + cell.rect.h]);
+    assert.equal((Math.min(...xs) + Math.max(...xs)) / 2, centre);
+    assert.equal((Math.min(...ys) + Math.max(...ys)) / 2, centre);
   });
 });
 
@@ -154,8 +156,7 @@ function palette(pixels: Uint8Array): Set<string> {
 }
 
 describe('the generated PNGs are the icon', () => {
-  const ramp = new Set(CELLS.map((cell) => cell.colour.replace('#', '')));
-  const amber = MARKER_COLOUR.replace('#', '');
+  const ramp = [...new Set(CELLS.map((cell) => cell.colour.replace('#', '')))];
 
   const cases = [
     { file: 'src/assets/icon.png', size: 1024, opaque: true },
@@ -179,10 +180,10 @@ describe('the generated PNGs are the icon', () => {
       assert.equal(image.width, size);
       assert.equal(image.height, size);
 
-      // Every ramp colour and the amber have to appear somewhere. A flat or
-      // corrupt export fails here, which is the whole point of the check.
+      // Every ramp colour has to appear somewhere. A flat or corrupt export
+      // fails here, which is the whole point of the check.
       const found = palette(image.pixels);
-      for (const colour of [...ramp, amber]) {
+      for (const colour of ramp) {
         assert.ok(found.has(colour), `${file} has no ${colour}`);
       }
     });

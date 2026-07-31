@@ -7,8 +7,9 @@
  * the files on disk. The rasters and the vectors therefore cannot drift apart
  * without a test failing.
  *
- * Nine cells on a grid, and an amber marker spanning the middle column — the
- * band grid the app draws, with the selected hour picked out.
+ * Nine cells on a grid, and nothing else: the band grid the app draws. The
+ * amber the app uses for the selected hour is deliberately not here, so that
+ * colour keeps one meaning — the hour you are looking at.
  */
 
 /** The adaptive icon canvas. */
@@ -39,22 +40,12 @@ export interface Rect {
   readonly r: number;
 }
 
-/**
- * The selected-hour marker. Its 4 dp stroke is centred on the path, so it
- * reaches 2 dp either side and lands inside the 5 dp gutters without touching
- * a cell.
- */
-export const MARKER: Rect = { x: 45.5, y: 27, w: 17, h: 54, r: 6 };
-export const MARKER_STROKE = 4;
-export const MARKER_COLOUR = '#FFC24B';
-
 /** Behind the foreground layer. The app's own indigo. */
 export const BACKGROUND = '#2A1656';
 
 /**
  * The ramp runs along the anti-diagonal: a cell's colour is fixed by its row
- * plus its column, so the grid darkens from top-left to bottom-right and the
- * amber marker crosses the whole range.
+ * plus its column, so the grid darkens from top-left to bottom-right.
  */
 const RAMP = [
   '#C9B4F7',
@@ -129,15 +120,12 @@ export function roundedRectPath({ x, y, w, h, r }: Rect): string {
  */
 export function furthestArt(): number {
   const centre = CANVAS / 2;
-  const reach = ({ x, y, w, h, r }: Rect, bleed: number): number => {
+  const reach = ({ x, y, w, h, r }: Rect): number => {
     // The outermost point of a rounded rectangle is its corner arc's centre
     // plus the radius, measured from the canvas centre.
     const cx = Math.max(Math.abs(x - centre), Math.abs(x + w - centre)) - r;
     const cy = Math.max(Math.abs(y - centre), Math.abs(y + h - centre)) - r;
-    return Math.hypot(cx, cy) + r + bleed;
+    return Math.hypot(cx, cy) + r;
   };
-  return Math.max(
-    ...CELLS.map((cell) => reach(cell.rect, 0)),
-    reach(MARKER, MARKER_STROKE / 2),
-  );
+  return Math.max(...CELLS.map((cell) => reach(cell.rect)));
 }

@@ -18,15 +18,7 @@
  */
 import { writeFileSync } from 'node:fs';
 
-import {
-  BACKGROUND,
-  CANVAS,
-  CELLS,
-  MARKER,
-  MARKER_COLOUR,
-  MARKER_STROKE,
-  VIEWPORT,
-} from './icon-art.ts';
+import { BACKGROUND, CANVAS, CELLS, VIEWPORT } from './icon-art.ts';
 import {
   encodePng,
   fill,
@@ -44,29 +36,17 @@ const ASSETS = 'src/assets';
 const WHITE = rgb('#FFFFFF');
 const INDIGO = rgb(BACKGROUND);
 
-/** The full-colour layer: the ramp, then the amber marker over it. */
-const FOREGROUND: readonly Shape[] = [
-  ...CELLS.map((cell) => ({
-    rect: cell.rect,
-    fill: { colour: rgb(cell.colour), alpha: 1 },
-  })),
-  {
-    rect: MARKER,
-    stroke: { colour: rgb(MARKER_COLOUR), alpha: 1, width: MARKER_STROKE },
-  },
-];
+/** The full-colour layer: the ramp, and nothing over it. */
+const FOREGROUND: readonly Shape[] = CELLS.map((cell) => ({
+  rect: cell.rect,
+  fill: { colour: rgb(cell.colour), alpha: 1 },
+}));
 
 /** The themed-icon layer: white throughout, the ramp carried by alpha. */
-const MONOCHROME: readonly Shape[] = [
-  ...CELLS.map((cell) => ({
-    rect: cell.rect,
-    fill: { colour: WHITE, alpha: cell.alpha },
-  })),
-  {
-    rect: MARKER,
-    stroke: { colour: WHITE, alpha: 1, width: MARKER_STROKE },
-  },
-];
+const MONOCHROME: readonly Shape[] = CELLS.map((cell) => ({
+  rect: cell.rect,
+  fill: { colour: WHITE, alpha: cell.alpha },
+}));
 
 const write = (
   path: string,

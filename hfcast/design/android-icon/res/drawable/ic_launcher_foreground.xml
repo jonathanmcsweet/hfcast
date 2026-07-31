@@ -31,9 +31,4 @@
     <path
         android:fillColor="#4A2F7D"
         android:pathData="M68.2,65H73.8A3.2,3.2 0 0 1 77,68.2V73.8A3.2,3.2 0 0 1 73.8,77H68.2A3.2,3.2 0 0 1 65,73.8V68.2A3.2,3.2 0 0 1 68.2,65Z" />
-    <path
-        android:fillColor="#00000000"
-        android:strokeColor="#FFC24B"
-        android:strokeWidth="4"
-        android:pathData="M51.5,27H56.5A6,6 0 0 1 62.5,33V75A6,6 0 0 1 56.5,81H51.5A6,6 0 0 1 45.5,75V33A6,6 0 0 1 51.5,27Z" />
 </vector>
