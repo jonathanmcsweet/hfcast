@@ -25,7 +25,7 @@ import {
   normaliseAntenna,
 } from './antenna.ts';
 import { TtlCache } from './cache.ts';
-import { coverage, coveragePatch } from './coverage.ts';
+import { coverage, coverageFine, coveragePatch } from './coverage.ts';
 import { gridToLatLon, isGrid, latLonToGrid } from './geo.ts';
 import {
   fetchSounding,
@@ -313,6 +313,21 @@ async function handleCoverage(url: URL) {
 }
 
 /**
+ * The fine grid, over the whole world.
+ *
+ * The same request as the coarse map at a step a hundred and eighty
+ * times finer. A separate route for the same reason the patch has one:
+ * the coarse map is the answer and must be drawn as soon as it exists,
+ * and this arrives behind it and replaces its cells.
+ *
+ * The response is about 2.2 MB. That is the price of asking the question
+ * once for the whole world instead of asking it again on every pan.
+ */
+async function handleCoverageFine(url: URL) {
+  return await coverageFine(await coverageRequest(url));
+}
+
+/**
  * The fine grid around the operator, for the same band and hour.
  *
  * The same request as the coarse map, answered over a rectangle instead
@@ -517,6 +532,8 @@ async function route(url: URL): Promise<unknown> {
       return await handleCoverage(url);
     case '/api/coverage/patch':
       return await handleCoveragePatch(url);
+    case '/api/coverage/fine':
+      return await handleCoverageFine(url);
     case '/api/forecast':
       return await handleForecast(url);
     case '/api/ionosonde':

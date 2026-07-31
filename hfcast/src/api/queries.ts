@@ -12,6 +12,7 @@ import {
 } from '../data/ionosonde';
 import {
   canMapLocally,
+  coverFineLocally,
   coverLocally,
   coverPatchLocally,
 } from '../data/localCoverage';
@@ -30,6 +31,7 @@ import type {
   SpaceWeather,
 } from '../data/types';
 import { useSettled } from '../hooks/useSettled';
+import { hasSkia } from '../render/available';
 import { today } from '../store/usePathStore';
 import {
   activePreset,
@@ -41,6 +43,7 @@ import {
   API_BASE,
   fetchCoverage,
   fetchCoveragePatch,
+  fetchFineGlobe,
   fetchPrediction,
   fetchSounding,
   fetchSpaceWeather,
@@ -94,6 +97,15 @@ export const queryKeys = {
     nowcast: string,
     station: string,
   ) => ['coverage', server, from, band, hour, date, nowcast, station] as const,
+  fineGlobe: (
+    server: string,
+    from: string,
+    band: string,
+    hour: number,
+    date: string,
+    nowcast: string,
+    station: string,
+  ) => ['fineGlobe', server, from, band, hour, date, nowcast, station] as const,
   coveragePatch: (
     server: string,
     from: string,
@@ -480,11 +492,92 @@ export function useCoverage(
  * the same moment and the fine cells never sit on top of a map drawn for
  * a different hour.
  */
+/**
+ * The fine grid, over the whole world, for one band and hour.
+ *
+ * There is deliberately nothing about the view in the key. The viewport
+ * patch has to refetch whenever the map is pointed somewhere else; this
+ * is asked once and answers every pan and zoom from what it already
+ * holds, which is the reason for paying for 34,560 points instead of a
+ * few hundred.
+ *
+ * It arrives behind the coarse map and replaces its cells. The coarse
+ * query is untouched, so the map is drawn from the first answer and this
+ * only sharpens it.
+ *
+ * `enabled` is what Milestone 3 of `docs/handoff-skia-globe.md` will
+ * narrow to the devices that can afford it. Today it asks wherever a
+ * canvas exists to draw the result: the SVG renderer cannot hold this
+ * many cells, so on the legacy build the question would cost a run and
+ * change nothing.
+ */
+export function useFineGlobe(
+  from: Endpoint,
+  band: BandKey,
+  reportedHour: number,
+  enabled = true,
+) {
+  const date = today();
+  const station = useStation();
+  const local = canMapLocally();
+  const nowcast = nowcastFrom(useSpaceWeather().data);
+  const hour = useSettled(reportedHour, 350);
+
+  return useQuery({
+    queryKey: queryKeys.fineGlobe(
+      local ? 'device' : API_BASE,
+      from.grid,
+      band,
+      hour,
+      date,
+      nowcastKey(nowcast),
+      station.key,
+    ),
+    queryFn: () =>
+      local
+        ? coverFineLocally({
+          from,
+          band,
+          hour,
+          date: new Date(`${date}T00:00:00Z`),
+          station: station.station,
+          nowcast,
+        })
+        : fetchFineGlobe({
+          from: `${from.lat},${from.lon}`,
+          fromLabel: from.label,
+          band,
+          hour,
+          date,
+          nowcast: true,
+          station: station.params,
+        }),
+    enabled: enabled && hasSkia && !station.editing,
+    placeholderData: keepPreviousData,
+    staleTime: local ? Number.POSITIVE_INFINITY : SPACE_WEATHER_POLL_MS,
+    // No retry, for the same reason the patch does not: the coarse map
+    // is the answer and this is detail on top of it. A second attempt
+    // spends seconds of engine time on something whose absence changes
+    // nothing a reader depends on.
+    retry: false,
+  });
+}
+
 export function useCoveragePatch(
   from: Endpoint,
   band: BandKey,
   reportedHour: number,
   reportedRegion: MapRegion | null = null,
+  /**
+   * False turns the patch off entirely.
+   *
+   * A whole-world fine grid already answers at the patch's own step, so
+   * running it as well would spend a second engine run to redraw cells
+   * that are already there. It is only worth asking again below that
+   * step, at the deepest zoom, where the patch can still buy detail the
+   * globe does not hold.
+   */
+  enabled = true,
 ) {
   const date = today();
   const station = useStation();
@@ -535,7 +628,7 @@ export function useCoveragePatch(
           station: station.params,
           region,
         }),
-    enabled: !station.editing,
+    enabled: enabled && !station.editing,
     placeholderData: keepPreviousData,
     staleTime: local ? Number.POSITIVE_INFINITY : SPACE_WEATHER_POLL_MS,
     // No retry. The coarse map is the answer and this is detail on top of

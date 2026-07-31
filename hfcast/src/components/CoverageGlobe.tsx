@@ -10,7 +10,7 @@ import {
 import Svg, { Circle, G, Path } from 'react-native-svg';
 
 import land from '../assets/land.json';
-import { cellField, nvisPoints } from '../data/cellField';
+import { cellField, gridPoints, nvisPoints } from '../data/cellField';
 import {
   circleAround,
   clamp,
@@ -35,6 +35,7 @@ import type {
   Coverage,
   CoveragePatch,
   Endpoint,
+  FineGlobe,
   MapRegion,
 } from '../data/types';
 import { hasSkia } from '../render/available';
@@ -53,6 +54,16 @@ interface Props {
    * mean the same thing here: draw the coarse map alone.
    */
   patch?: CoveragePatch | null;
+  /**
+   * The whole-world fine grid, when this device runs one.
+   *
+   * It replaces the coarse cells rather than covering them: the two
+   * answer the same question and the finer one is simply better, so
+   * there is nothing to show through and no backing needed. Undefined
+   * while it runs and null where it is not run at all, and both mean
+   * the coarse cells stay.
+   */
+  fine?: FineGlobe | null;
   from: Endpoint;
   /** Drawn as a great circle from the centre. */
   to: Endpoint | null;
@@ -152,6 +163,7 @@ const PAN_FINGERS = 2;
 export default function CoverageGlobe({
   coverage,
   patch,
+  fine,
   from,
   to,
   toClosed,
@@ -174,13 +186,22 @@ export default function CoverageGlobe({
     // The cells, as one path per quality. The geometry and the bucketing
     // live in `cellField` because the canvas and the SVG fallback both
     // draw from them and must not be able to disagree.
-    const coarse = cellField(
-      p,
-      coverage?.points ?? [],
-      coverage?.lonStep ?? 22.5,
-      coverage?.latStep ?? 15,
-      true,
-    );
+    //
+    // The fine grid replaces the coarse one outright when it is there.
+    // Both answer the same question over the same world, so drawing the
+    // coarse cells underneath would only show through the gaps of a
+    // better answer. This is the progressive paint: the coarse map is
+    // drawn from the first answer and swapped for the fine one when it
+    // arrives, with nothing in between.
+    const coarse = fine
+      ? cellField(p, gridPoints(fine), fine.lonStep, fine.latStep, true)
+      : cellField(
+        p,
+        coverage?.points ?? [],
+        coverage?.lonStep ?? 22.5,
+        coverage?.latStep ?? 15,
+        true,
+      );
     const reachBox = coarse.reachBox;
 
     // The fine grid, drawn the same way and over the top. It covers a
@@ -232,7 +253,13 @@ export default function CoverageGlobe({
       ? pathOf(patchOutline[0], true)
       : '';
 
-    const nvisDots = nvisPoints(p, patch?.points ?? []);
+    // The stipple follows whichever grid carries take-off angles for the
+    // region: the fine globe when there is one, the patch otherwise.
+    // Steep paths are short ones, so this is a small cluster near the
+    // station either way, however many points were scanned to find it.
+    const nvisDots = fine
+      ? nvisPoints(p, gridPoints(fine))
+      : nvisPoints(p, patch?.points ?? []);
 
     const coast = RINGS.flatMap((ring) =>
       projectRing(p, ring).map((run) => pathOf(run))
@@ -301,7 +328,7 @@ export default function CoverageGlobe({
       p,
       reachBox,
     };
-  }, [coverage, patch, from.lat, from.lon, to, hour, size]);
+  }, [coverage, patch, fine, from.lat, from.lon, to, hour, size]);
 
   const { p } = geometry;
 

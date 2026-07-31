@@ -2,7 +2,9 @@ import React, { useCallback, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { StyleSheet, View } from 'react-native';
 import { Text, useTheme } from 'react-native-paper';
-import { useCoverage, useCoveragePatch } from '../api/queries';
+import { useCoverage, useCoveragePatch, useFineGlobe } from '../api/queries';
+import { patchGrid } from '../data/coveragePatch';
+import { FINE_LAT_STEP } from '../data/fineGlobe';
 import { anyNvis, isNvis, nvisReachKm, qualityFor } from '../data/quality';
 import { cellFor } from '../data/selectors';
 import type { BandKey, MapRegion, PathPrediction } from '../data/types';
@@ -80,11 +82,24 @@ export default function ReachCard({
   // Never awaited and never blocking: the map is drawn from the coarse
   // answer above and this fills in behind it. Its own failure is silent,
   // because nothing on the screen depends on it.
+  // The whole-world fine grid. Asked once per band and hour, with
+  // nothing about the view in its key, so panning and zooming never ask
+  // again. It replaces the coarse cells when it lands.
+  const { data: fine } = useFineGlobe(prediction.from, band, hour);
+  // The viewport patch is only worth running where it can still buy
+  // detail the globe does not hold — below the globe's own step, at the
+  // deepest zoom. With a globe present and the view above that step, the
+  // two would answer the same question and the second run would change
+  // nothing on the screen.
+  const zoomedPastGlobe = region !== null
+    && (patchGrid(region.lat, region.lon, region.halfLatDeg)?.latStep ?? 1)
+      < FINE_LAT_STEP;
   const { data: patch } = useCoveragePatch(
     prediction.from,
     band,
     hour,
     region,
+    !fine || zoomedPastGlobe,
   );
   // The sentence under the map describes the station — how far ITS
   // near-vertical region reaches — so its data must not follow the view:
@@ -170,6 +185,7 @@ export default function ReachCard({
             <CoverageGlobe
               coverage={error ? null : coverage}
               patch={patch ?? null}
+              fine={fine ?? null}
               from={prediction.from}
               to={prediction.to}
               toClosed={destination !== null && quality === 'closed'}
@@ -181,7 +197,7 @@ export default function ReachCard({
           : null}
       </View>
 
-      <MapLegend hasNvis={patch ? anyNvis(patch.points) : false} />
+      <MapLegend hasNvis={homePatch ? anyNvis(homePatch.points) : false} />
 
       {
         /* The map's headline number in words, because a shape is not a

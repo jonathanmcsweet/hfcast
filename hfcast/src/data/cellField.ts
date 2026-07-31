@@ -30,7 +30,7 @@ import type { QualityKey } from '../theme.ts';
 import { cellRing, pathOf, projectRing } from './projection.ts';
 import type { Projector, ViewTransform } from './projection.ts';
 import { isNvis, qualityFor } from './quality.ts';
-import type { CoveragePoint } from './types.ts';
+import type { CoveragePoint, FineGlobe } from './types.ts';
 
 /** The box the Fit control frames, in disc coordinates. */
 export interface ReachBox {
@@ -66,7 +66,7 @@ export interface CellField {
  */
 export function cellField(
   p: Projector,
-  points: readonly CoveragePoint[],
+  points: Iterable<CoveragePoint>,
   lonStep: number,
   latStep: number,
   countInReach: boolean,
@@ -151,10 +151,39 @@ export interface CellLayerProps {
  */
 export function nvisPoints(
   p: Projector,
-  points: readonly CoveragePoint[],
+  points: Iterable<CoveragePoint>,
 ): [number, number][] {
-  return points
+  return [...points]
     .filter((point) => isNvis(point.takeoffAngleDeg, point.reliability))
     .map((point) => p.project(point.lon, point.lat))
     .filter((at): at is [number, number] => at !== null);
+}
+
+/**
+ * The columnar grid, read back as points.
+ *
+ * A generator rather than an array: the objects exist only for as long
+ * as the path builder is looking at each one, so the grid stays two
+ * typed arrays in memory and never becomes 34,560 live objects. Building
+ * paths is already once per data change rather than once per frame, so
+ * the short-lived allocations cost nothing that matters.
+ *
+ * The arithmetic here is the mirror of what the query function did when
+ * it packed the arrays, and `fineGlobe.test.ts` pins it against real
+ * engine output: an off-by-one in either direction would move the whole
+ * map by one cell without changing anything about how it looks.
+ */
+export function* gridPoints(grid: FineGlobe): Generator<CoveragePoint> {
+  for (let row = 0; row < grid.ny; row += 1) {
+    const lat = grid.latMin + row * grid.latStep;
+    const base = row * grid.nx;
+    for (let column = 0; column < grid.nx; column += 1) {
+      yield {
+        lat,
+        lon: grid.lonMin + column * grid.lonStep,
+        reliability: grid.reliability[base + column] as number,
+        takeoffAngleDeg: grid.takeoffAngleDeg[base + column] as number,
+      };
+    }
+  }
 }

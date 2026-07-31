@@ -13,6 +13,7 @@ import path from 'node:path';
 import { test } from 'node:test';
 import { fileURLToPath } from 'node:url';
 
+import { FINE_LAT_STEP, FINE_LON_STEP } from '../src/coverage.ts';
 import { BANDS_BY_FREQ } from '../src/types.ts';
 import { PREDICT_BIN, runCoverage, runEngine } from '../src/voacap/engine.ts';
 import { parseVoacapOutput } from '../src/voacap/parse.ts';
@@ -199,3 +200,38 @@ test('a split grid is the same grid', { skip: !available }, async () => {
   // strips are the engine layer's business, not its caller's.
   assert.equal(split.latMin, undefined);
 });
+
+test(
+  'the fine globe is the same grid split four ways',
+  { skip: !available },
+  async () => {
+    // The configuration the device actually runs: the whole world at the
+    // fine step, cut into four strips because a phone has cores the
+    // engine's single process cannot use. The app cuts it with a
+    // character-for-character copy of the same arithmetic, so proving it
+    // here proves it for both paths.
+    const request = {
+      fromLat: 27.6,
+      fromLon: -80.4,
+      month: 7,
+      year: 2026,
+      ssn: 40,
+      watts: 100,
+      requiredSnrDb: 24,
+      noiseDbw: -145,
+      hour: 16,
+      band: '30m' as const,
+      latStep: FINE_LAT_STEP,
+      lonStep: FINE_LON_STEP,
+    };
+
+    const whole = await runCoverage(request, 1);
+    const split = await runCoverage(request, 4);
+
+    assert.equal(whole.points.length, 34560);
+    // Point for point and in order, which is what the app's columnar
+    // packing depends on: it stores no coordinates and computes them
+    // from each point's place in the array.
+    assert.deepEqual(split.points, whole.points);
+  },
+);

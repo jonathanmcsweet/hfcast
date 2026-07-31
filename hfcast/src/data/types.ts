@@ -247,6 +247,38 @@ export interface CoveragePatch {
 }
 
 /**
+ * The fine grid, over the whole world, stored by column rather than by
+ * point.
+ *
+ * 34,560 points as objects is tens of megabytes of JavaScript heap for
+ * one hour, and the map holds several hours as a user moves the slider.
+ * As two typed arrays it is about 280 KB, which is what makes keeping a
+ * whole-world answer in memory reasonable at all.
+ *
+ * This works because the lattice is regular and the engine's row order
+ * is guaranteed — south to north, west to east — so a point's place in
+ * the array is its position on the earth and does not need storing. The
+ * conversion happens in the query function, so the raw objects the wire
+ * carries are never what gets cached.
+ *
+ * `latMin` and `lonMin` are cell *centres*, matching what the engine
+ * echoes and what `cellRing` expects.
+ */
+export interface FineGlobe {
+  band: BandKey;
+  hour: number;
+  latMin: number;
+  lonMin: number;
+  latStep: number;
+  lonStep: number;
+  /** Columns, then rows. Index is `row * nx + column`. */
+  nx: number;
+  ny: number;
+  reliability: Float32Array;
+  takeoffAngleDeg: Float32Array;
+}
+
+/**
  * The part of the world the map is showing.
  *
  * `halfLatDeg` is half the height of the frame, in degrees of latitude,
