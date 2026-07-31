@@ -7,34 +7,36 @@ whether your Expo project has a checked-in `android/` folder.
 every build, so anything copied into it is erased before it reaches an APK. B is kept here for
 a project that does check that folder in.
 
-The PNGs are drawn from the vector geometry by `tools/build-icons.ts`, so the two routes cannot
-disagree. Rerun it after editing the drawables:
+**The PNGs in this folder are generated, not exported.** `tools/build-icons.ts` draws them from
+the same geometry as the drawables, so the two routes cannot disagree. Rerun it after any
+change to the design, and do not edit the PNGs by hand — the next run overwrites them:
 
 ```
 node --experimental-strip-types tools/build-icons.ts
 ```
 
-`test/icon.test.ts` rebuilds the drawables' path data from the same geometry and compares it
-with the XML, and checks the PNGs still contain the ramp. Do not edit the PNGs by hand — the
-next run overwrites them.
+`test/icon.test.ts` rebuilds the drawables' path data and colours from that geometry and
+compares them with the XML, then decodes the PNGs and checks each still carries the ramp.
 
 Geometry, for reference: nine 12 dp cells (radius 3.2) on a 17 dp pitch, so the grid is 46 dp
-wide and centred; the amber selected-hour marker is 17 × 54 at radius 6 with a 4 dp stroke,
-which lands inside the 5 dp gutters and touches no cell. Furthest art is 32.5 dp from centre,
-inside the 33 dp safe circle every launcher mask respects.
+wide and centred, with columns at 31 / 48 / 65 and rows the same. Furthest art is 31.2 dp from
+centre, inside the 33 dp safe circle every launcher mask respects — it was 32.5 dp when the
+marker was still there, and the test computes it rather than trusting this line. One ramp, no
+line work —
+#C9B4F7 → #9B78E8 → #7C4BD0 → #4A2F7D, brightest corner top-left, on #2A1656.
 
 ---
 
 ## A. Managed Expo (no `android/` folder)
 
-Three PNGs go where the app can reach them. `tools/build-icons.ts` writes them straight into
-`src/assets/`, which is where this project keeps bundled assets:
+Three PNGs go where the app can reach them. In this project `tools/build-icons.ts` writes them
+straight into `src/assets/`, which is where bundled assets live; elsewhere, copy them:
 
-| Written to                       | From                         |
-| -------------------------------- | ---------------------------- |
-| `src/assets/icon-foreground.png` | the foreground layer, 432 px |
-| `src/assets/icon-monochrome.png` | the themed layer, 432 px     |
-| `src/assets/icon.png`            | the square icon, 1024 px     |
+| From                      | To                               |
+| ------------------------- | -------------------------------- |
+| `png/icon-foreground.png` | `src/assets/icon-foreground.png` |
+| `png/icon-monochrome.png` | `src/assets/icon-monochrome.png` |
+| `png/ios-1024.png`        | `src/assets/icon.png`            |
 
 Then in `app.json`:
 
@@ -54,8 +56,7 @@ Then in `app.json`:
 ```
 
 Prebuild generates every mipmap density from these, including the legacy rasters, so route A
-covers API 21 upward on its own. The copies under `png/` are the same images for anything
-outside this build — a store listing, another project.
+covers API 21 upward on its own.
 
 `monochromeImage` needs Expo SDK 50 or newer — drop the line on older SDKs and Android 13
 themed icons simply fall back to the normal icon.
@@ -73,7 +74,7 @@ Copy the contents of `res/` over `android/app/src/main/res/`, preserving folder 
 ```
 res/mipmap-anydpi-v26/ic_launcher.xml        → adaptive icon definition
 res/mipmap-anydpi-v26/ic_launcher_round.xml  → same definition, round alias
-res/drawable/ic_launcher_foreground.xml      → the nine cells + amber marker
+res/drawable/ic_launcher_foreground.xml      → the nine ramp cells
 res/drawable/ic_launcher_monochrome.xml      → white + alpha, for Android 13 themed icons
 res/drawable/ic_stat_hfcast.xml              → 24 dp notification glyph
 res/values/ic_launcher_background.xml        → <color name="ic_launcher_background">#2A1656</color>
@@ -140,8 +141,7 @@ listing and the home screen match.
 
 `png/ios-1024.png` — 1024 × 1024, opaque, square, no rounding. It is drawn at 1.2× the Android
 framing because iOS applies no mask crop, so the identical scale would leave the art looking
-undersized on the home screen. In numbers: 90 dp of the canvas fills the square rather than all
-108, which puts the art at 73% of the icon where a launcher shows it at 92%.
+undersized on the home screen.
 
 ---
 
@@ -151,13 +151,14 @@ undersized on the home screen. In numbers: 90 dp of the canvas fills the square 
 both a squircle and a circle mask, light on the left and dark on the right, so small-size
 legibility is checkable at a glance. It is generated too.
 
-The design of record is `HFCast App Icon.dc.html` — option 7a. It carries the guides, the mask
-previews, the layer breakdown and the SVG source, and it is where a change of design starts.
-The geometry of record in this repository is `tools/icon-art.ts`, which holds the same grid,
-ramp and marker as numbers; the drawables and the PNGs are both checked against it. Change the
-design there and here, and regenerate rather than editing files by hand: the ramp colours
-(`#C9B4F7 → #9B78E8 → #7C4BD0 → #4A2F7D`), the amber (`#FFC24B`) and the indigo background
-(`#2A1656`) all come from the app's own palette and should stay in sync with it.
+The design of record is `HFCast App Icon.dc.html` in the project — option 7a. It carries the
+guides, the mask previews, the layer breakdown and the SVG source, and it is where a change of
+design starts. The geometry of record in this repository is `tools/icon-art.ts`, which holds
+the same grid and ramp as numbers. If you change the geometry
+there, regenerate these files rather than editing them by hand: the ramp colours
+(`#C9B4F7 → #9B78E8 → #7C4BD0 → #4A2F7D`) and the indigo background (`#2A1656`) come from the
+app's own palette and should stay in sync with it. Amber (`#FFC24B`) is deliberately absent, so
+it keeps a single meaning inside the product: the hour you are looking at.
 
 Rules worth not breaking: no text in the icon, no gradients or shadows on the foreground layer,
 all art inside the 66 dp safe circle, and the monochrome layer carries alpha only.
