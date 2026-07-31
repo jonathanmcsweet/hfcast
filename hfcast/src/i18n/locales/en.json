@@ -10,12 +10,22 @@
     "mapUnavailable": "The coverage map could not be loaded.",
     "reachLine": "{{band}} reaches about {{percent}} of the world at this hour.",
     "legendReach": "Reach",
-    "legendNight": "Night"
+    "legendNight": "Night",
+    "panHint": "Two fingers move the map",
+    "subtitleAnywhere": "No destination set, so this is every direction at once.",
+    "answerAnywhere": "{{band}} at {{hour}} UTC reaches about {{percent}} of the directions sampled.",
+    "legendNvis": "No skip zone",
+    "nvisReach": "{{band}} reaches out to about {{distance}} with no skip zone.",
+    "mapSharpening": "Adding detail to the map",
+    "detailWorld": "Fine detail, whole world.",
+    "detailNear": "Fine detail near {{place}} only.",
+    "detailMeasuring": "Measuring this device before it adds fine detail.",
+    "detailCoarse": "Coarse detail only. This device is too slow for the fine grid."
   },
   "path": {
     "summary": "{{distance}} · bearing {{bearing}} · {{hops}} hops",
     "summaryOneHop": "{{distance}} · bearing {{bearing}} · one hop",
-    "changeDestination": "Change destination"
+    "noDestinationHint": "The map shows every direction. Tap the name above to aim at one place."
   },
   "window": {
     "label": "Usable window",
@@ -34,13 +44,17 @@
     "showAsGrid": "Show as grid",
     "bandColumn": "Band",
     "footnoteHours": "Hours are UTC. Local time at {{place}} is on the clock above.",
-    "footnoteSaved": "This is saved data, so it cannot show anything that changed since it was fetched."
+    "footnoteSaved": "This is saved data, so it cannot show anything that changed since it was fetched.",
+    "unitDirections": "Directions reachable, %",
+    "chanceAnywhere": "reaches about {{percent}} of sampled directions"
   },
   "sections": {
     "allBandsHint": "How far each band gets you, hour by hour.",
     "sun": "The sun today",
     "allBandsTo": "All bands to {{place}}",
-    "noneReach": "No band reaches {{place}} at any hour today."
+    "noneReach": "No band reaches {{place}} at any hour today.",
+    "allBandsAnywhere": "All bands, every direction",
+    "noneReachAnywhere": "No band reaches anywhere at any hour today."
   },
   "spaceWeather": {
     "flux": "Solar flux",
@@ -83,20 +97,20 @@
     "from": "From",
     "to": "To",
     "useDevice": "Use my location",
-    "searchPlaceholder": "City name or grid square",
+    "searchPlaceholder": "Town, coordinates, grid square",
     "searchFailed": "Search is unavailable right now.",
     "noResults": "No places found.",
     "permissionDenied": "Location permission was declined. Search for a place instead.",
     "unavailable": "Your location could not be read. Search for a place instead.",
-    "noProvider": "Location is switched off on this device. Turn it on, or search for a place instead."
+    "noProvider": "Location is switched off on this device. Turn it on, or search for a place instead.",
+    "noneSet": "none",
+    "clearDestination": "Forecast every direction instead"
   },
   "status": {
     "loading": "Working out the forecast",
     "errorTitle": "No forecast available",
-    "errorBody": "The prediction service at {{address}} did not answer.",
+    "errorBody": "The forecast could not be worked out.",
     "retry": "Try again",
-    "errorLoopback": "That address is this device itself, so there is nothing there to answer. Set the address of the machine running the server.",
-    "setServer": "Set server address",
     "openStation": "Set up your radio"
   },
   "offline": {
@@ -104,12 +118,16 @@
     "chip": "Offline"
   },
   "disclaimer": {
-    "titleLive": "Live data, not climatology",
     "titleSaved": "Saved data",
     "climatology": "Monthly climatology, not a live forecast. Assumes smoothed sunspot number {{ssn}} and quiet geomagnetic conditions.",
     "forecast": "Monthly climatology using a predicted sunspot number of {{ssn}}. Forecasts further ahead are less certain.",
-    "nowcast": "Driven by current readings, with an effective sunspot number of {{ssn}}. This estimates the ionosphere, not this path.",
-    "station": "Assumes 100 W into a dipole 10 m up. A better antenna beats these numbers; a compromise antenna will not reach them."
+    "nowcast": "Monthly averages, with the sunspot number set from readings taken in the last few hours ({{ssn}}). That one reading drives all 24 hours, so it cannot see a storm that arrives later today.",
+    "station": "Assumes 100 W into a dipole 10 m up. A better antenna beats these numbers; a compromise antenna will not reach them.",
+    "title": {
+      "nowcast": "Today's conditions, monthly model",
+      "climatology": "Monthly averages for this month",
+      "forecast": "Monthly averages, predicted cycle"
+    }
   },
   "settings": {
     "changeLanguage": "Change language",
@@ -129,7 +147,8 @@
       "autoNamed": "Follow the device ({{system}})",
       "metric": "Metric",
       "imperial": "Imperial"
-    }
+    },
+    "refresh": "Refresh now"
   },
   "a11y": {
     "changeLocation": "Transmitting from {{place}}. Tap to change.",
@@ -145,7 +164,8 @@
     "zoomOut": "Zoom out",
     "fitReach": "Frame where this band reaches",
     "wholeGlobe": "Show the whole globe",
-    "mapLegend": "Map key. The purple shades are predicted reach, weakest to strongest. The grey wash is night."
+    "mapLegend": "Map key. The purple shades are predicted reach, weakest to strongest. The grey wash is night.",
+    "mapLegendNvis": "The dots mark the area the band reaches with no skip zone."
   },
   "crash": {
     "title": "Something went wrong",
@@ -189,7 +209,8 @@
       "dipole": "Dipole",
       "vertical": "Vertical",
       "invertedL": "Inverted L",
-      "yagi": "Beam"
+      "yagi": "Beam",
+      "invertedV": "Inverted V"
     },
     "tip": {
       "mode": "{{mode}}: needs {{db}} dB above the noise. Tap to change.",
@@ -243,23 +264,15 @@
       "e": "E",
       "s": "S",
       "w": "W"
-    }
+    },
+    "apexHeight": "Apex height",
+    "invertedVNote": "Calculated as a dipole at {{height}}, which is {{percent}}% of the apex. Help explains why."
   },
   "units": {
     "metres": "{{value}} m",
     "feet": "{{value}} ft",
     "kilometres": "{{value}} km",
     "miles": "{{value}} mi"
-  },
-  "server": {
-    "title": "Server address",
-    "explain": "HFcast reads its forecasts from a prediction server. Enter the address of the machine running it — a host and port is enough.",
-    "field": "Server address",
-    "willUse": "Will use {{address}}",
-    "invalid": "That is not an address this can use.",
-    "default": "Default",
-    "cancel": "Cancel",
-    "save": "Save"
   },
   "about": {
     "title": "About HFcast",
@@ -278,7 +291,52 @@
       "noaa": "Sunspot numbers and solar indices",
       "giro": "Measured ionosonde soundings",
       "openMeteo": "Place search, when online",
-      "plex": "IBM Plex Sans, the typeface"
+      "plex": "IBM Plex Sans, the typeface",
+      "aurora": "The aurora on the launch screen"
+    },
+    "openSource": "Open the site for {{who}}",
+    "openTerms": "Read the {{terms}} licence"
+  },
+  "firstRun": {
+    "kicker": "YOUR LOCATION",
+    "title": "Where are you transmitting from?",
+    "subtitle": "Every forecast is worked out from here. You can change it any time.",
+    "useGps": "Use my current location",
+    "orType": "OR TYPE IT IN",
+    "formats": "Place · coordinates · grid square",
+    "formatsHint": "Tap an example above to see how each one reads.",
+    "footnote": "A 4-character grid square is precise enough for HF. Skip and HFCast works from Greenwich — the prime meridian, where UTC starts — until you set your own.",
+    "skip": "Skip for now",
+    "continue": "Continue",
+    "recognised": "RECOGNISED"
+  },
+  "launch": {
+    "kicker": "HF propagation",
+    "title": "Which band gets you there",
+    "credit": "ISS Expedition 42 · NASA/S. Cristoforetti, public domain",
+    "a11y": "Starting up: {{step}}",
+    "step": {
+      "flux": "Solar flux",
+      "ionosonde": "Nearest ionosonde",
+      "model": "Path model",
+      "bands": "Your bands"
+    }
+  },
+  "help": {
+    "title": "How the forecast is made",
+    "close": "Close help",
+    "invertedV": {
+      "heading": "The inverted V",
+      "noModel": "VOACAP has no inverted V. It has ten antenna patterns, and an inverted V is not one of them, so the app cannot select it.",
+      "whatWeDo": "The app calculates an inverted V as a dipole at {{percent}}% of the apex height. If the apex is 10 metres, the model uses 8 metres.",
+      "whyItIsFair": "For a horizontal wire, the height above ground sets the gain straight up. An inverted V has its ends lower than its apex, so it behaves like a dipole below the apex. Near vertical, a horizontal wire radiates almost the same in all directions, so which way the wire runs changes little.",
+      "limits": "This is an approximation, not a measurement. A V with steep legs behaves lower than this, and a shallow V behaves higher. Select the dipole if your wire is level."
+    },
+    "nvis": {
+      "heading": "Near-vertical incidence",
+      "what": "Below a few hundred kilometres, the low bands work in a different way. The signal goes up steeply, comes back down near where it started, and there is no skip zone. Operators call this NVIS.",
+      "howWeKnow": "The app does not guess this from the distance. The engine calculates the angle the signal leaves at, and the app calls a path near-vertical when that angle is {{degrees}} degrees or more and the band works.",
+      "onTheMap": "The map puts dots on the area that reaches you this way. The dots are separate from the colours, because the colours already show the chance of contact. The line below the map gives the distance in words."
     }
   }
 }

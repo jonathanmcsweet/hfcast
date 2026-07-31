@@ -9,7 +9,7 @@ import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client
 import { StatusBar } from 'expo-status-bar';
 import React from 'react';
 import { I18nextProvider } from 'react-i18next';
-import { useColorScheme } from 'react-native';
+import { StyleSheet, useColorScheme, View } from 'react-native';
 import { PaperProvider } from 'react-native-paper';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
@@ -20,6 +20,7 @@ import {
   shouldPersistQuery,
 } from './src/api/persist';
 import ErrorBoundary from './src/components/ErrorBoundary';
+import LaunchOverlay from './src/components/LaunchOverlay';
 import i18n from './src/i18n';
 import ForecastScreen from './src/screens/ForecastScreen';
 import { useSettingsStore } from './src/store/useSettingsStore';
@@ -42,12 +43,32 @@ export default function App() {
     IBMPlexSans_500Medium,
     IBMPlexSans_600SemiBold,
     IBMPlexSans_700Bold,
+    // Every icon in the app is a glyph in this one file, which
+    // `react-native-paper` reaches through `react-native-vector-icons`. Loading
+    // it here rather than leaving it to the build: Expo used to bundle these
+    // fonts as a side effect of shipping `@expo/vector-icons`, and SDK 57 does
+    // not, so the icons became empty boxes with no error anywhere. Asking for
+    // the file by name is the part that cannot silently stop happening.
+    //
+    // The key has to be the file's own basename. On Android
+    // `react-native-vector-icons` ignores the family name it was given and
+    // looks for the font by filename.
+    MaterialCommunityIcons: require(
+      'react-native-vector-icons/Fonts/MaterialCommunityIcons.ttf',
+    ),
   });
 
   // A font that failed to load is not a reason to show nothing: the system
   // font is worse-looking, not unreadable, and an operator in the field
   // needs the forecast more than the typeface.
-  if (!fontsLoaded && !fontError) return null;
+  //
+  // While they are loading the frame is filled with the launch screen's own
+  // background rather than left empty. The fonts are bundled, so this lasts a
+  // frame or two — but an empty frame is white, and white between a dark
+  // system splash and a dark photograph is a flash.
+  if (!fontsLoaded && !fontError) {
+    return <View style={styles.launching} />;
+  }
 
   return (
     // The children render before the cache has been read back, which is
@@ -82,18 +103,32 @@ export default function App() {
                  boundary has to be able to render when what it wraps
                  has failed. */
             }
-            <ErrorBoundary
-              labels={{
-                title: i18n.t('crash.title'),
-                body: i18n.t('crash.body'),
-                retry: i18n.t('status.retry'),
-              }}
-            >
-              <ForecastScreen />
-            </ErrorBoundary>
+            <View style={styles.root}>
+              <ErrorBoundary
+                labels={{
+                  title: i18n.t('crash.title'),
+                  body: i18n.t('crash.body'),
+                  retry: i18n.t('status.retry'),
+                }}
+              >
+                <ForecastScreen />
+              </ErrorBoundary>
+              {
+                /* Over the screen rather than in place of it, so the screen
+                   mounts and does its work underneath while this is still up.
+                   It removes itself once there is a forecast to show. */
+              }
+              <LaunchOverlay />
+            </View>
           </SafeAreaProvider>
         </PaperProvider>
       </I18nextProvider>
     </PersistQueryClientProvider>
   );
 }
+
+const styles = StyleSheet.create({
+  root: { flex: 1 },
+  // The launch screen's own background, so the two cannot differ.
+  launching: { flex: 1, backgroundColor: '#0B0D14' },
+});

@@ -5,16 +5,20 @@ import {
   angularDistanceDeg,
   cellRing,
   circleAround,
+  containView,
   destination,
   discRing,
   EARTH_KM,
   greatCircle,
+  gridOutline,
   isNight,
   nightIsInside,
   opposedTo,
+  pathOf,
   polygonContains,
   projector,
   projectRing,
+  regionOf,
   signedArea,
   subsolarPoint,
 } from '../src/data/projection.ts';
@@ -253,5 +257,223 @@ describe('cutting one shape out of another', () => {
 
   it('gives the rim a non-zero area', () => {
     assert.ok(Math.abs(signedArea(discRing(0, 0, 10))) > 300);
+  });
+});
+
+describe('the outline round a whole grid of cells', () => {
+  // The fine grid is drawn over the coarse one, and every cell on this
+  // map is partly transparent, so the region has to be cleared first or
+  // the coarse colours show through. That backing is this outline, and if
+  // it is half a step small a hairline of coarse colour is left round the
+  // edge — which is exactly what the fine grid was run to replace.
+  const bounds = {
+    lonMin: -117.75,
+    lonMax: -92.25,
+    latMin: 30.625,
+    latMax: 49.375,
+  };
+  const lonStep = 1.5;
+  const latStep = 1.25;
+
+  it('reaches the outer edge of the outermost cells', () => {
+    const ring = gridOutline(bounds, lonStep, latStep);
+    const lons = ring.map(([lon]) => lon);
+    const lats = ring.map(([, lat]) => lat);
+    // The bounds name the first and last point; a cell round a point
+    // reaches half a step further.
+    assert.equal(Math.min(...lons), bounds.lonMin - lonStep / 2);
+    assert.equal(Math.max(...lons), bounds.lonMax + lonStep / 2);
+    assert.equal(Math.min(...lats), bounds.latMin - latStep / 2);
+    assert.equal(Math.max(...lats), bounds.latMax + latStep / 2);
+  });
+
+  it('covers every cell the grid holds and no more', () => {
+    // Walked against the cells themselves rather than against the
+    // arithmetic above, so the two cannot be wrong the same way.
+    const ring = gridOutline(bounds, lonStep, latStep);
+    const lons = ring.map(([lon]) => lon);
+    const lats = ring.map(([, lat]) => lat);
+    for (let lat = bounds.latMin; lat <= bounds.latMax + 1e-9; lat += latStep) {
+      for (
+        let lon = bounds.lonMin;
+        lon <= bounds.lonMax + 1e-9;
+        lon += lonStep
+      ) {
+        for (
+          const [cornerLon, cornerLat] of cellRing(lon, lat, lonStep, latStep)
+        ) {
+          assert.ok(
+            cornerLon >= Math.min(...lons) - 1e-9,
+            `${cornerLon} is west of the outline`,
+          );
+          assert.ok(
+            cornerLon <= Math.max(...lons) + 1e-9,
+            `${cornerLon} is east of the outline`,
+          );
+          assert.ok(
+            cornerLat >= Math.min(...lats) - 1e-9,
+            `${cornerLat} is south of the outline`,
+          );
+          assert.ok(
+            cornerLat <= Math.max(...lats) + 1e-9,
+            `${cornerLat} is north of the outline`,
+          );
+        }
+      }
+    }
+  });
+
+  it('subdivides its edges more finely than one cell does', () => {
+    // An edge many cells long needs more segments to stay a curve, or the
+    // backing cuts corners the cells on top of it do not.
+    assert.ok(
+      gridOutline(bounds, lonStep, latStep).length
+        > cellRing(0, 0, 22.5, 15).length,
+    );
+  });
+});
+
+describe('the inverse projection', () => {
+  const p = projector(LON, LAT, SIZE);
+
+  it('takes a screen point back to the place it came from', () => {
+    // The map has needed this to answer "what is under the reader's
+    // finger", and the coverage patch needs it to know what is on screen.
+    for (const km of [500, 2000, 6000, 12000, 18000]) {
+      for (let bearing = 0; bearing < 360; bearing += 30) {
+        const [lon, lat] = destination(LON, LAT, bearing, km);
+        const screen = p.project(lon, lat);
+        assert.ok(screen, `${km} km at ${bearing} must project`);
+        const back = p.invert(screen[0], screen[1]);
+        assert.ok(back, `${km} km at ${bearing} must invert`);
+        assert.ok(
+          Math.abs(back[1] - lat) < 1e-6,
+          `latitude ${back[1]} should be ${lat}`,
+        );
+        // Longitudes are compared the short way round, so 179.9 and
+        // -179.9 read as a tenth of a degree apart rather than 360.
+        const dLon = Math.abs(((back[0] - lon + 540) % 360) - 180);
+        assert.ok(dLon < 1e-6, `longitude ${back[0]} should be ${lon}`);
+      }
+    }
+  });
+
+  it('returns the centre for the centre', () => {
+    const back = p.invert(CENTRE, CENTRE);
+    assert.ok(back);
+    assert.ok(Math.abs(back[0] - LON) < 1e-9);
+    assert.ok(Math.abs(back[1] - LAT) < 1e-9);
+  });
+
+  it('refuses a point outside the disc', () => {
+    // The corner of the square the disc is drawn in is not on the earth.
+    assert.equal(p.invert(0, 0), null);
+    assert.equal(p.invert(SIZE, SIZE), null);
+  });
+
+  it('answers in the range every other coordinate uses', () => {
+    // Folded into -180..180. A patch rectangle built from a longitude of
+    // 200 would be refused by the engine as outside the world.
+    for (let x = 10; x < SIZE; x += 17) {
+      for (let y = 10; y < SIZE; y += 17) {
+        const back = p.invert(x, y);
+        if (back === null) continue;
+        assert.ok(back[0] >= -180 && back[0] <= 180, `lon ${back[0]}`);
+        assert.ok(back[1] >= -90 && back[1] <= 90, `lat ${back[1]}`);
+      }
+    }
+  });
+});
+
+/**
+ * Turning what the map is showing back into degrees.
+ *
+ * This is what lets the fine grid follow the view: the map knows its
+ * projection and its zoom, and the query needs a place and a size. The
+ * inverse is closed form on this projection, so the centre is the place
+ * under the middle of the frame rather than an estimate of it.
+ */
+describe('the region the map is showing', () => {
+  const SIZE = 322;
+  const p = projector(-104.98, 39.74, SIZE);
+  const centred = (scale: number) => ({ scale, cxF: 0.5, cyF: 0.5 });
+
+  it('answers nothing at a whole-globe view', () => {
+    // Nothing to follow: the patch belongs at the station, which is
+    // where the projection is centred anyway.
+    assert.equal(regionOf(p, centred(1), SIZE), null);
+  });
+
+  it('reads the station under the middle of an unpanned view', () => {
+    // The projection is centred on the station, so zooming without
+    // panning must not move the fine grid off it.
+    const region = regionOf(p, centred(8), SIZE);
+    assert.ok(region);
+    assert.ok(Math.abs(region.lat - 39.74) < 1e-6, `${region.lat}`);
+    assert.ok(Math.abs(region.lon - -104.98) < 1e-6, `${region.lon}`);
+  });
+
+  it('halves what is visible when the zoom doubles', () => {
+    const near = regionOf(p, centred(8), SIZE);
+    const far = regionOf(p, centred(16), SIZE);
+    assert.ok(near && far);
+    assert.ok(
+      Math.abs(near.halfLatDeg / far.halfLatDeg - 2) < 1e-9,
+      `${near.halfLatDeg} against ${far.halfLatDeg}`,
+    );
+  });
+
+  it('follows a panned view to where it is pointed', () => {
+    // The whole point of the feature.
+    //
+    // Only the direction is asserted, not the distance. On this
+    // projection a straight line across the frame is a great circle, not
+    // a parallel, so panning east also changes the latitude — which is
+    // correct, and is why the region comes from the inverse rather than
+    // from adding degrees to the centre.
+    const home = regionOf(p, centred(4), SIZE);
+    const east = regionOf(p, { scale: 4, cxF: 0.6, cyF: 0.5 }, SIZE);
+    const north = regionOf(p, { scale: 4, cxF: 0.5, cyF: 0.4 }, SIZE);
+    assert.ok(home && east && north);
+    assert.ok(east.lon > home.lon, `${east.lon} not east of ${home.lon}`);
+    assert.ok(north.lat > home.lat, `${north.lat} not north of ${home.lat}`);
+    // Panning straight up the screen stays on the same meridian, which
+    // it does because the centre of the projection is on it.
+    assert.ok(Math.abs(north.lon - home.lon) < 1e-6);
+  });
+
+  it('answers nothing where the middle of the frame is off the world', () => {
+    // Panned into a corner, the middle of the frame is outside the disc
+    // and there is no place under it. Null rather than a guess: a guess
+    // would run the engine on somewhere the reader is not looking.
+    assert.equal(regionOf(p, { scale: 30, cxF: 0.02, cyF: 0.02 }, SIZE), null);
+  });
+
+  it('keeps the view inside the disc', () => {
+    // `containView` is what stops that last case arising from a drag:
+    // at any zoom the centre is held far enough in that the frame stays
+    // on the globe.
+    const held = containView({ scale: 4, cxF: 0, cyF: 1 });
+    assert.ok(held.cxF >= 1 / 8 && held.cyF <= 1 - 1 / 8);
+    assert.deepEqual(containView({ scale: 1, cxF: 0.2, cyF: 0.9 }), {
+      scale: 1,
+      cxF: 0.5,
+      cyF: 0.5,
+    });
+  });
+});
+
+describe('the precision a path is written at', () => {
+  it('survives the deepest zoom', () => {
+    // The viewBox multiplies rounding error by the zoom, so the
+    // coordinates have to be written for the deepest view, not the
+    // default one. Two decimals is at worst 0.005 px in the base space
+    // and 0.15 px at the 30x ceiling; one decimal was 1.5 px there, and
+    // every line in the map wiggled.
+    assert.equal(pathOf([[1.23456, 2.34567]]), 'M1.23 2.35');
+    assert.equal(
+      pathOf([[0, 0], [10.005, 20.004]], true),
+      'M0.00 0.00 L10.01 20.00 Z',
+    );
   });
 });

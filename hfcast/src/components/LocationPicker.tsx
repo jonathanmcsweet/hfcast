@@ -23,12 +23,12 @@ import { usePathStore } from '../store/usePathStore';
 import { radius, spacing, typography } from '../theme';
 import type { AppTheme } from '../theme';
 
+type End = 'from' | 'to';
+
 interface Props {
   visible: boolean;
   onDismiss: () => void;
 }
-
-type End = 'from' | 'to';
 
 const placeToEndpoint = (place: Place): Endpoint => ({
   grid: place.grid,
@@ -61,12 +61,24 @@ export default function LocationPicker({ visible, onDismiss }: Props) {
 
   const { data: results, isFetching, error } = useGeocode(query, i18n.language);
 
+  /**
+   * Setting the near end moves to the far one instead of closing.
+   *
+   * Somebody who has just said where they are is very often about to say
+   * where they are calling — and the pane closing on them meant reopening it
+   * and finding the other tab. Choosing the far end does close, because
+   * there is nothing after it.
+   */
   const choose = useCallback(
     (endpoint: Endpoint) => {
-      if (end === 'from') setFrom(endpoint);
-      else setTo(endpoint);
       setQuery('');
-      onDismiss();
+      if (end === 'to') {
+        setTo(endpoint);
+        onDismiss();
+        return;
+      }
+      setFrom(endpoint);
+      setEnd('to');
     },
     [end, onDismiss, setFrom, setTo],
   );
@@ -94,15 +106,16 @@ export default function LocationPicker({ visible, onDismiss }: Props) {
       }
       const { latitude, longitude } = await DeviceLocation.currentFix();
       const grid = latLonToGrid(latitude, longitude);
-      setEnd('from');
       setFrom({ grid, label: grid, lat: latitude, lon: longitude });
-      onDismiss();
+      // As with choosing one by name: having just said where they are, the
+      // next thing somebody usually wants is where they are calling.
+      setEnd('to');
     } catch {
       setLocationError(t('location.unavailable'));
     } finally {
       setLocating(false);
     }
-  }, [onDismiss, setFrom, t]);
+  }, [setFrom, t]);
 
   return (
     <Portal>
@@ -123,6 +136,16 @@ export default function LocationPicker({ visible, onDismiss }: Props) {
             onPress={swapEnds}
             accessibilityLabel={t('a11y.swapEnds')}
           />
+          {
+            /* An explicit way out, now that choosing a location no longer
+               closes the pane. Tapping the scrim still works, but that is
+               not an affordance anyone can see. */
+          }
+          <IconButton
+            icon="close"
+            onPress={onDismiss}
+            accessibilityLabel={t('about.close')}
+          />
         </View>
 
         <SegmentedButtons
@@ -130,10 +153,37 @@ export default function LocationPicker({ visible, onDismiss }: Props) {
           onValueChange={(next) => setEnd(next as End)}
           buttons={[
             { value: 'from', label: `${t('location.from')}: ${from.label}` },
-            { value: 'to', label: `${t('location.to')}: ${to.label}` },
+            {
+              value: 'to',
+              label: `${t('location.to')}: ${
+                to?.label ?? t('location.noneSet')
+              }`,
+            },
           ]}
           style={styles.segments}
         />
+
+        {
+          /* Only offered once there is one to clear. The forecast without a
+             destination is a whole mode rather than an empty state, so
+             leaving it has to be as easy as entering it. */
+        }
+        {end === 'to' && to !== null
+          ? (
+            <Button
+              mode="text"
+              icon="close-circle-outline"
+              onPress={() => {
+                setTo(null);
+                setQuery('');
+                onDismiss();
+              }}
+              style={styles.clear}
+            >
+              {t('location.clearDestination')}
+            </Button>
+          )
+          : null}
 
         {
           /* Absent where it could not work, rather than present and failing:
@@ -243,9 +293,17 @@ const styles = StyleSheet.create({
   headerRow: { flexDirection: 'row', alignItems: 'center' },
   title: { flex: 1 },
   segments: { marginTop: spacing.sm },
+  clear: { marginTop: spacing.xs, alignSelf: 'flex-start' },
   gps: { marginTop: spacing.md, minHeight: 52, justifyContent: 'center' },
   search: { marginTop: spacing.md },
   spinner: { marginTop: spacing.md },
   message: { marginTop: spacing.md },
-  list: { marginTop: spacing.sm },
+  // `flexShrink` is what makes this scroll. The modal has a maximum
+  // height, and without it the list asks for the height of all its rows,
+  // is given that height, and is then clipped by the modal — so the rows
+  // past the bottom edge exist, take part in layout, and cannot be
+  // reached by any gesture. Allowed to shrink, it takes the space that
+  // is left over and scrolls inside it. Five Springfields in the United
+  // States is where this was found.
+  list: { marginTop: spacing.sm, flexShrink: 1 },
 });

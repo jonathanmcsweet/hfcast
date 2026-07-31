@@ -69,10 +69,14 @@ export default function ReachGrid({
                 })}
             </Text>
             <Text style={[typography.bodyStrong, numeric, { color: ui.ink }]}>
-              {t('grid.chanceTo', {
-                percent: f.percent(reliability),
-                place: prediction.to.label,
-              })}
+              {prediction.to
+                ? t('grid.chanceTo', {
+                  percent: f.percent(reliability),
+                  place: prediction.to.label,
+                })
+                : t('grid.chanceAnywhere', {
+                  percent: f.percent(reliability),
+                })}
             </Text>
           </View>
           <QualityChip quality={quality} large />
@@ -97,7 +101,7 @@ export default function ReachGrid({
       }
       <View style={styles.unitRow}>
         <Text style={[typography.label, styles.unit, { color: ui.text4 }]}>
-          {t('grid.unitChance')}
+          {t(prediction.to ? 'grid.unitChance' : 'grid.unitDirections')}
         </Text>
         <TouchableRipple
           onPress={() => setAsTable((v) => !v)}

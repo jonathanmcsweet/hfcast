@@ -25,7 +25,9 @@ is a native module of this project and so cannot exist inside a pre-built
 sandbox app. It is absent there rather than broken — see
 [Device location without Google](#device-location-without-google).
 
-The versions pinned in `package.json` target Expo SDK 51. On a newer SDK run
+The versions pinned in `package.json` target Expo SDK 57, and those in
+`legacy/package.json` target SDK 50 — see
+[Two APKs](#two-apks-because-one-cannot-cover-both-ends). On a newer SDK run
 `npx expo install --fix` to move the native modules with it.
 
 `API_BASE` in `src/api/client.ts` defaults to `http://127.0.0.1:8787`, which
@@ -102,28 +104,69 @@ export ANDROID_HOME=~/android-sdk
 export PATH="$JAVA_HOME/bin:$ANDROID_HOME/cmdline-tools/latest/bin:$ANDROID_HOME/platform-tools:$PATH"
 
 yes | sdkmanager --licenses
-sdkmanager 'platform-tools' 'platforms;android-34' 'build-tools;34.0.0'
+sdkmanager 'platform-tools' 'platforms;android-36' 'build-tools;36.0.0'
 
 # Gradle will fetch this itself mid-build if it is missing. Doing it here
 # keeps the 2.5 GB download separate from the build that needs it.
-sdkmanager 'ndk;26.1.10909125'
+sdkmanager 'ndk;27.1.12297006'
 ```
 
 Then, from this directory:
 
 ```bash
-npx expo prebuild --platform android    # generates android/, which is gitignored
-cd android && ./gradlew assembleRelease
+tools/build-android.sh          # both APKs
+tools/build-android.sh modern   # just the one for Android 7.0 and up
 ```
 
-The APK lands at `android/app/build/outputs/apk/release/app-release.apk`, about
-65 MB — one binary carrying all four ABIs, with the 3.5 MB JavaScript bundle
-inside it, so it runs with no dev server. Copy it to the phone and open it, or
+They land in `build/apk/` — one binary each carrying all four ABIs, with the
+JavaScript bundle inside, so either runs with no dev server. The Android 7 one
+is about 92 MB and the Android 5 one about 72 MB; the difference is the new
+architecture's native code. Copy one to the phone and open it, or
 `adb install` it over USB. Android will ask for permission to install from
 whichever app opened the file.
 
-Measured on 16 cores with the NDK already downloaded: 7.5 minutes cold, 4.5
-minutes for a second build.
+Measured with the NDK already downloaded and Gradle's caches warm, on the four
+CPUs `HFCAST_BUILD_CPUS` allows: about 10 minutes per APK.
+
+### Two APKs, because one cannot cover both ends
+
+An APK declares one minimum Android version. So each release builds twice from
+the same source:
+
+|             | `hfcast-<version>-android7.apk` | `hfcast-<version>-android5.apk` |
+| ----------- | ------------------------------- | ------------------------------- |
+| Installs on | Android 7.0 and up              | Android 5.0 and up              |
+| Targets     | Android 16 (API 36)             | Android 14 (API 34)             |
+| Built with  | Expo SDK 57, React Native 0.86  | Expo SDK 50, React Native 0.73  |
+
+Every line of `src/`, `test/`, `modules/` and `app.json` is shared. What differs
+is the dependency set: this directory's `package.json` against
+`legacy/package.json`. `tools/legacy-config.ts` derives the legacy `app.json`
+from the real one rather than keeping a second copy, so the two cannot drift
+apart on anything but the SDK levels.
+
+React Native 0.81 raised its own floor to API 24, which is why the modern build
+stops at Android 7.0; Expo SDK 50 is the last release whose React Native still
+supports Android 5.0. Nothing reaches further back than that, so the 2014
+Fire HD 6 and other Android 4.x devices are out of reach whatever is done here.
+The _target_ level is a separate thing and takes no device away — API 36 is
+there because Google Play requires it, and SDK 50 cannot compile against it.
+
+### Which channel gets which file
+
+Only one of them picks for the user, so the rest need the filenames to be plain.
+
+| Channel         | Carries     | How the right one is chosen                                                                                                                       |
+| --------------- | ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| F-Droid         | both        | The index holds each APK's minimum SDK and architectures, and the client reads the device and offers one that fits. Nothing for the user to know. |
+| Direct download | both        | The page has to say which is which, in Android versions rather than in words like "legacy".                                                       |
+| Obtainium       | both        | It does not choose. With two files it asks, or the user sets a regular expression — `android7` and `android5` are in the names for that.          |
+| Google Play     | modern only | Its target API rule applies to every APK in a release, and Expo SDK 50 cannot compile against API 36.                                             |
+| Accrescent      | modern only | It takes an app bundle, and a bundle declares one minimum version.                                                                                |
+
+**The legacy build is not a maintained fork.** It is the same code; Expo SDK 50
+receives no security fixes. Anything added to `src/` has to work under React 18
+as well as 19, which is what `legacy/package.json` pins.
 
 **`app.json` has to declare a splash background colour.** Prebuild writes
 `res/drawable/splashscreen.xml` pointing at `@color/splashscreen_background`
@@ -142,10 +185,11 @@ updated by a properly signed one later, so the app has to be uninstalled first.
 changes made inside it are lost. Configuration belongs in `app.json`, or in an
 `expo-build-properties` plugin entry.
 
-On a small machine, add to `android/gradle.properties` before building:
+On a small machine, put these in `~/.gradle/gradle.properties` — outside the
+repository, where `expo prebuild` cannot discard them:
 
 ```properties
-org.gradle.jvmargs=-Xmx1200m -XX:MaxMetaspaceSize=512m
+org.gradle.jvmargs=-Xmx3584m -XX:MaxMetaspaceSize=768m
 org.gradle.daemon=false
 org.gradle.parallel=false
 org.gradle.workers.max=1
@@ -153,7 +197,7 @@ org.gradle.workers.max=1
 # The Kotlin compiler otherwise starts a second JVM of its own, and that
 # pair is what the kernel kills first.
 kotlin.compiler.execution.strategy=in-process
-kotlin.daemon.jvmargs=-Xmx512m
+kotlin.daemon.jvmargs=-Xmx1024m
 ```
 
 That trades speed for staying inside the memory it has, and the Kotlin setting is
@@ -162,8 +206,19 @@ which runs in a separate process by default. Metro also runs as its own Node
 process during the build; `metro.config.js` already scales its worker pool by
 system memory for the same reason.
 
-These settings live in generated files, so `expo prebuild` discards them. On a
-machine with memory to spare, skip them.
+**None of that covers the C++ step**, which is where an 8 GB machine with 16
+cores actually died. Gradle's settings say nothing about ninja, which compiles
+the native code and decides how many compilers to run from the number of CPUs it
+can see — sixteen of them, at a few hundred megabytes each. Ninja reads the
+process's CPU affinity, so limiting that limits it:
+
+```bash
+HFCAST_BUILD_CPUS=0-3 tools/build-android.sh
+```
+
+The failure this avoids reports itself as `Gradle build daemon disappeared
+unexpectedly`, with nothing about memory in it. On a machine with memory to
+spare, skip all of this.
 
 **An Android build needs no server at all** — it carries the engine and predicts
 on the device. The rest of this section applies to the builds that do not: Expo
@@ -276,8 +331,13 @@ platform since Android 1, and is what Organic Maps and OsmAnd use.
 
 Nothing else in this project depends on Google code. `@expo-google-fonts/…` is
 packaging only: IBM Plex is under the SIL Open Font License and the files are in
-the npm package, so nothing is fetched at build or run time. The services the app
-talks to are Open-Meteo, NOAA SWPC and UMass Lowell GIRO.
+the npm package, so nothing is fetched at build or run time.
+
+The three services the app calls are [Open-Meteo](https://open-meteo.com/) for
+place search, [NOAA SWPC](https://www.swpc.noaa.gov/) for solar and geomagnetic
+readings, and [UMass Lowell GIRO](https://giro.uml.edu/) for measured
+soundings. All three are asked directly, without a key and without this
+project's server — see _Attribution_ below and the About screen in the app.
 
 What the fused provider does better is battery-efficient continuous tracking,
 geofencing, and network location backed by Google's database of wireless
@@ -379,6 +439,39 @@ Things worth knowing before you extend this:
 **Nothing concatenates numbers with units.** Percent placement, decimal separators, and digit shaping are all locale decisions. `useFormatters` is the only place `Intl` is touched.
 
 **Some strings are deliberately not translated.** Band designations (20m), Maidenhead grids (CN87), dB, MHz, and UTC are international by convention among operators. Translating them would be worse, not better.
+
+## Attribution
+
+The app carries all of this in its About screen, with links and the full text
+of every licence it has to travel with, because that is where a person who
+installed it can read it. `src/data/credits.ts` is the list, and
+`test/credits.test.ts` fails the build if a credit loses its terms, its link or
+its translation.
+
+| What                                                                                                                            | Whose                                            | Terms                                                             |
+| ------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------ | ----------------------------------------------------------------- |
+| [VOACAP](https://its.ntia.gov/), the propagation model                                                                          | NTIA/ITS, maintained by Greg Hand                | US Government work, not subject to copyright protection in the US |
+| [voacapl](https://github.com/jawatson/voacapl), the port this engine was translated from                                        | J.A. Watson                                      | [CC0](https://creativecommons.org/publicdomain/zero/1.0/)         |
+| [The ionospheric coefficient maps](https://www.itu.int/rec/R-REC-P.1239/)                                                       | CCIR Report 340 and URSI, published by ITU-R     | published for implementers free from copyright assertions         |
+| The place list searched offline                                                                                                 | NTIA/ITS, from the VOACAP distribution           | US Government work                                                |
+| [Coastlines and country borders](https://www.naturalearthdata.com/)                                                             | Natural Earth                                    | public domain                                                     |
+| [Sunspot numbers and solar indices](https://www.swpc.noaa.gov/)                                                                 | NOAA Space Weather Prediction Center             | US Government work                                                |
+| [Measured ionosonde soundings](https://giro.uml.edu/)                                                                           | UMass Lowell Global Ionosphere Radio Observatory | used with attribution                                             |
+| [Place search, when online](https://open-meteo.com/)                                                                            | Open-Meteo                                       | [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/)         |
+| [The aurora on the launch screen](https://commons.wikimedia.org/wiki/File:ISS-42_Aurora_borealis_over_North_Atlantic_Ocean.jpg) | NASA / Samantha Cristoforetti, ESA               | public domain                                                     |
+| [IBM Plex Sans](https://github.com/IBM/plex), the typeface                                                                      | IBM                                              | SIL Open Font License 1.1                                         |
+
+Two of these are obligations rather than courtesies. The SIL Open Font License
+requires its notice and text to travel with the font, which is inside the APK,
+so `tools/build-licences.ts` copies the text out of the installed package into
+`src/assets/licences.json` rather than anyone pasting it. CC BY 4.0 asks for a
+link to the licence as part of the attribution itself, which is why every
+credit carries a URL.
+
+NTIA/ITS asks that nothing imply a US Government endorsement. The About screen
+carries that wording verbatim, in English in every language, because it is
+their statement of their position and a translation would be this project
+speaking for them.
 
 ## Known rough edges
 

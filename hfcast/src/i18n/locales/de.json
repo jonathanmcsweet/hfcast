@@ -10,12 +10,22 @@
     "mapUnavailable": "Die Reichweitenkarte konnte nicht geladen werden.",
     "reachLine": "{{band}} erreicht zu dieser Stunde etwa {{percent}} der Erde.",
     "legendReach": "Reichweite",
-    "legendNight": "Nacht"
+    "legendNight": "Nacht",
+    "panHint": "Mit zwei Fingern die Karte bewegen",
+    "subtitleAnywhere": "Kein Ziel gesetzt, daher alle Richtungen zugleich.",
+    "answerAnywhere": "{{band}} um {{hour}} UTC erreicht etwa {{percent}} der geprüften Richtungen.",
+    "legendNvis": "Keine tote Zone",
+    "nvisReach": "{{band}} reicht ohne tote Zone bis etwa {{distance}}.",
+    "mapSharpening": "Die Karte wird genauer",
+    "detailWorld": "Feine Auflösung, ganze Welt.",
+    "detailNear": "Feine Auflösung nur in der Nähe von {{place}}.",
+    "detailMeasuring": "Das Gerät wird gemessen, bevor feine Details hinzukommen.",
+    "detailCoarse": "Nur grobe Auflösung. Dieses Gerät ist für das feine Gitter zu langsam."
   },
   "path": {
     "summary": "{{distance}} · Peilung {{bearing}} · {{hops}} Sprünge",
     "summaryOneHop": "{{distance}} · Peilung {{bearing}} · ein Sprung",
-    "changeDestination": "Ziel ändern"
+    "noDestinationHint": "Die Karte zeigt alle Richtungen. Tippe oben auf den Namen, um ein Ziel zu wählen."
   },
   "window": {
     "label": "Nutzbarer Bereich",
@@ -34,13 +44,17 @@
     "showAsGrid": "Als Raster anzeigen",
     "bandColumn": "Band",
     "footnoteHours": "Stunden in UTC. Die Ortszeit in {{place}} steht auf der Uhr darüber.",
-    "footnoteSaved": "Dies sind gespeicherte Daten und können nichts zeigen, was sich seit dem Abruf geändert hat."
+    "footnoteSaved": "Dies sind gespeicherte Daten und können nichts zeigen, was sich seit dem Abruf geändert hat.",
+    "unitDirections": "Erreichbare Richtungen, %",
+    "chanceAnywhere": "erreicht etwa {{percent}} der geprüften Richtungen"
   },
   "sections": {
     "allBandsHint": "Wie weit jedes Band trägt, Stunde für Stunde.",
     "sun": "Die Sonne heute",
     "allBandsTo": "Alle Bänder nach {{place}}",
-    "noneReach": "Heute erreicht kein Band {{place}} zu irgendeiner Stunde."
+    "noneReach": "Heute erreicht kein Band {{place}} zu irgendeiner Stunde.",
+    "allBandsAnywhere": "Alle Bänder, alle Richtungen",
+    "noneReachAnywhere": "Heute erreicht kein Band zu irgendeiner Stunde etwas."
   },
   "spaceWeather": {
     "flux": "Solarer Fluss",
@@ -83,20 +97,20 @@
     "from": "Von",
     "to": "Nach",
     "useDevice": "Meinen Standort verwenden",
-    "searchPlaceholder": "Ortsname oder Locator",
+    "searchPlaceholder": "Ort, Koordinaten, Locator",
     "searchFailed": "Die Suche ist derzeit nicht verfügbar.",
     "noResults": "Keine Orte gefunden.",
     "permissionDenied": "Die Standortfreigabe wurde abgelehnt. Suche stattdessen nach einem Ort.",
     "unavailable": "Dein Standort konnte nicht gelesen werden. Suche stattdessen nach einem Ort.",
-    "noProvider": "Die Ortung ist auf diesem Gerät ausgeschaltet. Schalte sie ein oder suche stattdessen einen Ort."
+    "noProvider": "Die Ortung ist auf diesem Gerät ausgeschaltet. Schalte sie ein oder suche stattdessen einen Ort.",
+    "noneSet": "keins",
+    "clearDestination": "Stattdessen alle Richtungen vorhersagen"
   },
   "status": {
     "loading": "Vorhersage wird berechnet",
     "errorTitle": "Keine Vorhersage verfügbar",
-    "errorBody": "Der Vorhersagedienst unter {{address}} hat nicht geantwortet.",
+    "errorBody": "Die Vorhersage konnte nicht berechnet werden.",
     "retry": "Erneut versuchen",
-    "errorLoopback": "Diese Adresse ist dieses Gerät selbst, dort kann also nichts antworten. Gib die Adresse des Rechners an, auf dem der Server läuft.",
-    "setServer": "Serveradresse festlegen",
     "openStation": "Funkgerät einrichten"
   },
   "offline": {
@@ -104,12 +118,16 @@
     "chip": "Offline"
   },
   "disclaimer": {
-    "titleLive": "Aktuelle Daten, keine Klimatologie",
     "titleSaved": "Gespeicherte Daten",
     "climatology": "Monatliche Klimatologie, keine Live-Vorhersage. Nimmt eine geglättete Sonnenfleckenzahl von {{ssn}} und ruhige geomagnetische Bedingungen an.",
     "forecast": "Monatliche Klimatologie mit einer vorhergesagten Sonnenfleckenzahl von {{ssn}}. Weiter entfernte Vorhersagen sind unsicherer.",
-    "nowcast": "Auf aktuellen Messwerten beruhend, mit einer effektiven Sonnenfleckenzahl von {{ssn}}. Dies schätzt die Ionosphäre, nicht diese Strecke.",
-    "station": "Nimmt 100 W an einem Dipol in 10 m Höhe an. Eine bessere Antenne übertrifft diese Werte; eine Behelfsantenne erreicht sie nicht."
+    "nowcast": "Monatsmittel, wobei die Sonnenfleckenzahl aus Messungen der letzten Stunden stammt ({{ssn}}). Dieser eine Wert gilt für alle 24 Stunden, ein später am Tag aufziehender Sturm ist also nicht enthalten.",
+    "station": "Nimmt 100 W an einem Dipol in 10 m Höhe an. Eine bessere Antenne übertrifft diese Werte; eine Behelfsantenne erreicht sie nicht.",
+    "title": {
+      "nowcast": "Heutige Bedingungen, Monatsmodell",
+      "climatology": "Monatsmittel für diesen Monat",
+      "forecast": "Monatsmittel, vorhergesagter Zyklus"
+    }
   },
   "settings": {
     "changeLanguage": "Sprache ändern",
@@ -129,7 +147,8 @@
       "autoNamed": "Dem Gerät folgen ({{system}})",
       "metric": "Metrisch",
       "imperial": "Angloamerikanisch"
-    }
+    },
+    "refresh": "Jetzt aktualisieren"
   },
   "a11y": {
     "changeLocation": "Sendestandort {{place}}. Zum Ändern tippen.",
@@ -145,7 +164,8 @@
     "zoomOut": "Verkleinern",
     "fitReach": "Auf die Reichweite dieses Bands zoomen",
     "wholeGlobe": "Ganze Erdkugel zeigen",
-    "mapLegend": "Kartenlegende. Die violetten Töne zeigen die vorhergesagte Reichweite, von schwach bis stark. Die graue Fläche ist die Nachtseite."
+    "mapLegend": "Kartenlegende. Die violetten Töne zeigen die vorhergesagte Reichweite, von schwach bis stark. Die graue Fläche ist die Nachtseite.",
+    "mapLegendNvis": "Die Punkte markieren das Gebiet, das das Band ohne tote Zone erreicht."
   },
   "crash": {
     "title": "Etwas ist schiefgelaufen",
@@ -189,7 +209,8 @@
       "dipole": "Dipol",
       "vertical": "Vertikal",
       "invertedL": "Inverted L",
-      "yagi": "Richtantenne"
+      "yagi": "Richtantenne",
+      "invertedV": "Inverted V"
     },
     "tip": {
       "mode": "{{mode}}: braucht {{db}} dB über dem Rauschen. Zum Ändern tippen.",
@@ -243,23 +264,15 @@
       "e": "O",
       "s": "S",
       "w": "W"
-    }
+    },
+    "apexHeight": "Scheitelhöhe",
+    "invertedVNote": "Berechnet als Dipol auf {{height}}, das sind {{percent}} % der Scheitelhöhe. Die Hilfe erklärt, warum."
   },
   "units": {
     "metres": "{{value}} m",
     "feet": "{{value}} ft",
     "kilometres": "{{value}} km",
     "miles": "{{value}} mi"
-  },
-  "server": {
-    "title": "Serveradresse",
-    "explain": "HFcast bezieht seine Vorhersagen von einem Vorhersageserver. Gib die Adresse des Rechners an, auf dem er läuft — Host und Port genügen.",
-    "field": "Serveradresse",
-    "willUse": "Verwendet wird {{address}}",
-    "invalid": "Das ist keine verwendbare Adresse.",
-    "default": "Standard",
-    "cancel": "Abbrechen",
-    "save": "Speichern"
   },
   "about": {
     "title": "Über HFcast",
@@ -278,7 +291,52 @@
       "noaa": "Sonnenfleckenzahlen und Sonnenindizes",
       "giro": "Gemessene Ionosonden-Messungen",
       "openMeteo": "Ortssuche, wenn online",
-      "plex": "IBM Plex Sans, die Schriftart"
+      "plex": "IBM Plex Sans, die Schriftart",
+      "aurora": "Das Polarlicht auf dem Startbildschirm"
+    },
+    "openSource": "Website von {{who}} öffnen",
+    "openTerms": "Lizenz {{terms}} lesen"
+  },
+  "firstRun": {
+    "kicker": "DEIN STANDORT",
+    "title": "Von wo sendest du?",
+    "subtitle": "Jede Vorhersage wird von hier aus berechnet. Du kannst das jederzeit ändern.",
+    "useGps": "Aktuellen Standort verwenden",
+    "orType": "ODER EINGEBEN",
+    "formats": "Ort · Koordinaten · Locator",
+    "formatsHint": "Tippe oben auf ein Beispiel, um zu sehen, wie es gelesen wird.",
+    "footnote": "Ein Locator mit 4 Zeichen ist für KW genau genug. Beim Überspringen rechnet HFCast von Greenwich aus — dem Nullmeridian, wo UTC beginnt — bis du deinen eigenen Standort setzt.",
+    "skip": "Vorerst überspringen",
+    "continue": "Weiter",
+    "recognised": "ERKANNT"
+  },
+  "launch": {
+    "kicker": "Kurzwellenausbreitung",
+    "title": "Welches Band bringt dich hin",
+    "credit": "ISS-Expedition 42 · NASA/S. Cristoforetti, gemeinfrei",
+    "a11y": "Startet: {{step}}",
+    "step": {
+      "flux": "Sonnenfluss",
+      "ionosonde": "Nächste Ionosonde",
+      "model": "Streckenmodell",
+      "bands": "Deine Bänder"
+    }
+  },
+  "help": {
+    "title": "Wie die Vorhersage entsteht",
+    "close": "Hilfe schließen",
+    "invertedV": {
+      "heading": "Die Inverted V",
+      "noModel": "VOACAP kennt keine Inverted V. Es hat zehn Antennenmuster, und eine Inverted V ist keines davon, also kann die App sie nicht auswählen.",
+      "whatWeDo": "Die App berechnet eine Inverted V als Dipol auf {{percent}} % der Scheitelhöhe. Liegt der Scheitel bei 10 Metern, rechnet das Modell mit 8 Metern.",
+      "whyItIsFair": "Bei einem waagerechten Draht bestimmt die Höhe über Grund den Gewinn nach oben. Eine Inverted V hat ihre Enden tiefer als den Scheitel und verhält sich daher wie ein Dipol unterhalb des Scheitels. Steil nach oben strahlt ein waagerechter Draht fast in alle Richtungen gleich, die Ausrichtung ändert also wenig.",
+      "limits": "Das ist eine Näherung, keine Messung. Eine V mit steilen Schenkeln verhält sich tiefer, eine flache V höher. Wähle den Dipol, wenn dein Draht waagerecht hängt."
+    },
+    "nvis": {
+      "heading": "Steilstrahlung",
+      "what": "Unter einigen hundert Kilometern arbeiten die unteren Bänder anders. Das Signal geht steil nach oben, kommt nahe am Ausgangspunkt wieder herunter, und es gibt keine tote Zone. Funkamateure nennen das NVIS.",
+      "howWeKnow": "Die App schätzt das nicht aus der Entfernung. Die Rechenmaschine bestimmt den Abstrahlwinkel, und die App nennt einen Weg steil, wenn dieser Winkel mindestens {{degrees}} Grad beträgt und das Band funktioniert.",
+      "onTheMap": "Die Karte setzt Punkte auf das Gebiet, das dich so erreicht. Die Punkte sind von den Farben getrennt, denn die Farben zeigen schon die Chance auf eine Verbindung. Die Zeile unter der Karte nennt die Entfernung in Worten."
     }
   }
 }

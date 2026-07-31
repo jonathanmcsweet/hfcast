@@ -13,8 +13,9 @@ import path from 'node:path';
 import { test } from 'node:test';
 import { fileURLToPath } from 'node:url';
 
+import { FINE_LAT_STEP, FINE_LON_STEP } from '../src/coverage.ts';
 import { BANDS_BY_FREQ } from '../src/types.ts';
-import { PREDICT_BIN, runEngine } from '../src/voacap/engine.ts';
+import { PREDICT_BIN, runCoverage, runEngine } from '../src/voacap/engine.ts';
 import { parseVoacapOutput } from '../src/voacap/parse.ts';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
@@ -161,3 +162,76 @@ test('a refused request reports why', { skip: !available }, async () => {
     /month/,
   );
 });
+
+/**
+ * A split grid against a whole one.
+ *
+ * The strips are worked out in `src/voacap/shard.ts` and tested there
+ * without an engine, but arithmetic that looks right can still ask the
+ * engine for the wrong rows. This is the check that the answer is the
+ * same: every point, in the same order, to the same digits.
+ */
+test('a split grid is the same grid', { skip: !available }, async () => {
+  const request = {
+    fromLat: 47.61,
+    fromLon: -122.33,
+    month: 7,
+    year: 2026,
+    ssn: 100,
+    watts: 100,
+    requiredSnrDb: 24,
+    noiseDbw: 145,
+    hour: 14,
+    band: '40m' as const,
+    latStep: 2.5,
+    lonStep: 3.75,
+  };
+
+  const whole = await runCoverage(request, 1);
+  const split = await runCoverage(request, 4);
+
+  assert.equal(whole.points.length, 6912);
+  // Order included, not only membership: the strips are concatenated
+  // south to north because that is the order one run emits its rows in.
+  assert.deepEqual(split.points, whole.points);
+  assert.equal(split.latStep, whole.latStep);
+  assert.equal(split.lonStep, whole.lonStep);
+  // A whole-world request reports no rectangle, split or not. The
+  // strips are the engine layer's business, not its caller's.
+  assert.equal(split.latMin, undefined);
+});
+
+test(
+  'the fine globe is the same grid split four ways',
+  { skip: !available },
+  async () => {
+    // The configuration the device actually runs: the whole world at the
+    // fine step, cut into four strips because a phone has cores the
+    // engine's single process cannot use. The app cuts it with a
+    // character-for-character copy of the same arithmetic, so proving it
+    // here proves it for both paths.
+    const request = {
+      fromLat: 27.6,
+      fromLon: -80.4,
+      month: 7,
+      year: 2026,
+      ssn: 40,
+      watts: 100,
+      requiredSnrDb: 24,
+      noiseDbw: -145,
+      hour: 16,
+      band: '30m' as const,
+      latStep: FINE_LAT_STEP,
+      lonStep: FINE_LON_STEP,
+    };
+
+    const whole = await runCoverage(request, 1);
+    const split = await runCoverage(request, 4);
+
+    assert.equal(whole.points.length, 34560);
+    // Point for point and in order, which is what the app's columnar
+    // packing depends on: it stores no coordinates and computes them
+    // from each point's place in the array.
+    assert.deepEqual(split.points, whole.points);
+  },
+);

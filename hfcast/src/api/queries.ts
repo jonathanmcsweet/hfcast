@@ -2,13 +2,43 @@ import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { useMemo } from 'react';
 
 import { searchCities } from '../data/cities';
-import { gridToLatLon, isGrid } from '../data/grid';
-import { canMapLocally, coverLocally } from '../data/localCoverage';
-import { canPredictLocally, predictLocally } from '../data/localPredict';
-import type { BandKey, Endpoint, Place } from '../data/types';
+import { formatLatLon, parseCoordinates } from '../data/coords';
+import { patchGrid, patchKey } from '../data/coveragePatch';
+import {
+  fineGlobeAffordable,
+  marginalMsPerPoint,
+  projectedFineMs,
+} from '../data/engineBudget';
+import { fetchGeocode as fetchGeocodeDirect } from '../data/geocode';
+import { gridToLatLon, isGrid, latLonToGrid } from '../data/grid';
+import {
+  fetchSounding as fetchSoundingDirect,
+  usefulStation,
+} from '../data/ionosonde';
+import {
+  canMapLocally,
+  coverFineLocally,
+  coverLocally,
+  coverPatchLocally,
+} from '../data/localCoverage';
+import {
+  canPredictLocally,
+  type Nowcast,
+  predictLocally,
+} from '../data/localPredict';
+import { surveyLocally } from '../data/localSurvey';
+import { fetchSpaceWeather as fetchSpaceWeatherDirect } from '../data/spaceWeather';
+import type {
+  BandKey,
+  Endpoint,
+  MapRegion,
+  Place,
+  SpaceWeather,
+} from '../data/types';
 import { useSettled } from '../hooks/useSettled';
+import { hasSkia } from '../render/available';
+import { useEngineCost } from '../store/useEngineCost';
 import { today } from '../store/usePathStore';
-import { useServerStore } from '../store/useServerStore';
 import {
   activePreset,
   stationKey,
@@ -16,10 +46,14 @@ import {
   useStationStore,
 } from '../store/useStationStore';
 import {
+  API_BASE,
   fetchCoverage,
-  fetchGeocode,
+  fetchCoveragePatch,
+  fetchFineGlobe,
   fetchPrediction,
   fetchSounding,
+  fetchSpaceWeather,
+  fetchSurvey,
 } from './client';
 
 /**
@@ -37,13 +71,24 @@ import {
  */
 const LOCAL_ENOUGH = 5;
 
+/**
+ * How often the app looks for new readings, and the whole of its polling.
+ *
+ * SWPC publishes the flux daily and the K index every three hours, so this is
+ * already more often than the numbers move. It is the interval because the
+ * forecast is driven by them: an app left open on a bench through an evening
+ * should follow a storm arriving, not show the conditions it was opened on.
+ */
+export const SPACE_WEATHER_POLL_MS = 15 * 60 * 1000;
+
 export const queryKeys = {
+  spaceWeather: (source: string) => ['spaceWeather', source] as const,
   prediction: (
     server: string,
     from: string,
     to: string,
     date: string,
-    nowcast: boolean,
+    nowcast: string,
     station: string,
   ) => ['prediction', server, from, to, date, nowcast, station] as const,
   geocode: (query: string, lang: string) => ['geocode', query, lang] as const,
@@ -55,8 +100,39 @@ export const queryKeys = {
     band: string,
     hour: number,
     date: string,
+    nowcast: string,
     station: string,
-  ) => ['coverage', server, from, band, hour, date, station] as const,
+  ) => ['coverage', server, from, band, hour, date, nowcast, station] as const,
+  fineGlobe: (
+    server: string,
+    from: string,
+    band: string,
+    hour: number,
+    date: string,
+    nowcast: string,
+    station: string,
+  ) => ['fineGlobe', server, from, band, hour, date, nowcast, station] as const,
+  coveragePatch: (
+    server: string,
+    from: string,
+    band: string,
+    hour: number,
+    date: string,
+    nowcast: string,
+    station: string,
+    grid: string,
+  ) =>
+    [
+      'coveragePatch',
+      server,
+      from,
+      band,
+      hour,
+      date,
+      nowcast,
+      station,
+      grid,
+    ] as const,
 };
 
 /**
@@ -88,63 +164,141 @@ function useStation() {
 }
 
 /**
+ * Current solar and geomagnetic conditions.
+ *
+ * A query of its own rather than part of the forecast, because the two fail
+ * separately: a device with the engine can always produce a forecast, and this
+ * is the one thing on the screen that genuinely needs a network. A failure
+ * here leaves the forecast alone and empties one card.
+ *
+ * Where it comes from follows the engine. A device fetches SWPC itself; the
+ * web build has no engine and reaches everything through the server, which
+ * fetches the same two feeds.
+ */
+export function useSpaceWeather() {
+  const local = canPredictLocally();
+  return useQuery({
+    queryKey: queryKeys.spaceWeather(local ? 'device' : API_BASE),
+    queryFn: local ? fetchSpaceWeatherDirect : fetchSpaceWeather,
+    staleTime: SPACE_WEATHER_POLL_MS,
+    // The only polling in the app. React Query pauses it while the app is in
+    // the background, so this does not run down a battery in a pocket.
+    refetchInterval: SPACE_WEATHER_POLL_MS,
+    // Two attempts, then wait for the next interval. A device out of range
+    // stays out of range, and retrying harder only spends power.
+    retry: 1,
+  });
+}
+
+/**
+ * The live readings as the engine takes them, or undefined.
+ *
+ * Undefined covers both "not fetched yet" and "could not be fetched", which
+ * are the same thing to a run: predict from the month's own figure instead.
+ */
+function nowcastFrom(
+  spaceWeather: SpaceWeather | undefined,
+): Nowcast | undefined {
+  if (!spaceWeather) return undefined;
+  return {
+    effectiveSsn: spaceWeather.effectiveSsn,
+    kpMax24h: spaceWeather.kpMax24h,
+  };
+}
+
+/**
+ * The part of a now-cast that changes an answer, as a query key fragment.
+ *
+ * `none` and a pair of numbers, so a climatology run and a now-cast for the
+ * same day are different entries — and so a forecast recomputes when the
+ * conditions it was driven by move, which is the point of polling for them.
+ */
+const nowcastKey = (nowcast: Nowcast | undefined): string =>
+  nowcast ? `${nowcast.effectiveSsn}/${nowcast.kpMax24h}` : 'none';
+
+/**
  * Today's prediction for the path, covering all 24 hours.
  *
  * One request, not one per hour: the response already carries every band at
  * every hour, so moving the clock is a lookup rather than a fetch.
  */
-export function usePrediction(from: Endpoint, to: Endpoint) {
+export function usePrediction(from: Endpoint, to: Endpoint | null) {
   const date = today();
-  const nowcast = true;
   const station = useStation();
-  const server = useServerStore((s) => s.address);
   // The engine is in this build, or it is not; it cannot appear part way
   // through a session, so this is not state.
   const local = canPredictLocally();
+  // Deliberately not awaited. The forecast is drawn from the month's figure
+  // as soon as the engine can produce one, and re-runs as a now-cast when the
+  // readings arrive — which is a key change, so React Query does it. Waiting
+  // instead would put the network in front of a forecast that needs none.
+  const nowcast = nowcastFrom(useSpaceWeather().data);
 
   return useQuery({
     queryKey: queryKeys.prediction(
-      // Which engine answered is part of the identity. The device's own
-      // engine works from a bundled sunspot table and the server's from live
-      // figures, so the two can differ, and a cached answer from one must not
-      // be shown as the other's.
-      local ? 'device' : server,
+      // Which engine answered is part of the identity. A cached answer from
+      // one must not be shown as the other's.
+      local ? 'device' : API_BASE,
       from.grid,
-      to.grid,
+      // A survey is a different answer for the same origin, so it needs its
+      // own entry rather than sharing one with whichever destination was set
+      // last.
+      to === null ? 'anywhere' : to.grid,
       date,
-      nowcast,
+      nowcastKey(nowcast),
       station.key,
     ),
-    queryFn: async () =>
-      local
-        ? {
-          prediction: await predictLocally({
-            from,
-            to,
-            date: new Date(`${date}T00:00:00Z`),
-            station: station.station,
-          }),
-          // Space weather is a network reading. The forecast does not depend
-          // on it, and the cards that show it handle its absence already.
+    queryFn: async () => {
+      const day = new Date(`${date}T00:00:00Z`);
+      if (local) {
+        return {
+          prediction: to === null
+            ? await surveyLocally({
+              from,
+              date: day,
+              station: station.station,
+              nowcast,
+            })
+            : await predictLocally({
+              from,
+              to,
+              date: day,
+              station: station.station,
+              nowcast,
+            }),
+          // Fetched separately by `useSpaceWeather`, which is what supplied
+          // the now-cast above. Null here so the shape matches the server's.
           spaceWeather: null,
-        }
+        };
+      }
+      const common = {
+        from: `${from.lat},${from.lon}`,
+        fromLabel: from.label,
+        date,
+        nowcast: true,
+        station: station.params,
+      };
+      return to === null
+        ? await fetchSurvey(common)
         : await fetchPrediction({
-          from: `${from.lat},${from.lon}`,
+          ...common,
           to: `${to.lat},${to.lon}`,
-          fromLabel: from.label,
           toLabel: to.label,
-          date,
-          nowcast,
-          station: station.params,
-        }),
+        });
+    },
     // Held while the station dialog is open, and run once when it closes.
     enabled: !station.editing,
     // So the screen behind the dialog keeps the forecast it already had
     // rather than falling back to the loading state on every adjustment.
+    // It also covers the climatology-to-now-cast change: the first answer
+    // stays on screen while the second is computed.
     placeholderData: keepPreviousData,
-    // A now-cast follows the solar indices, which SWPC updates a few times
-    // a day. The climatology underneath it does not move within a month.
-    staleTime: 15 * 60 * 1000,
+    // On the device the readings this run was driven by are in the key, so a
+    // stale entry can only be one whose conditions have not moved: there is
+    // nothing to refetch, and the poll above is what brings a new answer.
+    // The server picks its own readings, which this key cannot see, so that
+    // path expires on the same interval instead.
+    staleTime: local ? Number.POSITIVE_INFINITY : SPACE_WEATHER_POLL_MS,
     retry: 1,
   });
 }
@@ -158,11 +312,28 @@ export function usePrediction(from: Endpoint, to: Endpoint) {
  * would be worse than none.
  */
 export function useSounding(from: Endpoint) {
-  const server = useServerStore((s) => s.address);
+  // As for space weather, the source follows the engine. GIRO restricts its
+  // CORS header to its own origin, which blocks a browser and not a native
+  // app, so a device asks GIRO and the web build asks the server.
+  const local = canPredictLocally();
+
+  // A station has to be near enough to describe the same ionosphere. Checked
+  // before the query rather than inside it so most of the world makes no
+  // request at all — the answer is known to be null from the coordinates.
+  const covered = usefulStation(from.lat, from.lon) !== null;
+
   return useQuery({
-    queryKey: queryKeys.sounding(server, from.lat, from.lon),
-    queryFn: () => fetchSounding(from.lat, from.lon),
-    // Stations sound every 5 to 15 minutes and the server caches for 5.
+    queryKey: queryKeys.sounding(
+      local ? 'device' : API_BASE,
+      from.lat,
+      from.lon,
+    ),
+    queryFn: () =>
+      local
+        ? fetchSoundingDirect(from.lat, from.lon)
+        : fetchSounding(from.lat, from.lon),
+    enabled: !local || covered,
+    // Stations sound every 5 to 15 minutes.
     staleTime: 5 * 60 * 1000,
     gcTime: 15 * 60 * 1000,
     retry: false,
@@ -197,16 +368,35 @@ export function useGeocode(query: string, lang: string) {
       const grid = trimmed.toUpperCase();
       return [{ name: grid, country: '', admin1: '', lat, lon, grid }];
     }
+    // Decimal or degrees-minutes-seconds. Arithmetic like the locator, so it
+    // is answered here and never fetched — a coordinate is already the
+    // answer a geocoder would be asked to produce.
+    const coords = parseCoordinates(trimmed);
+    if (coords !== null) {
+      return [{
+        name: formatLatLon(coords),
+        country: '',
+        admin1: '',
+        lat: coords.lat,
+        lon: coords.lon,
+        grid: latLonToGrid(coords.lat, coords.lon),
+      }];
+    }
     return searchCities(trimmed);
   }, [trimmed]);
 
   const remote = useQuery({
     queryKey: queryKeys.geocode(trimmed.toLowerCase(), lang),
-    queryFn: () => fetchGeocode(trimmed, lang),
-    // A locator needs no lookup at all, and neither does a query the list
-    // already answers well. Asking anyway would spend a request, and offline it
-    // would put a failure on screen beside results that are already correct.
+    // Asked for directly, on every platform. Open-Meteo's geocoder needs no
+    // key and allows browsers, so unlike the ionosonde there is no reason to
+    // route it through a server the installed app cannot reach anyway.
+    queryFn: () => fetchGeocodeDirect(trimmed, lang),
+    // A locator and a coordinate need no lookup at all, and neither does a
+    // query the list already answers well. Asking anyway would spend a
+    // request, and offline it would put a failure on screen beside results
+    // that are already correct.
     enabled: trimmed.length >= 2 && !isGrid(trimmed)
+      && parseCoordinates(trimmed) === null
       && local.length < LOCAL_ENOUGH,
     staleTime: 24 * 60 * 60 * 1000,
   });
@@ -249,22 +439,21 @@ export function useCoverage(
 ) {
   const date = today();
   const station = useStation();
-  const server = useServerStore((s) => s.address);
   const local = canMapLocally();
+  const nowcast = nowcastFrom(useSpaceWeather().data);
   // Long enough to swallow a sweep, short enough that choosing one hour feels
   // immediate. The engine's own run is of the same order on a slow device.
   const hour = useSettled(reportedHour, 350);
 
   return useQuery({
     queryKey: queryKeys.coverage(
-      // As for a prediction: which engine answered is part of the identity,
-      // because the device works from the bundled sunspot table and the
-      // server from live figures.
-      local ? 'device' : server,
+      // As for a prediction: which engine answered is part of the identity.
+      local ? 'device' : API_BASE,
       from.grid,
       band,
       hour,
       date,
+      nowcastKey(nowcast),
       station.key,
     ),
     queryFn: () =>
@@ -275,6 +464,7 @@ export function useCoverage(
           hour,
           date: new Date(`${date}T00:00:00Z`),
           station: station.station,
+          nowcast,
         })
         : fetchCoverage({
           from: `${from.lat},${from.lon}`,
@@ -289,7 +479,207 @@ export function useCoverage(
     // holding it while the station is being adjusted matters more here.
     enabled: !station.editing,
     placeholderData: keepPreviousData,
-    staleTime: 15 * 60 * 1000,
+    staleTime: local ? Number.POSITIVE_INFINITY : SPACE_WEATHER_POLL_MS,
     retry: 1,
+  });
+}
+
+/**
+ * The fine grid around the operator, for the same band and hour.
+ *
+ * A query of its own, and that is the whole point of it. The coarse map is
+ * the answer to the question the screen asks, and it has to be drawn as
+ * soon as it exists; this is a second, slower answer at a scale the coarse
+ * one cannot reach. Putting both in one request would hold the map back
+ * for the sake of detail nobody has asked to wait for, on every hour the
+ * slider stops at.
+ *
+ * It follows the same settled hour as the coarse map, so the two describe
+ * the same moment and the fine cells never sit on top of a map drawn for
+ * a different hour.
+ */
+/**
+ * The fine grid, over the whole world, for one band and hour.
+ *
+ * There is deliberately nothing about the view in the key. The viewport
+ * patch has to refetch whenever the map is pointed somewhere else; this
+ * is asked once and answers every pan and zoom from what it already
+ * holds, which is the reason for paying for 34,560 points instead of a
+ * few hundred.
+ *
+ * It arrives behind the coarse map and replaces its cells. The coarse
+ * query is untouched, so the map is drawn from the first answer and this
+ * only sharpens it.
+ *
+ * Three things have to hold before it is asked at all.
+ *
+ * A canvas has to exist to draw 34,560 cells: the SVG renderer cannot
+ * hold that many, so on the legacy build the question would cost a run
+ * and change nothing on screen.
+ *
+ * The device has to be able to afford it, when the device is the one
+ * answering. That is measured rather than assumed — see
+ * `engineBudget.ts` — from the coarse run the app already makes. It is
+ * false until the first coarse run has been timed, so an unknown device
+ * spends one band change finding out rather than one full fine run.
+ *
+ * Where the server answers, there is nothing to gate: it shards across
+ * processes and replies in about 440 ms whatever the phone is.
+ */
+/**
+ * Whether the fine grid will be asked for, and why.
+ *
+ * Separated from the query so the map's decision and the line under the
+ * map that explains it read the same fact. Two copies of this rule would
+ * be a line that says the grid is coming while the query sits disabled —
+ * which is worse than saying nothing, because a reader would keep
+ * waiting.
+ */
+export function useFineGate() {
+  const local = canMapLocally();
+  // Subscribed rather than read once, so a device that has just taken
+  // its first measurement turns the globe on without needing another
+  // reason to re-render.
+  const samples = useEngineCost((state) => state.samples);
+  const msPerPoint = marginalMsPerPoint(samples);
+  return {
+    /** True when this device runs the engine itself. */
+    local,
+    /** How many timed runs are held. */
+    sampleCount: samples.length,
+    /** Null until runs of two different sizes have been seen. */
+    msPerPoint,
+    /** What the fine grid is expected to cost here, in milliseconds. */
+    projectedMs: projectedFineMs(msPerPoint),
+    /** Nothing to weigh where the server answers. */
+    affordable: !local || fineGlobeAffordable(msPerPoint),
+  };
+}
+
+export function useFineGlobe(
+  from: Endpoint,
+  band: BandKey,
+  reportedHour: number,
+  enabled = true,
+) {
+  const date = today();
+  const station = useStation();
+  const local = canMapLocally();
+  const nowcast = nowcastFrom(useSpaceWeather().data);
+  const hour = useSettled(reportedHour, 350);
+  const { affordable } = useFineGate();
+
+  return useQuery({
+    queryKey: queryKeys.fineGlobe(
+      local ? 'device' : API_BASE,
+      from.grid,
+      band,
+      hour,
+      date,
+      nowcastKey(nowcast),
+      station.key,
+    ),
+    queryFn: () =>
+      local
+        ? coverFineLocally({
+          from,
+          band,
+          hour,
+          date: new Date(`${date}T00:00:00Z`),
+          station: station.station,
+          nowcast,
+        })
+        : fetchFineGlobe({
+          from: `${from.lat},${from.lon}`,
+          fromLabel: from.label,
+          band,
+          hour,
+          date,
+          nowcast: true,
+          station: station.params,
+        }),
+    enabled: enabled && hasSkia && affordable && !station.editing,
+    placeholderData: keepPreviousData,
+    staleTime: local ? Number.POSITIVE_INFINITY : SPACE_WEATHER_POLL_MS,
+    // No retry, for the same reason the patch does not: the coarse map
+    // is the answer and this is detail on top of it. A second attempt
+    // spends seconds of engine time on something whose absence changes
+    // nothing a reader depends on.
+    retry: false,
+  });
+}
+
+export function useCoveragePatch(
+  from: Endpoint,
+  band: BandKey,
+  reportedHour: number,
+  reportedRegion: MapRegion | null = null,
+  /**
+   * False turns the patch off entirely.
+   *
+   * A whole-world fine grid already answers at the patch's own step, so
+   * running it as well would spend a second engine run to redraw cells
+   * that are already there. It is only worth asking again below that
+   * step, at the deepest zoom, where the patch can still buy detail the
+   * globe does not hold.
+   */
+  enabled = true,
+) {
+  const date = today();
+  const station = useStation();
+  const local = canMapLocally();
+  const nowcast = nowcastFrom(useSpaceWeather().data);
+  const hour = useSettled(reportedHour, 350);
+  // The same delay the hour gets, for the same reason: a pinch or a drag
+  // is a stream of values, and running the engine on each one would
+  // spend a run per frame to show the answer to a view already left.
+  const region = useSettled(reportedRegion, 350);
+  // Two views that produce the same grid share an answer, so panning
+  // within one cell costs nothing. `patchGrid` snaps to the engine's own
+  // lattice, which is what makes that true rather than approximately
+  // true.
+  const grid = region
+    ? patchGrid(region.lat, region.lon, region.halfLatDeg)
+    : patchGrid(from.lat, from.lon);
+
+  return useQuery({
+    queryKey: queryKeys.coveragePatch(
+      local ? 'device' : API_BASE,
+      from.grid,
+      band,
+      hour,
+      date,
+      nowcastKey(nowcast),
+      station.key,
+      patchKey(grid),
+    ),
+    queryFn: () =>
+      local
+        ? coverPatchLocally({
+          from,
+          band,
+          hour,
+          date: new Date(`${date}T00:00:00Z`),
+          station: station.station,
+          nowcast,
+          region,
+        })
+        : fetchCoveragePatch({
+          from: `${from.lat},${from.lon}`,
+          fromLabel: from.label,
+          band,
+          hour,
+          date,
+          nowcast: true,
+          station: station.params,
+          region,
+        }),
+    enabled: enabled && !station.editing,
+    placeholderData: keepPreviousData,
+    staleTime: local ? Number.POSITIVE_INFINITY : SPACE_WEATHER_POLL_MS,
+    // No retry. The coarse map is the answer and this is detail on top of
+    // it, so a second attempt spends an engine run, or a request, on
+    // something whose absence nothing depends on.
+    retry: false,
   });
 }

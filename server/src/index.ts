@@ -6,6 +6,7 @@
  *   GET /api/spaceweather
  *   GET /api/geocode?q=            place name search, or a Maidenhead locator
  *   GET /api/prediction?from&to    one day, optionally as a now-cast
+ *   GET /api/survey?from           one day with no destination, every direction
  *   GET /api/forecast?from&to&days several days, one prediction each
  *   GET /api/ionosonde?at=lat,lon  measured foF2 from the nearest sounder
  */
@@ -24,7 +25,7 @@ import {
   normaliseAntenna,
 } from './antenna.ts';
 import { TtlCache } from './cache.ts';
-import { coverage } from './coverage.ts';
+import { coverage, coverageFine, coveragePatch } from './coverage.ts';
 import { gridToLatLon, isGrid, latLonToGrid } from './geo.ts';
 import {
   fetchSounding,
@@ -41,10 +42,12 @@ import {
   type ModeKey,
   requiredSnrFor,
 } from './station.ts';
+import { survey } from './survey.ts';
 import {
   BAND_ORDER,
   type BandKey,
   type Endpoint,
+  type MapRegion,
   type PredictionResponse,
   type SpaceWeather,
 } from './types.ts';
@@ -233,13 +236,47 @@ async function handlePrediction(url: URL): Promise<PredictionResponse> {
 }
 
 /**
+ * The same forecast with no destination: how much of the world hears this
+ * station, hour by hour and band by band.
+ *
+ * Forty-eight engine runs behind one request, so it is slower than a
+ * prediction and cached for the same fifteen minutes. See `survey.ts`.
+ */
+async function handleSurvey(url: URL): Promise<PredictionResponse> {
+  const from = parseEndpoint(
+    url.searchParams.get('from'),
+    url.searchParams.get('fromLabel'),
+    'from',
+  );
+  const date = parseDate(url.searchParams.get('date'));
+  const wantNowcast = url.searchParams.get('nowcast') === '1';
+
+  const spaceWeather = wantNowcast ? await trySpaceWeather() : null;
+
+  const prediction = await survey({
+    from,
+    date,
+    ...parseStation(url),
+    ...(wantNowcast && spaceWeather
+      ? {
+        ssnOverride: spaceWeather.effectiveSsn,
+        kpMax24h: spaceWeather.kpMax24h,
+        basis: 'nowcast' as const,
+      }
+      : {}),
+  });
+
+  return { prediction, spaceWeather };
+}
+
+/**
  * Coverage for one band at one hour.
  *
  * Takes the hour explicitly rather than deriving it from the clock: the
  * app's map follows a slider the user moves, so "now" is only one of the
  * twenty-four answers it asks for.
  */
-async function handleCoverage(url: URL) {
+async function coverageRequest(url: URL) {
   const from = parseEndpoint(
     url.searchParams.get('from'),
     url.searchParams.get('fromLabel'),
@@ -259,7 +296,7 @@ async function handleCoverage(url: URL) {
   const wantNowcast = url.searchParams.get('nowcast') === '1';
   const spaceWeather = wantNowcast ? await trySpaceWeather() : null;
 
-  return await coverage({
+  return {
     from,
     date,
     band: band as BandKey,
@@ -268,7 +305,84 @@ async function handleCoverage(url: URL) {
     ...(spaceWeather
       ? { ssnOverride: spaceWeather.effectiveSsn, basis: 'nowcast' as const }
       : {}),
+  };
+}
+
+async function handleCoverage(url: URL) {
+  return await coverage(await coverageRequest(url));
+}
+
+/**
+ * The fine grid, over the whole world.
+ *
+ * The same request as the coarse map at a step a hundred and eighty
+ * times finer. A separate route for the same reason the patch has one:
+ * the coarse map is the answer and must be drawn as soon as it exists,
+ * and this arrives behind it and replaces its cells.
+ *
+ * The response is about 2.2 MB. That is the price of asking the question
+ * once for the whole world instead of asking it again on every pan.
+ */
+async function handleCoverageFine(url: URL) {
+  return await coverageFine(await coverageRequest(url));
+}
+
+/**
+ * The fine grid around the operator, for the same band and hour.
+ *
+ * The same request as the coarse map, answered over a rectangle instead
+ * of the world. A separate route rather than a parameter on the other
+ * one, because the two are fetched separately on purpose: the coarse map
+ * is the answer and has to be drawn as soon as it exists, and this is
+ * detail that arrives behind it.
+ *
+ * Answers `null` for a station near the antimeridian, which is a fact
+ * about where it is rather than a failure — see `coveragePatch.ts`.
+ */
+async function handleCoveragePatch(url: URL) {
+  const region = parseRegion(url);
+  return await coveragePatch({
+    ...(await coverageRequest(url)),
+    ...(region ? { region } : {}),
   });
+}
+
+/**
+ * Where the map is pointed, if the caller said.
+ *
+ * All three together or none: a half-extent with no centre, or a centre
+ * with no half-extent, describes nothing, and guessing the missing one
+ * would put the detail somewhere the reader is not looking. Absent is
+ * the whole-globe view, where the fine grid belongs at the station.
+ */
+function parseRegion(url: URL): MapRegion | null {
+  const at = ['atLat', 'atLon', 'halfLat']
+    .map((name) => url.searchParams.get(name));
+  if (at.every((value) => value === null)) return null;
+  if (at.some((value) => value === null)) {
+    throw new BadRequest('atLat, atLon and halfLat go together or not at all');
+  }
+  const [lat, lon, halfLatDeg] = at.map((value) => Number(value));
+  if (
+    !Number.isFinite(lat) || !Number.isFinite(lon)
+    || !Number.isFinite(halfLatDeg)
+  ) {
+    throw new BadRequest('atLat, atLon and halfLat must be numbers');
+  }
+  if ((lat as number) < -90 || (lat as number) > 90) {
+    throw new BadRequest('atLat must be between -90 and 90');
+  }
+  if ((lon as number) < -180 || (lon as number) > 180) {
+    throw new BadRequest('atLon must be between -180 and 180');
+  }
+  if ((halfLatDeg as number) <= 0) {
+    throw new BadRequest('halfLat must be above zero');
+  }
+  return {
+    lat: lat as number,
+    lon: lon as number,
+    halfLatDeg: halfLatDeg as number,
+  };
 }
 
 async function handleForecast(
@@ -412,8 +526,14 @@ async function route(url: URL): Promise<unknown> {
       return await handleGeocode(url);
     case '/api/prediction':
       return await handlePrediction(url);
+    case '/api/survey':
+      return await handleSurvey(url);
     case '/api/coverage':
       return await handleCoverage(url);
+    case '/api/coverage/patch':
+      return await handleCoveragePatch(url);
+    case '/api/coverage/fine':
+      return await handleCoverageFine(url);
     case '/api/forecast':
       return await handleForecast(url);
     case '/api/ionosonde':

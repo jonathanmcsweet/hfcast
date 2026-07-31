@@ -85,9 +85,17 @@ export interface Endpoint {
 
 export interface PathPrediction {
   from: Endpoint;
-  to: Endpoint;
-  distanceKm: number;
-  bearingDeg: number;
+  /**
+   * The far end, or null for a survey — the forecast `/api/survey` returns,
+   * where each cell is the share of directions reachable rather than the
+   * chance of one contact.
+   *
+   * The three fields describing one path are null together, never separately.
+   * `/api/prediction` always fills all three.
+   */
+  to: Endpoint | null;
+  distanceKm: number | null;
+  bearingDeg: number | null;
   /** The sunspot number the run actually used. */
   ssn: number;
   /**
@@ -164,4 +172,18 @@ export interface PredictionResponse {
   prediction: PathPrediction;
   /** Null when the space weather upstream was unreachable. */
   spaceWeather: SpaceWeather | null;
+}
+
+/**
+ * The part of the world the map is showing.
+ *
+ * `halfLatDeg` is half the height of the frame, in degrees of latitude,
+ * so a zoomed-in view asks for a small number and a zoomed-out one a
+ * large one. It is the whole of what the fine grid needs to know about
+ * the view: where to centre, and how much has to fit.
+ */
+export interface MapRegion {
+  lat: number;
+  lon: number;
+  halfLatDeg: number;
 }

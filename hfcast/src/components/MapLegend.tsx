@@ -17,7 +17,18 @@ import type { AppTheme } from '../theme';
  * with a sentence for each state. This one only has to separate the answer
  * from the context, so it shows the ramp as a ramp.
  */
-export default function MapLegend() {
+interface Props {
+  /**
+   * Whether the map is stippling a near-vertical region.
+   *
+   * The entry appears only when the mark does. A key naming something not
+   * on the map sends a reader looking for it, and on most bands and at
+   * most hours there is nothing to find.
+   */
+  hasNvis?: boolean;
+}
+
+export default function MapLegend({ hasNvis = false }: Props) {
   const theme = useTheme<AppTheme>();
   const { t } = useTranslation();
   const ui = theme.colors.ui;
@@ -27,7 +38,9 @@ export default function MapLegend() {
     <View
       style={styles.row}
       accessible
-      accessibilityLabel={t('a11y.mapLegend')}
+      accessibilityLabel={hasNvis
+        ? `${t('a11y.mapLegend')} ${t('a11y.mapLegendNvis')}`
+        : t('a11y.mapLegend')}
     >
       <View style={styles.item}>
         <View style={styles.ramp}>
@@ -61,6 +74,17 @@ export default function MapLegend() {
           {t('reach.legendNight')}
         </Text>
       </View>
+
+      {hasNvis
+        ? (
+          <View style={styles.item}>
+            <View style={[styles.dot, { backgroundColor: ui.ink }]} />
+            <Text style={[typography.axis, { color: ui.text4 }]}>
+              {t('reach.legendNvis')}
+            </Text>
+          </View>
+        )
+        : null}
     </View>
   );
 }
@@ -77,4 +101,7 @@ const styles = StyleSheet.create({
   // Outlined, because at this size a flat tint at the map's own opacity
   // would be invisible against the card.
   night: { opacity: 0.35, borderWidth: StyleSheet.hairlineWidth },
+  // One dot, at the size the map draws them, so the key shows the mark
+  // rather than a description of it.
+  dot: { width: 4, height: 4, borderRadius: 2, opacity: 0.55 },
 });

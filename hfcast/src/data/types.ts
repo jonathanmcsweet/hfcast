@@ -50,9 +50,18 @@ export interface Endpoint {
 
 export interface PathPrediction {
   from: Endpoint;
-  to: Endpoint;
-  distanceKm: number;
-  bearingDeg: number;
+  /**
+   * The far end, or null for a survey — a forecast with no destination,
+   * where each cell is the share of directions reachable rather than the
+   * chance of one contact. See `survey.ts`.
+   *
+   * This is where the app's shape stops mirroring the server's, which always
+   * has both ends. The three fields that describe one path are null together
+   * and never separately.
+   */
+  to: Endpoint | null;
+  distanceKm: number | null;
+  bearingDeg: number | null;
   /** The sunspot number the run actually used. */
   ssn: number;
   /**
@@ -108,6 +117,12 @@ export interface SpaceWeather {
   observedSsn: number | null;
   /** Planetary K index, 0-9. */
   kp: number;
+  /**
+   * Highest Kp over roughly the last 24 hours. Ionospheric storm effects
+   * outlast the disturbance itself, so "was there a storm recently" is the
+   * question the spread widening asks. See `correct.ts`.
+   */
+  kpMax24h: number;
   /** SSN derived from f107 and kp, used to drive a now-cast. */
   effectiveSsn: number;
   observedAt: string;
@@ -175,6 +190,16 @@ export interface CoveragePoint {
   lat: number;
   lon: number;
   reliability: number;
+  /**
+   * Transmit take-off angle in degrees, where the engine printed one.
+   *
+   * Optional because the coarse whole-world grid does not need it and
+   * older cached answers do not carry it. The fine patch does: near
+   * vertical incidence is a property of this angle and of nothing else,
+   * so it is what tells the region around the station that works without
+   * a skip zone from a long low-angle hop. See `isNvis`.
+   */
+  takeoffAngleDeg?: number | null;
 }
 
 /**
@@ -193,4 +218,76 @@ export interface Coverage {
   reach: number;
   basis: PredictionBasis;
   points: readonly CoveragePoint[];
+}
+
+/**
+ * The fine grid around the operator, drawn over the coarse one.
+ *
+ * A second answer to the same question at a scale the whole-world grid
+ * cannot reach — see `coveragePatch.ts` for why it exists and how big it
+ * is. It carries no `reach`, deliberately: the headline share of the
+ * globe is computed from the coarse grid alone, and adding a region
+ * already counted there would count it twice.
+ */
+export interface CoveragePatch {
+  band: BandKey;
+  hour: number;
+  latStep: number;
+  lonStep: number;
+  /**
+   * The rectangle that actually ran: the first and last point on each
+   * axis, not the cell edges, which are half a step further out.
+   */
+  latMin: number;
+  latMax: number;
+  lonMin: number;
+  lonMax: number;
+  basis: PredictionBasis;
+  points: readonly CoveragePoint[];
+}
+
+/**
+ * The fine grid, over the whole world, stored by column rather than by
+ * point.
+ *
+ * 34,560 points as objects is tens of megabytes of JavaScript heap for
+ * one hour, and the map holds several hours as a user moves the slider.
+ * As two typed arrays it is about 280 KB, which is what makes keeping a
+ * whole-world answer in memory reasonable at all.
+ *
+ * This works because the lattice is regular and the engine's row order
+ * is guaranteed — south to north, west to east — so a point's place in
+ * the array is its position on the earth and does not need storing. The
+ * conversion happens in the query function, so the raw objects the wire
+ * carries are never what gets cached.
+ *
+ * `latMin` and `lonMin` are cell *centres*, matching what the engine
+ * echoes and what `cellRing` expects.
+ */
+export interface FineGlobe {
+  band: BandKey;
+  hour: number;
+  latMin: number;
+  lonMin: number;
+  latStep: number;
+  lonStep: number;
+  /** Columns, then rows. Index is `row * nx + column`. */
+  nx: number;
+  ny: number;
+  reliability: Float32Array;
+  takeoffAngleDeg: Float32Array;
+}
+
+/**
+ * The part of the world the map is showing.
+ *
+ * `halfLatDeg` is half the height of the frame, in degrees of latitude,
+ * so a zoomed-in view asks for a small number and a zoomed-out one a
+ * large one. It is the whole of what the fine grid needs to know about
+ * the view: where to centre, and how much has to fit.
+ */
+export interface MapRegion {
+  lat: number;
+  lon: number;
+  halfLatDeg: number;
 }

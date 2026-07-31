@@ -91,6 +91,59 @@ class HfcastEngineModule : Module() {
       }
     }
 
+    /**
+     * Runs a batch of requests together, across several threads.
+     *
+     * The whole-world fine grid is 34,560 points. On one thread that is
+     * seconds, and the engine has no way to use the other cores a phone has
+     * been shipping for a decade. The caller cuts the grid into latitude
+     * strips — which produce the same numbers as one run, point for point,
+     * because a strip boundary is placed between cell centres — and hands
+     * them over here.
+     *
+     * The batch still occupies the single worker, so the module keeps its
+     * rule of one intention at a time: a fine grid and a point-to-point run
+     * do not overlap, and a second batch waits for the first. The pool lives
+     * inside one batch and is shut down with it, so an idle app holds no
+     * threads it is not using.
+     *
+     * `threads` is the caller's, because the right number is a property of
+     * the device rather than of this code, and it has to be measured on real
+     * hardware — an emulator's ratios do not carry over.
+     *
+     * Answers come back in the order the requests were given, whatever order
+     * they finished in. The caller joins them into one grid and depends on
+     * that order.
+     */
+    AsyncFunction("predictMany") { requests: List<String>, threads: Int, promise: Promise ->
+      worker.execute {
+        if (requests.isEmpty()) {
+          promise.resolve(emptyList<String>())
+          return@execute
+        }
+        val width = threads.coerceIn(1, requests.size)
+        val pool = Executors.newFixedThreadPool(width)
+        try {
+          val running = requests.map { request ->
+            pool.submit<String?> { predictNative(request) }
+          }
+          // `get` in request order, so the results line up with what was
+          // asked rather than with what finished first.
+          val answers = running.map { it.get() }
+          val missing = answers.indexOfFirst { it == null }
+          if (missing >= 0) {
+            promise.reject(EngineFailedException("no answer for part $missing"))
+          } else {
+            promise.resolve(answers.map { it as String })
+          }
+        } catch (e: Throwable) {
+          promise.reject(EngineFailedException(e.message ?: e.toString()))
+        } finally {
+          pool.shutdownNow()
+        }
+      }
+    }
+
     OnDestroy {
       worker.shutdownNow()
     }

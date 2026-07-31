@@ -14,7 +14,22 @@
     // its mocks. Nothing is emitted from here, so this only affects
     // checking; Metro and Babel do the real transform.
     "module": "esnext",
-    "baseUrl": ".",
-    "paths": { "@/*": ["src/*"] }
-  }
+    // The tests and the tools in tools/ import `node:` modules, whose types are
+    // ambient declarations in @types/node. TypeScript 6 no longer pulls every
+    // @types package into the program on its own, so the one that is needed has
+    // to be named. Without this the imports resolve to nothing and every test
+    // file fails to check.
+    "types": ["node"],
+    // No `baseUrl`: TypeScript 6 deprecates it, and without one `paths` is
+    // read relative to this file, which is where it pointed anyway.
+    "paths": { "@/*": ["./src/*"] }
+  },
+  // `legacy/` holds the files `tools/build-android.sh` copies over their
+  // modern counterparts in the legacy tree — `render/skia.ts` and
+  // `render/CellLayer.tsx` stand in for the Skia seam, which the legacy
+  // dependency set does not contain. Their imports are written for where
+  // they land, `src/render/`, not for where they sit, so they only
+  // resolve after the copy. They are checked there, by the legacy tree's
+  // own typecheck.
+  "exclude": ["node_modules", "legacy", "build", "dist"]
 }

@@ -10,12 +10,22 @@
     "mapUnavailable": "No se pudo cargar el mapa de cobertura.",
     "reachLine": "{{band}} llega a cerca del {{percent}} del mundo a esta hora.",
     "legendReach": "Alcance",
-    "legendNight": "Noche"
+    "legendNight": "Noche",
+    "panHint": "Mueve el mapa con dos dedos",
+    "subtitleAnywhere": "Sin destino, así que son todas las direcciones a la vez.",
+    "answerAnywhere": "{{band}} a las {{hour}} UTC alcanza cerca del {{percent}} de las direcciones muestreadas.",
+    "legendNvis": "Sin zona de silencio",
+    "nvisReach": "{{band}} llega hasta unos {{distance}} sin zona de silencio.",
+    "mapSharpening": "Añadiendo detalle al mapa",
+    "detailWorld": "Detalle fino, todo el mundo.",
+    "detailNear": "Detalle fino solo cerca de {{place}}.",
+    "detailMeasuring": "Midiendo este dispositivo antes de añadir detalle fino.",
+    "detailCoarse": "Solo detalle grueso. Este dispositivo es demasiado lento para la cuadrícula fina."
   },
   "path": {
     "summary": "{{distance}} · rumbo {{bearing}} · {{hops}} saltos",
     "summaryOneHop": "{{distance}} · rumbo {{bearing}} · un salto",
-    "changeDestination": "Cambiar destino"
+    "noDestinationHint": "El mapa muestra todas las direcciones. Toca el nombre de arriba para elegir un destino."
   },
   "window": {
     "label": "Ventana utilizable",
@@ -34,13 +44,17 @@
     "showAsGrid": "Ver como cuadrícula",
     "bandColumn": "Banda",
     "footnoteHours": "Las horas son UTC. La hora local en {{place}} está en el reloj de arriba.",
-    "footnoteSaved": "Son datos guardados, así que no pueden mostrar nada que haya cambiado desde que se descargaron."
+    "footnoteSaved": "Son datos guardados, así que no pueden mostrar nada que haya cambiado desde que se descargaron.",
+    "unitDirections": "Direcciones alcanzables, %",
+    "chanceAnywhere": "alcanza cerca del {{percent}} de las direcciones muestreadas"
   },
   "sections": {
     "allBandsHint": "Hasta dónde llega cada banda, hora a hora.",
     "sun": "El sol hoy",
     "allBandsTo": "Todas las bandas hacia {{place}}",
-    "noneReach": "Hoy ninguna banda llega a {{place}} a ninguna hora."
+    "noneReach": "Hoy ninguna banda llega a {{place}} a ninguna hora.",
+    "allBandsAnywhere": "Todas las bandas, todas las direcciones",
+    "noneReachAnywhere": "Hoy ninguna banda alcanza nada a ninguna hora."
   },
   "spaceWeather": {
     "flux": "Flujo solar",
@@ -83,20 +97,20 @@
     "from": "Desde",
     "to": "Hasta",
     "useDevice": "Usar mi ubicación",
-    "searchPlaceholder": "Nombre de ciudad o localizador",
+    "searchPlaceholder": "Localidad, coordenadas, locator",
     "searchFailed": "La búsqueda no está disponible ahora mismo.",
     "noResults": "No se encontraron lugares.",
     "permissionDenied": "Se rechazó el permiso de ubicación. Busca un lugar en su lugar.",
     "unavailable": "No se pudo leer tu ubicación. Busca un lugar en su lugar.",
-    "noProvider": "La ubicación está desactivada en este dispositivo. Actívala o busca un lugar en su lugar."
+    "noProvider": "La ubicación está desactivada en este dispositivo. Actívala o busca un lugar en su lugar.",
+    "noneSet": "ninguno",
+    "clearDestination": "Prever todas las direcciones en su lugar"
   },
   "status": {
     "loading": "Calculando la previsión",
     "errorTitle": "No hay previsión disponible",
-    "errorBody": "El servicio de predicción en {{address}} no respondió.",
+    "errorBody": "No se pudo calcular la previsión.",
     "retry": "Reintentar",
-    "errorLoopback": "Esa dirección es este mismo dispositivo, así que no hay nada que pueda responder. Indica la dirección del equipo donde corre el servidor.",
-    "setServer": "Definir dirección del servidor",
     "openStation": "Configurar tu equipo"
   },
   "offline": {
@@ -104,12 +118,16 @@
     "chip": "Sin conexión"
   },
   "disclaimer": {
-    "titleLive": "Datos en directo, no climatología",
     "titleSaved": "Datos guardados",
     "climatology": "Climatología mensual, no una previsión en directo. Supone un número de manchas solares suavizado de {{ssn}} y condiciones geomagnéticas tranquilas.",
     "forecast": "Climatología mensual con un número de manchas solares previsto de {{ssn}}. Las previsiones más lejanas son menos seguras.",
-    "nowcast": "Basada en lecturas actuales, con un número de manchas solares efectivo de {{ssn}}. Estima la ionosfera, no esta ruta.",
-    "station": "Supone 100 W a un dipolo a 10 m de altura. Una antena mejor supera estas cifras; una antena de compromiso no las alcanza."
+    "nowcast": "Promedios mensuales, con el número de manchas solares tomado de lecturas de las últimas horas ({{ssn}}). Ese único valor rige las 24 horas, así que no puede ver una tormenta que llegue más tarde hoy.",
+    "station": "Supone 100 W a un dipolo a 10 m de altura. Una antena mejor supera estas cifras; una antena de compromiso no las alcanza.",
+    "title": {
+      "nowcast": "Condiciones de hoy, modelo mensual",
+      "climatology": "Promedios mensuales de este mes",
+      "forecast": "Promedios mensuales, ciclo previsto"
+    }
   },
   "settings": {
     "changeLanguage": "Cambiar idioma",
@@ -129,7 +147,8 @@
       "autoNamed": "Seguir al dispositivo ({{system}})",
       "metric": "Métrico",
       "imperial": "Imperial"
-    }
+    },
+    "refresh": "Actualizar ahora"
   },
   "a11y": {
     "changeLocation": "Transmitiendo desde {{place}}. Toca para cambiarlo.",
@@ -145,7 +164,8 @@
     "zoomOut": "Alejar",
     "fitReach": "Encuadrar hasta dónde llega esta banda",
     "wholeGlobe": "Mostrar el globo entero",
-    "mapLegend": "Leyenda del mapa. Los tonos morados son el alcance previsto, de más débil a más fuerte. La zona gris es la noche."
+    "mapLegend": "Leyenda del mapa. Los tonos morados son el alcance previsto, de más débil a más fuerte. La zona gris es la noche.",
+    "mapLegendNvis": "Los puntos marcan la zona que la banda alcanza sin zona de silencio."
   },
   "crash": {
     "title": "Algo ha fallado",
@@ -189,7 +209,8 @@
       "dipole": "Dipolo",
       "vertical": "Vertical",
       "invertedL": "L invertida",
-      "yagi": "Directiva"
+      "yagi": "Directiva",
+      "invertedV": "V invertida"
     },
     "tip": {
       "mode": "{{mode}}: necesita {{db}} dB sobre el ruido. Toque para cambiar.",
@@ -243,23 +264,15 @@
       "e": "E",
       "s": "S",
       "w": "O"
-    }
+    },
+    "apexHeight": "Altura del vértice",
+    "invertedVNote": "Calculada como un dipolo a {{height}}, el {{percent}} % de la altura del vértice. La ayuda explica por qué."
   },
   "units": {
     "metres": "{{value}} m",
     "feet": "{{value}} ft",
     "kilometres": "{{value}} km",
     "miles": "{{value}} mi"
-  },
-  "server": {
-    "title": "Dirección del servidor",
-    "explain": "HFcast obtiene sus previsiones de un servidor de predicción. Indica la dirección del equipo donde corre — basta con el host y el puerto.",
-    "field": "Dirección del servidor",
-    "willUse": "Se usará {{address}}",
-    "invalid": "Esa no es una dirección utilizable.",
-    "default": "Predeterminada",
-    "cancel": "Cancelar",
-    "save": "Guardar"
   },
   "about": {
     "title": "Acerca de HFcast",
@@ -278,7 +291,52 @@
       "noaa": "Números de manchas solares e índices solares",
       "giro": "Sondeos ionosféricos medidos",
       "openMeteo": "Búsqueda de lugares, con conexión",
-      "plex": "IBM Plex Sans, la tipografía"
+      "plex": "IBM Plex Sans, la tipografía",
+      "aurora": "La aurora de la pantalla de inicio"
+    },
+    "openSource": "Abrir el sitio de {{who}}",
+    "openTerms": "Leer la licencia {{terms}}"
+  },
+  "firstRun": {
+    "kicker": "TU UBICACIÓN",
+    "title": "¿Desde dónde transmites?",
+    "subtitle": "Cada previsión se calcula desde aquí. Puedes cambiarlo cuando quieras.",
+    "useGps": "Usar mi ubicación actual",
+    "orType": "O ESCRÍBELA",
+    "formats": "Lugar · coordenadas · locator",
+    "formatsHint": "Toca un ejemplo de arriba para ver cómo se interpreta.",
+    "footnote": "Un locator de 4 caracteres es bastante preciso para HF. Si lo omites, HFCast calcula desde Greenwich — el meridiano cero, donde empieza UTC — hasta que definas el tuyo.",
+    "skip": "Omitir por ahora",
+    "continue": "Continuar",
+    "recognised": "RECONOCIDO"
+  },
+  "launch": {
+    "kicker": "Propagación en HF",
+    "title": "Qué banda te lleva allí",
+    "credit": "ISS Expedición 42 · NASA/S. Cristoforetti, dominio público",
+    "a11y": "Iniciando: {{step}}",
+    "step": {
+      "flux": "Flujo solar",
+      "ionosonde": "Ionosonda más cercana",
+      "model": "Modelo de ruta",
+      "bands": "Tus bandas"
+    }
+  },
+  "help": {
+    "title": "Cómo se hace la previsión",
+    "close": "Cerrar la ayuda",
+    "invertedV": {
+      "heading": "La V invertida",
+      "noModel": "VOACAP no tiene una V invertida. Tiene diez patrones de antena, y la V invertida no es uno de ellos, así que la aplicación no puede seleccionarla.",
+      "whatWeDo": "La aplicación calcula una V invertida como un dipolo al {{percent}} % de la altura del vértice. Si el vértice está a 10 metros, el modelo usa 8 metros.",
+      "whyItIsFair": "En un hilo horizontal, la altura sobre el suelo determina la ganancia hacia arriba. Una V invertida tiene los extremos más bajos que el vértice, así que se comporta como un dipolo por debajo del vértice. Hacia arriba, un hilo horizontal radia casi igual en todas las direcciones, así que la orientación del hilo cambia poco.",
+      "limits": "Esto es una aproximación, no una medida. Una V con brazos muy inclinados se comporta como una más baja, y una V poco inclinada como una más alta. Selecciona el dipolo si tu hilo está horizontal."
+    },
+    "nvis": {
+      "heading": "Incidencia casi vertical",
+      "what": "Por debajo de unos pocos cientos de kilómetros, las bandas bajas funcionan de otra manera. La señal sube casi vertical, vuelve a bajar cerca del punto de partida y no hay zona de silencio. Los operadores lo llaman NVIS.",
+      "howWeKnow": "La aplicación no lo deduce de la distancia. El motor calcula el ángulo de salida de la señal, y la aplicación llama casi vertical a un trayecto cuando ese ángulo es de {{degrees}} grados o más y la banda funciona.",
+      "onTheMap": "El mapa pone puntos sobre la zona que te alcanza así. Los puntos son distintos de los colores, porque los colores ya muestran la probabilidad de contacto. La línea bajo el mapa da la distancia en palabras."
     }
   }
 }
