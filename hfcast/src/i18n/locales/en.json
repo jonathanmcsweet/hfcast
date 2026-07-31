@@ -13,7 +13,9 @@
     "legendNight": "Night",
     "panHint": "Two fingers move the map",
     "subtitleAnywhere": "No destination set, so this is every direction at once.",
-    "answerAnywhere": "{{band}} at {{hour}} UTC reaches about {{percent}} of the directions sampled."
+    "answerAnywhere": "{{band}} at {{hour}} UTC reaches about {{percent}} of the directions sampled.",
+    "legendNvis": "No skip zone",
+    "nvisReach": "{{band}} reaches out to about {{distance}} with no skip zone."
   },
   "path": {
     "summary": "{{distance}} · bearing {{bearing}} · {{hops}} hops",
@@ -157,7 +159,8 @@
     "zoomOut": "Zoom out",
     "fitReach": "Frame where this band reaches",
     "wholeGlobe": "Show the whole globe",
-    "mapLegend": "Map key. The purple shades are predicted reach, weakest to strongest. The grey wash is night."
+    "mapLegend": "Map key. The purple shades are predicted reach, weakest to strongest. The grey wash is night.",
+    "mapLegendNvis": "The dots mark the area the band reaches with no skip zone."
   },
   "crash": {
     "title": "Something went wrong",
@@ -201,7 +204,8 @@
       "dipole": "Dipole",
       "vertical": "Vertical",
       "invertedL": "Inverted L",
-      "yagi": "Beam"
+      "yagi": "Beam",
+      "invertedV": "Inverted V"
     },
     "tip": {
       "mode": "{{mode}}: needs {{db}} dB above the noise. Tap to change.",
@@ -255,7 +259,9 @@
       "e": "E",
       "s": "S",
       "w": "W"
-    }
+    },
+    "apexHeight": "Apex height",
+    "invertedVNote": "Calculated as a dipole at {{height}}, which is {{percent}}% of the apex. Help explains why."
   },
   "units": {
     "metres": "{{value}} m",
@@ -309,6 +315,23 @@
       "ionosonde": "Nearest ionosonde",
       "model": "Path model",
       "bands": "Your bands"
+    }
+  },
+  "help": {
+    "title": "How the forecast is made",
+    "close": "Close help",
+    "invertedV": {
+      "heading": "The inverted V",
+      "noModel": "VOACAP has no inverted V. It has ten antenna patterns, and an inverted V is not one of them, so the app cannot select it.",
+      "whatWeDo": "The app calculates an inverted V as a dipole at {{percent}}% of the apex height. If the apex is 10 metres, the model uses 8 metres.",
+      "whyItIsFair": "For a horizontal wire, the height above ground sets the gain straight up. An inverted V has its ends lower than its apex, so it behaves like a dipole below the apex. Near vertical, a horizontal wire radiates almost the same in all directions, so which way the wire runs changes little.",
+      "limits": "This is an approximation, not a measurement. A V with steep legs behaves lower than this, and a shallow V behaves higher. Select the dipole if your wire is level."
+    },
+    "nvis": {
+      "heading": "Near-vertical incidence",
+      "what": "Below a few hundred kilometres, the low bands work in a different way. The signal goes up steeply, comes back down near where it started, and there is no skip zone. Operators call this NVIS.",
+      "howWeKnow": "The app does not guess this from the distance. The engine calculates the angle the signal leaves at, and the app calls a path near-vertical when that angle is {{degrees}} degrees or more and the band works.",
+      "onTheMap": "The map puts dots on the area that reaches you this way. The dots are separate from the colours, because the colours already show the chance of contact. The line below the map gives the distance in words."
     }
   }
 }

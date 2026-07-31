@@ -9,7 +9,11 @@ import {
   fetchSounding as fetchSoundingDirect,
   usefulStation,
 } from '../data/ionosonde';
-import { canMapLocally, coverLocally } from '../data/localCoverage';
+import {
+  canMapLocally,
+  coverLocally,
+  coverPatchLocally,
+} from '../data/localCoverage';
 import {
   canPredictLocally,
   type Nowcast,
@@ -29,6 +33,7 @@ import {
 import {
   API_BASE,
   fetchCoverage,
+  fetchCoveragePatch,
   fetchPrediction,
   fetchSounding,
   fetchSpaceWeather,
@@ -82,6 +87,25 @@ export const queryKeys = {
     nowcast: string,
     station: string,
   ) => ['coverage', server, from, band, hour, date, nowcast, station] as const,
+  coveragePatch: (
+    server: string,
+    from: string,
+    band: string,
+    hour: number,
+    date: string,
+    nowcast: string,
+    station: string,
+  ) =>
+    [
+      'coveragePatch',
+      server,
+      from,
+      band,
+      hour,
+      date,
+      nowcast,
+      station,
+    ] as const,
 };
 
 /**
@@ -430,5 +454,69 @@ export function useCoverage(
     placeholderData: keepPreviousData,
     staleTime: local ? Number.POSITIVE_INFINITY : SPACE_WEATHER_POLL_MS,
     retry: 1,
+  });
+}
+
+/**
+ * The fine grid around the operator, for the same band and hour.
+ *
+ * A query of its own, and that is the whole point of it. The coarse map is
+ * the answer to the question the screen asks, and it has to be drawn as
+ * soon as it exists; this is a second, slower answer at a scale the coarse
+ * one cannot reach. Putting both in one request would hold the map back
+ * for the sake of detail nobody has asked to wait for, on every hour the
+ * slider stops at.
+ *
+ * It follows the same settled hour as the coarse map, so the two describe
+ * the same moment and the fine cells never sit on top of a map drawn for
+ * a different hour.
+ */
+export function useCoveragePatch(
+  from: Endpoint,
+  band: BandKey,
+  reportedHour: number,
+) {
+  const date = today();
+  const station = useStation();
+  const local = canMapLocally();
+  const nowcast = nowcastFrom(useSpaceWeather().data);
+  const hour = useSettled(reportedHour, 350);
+
+  return useQuery({
+    queryKey: queryKeys.coveragePatch(
+      local ? 'device' : API_BASE,
+      from.grid,
+      band,
+      hour,
+      date,
+      nowcastKey(nowcast),
+      station.key,
+    ),
+    queryFn: () =>
+      local
+        ? coverPatchLocally({
+          from,
+          band,
+          hour,
+          date: new Date(`${date}T00:00:00Z`),
+          station: station.station,
+          nowcast,
+        })
+        : fetchCoveragePatch({
+          from: `${from.lat},${from.lon}`,
+          fromLabel: from.label,
+          band,
+          hour,
+          date,
+          nowcast: true,
+          station: station.params,
+        }),
+    enabled: !station.editing,
+    placeholderData: keepPreviousData,
+    staleTime: local ? Number.POSITIVE_INFINITY : SPACE_WEATHER_POLL_MS,
+    // No retry. The coarse map is the answer and this is detail on top of
+    // it, so a second attempt spends an engine run, or a request, on
+    // something whose absence nothing depends on.
+    retry: false,
   });
 }

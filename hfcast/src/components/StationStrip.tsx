@@ -56,6 +56,10 @@ const MODE_ICONS: Record<ModeKey, string> = {
 const ANTENNA_ICONS: Record<AntennaKey, string> = {
   isotropic: 'circle-outline',
   dipole: 'minus',
+  // A shallow peak, which is the shape of the wire. The badge carries the
+  // antenna's name beside it, so the icon only has to be distinct from
+  // the dipole's flat line rather than carry the meaning alone.
+  invertedV: 'chevron-up',
   vertical: 'arrow-up',
   invertedL: 'ray-start-arrow',
   yagi: 'antenna',

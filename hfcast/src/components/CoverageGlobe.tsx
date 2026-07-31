@@ -24,14 +24,22 @@ import {
   projectRing,
   subsolarPoint,
 } from '../data/projection';
-import { qualityFor } from '../data/quality';
-import type { Coverage, Endpoint } from '../data/types';
+import { isNvis, qualityFor } from '../data/quality';
+import type { Coverage, CoveragePatch, Endpoint } from '../data/types';
 import { qualityMap, radius as radii, spacing, typography } from '../theme';
 import type { AppTheme } from '../theme';
 
 interface Props {
   /** Undefined while loading, null when the request failed. */
   coverage: Coverage | null | undefined;
+  /**
+   * The fine grid around the operator, drawn over the coarse one.
+   *
+   * Undefined while it is still running, and null both when it failed and
+   * when there cannot be one — a station near the antimeridian. All three
+   * mean the same thing here: draw the coarse map alone.
+   */
+  patch?: CoveragePatch | null;
   from: Endpoint;
   /** Drawn as a great circle from the centre. */
   to: Endpoint | null;
@@ -130,6 +138,7 @@ const PAN_FINGERS = 2;
  */
 export default function CoverageGlobe({
   coverage,
+  patch,
   from,
   to,
   hour,
@@ -189,6 +198,43 @@ export default function CoverageGlobe({
       ? { minX, minY, maxX, maxY }
       : null;
 
+    // The fine grid, drawn the same way and over the top. It covers a
+    // rectangle a few cells wide near the centre, so at a whole-globe
+    // view it is a smudge; it is worth drawing anyway, because zooming in
+    // is what the controls are for and the sentence under the map carries
+    // the same fact for anyone who cannot.
+    //
+    // Deliberately left out of `reachBox`: the Fit button frames where
+    // the band reaches, and the patch is a region rather than an answer
+    // about reach. Including it would pull the frame toward home on every
+    // band, whatever the band actually did.
+    const patchCells = (patch?.points ?? []).map((point) => {
+      const ring = cellRing(
+        point.lon,
+        point.lat,
+        patch?.lonStep ?? 1.5,
+        patch?.latStep ?? 1.25,
+      );
+      const runs = projectRing(p, [...ring, ring[0] as [number, number]]);
+      const run = runs.length === 1 ? runs[0] : undefined;
+      return {
+        key: `p${point.lat},${point.lon}`,
+        d: run === undefined ? '' : pathOf(run, true),
+        quality: qualityFor(point.reliability),
+      };
+    }).filter((cell) => cell.d !== '');
+
+    // The stipple, as points rather than as a property of a cell: a point
+    // beyond the clip boundary projects to nothing, and that is a
+    // different question from whether its cell could be drawn.
+    const nvisDots = (patch?.points ?? [])
+      .filter((point) => isNvis(point.takeoffAngleDeg, point.reliability))
+      .map((point) => ({
+        key: `n${point.lat},${point.lon}`,
+        at: p.project(point.lon, point.lat),
+      }))
+      .flatMap(({ key, at }) => at === null ? [] : [{ key, at }]);
+
     const coast = RINGS.flatMap((ring) =>
       projectRing(p, ring).map((run) => pathOf(run))
     );
@@ -242,6 +288,8 @@ export default function CoverageGlobe({
 
     return {
       cells,
+      patchCells,
+      nvisDots,
       coast,
       distanceRings,
       nightRuns,
@@ -253,7 +301,7 @@ export default function CoverageGlobe({
       p,
       reachBox,
     };
-  }, [coverage, from.lat, from.lon, to, hour, size]);
+  }, [coverage, patch, from.lat, from.lon, to, hour, size]);
 
   const { p } = geometry;
 
@@ -385,6 +433,48 @@ export default function CoverageGlobe({
                 d={cell.d}
                 fill={ramp[cell.quality].fill}
                 fillOpacity={ramp[cell.quality].opacity}
+              />
+            ))}
+          </G>
+
+          {
+            /* The fine grid over the coarse one, on the same ramp, so a
+               reader is not asked to learn a second scale for the same
+               quantity. It is drawn second and simply covers the cells
+               under it — where they disagree, the finer answer is the one
+               computed at that place rather than an average over a
+               thousand kilometres. */
+          }
+          <G>
+            {geometry.patchCells.map((cell) => (
+              <Path
+                key={cell.key}
+                d={cell.d}
+                fill={ramp[cell.quality].fill}
+                fillOpacity={ramp[cell.quality].opacity}
+              />
+            ))}
+          </G>
+
+          {
+            /* Near-vertical incidence, as a stipple rather than a colour.
+               Reliability already owns colour and night owns tint, so a
+               third quantity carried by either would make the map
+               contradict its own scale — the same fault the night wash
+               had. A dot is a mark type nothing else on the map uses, it
+               does not change the colour underneath it, and a field of
+               them reads as one region without claiming an edge the
+               engine never computed. */
+          }
+          <G>
+            {geometry.nvisDots.map((dot) => (
+              <Circle
+                key={dot.key}
+                cx={dot.at[0]}
+                cy={dot.at[1]}
+                r={px(1.2)}
+                fill={ui.ink}
+                fillOpacity={0.55}
               />
             ))}
           </G>

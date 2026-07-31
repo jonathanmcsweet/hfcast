@@ -190,6 +190,16 @@ export interface CoveragePoint {
   lat: number;
   lon: number;
   reliability: number;
+  /**
+   * Transmit take-off angle in degrees, where the engine printed one.
+   *
+   * Optional because the coarse whole-world grid does not need it and
+   * older cached answers do not carry it. The fine patch does: near
+   * vertical incidence is a property of this angle and of nothing else,
+   * so it is what tells the region around the station that works without
+   * a skip zone from a long low-angle hop. See `isNvis`.
+   */
+  takeoffAngleDeg?: number | null;
 }
 
 /**
@@ -206,6 +216,32 @@ export interface Coverage {
   latStep: number;
   lonStep: number;
   reach: number;
+  basis: PredictionBasis;
+  points: readonly CoveragePoint[];
+}
+
+/**
+ * The fine grid around the operator, drawn over the coarse one.
+ *
+ * A second answer to the same question at a scale the whole-world grid
+ * cannot reach — see `coveragePatch.ts` for why it exists and how big it
+ * is. It carries no `reach`, deliberately: the headline share of the
+ * globe is computed from the coarse grid alone, and adding a region
+ * already counted there would count it twice.
+ */
+export interface CoveragePatch {
+  band: BandKey;
+  hour: number;
+  latStep: number;
+  lonStep: number;
+  /**
+   * The rectangle that actually ran: the first and last point on each
+   * axis, not the cell edges, which are half a step further out.
+   */
+  latMin: number;
+  latMax: number;
+  lonMin: number;
+  lonMax: number;
   basis: PredictionBasis;
   points: readonly CoveragePoint[];
 }

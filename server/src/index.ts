@@ -25,7 +25,7 @@ import {
   normaliseAntenna,
 } from './antenna.ts';
 import { TtlCache } from './cache.ts';
-import { coverage } from './coverage.ts';
+import { coverage, coveragePatch } from './coverage.ts';
 import { gridToLatLon, isGrid, latLonToGrid } from './geo.ts';
 import {
   fetchSounding,
@@ -275,7 +275,7 @@ async function handleSurvey(url: URL): Promise<PredictionResponse> {
  * app's map follows a slider the user moves, so "now" is only one of the
  * twenty-four answers it asks for.
  */
-async function handleCoverage(url: URL) {
+async function coverageRequest(url: URL) {
   const from = parseEndpoint(
     url.searchParams.get('from'),
     url.searchParams.get('fromLabel'),
@@ -295,7 +295,7 @@ async function handleCoverage(url: URL) {
   const wantNowcast = url.searchParams.get('nowcast') === '1';
   const spaceWeather = wantNowcast ? await trySpaceWeather() : null;
 
-  return await coverage({
+  return {
     from,
     date,
     band: band as BandKey,
@@ -304,7 +304,27 @@ async function handleCoverage(url: URL) {
     ...(spaceWeather
       ? { ssnOverride: spaceWeather.effectiveSsn, basis: 'nowcast' as const }
       : {}),
-  });
+  };
+}
+
+async function handleCoverage(url: URL) {
+  return await coverage(await coverageRequest(url));
+}
+
+/**
+ * The fine grid around the operator, for the same band and hour.
+ *
+ * The same request as the coarse map, answered over a rectangle instead
+ * of the world. A separate route rather than a parameter on the other
+ * one, because the two are fetched separately on purpose: the coarse map
+ * is the answer and has to be drawn as soon as it exists, and this is
+ * detail that arrives behind it.
+ *
+ * Answers `null` for a station near the antimeridian, which is a fact
+ * about where it is rather than a failure — see `coveragePatch.ts`.
+ */
+async function handleCoveragePatch(url: URL) {
+  return await coveragePatch(await coverageRequest(url));
 }
 
 async function handleForecast(
@@ -452,6 +472,8 @@ async function route(url: URL): Promise<unknown> {
       return await handleSurvey(url);
     case '/api/coverage':
       return await handleCoverage(url);
+    case '/api/coverage/patch':
+      return await handleCoveragePatch(url);
     case '/api/forecast':
       return await handleForecast(url);
     case '/api/ionosonde':

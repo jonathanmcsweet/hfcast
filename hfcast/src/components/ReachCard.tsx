@@ -2,8 +2,8 @@ import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { StyleSheet, View } from 'react-native';
 import { Text, useTheme } from 'react-native-paper';
-import { useCoverage } from '../api/queries';
-import { isNvis, qualityFor } from '../data/quality';
+import { useCoverage, useCoveragePatch } from '../api/queries';
+import { isNvis, nvisReachKm, qualityFor } from '../data/quality';
 import { cellFor } from '../data/selectors';
 import type { BandKey, PathPrediction } from '../data/types';
 import { useFormatters } from '../hooks/useFormatters';
@@ -54,6 +54,10 @@ export default function ReachCard({
 
   const [width, setWidth] = useState(0);
   const { data: coverage, error } = useCoverage(prediction.from, band, hour);
+  // Never awaited and never blocking: the map is drawn from the coarse
+  // answer above and this fills in behind it. Its own failure is silent,
+  // because nothing on the screen depends on it.
+  const { data: patch } = useCoveragePatch(prediction.from, band, hour);
 
   // Null for a survey, where the card answers "how much of the world" rather
   // than "will this reach one place".
@@ -65,6 +69,12 @@ export default function ReachCard({
   const nvis = cell
     ? isNvis(cell.takeoffAngleDeg, cell.reliability)
     : false;
+
+  // How far the near-vertical region reaches, from the fine grid. The
+  // shading shows its shape and this is its size, which a shape cannot
+  // give — and the difference between "the next county" and "the next
+  // state" is the whole of what an operator wants from it.
+  const nvisKm = patch ? nvisReachKm(prediction.from, patch.points) : null;
 
   return (
     <Card>
@@ -122,6 +132,7 @@ export default function ReachCard({
           ? (
             <CoverageGlobe
               coverage={error ? null : coverage}
+              patch={patch ?? null}
               from={prediction.from}
               to={prediction.to}
               hour={hour}
@@ -131,7 +142,7 @@ export default function ReachCard({
           : null}
       </View>
 
-      <MapLegend />
+      <MapLegend hasNvis={nvisKm !== null} />
 
       {
         /* The map's headline number in words, because a shape is not a
@@ -148,6 +159,20 @@ export default function ReachCard({
           </Text>
         )
         : null}
+
+      {
+        /* The map's other headline, and the one the stipple stands for.
+           Said in words because a distance is a quantity and a pattern of
+           dots is not, and because this is the sentence a reader with no
+           sight of the map still gets. */
+      }
+      {nvisKm === null
+        ? null
+        : (
+          <Text style={[typography.caption, { color: ui.text3 }]}>
+            {t('reach.nvisReach', { band, distance: f.distance(nvisKm) })}
+          </Text>
+        )}
 
       <HourSlider
         hour={hour}

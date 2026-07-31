@@ -36,6 +36,7 @@ export type ModeKey = (typeof MODE_ORDER)[number];
 export const ANTENNA_ORDER = [
   'isotropic',
   'dipole',
+  'invertedV',
   'vertical',
   'invertedL',
   'yagi',
@@ -47,7 +48,8 @@ export interface Antenna {
   type: AntennaKey;
   /**
    * Height above ground, metres. The feed point of a dipole or yagi, the
-   * element height of a vertical, the horizontal section of an inverted L.
+   * element height of a vertical, the horizontal section of an inverted L,
+   * and the apex — the highest point, where the feed is — of an inverted V.
    *
    * Always metres, whatever the reader is shown: the server takes metres,
    * and a preset saved in feet would become wrong the moment somebody
@@ -114,7 +116,8 @@ export const usesHeight = (type: AntennaKey) => type !== 'isotropic';
  * refetch answers that cannot differ.
  */
 export const usesBeam = (type: AntennaKey) =>
-  type === 'dipole' || type === 'invertedL' || type === 'yagi';
+  type === 'dipole' || type === 'invertedV' || type === 'invertedL'
+  || type === 'yagi';
 
 /**
  * The station every earlier version of the app assumed without saying:

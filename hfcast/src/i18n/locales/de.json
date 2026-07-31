@@ -13,7 +13,9 @@
     "legendNight": "Nacht",
     "panHint": "Mit zwei Fingern die Karte bewegen",
     "subtitleAnywhere": "Kein Ziel gesetzt, daher alle Richtungen zugleich.",
-    "answerAnywhere": "{{band}} um {{hour}} UTC erreicht etwa {{percent}} der geprüften Richtungen."
+    "answerAnywhere": "{{band}} um {{hour}} UTC erreicht etwa {{percent}} der geprüften Richtungen.",
+    "legendNvis": "Keine tote Zone",
+    "nvisReach": "{{band}} reicht ohne tote Zone bis etwa {{distance}}."
   },
   "path": {
     "summary": "{{distance}} · Peilung {{bearing}} · {{hops}} Sprünge",
@@ -157,7 +159,8 @@
     "zoomOut": "Verkleinern",
     "fitReach": "Auf die Reichweite dieses Bands zoomen",
     "wholeGlobe": "Ganze Erdkugel zeigen",
-    "mapLegend": "Kartenlegende. Die violetten Töne zeigen die vorhergesagte Reichweite, von schwach bis stark. Die graue Fläche ist die Nachtseite."
+    "mapLegend": "Kartenlegende. Die violetten Töne zeigen die vorhergesagte Reichweite, von schwach bis stark. Die graue Fläche ist die Nachtseite.",
+    "mapLegendNvis": "Die Punkte markieren das Gebiet, das das Band ohne tote Zone erreicht."
   },
   "crash": {
     "title": "Etwas ist schiefgelaufen",
@@ -201,7 +204,8 @@
       "dipole": "Dipol",
       "vertical": "Vertikal",
       "invertedL": "Inverted L",
-      "yagi": "Richtantenne"
+      "yagi": "Richtantenne",
+      "invertedV": "Inverted V"
     },
     "tip": {
       "mode": "{{mode}}: braucht {{db}} dB über dem Rauschen. Zum Ändern tippen.",
@@ -255,7 +259,9 @@
       "e": "O",
       "s": "S",
       "w": "W"
-    }
+    },
+    "apexHeight": "Scheitelhöhe",
+    "invertedVNote": "Berechnet als Dipol auf {{height}}, das sind {{percent}} % der Scheitelhöhe. Die Hilfe erklärt, warum."
   },
   "units": {
     "metres": "{{value}} m",
@@ -309,6 +315,23 @@
       "ionosonde": "Nächste Ionosonde",
       "model": "Streckenmodell",
       "bands": "Deine Bänder"
+    }
+  },
+  "help": {
+    "title": "Wie die Vorhersage entsteht",
+    "close": "Hilfe schließen",
+    "invertedV": {
+      "heading": "Die Inverted V",
+      "noModel": "VOACAP kennt keine Inverted V. Es hat zehn Antennenmuster, und eine Inverted V ist keines davon, also kann die App sie nicht auswählen.",
+      "whatWeDo": "Die App berechnet eine Inverted V als Dipol auf {{percent}} % der Scheitelhöhe. Liegt der Scheitel bei 10 Metern, rechnet das Modell mit 8 Metern.",
+      "whyItIsFair": "Bei einem waagerechten Draht bestimmt die Höhe über Grund den Gewinn nach oben. Eine Inverted V hat ihre Enden tiefer als den Scheitel und verhält sich daher wie ein Dipol unterhalb des Scheitels. Steil nach oben strahlt ein waagerechter Draht fast in alle Richtungen gleich, die Ausrichtung ändert also wenig.",
+      "limits": "Das ist eine Näherung, keine Messung. Eine V mit steilen Schenkeln verhält sich tiefer, eine flache V höher. Wähle den Dipol, wenn dein Draht waagerecht hängt."
+    },
+    "nvis": {
+      "heading": "Steilstrahlung",
+      "what": "Unter einigen hundert Kilometern arbeiten die unteren Bänder anders. Das Signal geht steil nach oben, kommt nahe am Ausgangspunkt wieder herunter, und es gibt keine tote Zone. Funkamateure nennen das NVIS.",
+      "howWeKnow": "Die App schätzt das nicht aus der Entfernung. Die Rechenmaschine bestimmt den Abstrahlwinkel, und die App nennt einen Weg steil, wenn dieser Winkel mindestens {{degrees}} Grad beträgt und das Band funktioniert.",
+      "onTheMap": "Die Karte setzt Punkte auf das Gebiet, das dich so erreicht. Die Punkte sind von den Farben getrennt, denn die Farben zeigen schon die Chance auf eine Verbindung. Die Zeile unter der Karte nennt die Entfernung in Worten."
     }
   }
 }
