@@ -1,6 +1,6 @@
 {
   "name": "hfcast",
-  "version": "0.37.2",
+  "version": "0.38.0",
   "license": "Apache-2.0",
   "main": "index.js",
   "scripts": {
@@ -23,6 +23,7 @@
     "@react-native-async-storage/async-storage": "2.2.0",
     "@react-native-community/slider": "5.2.0",
     "@react-native/assets-registry": "0.86.2",
+    "@shopify/react-native-skia": "2.6.2",
     "@tanstack/query-async-storage-persister": "5.101.4",
     "@tanstack/react-query": "^5.101.4",
     "@tanstack/react-query-persist-client": "5.101.4",

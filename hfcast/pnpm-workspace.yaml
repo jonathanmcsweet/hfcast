@@ -40,3 +40,11 @@ minimumReleaseAgeExclude:
   - expo-modules-core@57.0.8
   - expo-updates@57.0.11
   - expo@57.0.9
+
+# Skia ships its Android and Apple binaries as separate packages and its
+# postinstall copies them into the place its Gradle script reads,
+# `libs/android`. Without it the Android build has no Skia to link and
+# fails at the native step. Reviewed: the script only copies files
+# between directories inside node_modules.
+allowBuilds:
+  '@shopify/react-native-skia': true

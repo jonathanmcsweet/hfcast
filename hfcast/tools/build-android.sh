@@ -113,6 +113,24 @@ build_legacy() {
 
   cp "$app/legacy/package.json" "$work/package.json"
 
+  # The Skia seam, which this build does not have a Skia for.
+  #
+  # `src/` is shared line for line by both builds, but only the modern
+  # dependency set contains `@shopify/react-native-skia`. A bundler
+  # follows every import before any code runs, so a file naming a package
+  # that is not installed fails to build — a run-time availability check
+  # never gets the chance to answer. `legacy/render/` holds stand-ins that
+  # export the same names and report the canvas absent, which is what
+  # sends `CoverageGlobe` down its SVG path.
+  #
+  # The whole directory is replaced rather than patched file by file, so
+  # no modern file naming Skia can survive the swap. `src/render/` holds
+  # nothing but the seam for exactly this reason: anything added there
+  # needs a stand-in here, and a missing one fails the legacy build
+  # rather than passing quietly.
+  rm -rf "$work/src/render"
+  cp -r "$app/legacy/render" "$work/src/render"
+
   # The copy arrives holding the modern lockfile, which describes a different
   # dependency set entirely. It is replaced by the legacy one, or removed so
   # pnpm resolves from nothing rather than from something wrong.

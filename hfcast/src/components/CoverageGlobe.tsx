@@ -10,8 +10,8 @@ import {
 import Svg, { Circle, G, Path } from 'react-native-svg';
 
 import land from '../assets/land.json';
+import { cellField, nvisPoints } from '../data/cellField';
 import {
-  cellRing,
   circleAround,
   clamp,
   containView,
@@ -28,15 +28,17 @@ import {
   projectRing,
   regionOf,
   subsolarPoint,
+  viewTransform,
 } from '../data/projection';
 import type { MapView } from '../data/projection';
-import { isNvis, qualityFor } from '../data/quality';
 import type {
   Coverage,
   CoveragePatch,
   Endpoint,
   MapRegion,
 } from '../data/types';
+import { hasSkia } from '../render/available';
+import CellLayer from '../render/CellLayer';
 import { qualityMap, radius as radii, spacing, typography } from '../theme';
 import type { AppTheme } from '../theme';
 
@@ -169,47 +171,17 @@ export default function CoverageGlobe({
   const geometry = useMemo(() => {
     const p = projector(from.lon, from.lat, size);
 
-    // The box the Fit button frames: every cell this band actually reaches.
-    // Closed cells are left out on purpose — they are the part of the map
-    // the answer is not about.
-    let minX = Number.POSITIVE_INFINITY;
-    let minY = Number.POSITIVE_INFINITY;
-    let maxX = Number.NEGATIVE_INFINITY;
-    let maxY = Number.NEGATIVE_INFINITY;
-
-    const cells = (coverage?.points ?? []).map((point) => {
-      const ring = cellRing(
-        point.lon,
-        point.lat,
-        coverage?.lonStep ?? 22.5,
-        coverage?.latStep ?? 15,
-      );
-      const runs = projectRing(p, [...ring, ring[0] as [number, number]]);
-      // A cell straddling the clip boundary comes back in pieces. Only the
-      // whole ones are filled: a fragment closed on itself would be a wedge
-      // of colour across a part of the map it does not describe.
-      const run = runs.length === 1 ? runs[0] : undefined;
-      const quality = qualityFor(point.reliability);
-
-      if (run !== undefined && quality !== 'closed') {
-        for (const [x, y] of run) {
-          minX = Math.min(minX, x);
-          minY = Math.min(minY, y);
-          maxX = Math.max(maxX, x);
-          maxY = Math.max(maxY, y);
-        }
-      }
-
-      return {
-        key: `${point.lat},${point.lon}`,
-        d: run === undefined ? '' : pathOf(run, true),
-        quality,
-      };
-    }).filter((cell) => cell.d !== '');
-
-    const reachBox = minX <= maxX
-      ? { minX, minY, maxX, maxY }
-      : null;
+    // The cells, as one path per quality. The geometry and the bucketing
+    // live in `cellField` because the canvas and the SVG fallback both
+    // draw from them and must not be able to disagree.
+    const coarse = cellField(
+      p,
+      coverage?.points ?? [],
+      coverage?.lonStep ?? 22.5,
+      coverage?.latStep ?? 15,
+      true,
+    );
+    const reachBox = coarse.reachBox;
 
     // The fine grid, drawn the same way and over the top. It covers a
     // rectangle a few cells wide near the centre, so at a whole-globe
@@ -217,25 +189,17 @@ export default function CoverageGlobe({
     // is what the controls are for and the sentence under the map carries
     // the same fact for anyone who cannot.
     //
-    // Deliberately left out of `reachBox`: the Fit button frames where
-    // the band reaches, and the patch is a region rather than an answer
-    // about reach. Including it would pull the frame toward home on every
-    // band, whatever the band actually did.
-    const patchCells = (patch?.points ?? []).map((point) => {
-      const ring = cellRing(
-        point.lon,
-        point.lat,
-        patch?.lonStep ?? 1.5,
-        patch?.latStep ?? 1.25,
-      );
-      const runs = projectRing(p, [...ring, ring[0] as [number, number]]);
-      const run = runs.length === 1 ? runs[0] : undefined;
-      return {
-        key: `p${point.lat},${point.lon}`,
-        d: run === undefined ? '' : pathOf(run, true),
-        quality: qualityFor(point.reliability),
-      };
-    }).filter((cell) => cell.d !== '');
+    // Deliberately left out of `reachBox` — the last argument — because
+    // the Fit button frames where the band reaches and the patch is a
+    // region rather than an answer about reach. Counting it would pull
+    // the frame toward home on every band, whatever the band did.
+    const patchField = cellField(
+      p,
+      patch?.points ?? [],
+      patch?.lonStep ?? 1.5,
+      patch?.latStep ?? 1.25,
+      false,
+    );
 
     // An opaque backing under the fine cells.
     //
@@ -268,16 +232,7 @@ export default function CoverageGlobe({
       ? pathOf(patchOutline[0], true)
       : '';
 
-    // The stipple, as points rather than as a property of a cell: a point
-    // beyond the clip boundary projects to nothing, and that is a
-    // different question from whether its cell could be drawn.
-    const nvisDots = (patch?.points ?? [])
-      .filter((point) => isNvis(point.takeoffAngleDeg, point.reliability))
-      .map((point) => ({
-        key: `n${point.lat},${point.lon}`,
-        at: p.project(point.lon, point.lat),
-      }))
-      .flatMap(({ key, at }) => at === null ? [] : [{ key, at }]);
+    const nvisDots = nvisPoints(p, patch?.points ?? []);
 
     const coast = RINGS.flatMap((ring) =>
       projectRing(p, ring).map((run) => pathOf(run))
@@ -331,8 +286,8 @@ export default function CoverageGlobe({
       : [];
 
     return {
-      cells,
-      patchCells,
+      coarse: coarse.buckets,
+      patchCells: patchField.buckets,
       patchBacking,
       nvisDots,
       coast,
@@ -434,13 +389,11 @@ export default function CoverageGlobe({
     }));
   };
 
-  const windowSize = size / view.scale;
-  const viewBox = [
-    view.cxF * size - windowSize / 2,
-    view.cyF * size - windowSize / 2,
-    windowSize,
-    windowSize,
-  ].map((n) => n.toFixed(2)).join(' ');
+  // Both layers place a point from this one value. If the canvas and the
+  // SVG ever computed it separately the coastlines would slide off the
+  // cells, which reads as the map being wrong about where land is rather
+  // than as a rounding error.
+  const transform = viewTransform(view, size);
 
   const zoomedIn = view.scale > MIN_SCALE;
 
@@ -462,6 +415,33 @@ export default function CoverageGlobe({
       }]}
     >
       {
+        /* The cell field, on a canvas, under everything else.
+
+           Only where a canvas exists. The legacy build has no Skia, so
+           `hasSkia` is false there and the same buckets are drawn as SVG
+           paths below — from the same strings, so the two renderers
+           cannot disagree about geometry. Availability rather than a
+           platform test, because that is the thing that actually
+           differs. */
+      }
+      {hasSkia
+        ? (
+          <CellLayer
+            p={p}
+            transform={transform}
+            size={size}
+            coarse={geometry.coarse}
+            patch={geometry.patchCells}
+            patchBacking={geometry.patchBacking}
+            nvis={geometry.nvisDots}
+            ramp={ramp}
+            card={ui.card}
+            ink={ui.ink}
+          />
+        )
+        : null}
+
+      {
         /* The drawing is one accessible element with one label. The
            controls are siblings rather than children, because a container
            marked `accessible` swallows the buttons inside it. */
@@ -476,65 +456,67 @@ export default function CoverageGlobe({
           })
           : t('reach.mapLoading')}
       >
-        <Svg width={size} height={size} viewBox={viewBox}>
-          {/* The disc is the whole earth. Nothing is drawn outside it. */}
-          <Circle cx={p.cx} cy={p.cy} r={p.radius} fill={ui.card} />
-
-          <G>
-            {geometry.cells.map((cell) => (
-              <Path
-                key={cell.key}
-                d={cell.d}
-                fill={ramp[cell.quality].fill}
-                fillOpacity={ramp[cell.quality].opacity}
-              />
-            ))}
-          </G>
-
+        <Svg width={size} height={size} viewBox={transform.viewBox}>
           {
-            /* The fine grid over the coarse one, on the same ramp, so a
-               reader is not asked to learn a second scale for the same
+            /* The cell field, for a build with no canvas.
+
+               Everything in this block is drawn by `CellLayer` when Skia
+               is present, from the same bucket strings — including the
+               disc, which has to be under the cells and would otherwise
+               cover the canvas. So the whole group is one or the other,
+               never both.
+
+               The fine grid goes over the coarse one on the same ramp, so
+               a reader is not asked to learn a second scale for the same
                quantity. Where they disagree the finer answer wins, which
                is what the backing underneath is for: it clears the coarse
                cells out of the region rather than letting them show
-               through cells that are all partly transparent. */
-          }
-          {geometry.patchBacking === ''
-            ? null
-            : <Path d={geometry.patchBacking} fill={ui.card} />}
-          <G>
-            {geometry.patchCells.map((cell) => (
-              <Path
-                key={cell.key}
-                d={cell.d}
-                fill={ramp[cell.quality].fill}
-                fillOpacity={ramp[cell.quality].opacity}
-              />
-            ))}
-          </G>
+               through cells that are all partly transparent.
 
-          {
-            /* Near-vertical incidence, as a stipple rather than a colour.
-               Reliability already owns colour and night owns tint, so a
-               third quantity carried by either would make the map
-               contradict its own scale — the same fault the night wash
-               had. A dot is a mark type nothing else on the map uses, it
-               does not change the colour underneath it, and a field of
-               them reads as one region without claiming an edge the
-               engine never computed. */
+               The stipple marks near-vertical incidence. Reliability
+               already owns colour and night owns tint, so a third
+               quantity carried by either would make the map contradict
+               its own scale. */
           }
-          <G>
-            {geometry.nvisDots.map((dot) => (
-              <Circle
-                key={dot.key}
-                cx={dot.at[0]}
-                cy={dot.at[1]}
-                r={px(1.2)}
-                fill={ui.ink}
-                fillOpacity={0.55}
-              />
-            ))}
-          </G>
+          {hasSkia ? null : (
+            <G>
+              {/* The disc is the whole earth. Nothing is drawn outside it. */}
+              <Circle cx={p.cx} cy={p.cy} r={p.radius} fill={ui.card} />
+
+              {geometry.coarse.map((bucket) => (
+                <Path
+                  key={bucket.quality}
+                  d={bucket.d}
+                  fill={ramp[bucket.quality].fill}
+                  fillOpacity={ramp[bucket.quality].opacity}
+                />
+              ))}
+
+              {geometry.patchBacking === ''
+                ? null
+                : <Path d={geometry.patchBacking} fill={ui.card} />}
+
+              {geometry.patchCells.map((bucket) => (
+                <Path
+                  key={`p${bucket.quality}`}
+                  d={bucket.d}
+                  fill={ramp[bucket.quality].fill}
+                  fillOpacity={ramp[bucket.quality].opacity}
+                />
+              ))}
+
+              {geometry.nvisDots.map(([x, y]) => (
+                <Circle
+                  key={`n${x},${y}`}
+                  cx={x}
+                  cy={y}
+                  r={px(1.2)}
+                  fill={ui.ink}
+                  fillOpacity={0.55}
+                />
+              ))}
+            </G>
+          )}
 
           {
             /* Night tints rather than recolours — see NIGHT_OPACITY.
