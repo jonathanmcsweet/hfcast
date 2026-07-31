@@ -1,5 +1,9 @@
-import { keepPreviousData, useQuery } from '@tanstack/react-query';
-import { useMemo } from 'react';
+import {
+  keepPreviousData,
+  useQuery,
+  useQueryClient,
+} from '@tanstack/react-query';
+import { useEffect, useMemo } from 'react';
 
 import { searchCities } from '../data/cities';
 import { formatLatLon, parseCoordinates } from '../data/coords';
@@ -57,6 +61,7 @@ import {
   fetchSpaceWeather,
   fetchSurvey,
 } from './client';
+import { FINE_GLOBE_CACHE, MAP_CACHE_MS, pruneFineGlobes } from './mapCache';
 
 /**
  * All network state goes through React Query. Query keys carry every input the
@@ -307,6 +312,7 @@ export function usePrediction(from: Endpoint, to: Endpoint | null) {
     // The server picks its own readings, which this key cannot see, so that
     // path expires on the same interval instead.
     staleTime: local ? Number.POSITIVE_INFINITY : SPACE_WEATHER_POLL_MS,
+    gcTime: MAP_CACHE_MS,
     retry: 1,
   });
 }
@@ -488,6 +494,7 @@ export function useCoverage(
     enabled: !station.editing,
     placeholderData: keepPreviousData,
     staleTime: local ? Number.POSITIVE_INFINITY : SPACE_WEATHER_POLL_MS,
+    gcTime: MAP_CACHE_MS,
     retry: 1,
   });
 }
@@ -619,7 +626,7 @@ export function useFineGlobe(
   const hour = useSettled(reportedHour, 350);
   const { affordable } = useFineGate();
 
-  return useQuery({
+  const query = useQuery({
     queryKey: queryKeys.fineGlobe(
       local ? 'device' : API_BASE,
       from.grid,
@@ -651,12 +658,32 @@ export function useFineGlobe(
     enabled: enabled && hasSkia && affordable && !station.editing,
     placeholderData: keepPreviousData,
     staleTime: local ? Number.POSITIVE_INFINITY : SPACE_WEATHER_POLL_MS,
+    gcTime: MAP_CACHE_MS,
     // No retry, for the same reason the patch does not: the coarse map
     // is the answer and this is detail on top of it. A second attempt
     // spends seconds of engine time on something whose absence changes
     // nothing a reader depends on.
     retry: false,
   });
+
+  useFineGlobeCache(query.dataUpdatedAt);
+  return query;
+}
+
+/**
+ * Keeps the fine grids an hour, and no more of them than will fit.
+ *
+ * Split from `useFineGlobe` so the query stays a query. Runs after each
+ * answer lands, which is the only moment the count can have grown.
+ */
+function useFineGlobeCache(landed: number) {
+  const client = useQueryClient();
+  useEffect(() => {
+    // Zero is React Query's "nothing has arrived here yet". Nothing has
+    // been added to count, so there is nothing to count.
+    if (landed === 0) return;
+    pruneFineGlobes(client);
+  }, [client, landed]);
 }
 
 export function useCoveragePatch(
@@ -727,6 +754,7 @@ export function useCoveragePatch(
     enabled: enabled && !station.editing,
     placeholderData: keepPreviousData,
     staleTime: local ? Number.POSITIVE_INFINITY : SPACE_WEATHER_POLL_MS,
+    gcTime: MAP_CACHE_MS,
     // No retry. The coarse map is the answer and this is detail on top of
     // it, so a second attempt spends an engine run, or a request, on
     // something whose absence nothing depends on.
