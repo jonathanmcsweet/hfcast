@@ -1,11 +1,11 @@
-import React, { useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { StyleSheet, View } from 'react-native';
 import { Text, useTheme } from 'react-native-paper';
 import { useCoverage, useCoveragePatch } from '../api/queries';
 import { isNvis, nvisReachKm, qualityFor } from '../data/quality';
 import { cellFor } from '../data/selectors';
-import type { BandKey, PathPrediction } from '../data/types';
+import type { BandKey, MapRegion, PathPrediction } from '../data/types';
 import { useFormatters } from '../hooks/useFormatters';
 import { numeric, radius, spacing, typography } from '../theme';
 import type { AppTheme } from '../theme';
@@ -53,11 +53,26 @@ export default function ReachCard({
   const ui = theme.colors.ui;
 
   const [width, setWidth] = useState(0);
+  // What the map is showing, so the fine grid follows the view rather
+  // than staying around the station. Held here rather than inside the
+  // map because it is the query that needs it, and the query lives here.
+  const [region, setRegion] = useState<MapRegion | null>(null);
+  // Stable, so reporting the region does not rebuild the effect that
+  // reports it.
+  const onRegion = useCallback(
+    (next: MapRegion | null) => setRegion(next),
+    [],
+  );
   const { data: coverage, error } = useCoverage(prediction.from, band, hour);
   // Never awaited and never blocking: the map is drawn from the coarse
   // answer above and this fills in behind it. Its own failure is silent,
   // because nothing on the screen depends on it.
-  const { data: patch } = useCoveragePatch(prediction.from, band, hour);
+  const { data: patch } = useCoveragePatch(
+    prediction.from,
+    band,
+    hour,
+    region,
+  );
 
   // Null for a survey, where the card answers "how much of the world" rather
   // than "will this reach one place".
@@ -137,6 +152,7 @@ export default function ReachCard({
               to={prediction.to}
               hour={hour}
               size={Math.min(width, MAX_MAP)}
+              onRegion={onRegion}
             />
           )
           : null}

@@ -3,6 +3,7 @@ import { useMemo } from 'react';
 
 import { searchCities } from '../data/cities';
 import { formatLatLon, parseCoordinates } from '../data/coords';
+import { patchGrid, patchKey } from '../data/coveragePatch';
 import { fetchGeocode as fetchGeocodeDirect } from '../data/geocode';
 import { gridToLatLon, isGrid, latLonToGrid } from '../data/grid';
 import {
@@ -21,7 +22,13 @@ import {
 } from '../data/localPredict';
 import { surveyLocally } from '../data/localSurvey';
 import { fetchSpaceWeather as fetchSpaceWeatherDirect } from '../data/spaceWeather';
-import type { BandKey, Endpoint, Place, SpaceWeather } from '../data/types';
+import type {
+  BandKey,
+  Endpoint,
+  MapRegion,
+  Place,
+  SpaceWeather,
+} from '../data/types';
 import { useSettled } from '../hooks/useSettled';
 import { today } from '../store/usePathStore';
 import {
@@ -95,6 +102,7 @@ export const queryKeys = {
     date: string,
     nowcast: string,
     station: string,
+    grid: string,
   ) =>
     [
       'coveragePatch',
@@ -105,6 +113,7 @@ export const queryKeys = {
       date,
       nowcast,
       station,
+      grid,
     ] as const,
 };
 
@@ -475,12 +484,24 @@ export function useCoveragePatch(
   from: Endpoint,
   band: BandKey,
   reportedHour: number,
+  reportedRegion: MapRegion | null = null,
 ) {
   const date = today();
   const station = useStation();
   const local = canMapLocally();
   const nowcast = nowcastFrom(useSpaceWeather().data);
   const hour = useSettled(reportedHour, 350);
+  // The same delay the hour gets, for the same reason: a pinch or a drag
+  // is a stream of values, and running the engine on each one would
+  // spend a run per frame to show the answer to a view already left.
+  const region = useSettled(reportedRegion, 350);
+  // Two views that produce the same grid share an answer, so panning
+  // within one cell costs nothing. `patchGrid` snaps to the engine's own
+  // lattice, which is what makes that true rather than approximately
+  // true.
+  const grid = region
+    ? patchGrid(region.lat, region.lon, region.halfLatDeg)
+    : patchGrid(from.lat, from.lon);
 
   return useQuery({
     queryKey: queryKeys.coveragePatch(
@@ -491,6 +512,7 @@ export function useCoveragePatch(
       date,
       nowcastKey(nowcast),
       station.key,
+      patchKey(grid),
     ),
     queryFn: () =>
       local
@@ -501,6 +523,7 @@ export function useCoveragePatch(
           date: new Date(`${date}T00:00:00Z`),
           station: station.station,
           nowcast,
+          region,
         })
         : fetchCoveragePatch({
           from: `${from.lat},${from.lon}`,
@@ -510,6 +533,7 @@ export function useCoveragePatch(
           date,
           nowcast: true,
           station: station.params,
+          region,
         }),
     enabled: !station.editing,
     placeholderData: keepPreviousData,

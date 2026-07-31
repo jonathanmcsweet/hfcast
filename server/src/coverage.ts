@@ -9,13 +9,9 @@
  */
 import { type AntennaChoice, txCard } from './antenna.ts';
 import { TtlCache } from './cache.ts';
-import {
-  PATCH_LAT_STEP,
-  PATCH_LON_STEP,
-  patchBounds,
-} from './coveragePatch.ts';
+import { patchGrid, patchKey, patchRequestBounds } from './coveragePatch.ts';
 import { resolveSsn } from './spaceweather.ts';
-import type { BandKey, Endpoint, PredictionBasis } from './types.ts';
+import type { BandKey, Endpoint, MapRegion, PredictionBasis } from './types.ts';
 import { type Coverage, ITSHFBC_DIR, runCoverage } from './voacap/engine.ts';
 
 /**
@@ -55,6 +51,14 @@ export interface CoverageRequest {
    * ideal one would.
    */
   antenna?: AntennaChoice;
+  /**
+   * The part of the world the map is showing, for the fine grid only.
+   *
+   * Absent means the whole globe, and then the fine grid goes around the
+   * station — which is the same place the map is centred on, so the two
+   * agree at the default view.
+   */
+  region?: MapRegion;
 }
 
 export interface CoverageResult extends Coverage {
@@ -198,8 +202,17 @@ const patchCache = new TtlCache<CoveragePatchResult>(COVERAGE_TTL_MS, 400);
 export async function coveragePatch(
   request: CoverageRequest,
 ): Promise<CoveragePatchResult | null> {
-  const box = patchBounds(request.from.lat, request.from.lon);
-  if (box === null) return null;
+  // Where the map is pointed, or the station when it is showing the
+  // whole globe and the two are the same place anyway.
+  const grid = request.region
+    ? patchGrid(
+      request.region.lat,
+      request.region.lon,
+      request.region.halfLatDeg,
+    )
+    : patchGrid(request.from.lat, request.from.lon);
+  if (grid === null) return null;
+  const box = patchRequestBounds(grid);
 
   const month = request.date.getUTCMonth() + 1;
   const year = request.date.getUTCFullYear();
@@ -211,7 +224,10 @@ export async function coveragePatch(
     request.basis,
   );
 
-  const key = `patch|${keyFor(request, ssn)}`;
+  // The grid is part of the identity: two views that produce different
+  // rectangles are different answers, and without this the first one
+  // asked for would be served to every later one.
+  const key = `patch|${keyFor(request, ssn)}|${patchKey(grid)}`;
   const cached = patchCache.get(key);
   if (cached) return { ...cached, basis };
 
@@ -219,7 +235,7 @@ export async function coveragePatch(
     ? await txCard(ITSHFBC_DIR, request.antenna)
     : null;
 
-  const grid = await runCoverage({
+  const ran = await runCoverage({
     fromLat: request.from.lat,
     fromLon: request.from.lon,
     month,
@@ -230,22 +246,22 @@ export async function coveragePatch(
     noiseDbw: request.noiseDbw,
     hour: request.hour,
     band: request.band,
-    latStep: PATCH_LAT_STEP,
-    lonStep: PATCH_LON_STEP,
+    latStep: grid.latStep,
+    lonStep: grid.lonStep,
     bounds: box,
     ...(txAntenna ? { txAntenna } : {}),
   });
 
   const result: CoveragePatchResult = {
-    ...grid,
+    ...ran,
     from: request.from,
     basis,
     // The engine echoes the grid it snapped to; the request's own
     // rectangle is the fallback if an older build did not.
-    latMin: grid.latMin ?? box.latMin,
-    latMax: grid.latMax ?? box.latMax,
-    lonMin: grid.lonMin ?? box.lonMin,
-    lonMax: grid.lonMax ?? box.lonMax,
+    latMin: ran.latMin ?? grid.latMin,
+    latMax: ran.latMax ?? grid.latMax,
+    lonMin: ran.lonMin ?? grid.lonMin,
+    lonMax: ran.lonMax ?? grid.lonMax,
   };
   patchCache.set(key, result);
   return result;

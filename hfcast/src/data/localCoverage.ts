@@ -1,7 +1,7 @@
 import * as Engine from '../../modules/hfcast-engine';
 import type { Station } from '../store/useStationStore';
 import { LAT_STEP, LON_STEP, reachOf } from './coverageGrid';
-import { PATCH_LAT_STEP, PATCH_LON_STEP, patchBounds } from './coveragePatch';
+import { patchGrid, patchRequestBounds } from './coveragePatch';
 import { engineStation, type Nowcast, ssnFor } from './localPredict';
 import { requiredSnrFor } from './modes';
 import {
@@ -11,6 +11,7 @@ import {
   type CoveragePatch,
   type CoveragePoint,
   type Endpoint,
+  type MapRegion,
 } from './types';
 
 /**
@@ -61,6 +62,14 @@ export interface LocalCoverageRequest {
   station: Station;
   /** Absent offline, and then the run is climatology. */
   nowcast?: Nowcast;
+  /**
+   * The part of the world the map is showing, for the fine grid only.
+   *
+   * Absent means the whole globe, and then the fine grid goes around the
+   * station — which is the same place the map is centred on, so the two
+   * agree at the default view.
+   */
+  region?: MapRegion | null;
 }
 
 export async function coverLocally(
@@ -132,8 +141,14 @@ export async function coverLocally(
 export async function coverPatchLocally(
   request: LocalCoverageRequest,
 ): Promise<CoveragePatch | null> {
-  const box = patchBounds(request.from.lat, request.from.lon);
-  if (box === null) return null;
+  // Where the map is pointed, or the station when it is showing the
+  // whole globe and the two are the same place anyway.
+  const region = request.region;
+  const grid = region
+    ? patchGrid(region.lat, region.lon, region.halfLatDeg)
+    : patchGrid(request.from.lat, request.from.lon);
+  if (grid === null) return null;
+  const box = patchRequestBounds(grid);
 
   const month = request.date.getUTCMonth() + 1;
   const year = request.date.getUTCFullYear();
@@ -153,8 +168,8 @@ export async function coverPatchLocally(
     noiseDbw: NOISE_DBW,
     hour: request.hour,
     freqMhz: BAND_MHZ[request.band],
-    latStep: PATCH_LAT_STEP,
-    lonStep: PATCH_LON_STEP,
+    latStep: grid.latStep,
+    lonStep: grid.lonStep,
     ...box,
   });
 
@@ -166,14 +181,14 @@ export async function coverPatchLocally(
   return {
     band: request.band,
     hour: request.hour,
-    latStep: answer.latStep ?? PATCH_LAT_STEP,
-    lonStep: answer.lonStep ?? PATCH_LON_STEP,
+    latStep: answer.latStep ?? grid.latStep,
+    lonStep: answer.lonStep ?? grid.lonStep,
     // The engine snaps the rectangle to its own lattice, so these are the
     // grid that ran rather than the one asked for.
-    latMin: answer.latMin ?? box.latMin,
-    latMax: answer.latMax ?? box.latMax,
-    lonMin: answer.lonMin ?? box.lonMin,
-    lonMax: answer.lonMax ?? box.lonMax,
+    latMin: answer.latMin ?? grid.latMin,
+    latMax: answer.latMax ?? grid.latMax,
+    lonMin: answer.lonMin ?? grid.lonMin,
+    lonMax: answer.lonMax ?? grid.lonMax,
     basis,
     points,
   };

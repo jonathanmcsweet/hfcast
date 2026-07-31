@@ -1,4 +1,4 @@
-import React, { useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { PanResponder, StyleSheet, View } from 'react-native';
 import {
@@ -13,6 +13,8 @@ import land from '../assets/land.json';
 import {
   cellRing,
   circleAround,
+  clamp,
+  containView,
   discRing,
   EARTH_KM,
   greatCircle,
@@ -23,10 +25,17 @@ import {
   pathOf,
   projector,
   projectRing,
+  regionOf,
   subsolarPoint,
 } from '../data/projection';
+import type { MapView } from '../data/projection';
 import { isNvis, qualityFor } from '../data/quality';
-import type { Coverage, CoveragePatch, Endpoint } from '../data/types';
+import type {
+  Coverage,
+  CoveragePatch,
+  Endpoint,
+  MapRegion,
+} from '../data/types';
 import { qualityMap, radius as radii, spacing, typography } from '../theme';
 import type { AppTheme } from '../theme';
 
@@ -47,6 +56,14 @@ interface Props {
   /** UTC hour the terminator is drawn for. */
   hour: number;
   size: number;
+  /**
+   * Called with the part of the world the map is showing, so a caller
+   * can run the fine grid there instead of around the station.
+   *
+   * Null at a whole-globe view: there is nothing to follow, and the
+   * patch belongs at the station.
+   */
+  onRegion?: (region: MapRegion | null) => void;
 }
 
 /** Dashed rings, in kilometres. The spacing operators think in. */
@@ -71,43 +88,24 @@ const RINGS = land as [number, number][][];
 const NIGHT_OPACITY = { dark: 0.16, light: 0.18 };
 
 const MIN_SCALE = 1;
-/** The design's ceiling. Past this the grid is coarser than the pixels. */
-const MAX_SCALE = 10;
+/**
+ * How far in the map will go.
+ *
+ * This was 10, on the reasoning that past it the grid is coarser than
+ * the pixels. That reasoning was about the 15 by 22.5 degree grid, and
+ * it stopped being true when the fine grid arrived: the patch follows
+ * the view and buys a finer step as the rectangle shrinks, so zooming
+ * in now asks a better question rather than magnifying the same answer.
+ *
+ * 30 is where that stops. The ladder's finest rung is 0.625 by 0.75
+ * degrees and it is only reached when the visible half-height is under
+ * about 3 degrees, which on a 322 px map is a scale near 30. Past that
+ * the cells would be magnified again with nothing further to ask for.
+ */
+const MAX_SCALE = 30;
 const ZOOM_STEP = 1.6;
 
-/**
- * What the map is showing: how far in, and on what.
- *
- * The centre is kept as a fraction of the disc rather than in pixels so a
- * layout change — a rotation, a wider column — does not move the view.
- */
-interface MapView {
-  scale: number;
-  cxF: number;
-  cyF: number;
-}
-
 const WHOLE_GLOBE: MapView = { scale: MIN_SCALE, cxF: 0.5, cyF: 0.5 };
-
-const clamp = (v: number, lo: number, hi: number) =>
-  Math.min(hi, Math.max(lo, v));
-
-/**
- * Keeps the visible window inside the disc.
- *
- * At 1x the window is the whole disc, so the only centre that fits is the
- * middle — which is what stops a drag from sliding the globe off its own
- * frame when there is nothing to pan to. Zoomed in, it stops the edge of
- * the world being dragged into the middle of the card.
- */
-const containView = (v: MapView): MapView => {
-  const half = 1 / (2 * v.scale);
-  return {
-    scale: v.scale,
-    cxF: clamp(v.cxF, half, 1 - half),
-    cyF: clamp(v.cyF, half, 1 - half),
-  };
-};
 
 /** A drag has to beat this before it takes over, so a tap stays a tap. */
 const DRAG_SLOP = 3;
@@ -144,6 +142,7 @@ export default function CoverageGlobe({
   to,
   hour,
   size,
+  onRegion,
 }: Props) {
   const theme = useTheme<AppTheme>();
   const { t } = useTranslation();
@@ -431,6 +430,15 @@ export default function CoverageGlobe({
   ].map((n) => n.toFixed(2)).join(' ');
 
   const zoomedIn = view.scale > MIN_SCALE;
+
+  // Where the map is pointed, for whoever runs the fine grid. Reported
+  // rather than computed there because only this component knows the
+  // projection and the view, and the two together are what turn a
+  // viewBox into degrees.
+  useEffect(() => {
+    if (onRegion === undefined) return;
+    onRegion(regionOf(p, view, size));
+  }, [onRegion, p, view, size]);
 
   return (
     <View

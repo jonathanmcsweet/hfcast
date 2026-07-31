@@ -164,6 +164,43 @@ export interface PatchGrid extends PatchBounds {
 }
 
 /**
+ * Which cell of the world lattice a degree falls in, as a fraction.
+ *
+ * The engine divides an axis into whole cells from the far edge and puts
+ * a point in the middle of each, so cell `i` is centred at
+ * `edge + (i + 0.5) * step`. Every step this file offers divides its
+ * axis evenly, so the cell width is the step.
+ */
+const cellIndex = (deg: number, step: number, edge: number) =>
+  (deg - edge) / step - 0.5;
+
+const cellCentre = (i: number, step: number, edge: number) =>
+  edge + (i + 0.5) * step;
+
+/**
+ * The first and last cell of an axis a rectangle covers.
+ *
+ * The same arithmetic the engine does, so the answer describes the grid
+ * that will run rather than the one that was asked for. Two things come
+ * out of that: the request says what it means, and a view panned by less
+ * than one cell produces the identical rectangle — which is what lets
+ * the answer be cached against the view instead of refetched at every
+ * pixel of a drag.
+ */
+const cellRange = (
+  lo: number,
+  hi: number,
+  step: number,
+  edge: number,
+  span: number,
+) => {
+  const bands = Math.round(span / step);
+  const first = Math.max(0, Math.ceil(cellIndex(lo, step, edge)));
+  const last = Math.min(bands - 1, Math.floor(cellIndex(hi, step, edge)));
+  return { first, last };
+};
+
+/**
  * The rectangle to run, and how finely, for a reader looking at
  * `lat`/`lon` with `halfLatDeg` of latitude visible either side.
  *
@@ -198,12 +235,63 @@ export function patchGrid(
       rows(step[0]) * columns(step[1]) <= MAX_PATCH_POINTS ? step : best,
     PATCH_STEPS[0] as readonly [number, number],
   );
+  const [latStep, lonStep] = chosen;
+
+  const down = cellRange(bounds.latMin, bounds.latMax, latStep, -90, 180);
+  const across = cellRange(bounds.lonMin, bounds.lonMax, lonStep, -180, 360);
 
   // `Grid::point` in the engine divides by the number of points less one,
   // so a single-point axis is a division by zero rather than a small
   // answer and the request is refused. Caught here so a doomed one is
   // never sent.
-  if (rows(chosen[0]) < 2 || columns(chosen[1]) < 2) return null;
+  if (down.last - down.first < 1 || across.last - across.first < 1) return null;
 
-  return { ...bounds, latStep: chosen[0], lonStep: chosen[1] };
+  return {
+    latMin: cellCentre(down.first, latStep, -90),
+    latMax: cellCentre(down.last, latStep, -90),
+    lonMin: cellCentre(across.first, lonStep, -180),
+    lonMax: cellCentre(across.last, lonStep, -180),
+    latStep,
+    lonStep,
+  };
 }
+
+/**
+ * The four edges to send the engine for a grid, in degrees.
+ *
+ * A quarter of a cell outside the first and last point rather than on
+ * them. The engine rounds the near edge up to the next cell and the far
+ * edge down to the previous one, so an edge sitting exactly on a point
+ * is decided by the last bit of a division — a hair the wrong way and
+ * the row is dropped. A quarter cell is far enough from both neighbours
+ * that no rounding reaches them.
+ *
+ * The same reasoning, and the same number, as the strips the server cuts
+ * a large grid into.
+ */
+export function patchRequestBounds(grid: PatchGrid): PatchBounds {
+  return {
+    latMin: grid.latMin - grid.latStep / 4,
+    latMax: grid.latMax + grid.latStep / 4,
+    lonMin: grid.lonMin - grid.lonStep / 4,
+    lonMax: grid.lonMax + grid.lonStep / 4,
+  };
+}
+
+/**
+ * A short stable name for a grid, for use as a cache key.
+ *
+ * Two views that produce the same grid produce the same string, which is
+ * the whole point: panning within one cell, or zooming without crossing
+ * a rung of the step ladder, must not spend an engine run to receive the
+ * answer already held.
+ */
+export const patchKey = (grid: PatchGrid | null): string =>
+  grid === null ? 'none' : [
+    grid.latMin,
+    grid.latMax,
+    grid.lonMin,
+    grid.lonMax,
+    grid.latStep,
+    grid.lonStep,
+  ].join(',');

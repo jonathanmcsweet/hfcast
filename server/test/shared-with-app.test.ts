@@ -143,6 +143,30 @@ describe('the fine grid the app and the server both run', () => {
       pairs.map(([, value]) => value),
     );
   });
+
+  it('holds the whole geometry identical, not only the constants', () => {
+    // Stronger than the pins above and the reason they are not enough.
+    // Naming each constant catches a changed number; it does not catch
+    // a changed rule — which cell the rectangle snaps to, which edge is
+    // sent to the engine, how a grid is named for the cache. Those are
+    // arithmetic rather than values, and either side drifting would put
+    // the two paths on different grids while every pinned number still
+    // agreed.
+    //
+    // Everything from the marker down is copied character for
+    // character. Above it the two differ, and have to: the app imports
+    // without file extensions and the server with them.
+    const marker = 'export const PATCH_LAT_STEP';
+    const mine = readFileSync(
+      path.join(import.meta.dirname, '..', 'src', 'coveragePatch.ts'),
+      'utf8',
+    );
+    assert.ok(source.includes(marker) && mine.includes(marker));
+    assert.equal(
+      mine.slice(mine.indexOf(marker)),
+      source.slice(source.indexOf(marker)),
+    );
+  });
 });
 
 describe('the inverted V approximation both sides apply', () => {

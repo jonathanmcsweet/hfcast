@@ -13,6 +13,8 @@
  * whole rim. That is why the far edge is clipped rather than drawn.
  */
 
+import type { MapRegion } from './types';
+
 const DEG = Math.PI / 180;
 
 /** Mean Earth radius, km. The same value the engine's hop arithmetic uses. */
@@ -454,3 +456,66 @@ export function opposedTo(
   const same = Math.sign(signedArea(ring)) === Math.sign(signedArea(reference));
   return same ? [...ring].reverse() : ring;
 }
+
+/** Kilometres in a degree of latitude. Only the scale of a box needs it. */
+const KM_PER_DEGREE = 111.19;
+
+/**
+ * What the map is showing: how far in, and on what.
+ *
+ * The centre is a fraction of the disc rather than a pixel, so a layout
+ * change does not move the view.
+ */
+export interface MapView {
+  scale: number;
+  cxF: number;
+  cyF: number;
+}
+
+/**
+ * The part of the world the map is showing, in degrees.
+ *
+ * The centre comes back through the projection's inverse, which is
+ * closed form here, so it is the place under the middle of the frame
+ * rather than an estimate. The half-extent is the visible half-width
+ * turned into kilometres and then into degrees of latitude; on an
+ * azimuthal equidistant projection distance from the centre is to
+ * scale, which is exactly the property that makes this a division
+ * rather than a search.
+ *
+ * Null at a whole-globe view, and wherever the middle of the frame is
+ * off the disc — panned to a corner. Both mean the same thing to the
+ * caller: there is no region worth running, use the default.
+ */
+export function regionOf(
+  p: Projector,
+  view: MapView,
+  size: number,
+): MapRegion | null {
+  if (view.scale <= 1) return null;
+  const centre = p.invert(view.cxF * size, view.cyF * size);
+  if (centre === null) return null;
+  const [lon, lat] = centre;
+  const halfKm = size / (2 * view.scale) / p.pxPerKm;
+  return { lat, lon, halfLatDeg: halfKm / KM_PER_DEGREE };
+}
+
+export const clamp = (v: number, lo: number, hi: number) =>
+  Math.min(hi, Math.max(lo, v));
+
+/**
+ * Keeps the visible window inside the disc.
+ *
+ * At 1x the window is the whole disc, so the only centre that fits is the
+ * middle — which is what stops a drag from sliding the globe off its own
+ * frame when there is nothing to pan to. Zoomed in, it stops the edge of
+ * the world being dragged into the middle of the card.
+ */
+export const containView = (v: MapView): MapView => {
+  const half = 1 / (2 * v.scale);
+  return {
+    scale: v.scale,
+    cxF: clamp(v.cxF, half, 1 - half),
+    cyF: clamp(v.cyF, half, 1 - half),
+  };
+};

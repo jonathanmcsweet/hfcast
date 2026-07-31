@@ -11,6 +11,8 @@ import {
   PATCH_STEPS,
   patchBounds,
   patchGrid,
+  patchKey,
+  patchRequestBounds,
 } from '../src/data/coveragePatch.ts';
 import { nvisReachKm } from '../src/data/quality.ts';
 import type { CoveragePoint } from '../src/data/types.ts';
@@ -259,15 +261,81 @@ describe('choosing how fine to run', () => {
     assert.ok(grid);
     assert.equal(grid.latStep, PATCH_LAT_STEP);
     assert.equal(grid.lonStep, PATCH_LON_STEP);
-    assert.deepEqual(
-      {
-        latMin: grid.latMin,
-        latMax: grid.latMax,
-        lonMin: grid.lonMin,
-        lonMax: grid.lonMax,
-      },
-      patchBounds(39.74, -104.98),
+  });
+
+  it('reports the grid that will run, not the rectangle asked for', () => {
+    // The engine keeps the cells of its own lattice that fall inside a
+    // rectangle, so what comes back is never quite what was asked for.
+    // Doing that arithmetic here means the request says what it means —
+    // and means a view panned by less than one cell asks for the
+    // identical rectangle, which is what lets the answer be cached
+    // against the view instead of refetched on every frame of a drag.
+    const box = patchBounds(39.74, -104.98);
+    const grid = patchGrid(39.74, -104.98);
+    assert.ok(box && grid);
+    // Inside the rectangle asked for, never outside it.
+    assert.ok(grid.latMin >= box.latMin && grid.latMax <= box.latMax);
+    assert.ok(grid.lonMin >= box.lonMin && grid.lonMax <= box.lonMax);
+    // And on the lattice: a whole number of steps from the far edge,
+    // offset by the half step that puts a point in the cell's middle.
+    const onLattice = (deg: number, step: number, edge: number) =>
+      Math.abs(((deg - edge) / step - 0.5) % 1) < 1e-9;
+    assert.ok(onLattice(grid.latMin, grid.latStep, -90), `${grid.latMin}`);
+    assert.ok(onLattice(grid.lonMin, grid.lonStep, -180), `${grid.lonMin}`);
+  });
+
+  it('changes by the cell rather than by the pixel', () => {
+    // The cache claim, and the reason it is worth snapping at all. A
+    // drag reports a new centre every frame; if each one produced a new
+    // rectangle, each would spend an engine run to show a view already
+    // left.
+    //
+    // Three rather than two across one cell, because the two edges do
+    // not cross their boundaries at the same moment: the rectangle
+    // grows by a row at one end, then loses one at the other. Three is
+    // the bound and twenty is the point.
+    const start = patchGrid(40, -105, 4);
+    assert.ok(start);
+    const seen = new Set(
+      Array.from(
+        { length: 20 },
+        (_, i) => patchKey(patchGrid(40 + (i * start.latStep) / 20, -105, 4)),
+      ),
     );
+    assert.ok(seen.size <= 3, `${seen.size} rectangles across one cell`);
+  });
+
+  it('follows a view that has moved several cells', () => {
+    // The other half of it: following the view has to actually follow.
+    const a = patchGrid(40, -105, 4);
+    assert.ok(a);
+    const b = patchGrid(40 + 3 * a.latStep, -105, 4);
+    assert.ok(b);
+    assert.notDeepEqual(a, b);
+  });
+
+  it('asks the engine for edges a quarter cell outside the points', () => {
+    // The engine rounds a near edge up to the next cell and a far edge
+    // down to the previous one, so an edge sitting exactly on a point is
+    // decided by the last bit of a division — a hair the wrong way and
+    // the row is dropped. A quarter cell clears both neighbours.
+    const grid = patchGrid(39.74, -104.98);
+    assert.ok(grid);
+    const sent = patchRequestBounds(grid);
+    assert.equal(sent.latMin, grid.latMin - grid.latStep / 4);
+    assert.equal(sent.latMax, grid.latMax + grid.latStep / 4);
+    assert.equal(sent.lonMin, grid.lonMin - grid.lonStep / 4);
+    assert.equal(sent.lonMax, grid.lonMax + grid.lonStep / 4);
+  });
+
+  it('names a grid the same way whenever it is the same grid', () => {
+    const same = patchGrid(40, -105, 4);
+    assert.ok(same);
+    assert.equal(patchKey(same), patchKey(patchGrid(40, -105, 4)));
+    // A different zoom is a different grid, so a different name.
+    assert.notEqual(patchKey(same), patchKey(patchGrid(40, -105, 10)));
+    // Absent has a name too, so a caller can key on it without a branch.
+    assert.equal(patchKey(null), 'none');
   });
 
   it('is never coarser than the map it is drawn over', () => {

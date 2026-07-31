@@ -1,6 +1,7 @@
 import type {
   Coverage,
   CoveragePatch,
+  MapRegion,
   PredictionResponse,
   Sounding,
   SpaceWeather,
@@ -207,6 +208,12 @@ export function fetchCoveragePatch(p: {
   date: string;
   nowcast?: boolean;
   station: Record<string, string>;
+  /**
+   * Where the map is pointed and how much of it is showing. Absent asks
+   * for the fine grid around the station, which is what a whole-globe
+   * view wants.
+   */
+  region?: MapRegion | null;
 }): Promise<CoveragePatch | null> {
   return getJson<CoveragePatch | null>('/api/coverage/patch', {
     from: p.from,
@@ -215,6 +222,13 @@ export function fetchCoveragePatch(p: {
     hour: String(p.hour),
     date: p.date,
     nowcast: p.nowcast ? '1' : '',
+    ...(p.region
+      ? {
+        atLat: String(p.region.lat),
+        atLon: String(p.region.lon),
+        halfLat: String(p.region.halfLatDeg),
+      }
+      : {}),
     ...p.station,
   });
 }
