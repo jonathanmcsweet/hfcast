@@ -20,6 +20,7 @@ import {
   greatCircle,
   gridOutline,
   isNight,
+  MIN_SCALE,
   nightIsInside,
   opposedTo,
   pathOf,
@@ -87,7 +88,6 @@ const RINGS = land as [number, number][][];
  */
 const NIGHT_OPACITY = { dark: 0.16, light: 0.18 };
 
-const MIN_SCALE = 1;
 /**
  * How far in the map will go.
  *

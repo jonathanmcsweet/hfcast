@@ -14,7 +14,7 @@ import {
   patchKey,
   patchRequestBounds,
 } from '../src/data/coveragePatch.ts';
-import { nvisReachKm } from '../src/data/quality.ts';
+import { anyNvis, nvisReachKm } from '../src/data/quality.ts';
 import type { CoveragePoint } from '../src/data/types.ts';
 
 /**
@@ -185,6 +185,25 @@ describe('how far the near-vertical region reaches', () => {
     // rather than zero: zero is a distance and would be drawn as one.
     assert.equal(nvisReachKm(from, [point(41, -105, 20)]), null);
     assert.equal(nvisReachKm(from, []), null);
+  });
+
+  it('is asked of the drawn patch and the station patch separately', () => {
+    // The map's patch follows the view; the sentence's does not. A patch
+    // panned to the far side of the world holds points that are NVIS in
+    // no direction from the station, so the sentence's function answers
+    // null there — and the legend's function must still answer from
+    // what is actually drawn, not from the sentence.
+    const farAway = [point(35, 139, 80)];
+    // From Denver, a steep *local* angle 9,000 km away is not
+    // near-vertical coverage of anywhere the station reaches... but the
+    // engine reports the transmitter's take-off angle, which cannot be
+    // steep on a path that long, so the case cannot arise from real
+    // data. What can arise is the panned patch with no steep points:
+    assert.equal(nvisReachKm(from, [point(35, 139, 12)]), null);
+    assert.equal(anyNvis([point(35, 139, 12)]), false);
+    // And a patch at home with steep points feeds both.
+    assert.equal(anyNvis(farAway), true);
+    assert.ok(nvisReachKm(from, farAway) !== null);
   });
 
   it('ignores a point the engine gave no angle for', () => {

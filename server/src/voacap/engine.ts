@@ -54,8 +54,12 @@ const RUN_TIMEOUT_MS = 30_000;
  * Eight is where it stops paying: twelve is two percent better and
  * sixteen is worse, because each process re-reads the coefficient tables
  * and they start to contend. Capped at the core count as well, so a
- * small host does not oversubscribe itself, and left below the core
- * count on a large one so a second request is not starved by the first.
+ * small host does not oversubscribe itself. On a host with more than
+ * eight cores the cap also leaves cores free for other requests; on
+ * eight or fewer it does not, and nothing here limits how many requests
+ * split at once. That is accepted while the only grids large enough to
+ * split are ones no caller sends — a global limit belongs with whoever
+ * adds such a caller.
  *
  * `HFCAST_COVERAGE_SHARDS=1` turns splitting off.
  */

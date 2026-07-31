@@ -14,6 +14,7 @@ import {
   isNight,
   nightIsInside,
   opposedTo,
+  pathOf,
   polygonContains,
   projector,
   projectRing,
@@ -459,5 +460,20 @@ describe('the region the map is showing', () => {
       cxF: 0.5,
       cyF: 0.5,
     });
+  });
+});
+
+describe('the precision a path is written at', () => {
+  it('survives the deepest zoom', () => {
+    // The viewBox multiplies rounding error by the zoom, so the
+    // coordinates have to be written for the deepest view, not the
+    // default one. Two decimals is at worst 0.005 px in the base space
+    // and 0.15 px at the 30x ceiling; one decimal was 1.5 px there, and
+    // every line in the map wiggled.
+    assert.equal(pathOf([[1.23456, 2.34567]]), 'M1.23 2.35');
+    assert.equal(
+      pathOf([[0, 0], [10.005, 20.004]], true),
+      'M0.00 0.00 L10.01 20.00 Z',
+    );
   });
 });
