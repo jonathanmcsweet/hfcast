@@ -53,6 +53,45 @@ const param = (value: string, index: number, name: string) =>
   `${value}  [${field(String(index), 2)}] ${name}`;
 
 /**
+ * What fraction of its apex height an inverted V behaves like.
+ *
+ * VOACAP has no inverted V. IONCAP's ten patterns are the rhombics, the
+ * monopole, the dipole, the Yagi, the log periodic, the curtain, the
+ * sloping vee and the inverted L, and no later family adds one, so there
+ * is nothing to select and nothing to fit.
+ *
+ * What there is instead is the reason the shape matters at all. A
+ * horizontal antenna's gain straight up is set by its height in
+ * wavelengths, through the ground reflection: at a quarter wave up it is
+ * near its maximum overhead, and by a half wave the overhead lobe has
+ * split. An inverted V is a dipole whose ends are pulled down, so its
+ * current is spread between the apex and the lower legs and it behaves
+ * like a horizontal dipole somewhere below the apex. Four fifths is the
+ * usual figure for the shallow droop an amateur actually builds — legs at
+ * roughly 30 to 45 degrees below horizontal — and it is a stated
+ * approximation rather than a measurement.
+ *
+ * It is worth having because it moves the answer in the direction the
+ * antenna really moves it. A wire at 12 m on 40m is 0.28 wavelengths up
+ * and near its best overhead; the same wire as an inverted V behaves like
+ * one at 9.6 m, which is 0.23 wavelengths, and near-vertical work is
+ * where the difference shows. Telling somebody with an inverted V to
+ * choose "dipole" would report the apex height as though the whole wire
+ * were up there, which is the one thing that is certainly wrong.
+ */
+export const INVERTED_V_HEIGHT_FRACTION = 0.8;
+
+/**
+ * The height the engine is given, which is not always the height asked
+ * for. Only the inverted V differs — see the constant above.
+ */
+export function effectiveHeightM(antenna: Antenna): number {
+  return antenna.type === 'invertedV'
+    ? antenna.heightM * INVERTED_V_HEIGHT_FRACTION
+    : antenna.heightM;
+}
+
+/**
  * The parameters after the five every family shares.
  *
  * Read carefully rather than copied between families: for the monopole
@@ -61,9 +100,10 @@ const param = (value: string, index: number, name: string) =>
  * vertical whose height was whatever gain figure happened to be set.
  */
 function tail(antenna: Antenna): readonly string[] {
-  const height = decimals(antenna.heightM, 2, 6);
+  const height = decimals(effectiveHeightM(antenna), 2, 6);
   switch (antenna.type) {
     case 'dipole':
+    case 'invertedV':
       return [
         param('  -.50', 6, 'Antenna Length:'),
         param(height, 7, 'Antenna Height:'),
@@ -97,6 +137,7 @@ function tail(antenna: Antenna): readonly string[] {
 const TITLES: Record<AntennaKey, string> = {
   isotropic: 'isotrope',
   dipole: 'dipole',
+  invertedV: 'inverted V',
   vertical: 'vertical',
   yagi: 'yagi',
   invertedL: 'inverted L',
@@ -120,6 +161,10 @@ function definition(antenna: Antenna): string {
   // there, so a wrong one drops the parameters after it, the height
   // among them.
   return [
+    // The title carries the height the operator gave, not the effective
+    // one, because it is what they would recognise. The parameter above
+    // is where the approximation lives, and it is the parameter the
+    // engine reads.
     `HFcast ${TITLES[antenna.type]} ${antenna.heightM} m`,
     `${field(String(params.length), 2)}    ${params.length} parameters`,
     ...params,
@@ -131,6 +176,9 @@ const TYPE: Record<AntennaKey, number> = {
   isotropic: 0,
   vertical: 22,
   dipole: 23,
+  // The same pattern as the dipole, at a lower effective height. There is
+  // no inverted V in VOACAP to select instead.
+  invertedV: 23,
   yagi: 24,
   invertedL: 28,
 };
@@ -147,6 +195,11 @@ const TYPE: Record<AntennaKey, number> = {
 const SHORT: Record<AntennaKey, string> = {
   isotropic: 'i',
   dipole: 'd',
+  // Its own letter although its card is the dipole's, so a 10 m inverted
+  // V and an 8 m dipole — which produce the same card — keep separate
+  // files. Sharing one would be correct arithmetically and would make the
+  // file's title name the wrong antenna.
+  invertedV: 'w',
   vertical: 'v',
   invertedL: 'l',
   yagi: 'y',

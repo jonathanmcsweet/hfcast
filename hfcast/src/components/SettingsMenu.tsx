@@ -13,6 +13,7 @@ import type { ThemeMode } from '../store/useSettingsStore';
 import { spacing, typography } from '../theme';
 import type { AppTheme } from '../theme';
 import AboutModal from './AboutModal';
+import HelpModal from './HelpModal';
 
 /** The icon each mode shows, so a glance says which one is in force. */
 const THEME_ICONS: Record<ThemeMode, string> = {
@@ -54,6 +55,7 @@ export default function SettingsMenu(
   { onOpenStation, onRefresh, refreshing }: Props,
 ) {
   const [aboutOpen, setAboutOpen] = useState(false);
+  const [helpOpen, setHelpOpen] = useState(false);
   const [open, setOpen] = useState(false);
   const theme = useTheme<AppTheme>();
   const { i18n, t } = useTranslation();
@@ -176,6 +178,19 @@ export default function SettingsMenu(
              font's licence requires its text to travel with the app, and
              NTIA/ITS asks that VOACAP be credited. */
         }
+        {
+          /* Above About, because it is about the forecast rather than
+             about the app: it holds the places where the answer rests on
+             a decision this project made rather than on a reading. */
+        }
+        <Menu.Item
+          title={t('help.title')}
+          leadingIcon="help-circle-outline"
+          onPress={() => {
+            setOpen(false);
+            setHelpOpen(true);
+          }}
+        />
         <Menu.Item
           title={t('about.title')}
           leadingIcon="information-outline"
@@ -185,6 +200,7 @@ export default function SettingsMenu(
           }}
         />
       </Menu>
+      <HelpModal visible={helpOpen} onDismiss={() => setHelpOpen(false)} />
       <AboutModal visible={aboutOpen} onDismiss={() => setAboutOpen(false)} />
     </>
   );

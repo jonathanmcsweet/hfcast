@@ -239,13 +239,37 @@ interface WireCoveragePoint {
   lat: number;
   lon: number;
   reliability: number;
+  /**
+   * Transmit take-off angle in degrees, or null where the engine printed
+   * no number. Steep means near-vertical incidence: the signal leaves
+   * steeply and comes back down close to where it started, with no skip
+   * zone, which is the whole of what the fine grid is for.
+   */
+  takeoffAngleDeg?: number | null;
 }
 
 interface WireCoverage {
   latStep?: number;
   lonStep?: number;
+  latMin?: number;
+  latMax?: number;
+  lonMin?: number;
+  lonMax?: number;
   points?: WireCoveragePoint[];
   error?: string;
+}
+
+/**
+ * The rectangle an area run covers, in degrees.
+ *
+ * Absent, the engine runs the whole world, which is what every caller did
+ * before a rectangle could be asked for.
+ */
+export interface AreaBounds {
+  latMin: number;
+  latMax: number;
+  lonMin: number;
+  lonMax: number;
 }
 
 export interface CoverageRequest {
@@ -270,9 +294,14 @@ export interface CoverageRequest {
    * ideal one could.
    */
   txAntenna?: AntennaCard;
+  /**
+   * The region to cover. Absent means the whole world, which is what the
+   * map behind everything else is drawn from.
+   */
+  bounds?: AreaBounds;
 }
 
-export interface Coverage {
+export interface Coverage extends Partial<AreaBounds> {
   band: BandKey;
   hour: number;
   latStep: number;
@@ -291,12 +320,15 @@ export interface Coverage {
 export async function runCoverage(
   request: CoverageRequest,
 ): Promise<Coverage> {
-  const { band, ...rest } = request;
+  const { band, bounds, ...rest } = request;
   const parsed = await callPredict<WireCoverage>(JSON.stringify({
     ...rest,
     mode: 'area',
     freqMhz: BAND_MHZ[band],
     itshfbc: ITSHFBC_DIR,
+    // All four edges together or none: the engine refuses a partial
+    // rectangle rather than filling the rest in from the world.
+    ...(bounds ?? {}),
   }));
 
   return {
@@ -304,10 +336,21 @@ export async function runCoverage(
     hour: request.hour,
     latStep: parsed.latStep ?? request.latStep,
     lonStep: parsed.lonStep ?? request.lonStep,
+    // The engine snaps a rectangle to its own lattice, so what comes back
+    // is the grid that ran rather than the one asked for.
+    ...(bounds
+      ? {
+        latMin: parsed.latMin ?? bounds.latMin,
+        latMax: parsed.latMax ?? bounds.latMax,
+        lonMin: parsed.lonMin ?? bounds.lonMin,
+        lonMax: parsed.lonMax ?? bounds.lonMax,
+      }
+      : {}),
     points: (parsed.points ?? []).map((p) => ({
       lat: p.lat,
       lon: p.lon,
       reliability: Math.min(1, Math.max(0, p.reliability)),
+      takeoffAngleDeg: p.takeoffAngleDeg ?? null,
     })),
   };
 }

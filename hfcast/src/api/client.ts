@@ -1,5 +1,6 @@
 import type {
   Coverage,
+  CoveragePatch,
   PredictionResponse,
   Sounding,
   SpaceWeather,
@@ -181,6 +182,33 @@ export function fetchCoverage(p: {
   station: Record<string, string>;
 }): Promise<Coverage> {
   return getJson<Coverage>('/api/coverage', {
+    from: p.from,
+    fromLabel: p.fromLabel,
+    band: p.band,
+    hour: String(p.hour),
+    date: p.date,
+    nowcast: p.nowcast ? '1' : '',
+    ...p.station,
+  });
+}
+
+/**
+ * The fine grid around the operator, for the same band and hour.
+ *
+ * A separate request rather than a bigger one, so the coarse map is drawn
+ * from the first answer and this fills in behind it. Null where the
+ * station is near the antimeridian and there is no rectangle to ask for.
+ */
+export function fetchCoveragePatch(p: {
+  from: string;
+  fromLabel: string;
+  band: string;
+  hour: number;
+  date: string;
+  nowcast?: boolean;
+  station: Record<string, string>;
+}): Promise<CoveragePatch | null> {
+  return getJson<CoveragePatch | null>('/api/coverage/patch', {
     from: p.from,
     fromLabel: p.fromLabel,
     band: p.band,

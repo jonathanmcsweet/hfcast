@@ -9,6 +9,11 @@
  */
 import { type AntennaChoice, txCard } from './antenna.ts';
 import { TtlCache } from './cache.ts';
+import {
+  PATCH_LAT_STEP,
+  PATCH_LON_STEP,
+  patchBounds,
+} from './coveragePatch.ts';
 import { resolveSsn } from './spaceweather.ts';
 import type { BandKey, Endpoint, PredictionBasis } from './types.ts';
 import { type Coverage, ITSHFBC_DIR, runCoverage } from './voacap/engine.ts';
@@ -163,3 +168,87 @@ export async function coverage(
 }
 
 export const coverageCacheSize = () => cache.size;
+
+/**
+ * The fine grid around the operator, at the same band and hour.
+ *
+ * A second run rather than a finer first one. The same step over the
+ * whole globe would be about a hundred times the work, and the question
+ * it answers — where the low bands reach without a skip zone — is only
+ * about the region near the station. See `coveragePatch.ts`.
+ *
+ * Null where the station is near the antimeridian and there is no
+ * rectangle to ask for. Null rather than an error: it is a fact about
+ * where the station is, and the coarse map is unaffected.
+ */
+export type CoveragePatchResult = Coverage & {
+  from: Endpoint;
+  basis: PredictionBasis;
+  latMin: number;
+  latMax: number;
+  lonMin: number;
+  lonMax: number;
+};
+
+// Its own cache, sized like the coarse one and keyed the same way. A
+// shared one would let a patch and a whole-world run collide on a key
+// that says nothing about which grid it holds.
+const patchCache = new TtlCache<CoveragePatchResult>(COVERAGE_TTL_MS, 400);
+
+export async function coveragePatch(
+  request: CoverageRequest,
+): Promise<CoveragePatchResult | null> {
+  const box = patchBounds(request.from.lat, request.from.lon);
+  if (box === null) return null;
+
+  const month = request.date.getUTCMonth() + 1;
+  const year = request.date.getUTCFullYear();
+
+  const { ssn, basis } = await resolveSsn(
+    year,
+    month,
+    request.ssnOverride,
+    request.basis,
+  );
+
+  const key = `patch|${keyFor(request, ssn)}`;
+  const cached = patchCache.get(key);
+  if (cached) return { ...cached, basis };
+
+  const txAntenna = request.antenna
+    ? await txCard(ITSHFBC_DIR, request.antenna)
+    : null;
+
+  const grid = await runCoverage({
+    fromLat: request.from.lat,
+    fromLon: request.from.lon,
+    month,
+    year,
+    ssn,
+    watts: request.watts,
+    requiredSnrDb: request.requiredSnrDb,
+    noiseDbw: request.noiseDbw,
+    hour: request.hour,
+    band: request.band,
+    latStep: PATCH_LAT_STEP,
+    lonStep: PATCH_LON_STEP,
+    bounds: box,
+    ...(txAntenna ? { txAntenna } : {}),
+  });
+
+  const result: CoveragePatchResult = {
+    ...grid,
+    from: request.from,
+    basis,
+    // The engine echoes the grid it snapped to; the request's own
+    // rectangle is the fallback if an older build did not.
+    latMin: grid.latMin ?? box.latMin,
+    latMax: grid.latMax ?? box.latMax,
+    lonMin: grid.lonMin ?? box.lonMin,
+    lonMax: grid.lonMax ?? box.lonMax,
+  };
+  patchCache.set(key, result);
+  return result;
+}
+
+export const coveragePatchCacheSize = () => patchCache.size;

@@ -3,7 +3,14 @@ import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { describe, it } from 'node:test';
 
+import { INVERTED_V_HEIGHT_FRACTION } from '../src/antenna.ts';
 import { LAT_STEP, LON_STEP, REACHABLE } from '../src/coverage.ts';
+import {
+  PATCH_HALF_LAT_DEG,
+  PATCH_LAT_STEP,
+  PATCH_LON_STEP,
+  PATCH_MAX_HALF_LON_DEG,
+} from '../src/coveragePatch.ts';
 import { MODES } from '../src/station.ts';
 import {
   SPREAD_FACTOR_LOW,
@@ -113,6 +120,43 @@ describe('the coverage grid the app and the server both run', () => {
     assert.deepEqual(
       pairs.map(([name]) => constantIn(source, name)),
       pairs.map(([, value]) => value),
+    );
+  });
+});
+
+describe('the fine grid the app and the server both run', () => {
+  const source = appFile('coveragePatch.ts');
+
+  it('agrees on the cell size and how far the rectangle reaches', () => {
+    // A patch is a window on the coarse lattice, and it is only that if
+    // both sides use the same step: a different one on either side would
+    // put the fine cells across the coarse cells rather than inside them,
+    // and the two paths would draw visibly different maps.
+    const pairs: readonly [string, number][] = [
+      ['PATCH_LAT_STEP', PATCH_LAT_STEP],
+      ['PATCH_LON_STEP', PATCH_LON_STEP],
+      ['PATCH_HALF_LAT_DEG', PATCH_HALF_LAT_DEG],
+      ['PATCH_MAX_HALF_LON_DEG', PATCH_MAX_HALF_LON_DEG],
+    ];
+    assert.deepEqual(
+      pairs.map(([name]) => constantIn(source, name)),
+      pairs.map(([, value]) => value),
+    );
+  });
+});
+
+describe('the inverted V approximation both sides apply', () => {
+  const source = appFile('antennaFile.ts');
+
+  it('reduces the apex height by the same fraction', () => {
+    // VOACAP has no inverted V, so this number is the whole of the
+    // decision. Two of them would give one station two forecasts
+    // depending on which path answered, with nothing on screen saying
+    // which — and the help text names the percentage, so one side would
+    // also be explaining the other side's arithmetic.
+    assert.equal(
+      constantIn(source, 'INVERTED_V_HEIGHT_FRACTION'),
+      INVERTED_V_HEIGHT_FRACTION,
     );
   });
 });

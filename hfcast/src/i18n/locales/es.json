@@ -13,7 +13,9 @@
     "legendNight": "Noche",
     "panHint": "Mueve el mapa con dos dedos",
     "subtitleAnywhere": "Sin destino, así que son todas las direcciones a la vez.",
-    "answerAnywhere": "{{band}} a las {{hour}} UTC alcanza cerca del {{percent}} de las direcciones muestreadas."
+    "answerAnywhere": "{{band}} a las {{hour}} UTC alcanza cerca del {{percent}} de las direcciones muestreadas.",
+    "legendNvis": "Sin zona de silencio",
+    "nvisReach": "{{band}} llega hasta unos {{distance}} sin zona de silencio."
   },
   "path": {
     "summary": "{{distance}} · rumbo {{bearing}} · {{hops}} saltos",
@@ -157,7 +159,8 @@
     "zoomOut": "Alejar",
     "fitReach": "Encuadrar hasta dónde llega esta banda",
     "wholeGlobe": "Mostrar el globo entero",
-    "mapLegend": "Leyenda del mapa. Los tonos morados son el alcance previsto, de más débil a más fuerte. La zona gris es la noche."
+    "mapLegend": "Leyenda del mapa. Los tonos morados son el alcance previsto, de más débil a más fuerte. La zona gris es la noche.",
+    "mapLegendNvis": "Los puntos marcan la zona que la banda alcanza sin zona de silencio."
   },
   "crash": {
     "title": "Algo ha fallado",
@@ -201,7 +204,8 @@
       "dipole": "Dipolo",
       "vertical": "Vertical",
       "invertedL": "L invertida",
-      "yagi": "Directiva"
+      "yagi": "Directiva",
+      "invertedV": "V invertida"
     },
     "tip": {
       "mode": "{{mode}}: necesita {{db}} dB sobre el ruido. Toque para cambiar.",
@@ -255,7 +259,9 @@
       "e": "E",
       "s": "S",
       "w": "O"
-    }
+    },
+    "apexHeight": "Altura del vértice",
+    "invertedVNote": "Calculada como un dipolo a {{height}}, el {{percent}} % de la altura del vértice. La ayuda explica por qué."
   },
   "units": {
     "metres": "{{value}} m",
@@ -309,6 +315,23 @@
       "ionosonde": "Ionosonda más cercana",
       "model": "Modelo de ruta",
       "bands": "Tus bandas"
+    }
+  },
+  "help": {
+    "title": "Cómo se hace la previsión",
+    "close": "Cerrar la ayuda",
+    "invertedV": {
+      "heading": "La V invertida",
+      "noModel": "VOACAP no tiene una V invertida. Tiene diez patrones de antena, y la V invertida no es uno de ellos, así que la aplicación no puede seleccionarla.",
+      "whatWeDo": "La aplicación calcula una V invertida como un dipolo al {{percent}} % de la altura del vértice. Si el vértice está a 10 metros, el modelo usa 8 metros.",
+      "whyItIsFair": "En un hilo horizontal, la altura sobre el suelo determina la ganancia hacia arriba. Una V invertida tiene los extremos más bajos que el vértice, así que se comporta como un dipolo por debajo del vértice. Hacia arriba, un hilo horizontal radia casi igual en todas las direcciones, así que la orientación del hilo cambia poco.",
+      "limits": "Esto es una aproximación, no una medida. Una V con brazos muy inclinados se comporta como una más baja, y una V poco inclinada como una más alta. Selecciona el dipolo si tu hilo está horizontal."
+    },
+    "nvis": {
+      "heading": "Incidencia casi vertical",
+      "what": "Por debajo de unos pocos cientos de kilómetros, las bandas bajas funcionan de otra manera. La señal sube casi vertical, vuelve a bajar cerca del punto de partida y no hay zona de silencio. Los operadores lo llaman NVIS.",
+      "howWeKnow": "La aplicación no lo deduce de la distancia. El motor calcula el ángulo de salida de la señal, y la aplicación llama casi vertical a un trayecto cuando ese ángulo es de {{degrees}} grados o más y la banda funciona.",
+      "onTheMap": "El mapa pone puntos sobre la zona que te alcanza así. Los puntos son distintos de los colores, porque los colores ya muestran la probabilidad de contacto. La línea bajo el mapa da la distancia en palabras."
     }
   }
 }

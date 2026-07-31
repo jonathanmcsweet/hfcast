@@ -14,6 +14,10 @@ import {
 } from 'react-native-paper';
 
 import {
+  effectiveHeightM,
+  INVERTED_V_HEIGHT_FRACTION,
+} from '../data/antennaFile';
+import {
   alignment,
   askedAsWire,
   beamFromWire,
@@ -431,7 +435,13 @@ export default function StationModal(
                   })}
                 </Text>
                 {dial(
-                  t('station.height'),
+                  // An inverted V has no single height: the feed is at the
+                  // apex and the ends are lower. Asking for "height" would
+                  // leave the reader guessing which one, so it names the
+                  // apex — the point they can measure.
+                  antenna.type === 'invertedV'
+                    ? t('station.apexHeight')
+                    : t('station.height'),
                   units.height(antenna.heightM),
                   units.heightFromMetres(antenna.heightM),
                   heightScale.min,
@@ -461,6 +471,25 @@ export default function StationModal(
                 style={[typography.caption, styles.note, { color: ui.text3 }]}
               >
                 {t('station.heightNote')}
+              </Text>
+            )
+            : null}
+
+          {
+            /* Said here as well as in the help, because this is where the
+               number is entered and the number entered is not the number
+               the model reads. A reader comparing this forecast against
+               another tool should be able to see why they differ. */
+          }
+          {antenna.type === 'invertedV'
+            ? (
+              <Text
+                style={[typography.caption, styles.note, { color: ui.text3 }]}
+              >
+                {t('station.invertedVNote', {
+                  height: units.height(effectiveHeightM(antenna)),
+                  percent: Math.round(INVERTED_V_HEIGHT_FRACTION * 100),
+                })}
               </Text>
             )
             : null}
