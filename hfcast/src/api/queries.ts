@@ -4,6 +4,7 @@ import { useMemo } from 'react';
 import { searchCities } from '../data/cities';
 import { formatLatLon, parseCoordinates } from '../data/coords';
 import { patchGrid, patchKey } from '../data/coveragePatch';
+import { fineGlobeAffordable, medianOf } from '../data/engineBudget';
 import { fetchGeocode as fetchGeocodeDirect } from '../data/geocode';
 import { gridToLatLon, isGrid, latLonToGrid } from '../data/grid';
 import {
@@ -32,6 +33,7 @@ import type {
 } from '../data/types';
 import { useSettled } from '../hooks/useSettled';
 import { hasSkia } from '../render/available';
+import { useEngineCost } from '../store/useEngineCost';
 import { today } from '../store/usePathStore';
 import {
   activePreset,
@@ -505,11 +507,20 @@ export function useCoverage(
  * query is untouched, so the map is drawn from the first answer and this
  * only sharpens it.
  *
- * `enabled` is what Milestone 3 of `docs/handoff-skia-globe.md` will
- * narrow to the devices that can afford it. Today it asks wherever a
- * canvas exists to draw the result: the SVG renderer cannot hold this
- * many cells, so on the legacy build the question would cost a run and
- * change nothing.
+ * Three things have to hold before it is asked at all.
+ *
+ * A canvas has to exist to draw 34,560 cells: the SVG renderer cannot
+ * hold that many, so on the legacy build the question would cost a run
+ * and change nothing on screen.
+ *
+ * The device has to be able to afford it, when the device is the one
+ * answering. That is measured rather than assumed — see
+ * `engineBudget.ts` — from the coarse run the app already makes. It is
+ * false until the first coarse run has been timed, so an unknown device
+ * spends one band change finding out rather than one full fine run.
+ *
+ * Where the server answers, there is nothing to gate: it shards across
+ * processes and replies in about 440 ms whatever the phone is.
  */
 export function useFineGlobe(
   from: Endpoint,
@@ -522,6 +533,11 @@ export function useFineGlobe(
   const local = canMapLocally();
   const nowcast = nowcastFrom(useSpaceWeather().data);
   const hour = useSettled(reportedHour, 350);
+  // Subscribed rather than read once, so a device that has just taken
+  // its first measurement turns the globe on without needing another
+  // reason to re-render.
+  const samples = useEngineCost((state) => state.samples);
+  const affordable = !local || fineGlobeAffordable(medianOf(samples));
 
   return useQuery({
     queryKey: queryKeys.fineGlobe(
@@ -552,7 +568,7 @@ export function useFineGlobe(
           nowcast: true,
           station: station.params,
         }),
-    enabled: enabled && hasSkia && !station.editing,
+    enabled: enabled && hasSkia && affordable && !station.editing,
     placeholderData: keepPreviousData,
     staleTime: local ? Number.POSITIVE_INFINITY : SPACE_WEATHER_POLL_MS,
     // No retry, for the same reason the patch does not: the coarse map

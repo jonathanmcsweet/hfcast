@@ -1,4 +1,5 @@
 import * as Engine from '../../modules/hfcast-engine';
+import { useEngineCost } from '../store/useEngineCost';
 import type { Station } from '../store/useStationStore';
 import { LAT_STEP, LON_STEP, reachOf } from './coverageGrid';
 import { patchGrid, patchRequestBounds } from './coveragePatch';
@@ -98,6 +99,11 @@ export async function coverLocally(
   const { ssn, basis } = ssnFor(year, month, request.nowcast);
   const station = await engineStation(request.station);
 
+  // Timed, because this is the measurement the fine grid's decision
+  // rests on: the same engine, the same antenna, the same coefficient
+  // files, so the cost per point carries straight over to a bigger grid
+  // on this device. It costs nothing — the run happens anyway.
+  const startedAt = Date.now();
   const answer = await Engine.predict<WireCoverage>({
     ...station,
     mode: 'area',
@@ -118,12 +124,15 @@ export async function coverLocally(
     latStep: LAT_STEP,
     lonStep: LON_STEP,
   });
+  const elapsedMs = Date.now() - startedAt;
 
   const points = (answer.points ?? []).map(asPoint);
 
   if (points.length === 0) {
     throw new Error('the engine produced no coverage points');
   }
+
+  useEngineCost.getState().record(elapsedMs, points.length);
 
   return {
     band: request.band,
