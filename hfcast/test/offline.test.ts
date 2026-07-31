@@ -240,6 +240,50 @@ describe('choosing a place without a network', () => {
     assert.deepEqual(searchCities(''), []);
     assert.deepEqual(searchCities('   '), []);
   });
+
+  it('narrows a repeated name by the region after the comma', () => {
+    // The case this was written for. There are five Springfields in the
+    // United States and the list gave all of them whatever else was typed.
+    const all = searchCities('Springfield');
+    const illinois = searchCities('Springfield, IL');
+    assert.ok(
+      all.length > illinois.length,
+      `${all.length} vs ${illinois.length}`,
+    );
+    assert.ok(illinois.length > 0);
+    for (const place of illinois) {
+      assert.match(place.name, /^Springfield/);
+      assert.match(place.admin1 ?? '', /\bIL\b/);
+    }
+  });
+
+  it('matches the country after the comma as well as the state', () => {
+    const usa = searchCities('Springfield, United');
+    assert.ok(usa.length > 0);
+    for (const place of usa) assert.match(place.country ?? '', /United/);
+  });
+
+  it('matches a region word rather than any substring of one', () => {
+    // "il" is inside Brazil and Chile. Matching it there would make the
+    // comma widen the search instead of narrowing it.
+    for (const place of searchCities('a, il')) {
+      assert.ok(
+        !/Brazil|Chile/.test(place.country ?? ''),
+        `${place.name}, ${place.country}`,
+      );
+    }
+  });
+
+  it('finds nothing where the region excludes everything', () => {
+    assert.deepEqual(searchCities('Springfield, ZZ'), []);
+  });
+
+  it('is unchanged by a comma with nothing after it', () => {
+    assert.deepEqual(
+      searchCities('Springfield,').map((p) => p.grid),
+      searchCities('Springfield').map((p) => p.grid),
+    );
+  });
 });
 
 describe('a typed Maidenhead locator, offline', () => {

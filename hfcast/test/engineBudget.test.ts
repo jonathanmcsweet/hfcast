@@ -5,7 +5,7 @@ import {
   FINE_BUDGET_MS,
   FINE_GRID_POINTS,
   fineGlobeAffordable,
-  medianOf,
+  marginalMsPerPoint,
   projectedFineMs,
   STRIP_SPEEDUP,
 } from '../src/data/engineBudget.ts';
@@ -79,29 +79,65 @@ describe('deciding whether a device can afford the fine grid', () => {
   });
 });
 
-describe('smoothing the readings', () => {
-  it('has no answer before the first run', () => {
-    assert.equal(medianOf([]), null);
+describe("separating a run's fixed cost from its per-point cost", () => {
+  // The desktop figures this gate was corrected against: a 192-point
+  // coarse run and a 34,560-point fine run, same engine, same machine.
+  // Their naive per-point costs differ by 2.7 times, entirely because
+  // the small run is mostly fixed cost.
+  const COARSE = { points: 192, ms: 20 };
+  const FINE = { points: 34560, ms: 1353 };
+
+  it("recovers the marginal cost, not the small run's average", () => {
+    const fitted = marginalMsPerPoint([COARSE, FINE]);
+    assert.ok(fitted !== null);
+    // 0.0388 ms a point, against 0.104 if the intercept were ignored.
+    assert.ok(Math.abs(fitted - 0.0388) < 0.001, `${fitted}`);
+    assert.ok(fitted < COARSE.ms / COARSE.points / 2);
   });
 
-  it('ignores one run that landed while the device was busy', () => {
-    // The reason this is a median and not the newest reading or a mean.
-    // A thermally throttled run must not turn the feature off for a
-    // device that is otherwise capable of it.
-    const steady = [0.04, 0.041, 0.039, 0.04, 0.042];
-    const withSpike = [...steady, 4.0];
-    assert.ok(Math.abs((medianOf(withSpike) ?? 0) - 0.04) < 0.005);
-    assert.ok(fineGlobeAffordable(medianOf(withSpike)));
-    // A mean would have been dragged over the line by that one run.
-    const mean = withSpike.reduce((a, b) => a + b, 0) / withSpike.length;
-    assert.equal(fineGlobeAffordable(mean), false);
+  it('lets a capable phone through, where the old model refused it', () => {
+    // This is the defect the first version shipped with. A phone about
+    // 2.5 times this desktop measures a coarse run at roughly 50 ms and
+    // a patch of 640 points at roughly 94 ms.
+    const phone = [{ points: 192, ms: 50 }, { points: 640, ms: 94 }];
+    const fitted = marginalMsPerPoint(phone);
+    assert.ok(fitted !== null);
+    assert.ok(fineGlobeAffordable(fitted), `fitted ${fitted}`);
+    // Dividing the coarse run by its point count says no, wrongly.
+    assert.equal(fineGlobeAffordable(50 / 192), false);
   });
 
-  it('takes the middle of an even count', () => {
-    assert.equal(medianOf([1, 2, 3, 4]), 2.5);
+  it('still refuses a genuinely slow device', () => {
+    // A quad-A53 tablet: same shape of numbers, ten times the scale.
+    const tablet = [{ points: 192, ms: 500 }, { points: 640, ms: 940 }];
+    assert.equal(fineGlobeAffordable(marginalMsPerPoint(tablet)), false);
   });
 
-  it('does not care what order the readings arrived in', () => {
-    assert.equal(medianOf([5, 1, 3]), medianOf([1, 3, 5]));
+  it('has no answer from one size alone', () => {
+    // Two runs of 192 points cannot say what a 193rd would cost.
+    assert.equal(marginalMsPerPoint([COARSE, { points: 192, ms: 22 }]), null);
+    assert.equal(marginalMsPerPoint([COARSE]), null);
+    assert.equal(marginalMsPerPoint([]), null);
+  });
+
+  it('ignores readings that are not measurements', () => {
+    const withJunk = [
+      COARSE,
+      FINE,
+      { points: 0, ms: 5 },
+      { points: 500, ms: 0 },
+      { points: 500, ms: Number.NaN },
+    ];
+    const clean = marginalMsPerPoint([COARSE, FINE]);
+    assert.equal(marginalMsPerPoint(withJunk), clean);
+  });
+
+  it('refuses a fit that noise has turned backwards', () => {
+    // A larger grid timed faster than a smaller one is noise, not a
+    // negative cost per point.
+    assert.equal(
+      marginalMsPerPoint([{ points: 192, ms: 90 }, { points: 640, ms: 40 }]),
+      null,
+    );
   });
 });

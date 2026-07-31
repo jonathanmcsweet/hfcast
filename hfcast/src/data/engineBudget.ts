@@ -87,18 +87,65 @@ export function fineGlobeAffordable(
 }
 
 /**
- * The median of the samples held, or null when there are none.
- *
- * A median rather than the newest reading or a mean. One run that
- * landed while the device was thermally throttled, or while another app
- * was compiling something, would otherwise flip the answer for a
- * feature that should not flicker on and off as a user changes bands.
+ * One timed run: how many points, and how long it took.
  */
-export function medianOf(samples: readonly number[]): number | null {
-  if (samples.length === 0) return null;
-  const sorted = [...samples].sort((a, b) => a - b);
-  const middle = Math.floor(sorted.length / 2);
-  return sorted.length % 2 === 1
-    ? (sorted[middle] as number)
-    : ((sorted[middle - 1] as number) + (sorted[middle] as number)) / 2;
+export interface CostSample {
+  points: number;
+  ms: number;
+}
+
+/**
+ * The marginal cost of one more grid point, in milliseconds.
+ *
+ * Not simply "time divided by points". A run has a fixed cost — loading
+ * coefficients, crossing into the native module, writing the antenna —
+ * that a small grid spreads over very few points. Measured on this
+ * desktop: 192 points in 20 ms is 0.104 ms a point, while 34,560 points
+ * in 1,353 ms is 0.039. The same engine, a factor of 2.7 apart, because
+ * the first figure is mostly fixed cost.
+ *
+ * The first version of this gate used the small run's figure directly
+ * and multiplied it by 34,560. That inflates the projection by the same
+ * factor, more on a phone where the fixed cost is a larger share, and it
+ * refused the fine grid on hardware that runs it comfortably — a Pixel 8
+ * among them. Fitting a line through one point assumes the intercept is
+ * zero, and here it is not.
+ *
+ * So the slope is fitted across runs of different sizes. The app makes
+ * them already: the coarse grid is 192 points and the viewport patch is
+ * a few hundred, both on every view. Least squares rather than a
+ * difference of two, because timings on a phone are noisy and every
+ * sample should count.
+ *
+ * Null until there are runs of at least two different sizes, because
+ * one size cannot separate the fixed cost from the marginal one.
+ */
+export function marginalMsPerPoint(
+  samples: readonly CostSample[],
+): number | null {
+  const usable = samples.filter(
+    (s) => s.points > 0 && Number.isFinite(s.ms) && s.ms > 0,
+  );
+  if (usable.length < 2) return null;
+  if (new Set(usable.map((s) => s.points)).size < 2) return null;
+
+  const meanPoints = usable.reduce((sum, s) => sum + s.points, 0)
+    / usable.length;
+  const meanMs = usable.reduce((sum, s) => sum + s.ms, 0) / usable.length;
+
+  const spread = usable.reduce(
+    (sum, s) => sum + (s.points - meanPoints) ** 2,
+    0,
+  );
+  const together = usable.reduce(
+    (sum, s) => sum + (s.points - meanPoints) * (s.ms - meanMs),
+    0,
+  );
+  if (spread <= 0) return null;
+
+  const slope = together / spread;
+  // A slope of zero or less is not a measurement of anything — it means
+  // the noise beat the signal, usually because the two sizes were close
+  // together. Better to wait for a run that separates them.
+  return slope > 0 ? slope : null;
 }

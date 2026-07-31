@@ -1,14 +1,20 @@
 import React, { useCallback, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { StyleSheet, View } from 'react-native';
-import { Text, useTheme } from 'react-native-paper';
-import { useCoverage, useCoveragePatch, useFineGlobe } from '../api/queries';
+import { ProgressBar, Text, useTheme } from 'react-native-paper';
+import {
+  useCoverage,
+  useCoveragePatch,
+  useFineGate,
+  useFineGlobe,
+} from '../api/queries';
 import { patchGrid } from '../data/coveragePatch';
 import { FINE_LAT_STEP } from '../data/fineGlobe';
 import { anyNvis, isNvis, nvisReachKm, qualityFor } from '../data/quality';
 import { cellFor } from '../data/selectors';
 import type { BandKey, MapRegion, PathPrediction } from '../data/types';
 import { useFormatters } from '../hooks/useFormatters';
+import { useHeldOn } from '../hooks/useHeldOn';
 import { numeric, radius, spacing, typography } from '../theme';
 import type { AppTheme } from '../theme';
 import { Card, Inset } from './Card';
@@ -43,6 +49,47 @@ const MAX_MAP = 322;
  * an operator actually starts from, and it makes the shape of the ionosphere
  * visible instead of asking anybody to imagine it.
  */
+/**
+ * How long the fine grid must be running before the map says so.
+ *
+ * Below this it is not a wait, it is a redraw: the server answers a
+ * repeat view from cache in about 76 ms. Above it there is something
+ * worth telling a reader about, because a cold run is about 440 ms
+ * through the server and a second or two on a device.
+ */
+const SHARPEN_HINT_AFTER_MS = 400;
+
+/**
+ * Which grid the map is drawn from, in words.
+ *
+ * The map shows coarse squares and fine ones the same way — as squares —
+ * so a reader looking at a coarse map cannot tell whether the fine one
+ * is still coming, was never going to come because this device is too
+ * slow for it, or arrived and covers only the area around the station.
+ * Those are three different situations and only one of them is worth
+ * waiting through. The progress bar above says that something is
+ * happening; this says what the map currently is.
+ *
+ * Null where there is nothing to say, which is a map with no detail
+ * layer of any kind on it.
+ */
+const detailKey = (
+  hasFine: boolean,
+  hasPatch: boolean,
+  gate: { affordable: boolean; msPerPoint: number | null; },
+): string | null => {
+  if (hasFine) return 'reach.detailWorld';
+  // Not affordable with nothing measured is not a refusal, it is a
+  // device that has not answered the question yet. The first coarse run
+  // and the first patch answer it between them.
+  if (!gate.affordable) {
+    return gate.msPerPoint === null
+      ? 'reach.detailMeasuring'
+      : 'reach.detailCoarse';
+  }
+  return hasPatch ? 'reach.detailNear' : null;
+};
+
 export default function ReachCard({
   prediction,
   band,
@@ -85,7 +132,15 @@ export default function ReachCard({
   // The whole-world fine grid. Asked once per band and hour, with
   // nothing about the view in its key, so panning and zooming never ask
   // again. It replaces the coarse cells when it lands.
-  const { data: fine } = useFineGlobe(prediction.from, band, hour);
+  const { data: fine, isFetching: fineRunning } = useFineGlobe(
+    prediction.from,
+    band,
+    hour,
+  );
+  // Held on rather than shown at once: a cached fine grid arrives in
+  // about 76 ms, and a bar that flashed on every band change would be
+  // noise. See `useHeldOn`.
+  const sharpening = useHeldOn(fineRunning, SHARPEN_HINT_AFTER_MS);
   // The viewport patch is only worth running where it can still buy
   // detail the globe does not hold — below the globe's own step, at the
   // deepest zoom. With a globe present and the view above that step, the
@@ -108,6 +163,10 @@ export default function ReachCard({
   // states had not changed. At the default view this is the same query
   // as the map's, so it costs nothing until the reader pans away.
   const { data: homePatch } = useCoveragePatch(prediction.from, band, hour);
+  // The same decision the fine query is enabled by, read here so the
+  // line under the map can say which of its outcomes happened.
+  const gate = useFineGate();
+  const detail = detailKey(Boolean(fine), Boolean(patch), gate);
 
   // Null for a survey, where the card answers "how much of the world" rather
   // than "will this reach one place".
@@ -197,6 +256,48 @@ export default function ReachCard({
           : null}
       </View>
 
+      {
+        /* The map is being made finer.
+
+           Under the map rather than over it, because the coarse answer
+           is already on screen and correct — this marks detail arriving,
+           not the map being unusable. The row is always present so its
+           appearance does not move anything below it.
+
+           The bar itself carries no text, so the label beside it is what
+           a screen reader announces. `accessibilityLiveRegion` says it
+           without moving focus, which matters here because the reader
+           may be somewhere else on the card when the grid lands. */
+      }
+      <View
+        style={styles.sharpenRow}
+        accessibilityLiveRegion="polite"
+        accessibilityLabel={sharpening ? t('reach.mapSharpening') : ''}
+      >
+        {sharpening
+          ? (
+            <ProgressBar
+              indeterminate
+              color={ui.accent}
+              style={styles.sharpenBar}
+            />
+          )
+          : null}
+      </View>
+
+      {
+        /* Which grid is on the screen. Placed with the legend rather
+           than with the answer above, because it describes how the map
+           was drawn and not what it says. */
+      }
+      {detail
+        ? (
+          <Text style={[typography.caption, { color: ui.text3 }]}>
+            {t(detail, { place: prediction.from.label })}
+          </Text>
+        )
+        : null}
+
       <MapLegend hasNvis={homePatch ? anyNvis(homePatch.points) : false} />
 
       {
@@ -240,6 +341,10 @@ export default function ReachCard({
 }
 
 const styles = StyleSheet.create({
+  // Always present, so the bar arriving and leaving does not move the
+  // legend and the sentences under it.
+  sharpenRow: { height: 3, justifyContent: 'center' },
+  sharpenBar: { height: 3 },
   head: { gap: spacing.xs },
   readoutRow: {
     flexDirection: 'row',

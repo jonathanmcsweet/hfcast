@@ -298,5 +298,12 @@ const styles = StyleSheet.create({
   search: { marginTop: spacing.md },
   spinner: { marginTop: spacing.md },
   message: { marginTop: spacing.md },
-  list: { marginTop: spacing.sm },
+  // `flexShrink` is what makes this scroll. The modal has a maximum
+  // height, and without it the list asks for the height of all its rows,
+  // is given that height, and is then clipped by the modal — so the rows
+  // past the bottom edge exist, take part in layout, and cannot be
+  // reached by any gesture. Allowed to shrink, it takes the space that
+  // is left over and scrolls inside it. Five Springfields in the United
+  // States is where this was found.
+  list: { marginTop: spacing.sm, flexShrink: 1 },
 });
