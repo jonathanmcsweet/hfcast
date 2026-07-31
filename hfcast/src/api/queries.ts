@@ -11,7 +11,7 @@ import { patchGrid, patchKey } from '../data/coveragePatch';
 import {
   calibrationWorthwhile,
   fineGlobeAffordable,
-  marginalMsPerPoint,
+  fitRunCost,
   projectedFineMs,
 } from '../data/engineBudget';
 import { fetchGeocode as fetchGeocodeDirect } from '../data/geocode';
@@ -534,9 +534,10 @@ export function useCoverage(
  *
  * The device has to be able to afford it, when the device is the one
  * answering. That is measured rather than assumed — see
- * `engineBudget.ts` — from the coarse run the app already makes. It is
- * false until the first coarse run has been timed, so an unknown device
- * spends one band change finding out rather than one full fine run.
+ * `engineBudget.ts` — from two probe runs shaped like the fine grid and
+ * cut into the same strips. It is false until those have been timed, so
+ * an unknown device spends a fraction of a second finding out rather
+ * than one full fine run.
  *
  * Where the server answers, there is nothing to gate: it shards across
  * processes and replies in about 440 ms whatever the phone is.
@@ -554,39 +555,59 @@ export function useFineGate() {
   const local = canMapLocally();
   // Subscribed rather than read once, so a device that has just taken
   // its first measurement turns the globe on without needing another
-  // reason to re-render.
-  const samples = useEngineCost((state) => state.samples);
-  const msPerPoint = marginalMsPerPoint(samples);
+  // reason to re-render. The sharded readings, because the fine grid is
+  // sharded — the whole runs beside them describe different work.
+  const sharded = useEngineCost((state) => state.sharded);
+  const cost = fitRunCost(sharded);
   return {
     /** True when this device runs the engine itself. */
     local,
-    /** How many grid sizes have been timed. */
-    sampleCount: samples.length,
+    /** How many sharded grid sizes have been timed. */
+    sampleCount: sharded.length,
     /** Null until two sizes far enough apart have been seen. */
-    msPerPoint,
+    msPerPoint: cost?.msPerPoint ?? null,
     /** What the fine grid is expected to cost here, in milliseconds. */
-    projectedMs: projectedFineMs(msPerPoint),
+    projectedMs: projectedFineMs(cost),
     /** Nothing to weigh where the server answers. */
-    affordable: !local || fineGlobeAffordable(msPerPoint),
-    /** True while a deliberately larger run would settle the question. */
-    calibrating: local && calibrationWorthwhile(samples),
+    affordable: !local || fineGlobeAffordable(cost),
+    /**
+     * True while the probes are still running. The first probe is taken
+     * unconditionally on a device that runs the engine, because it is
+     * the measurement everything else here is read from.
+     */
+    calibrating: local
+      && (sharded.length === 0 || calibrationWorthwhile(sharded)),
   };
 }
 
 /**
- * Times one larger run, once, so the gate has something to fit.
+ * Times the probe runs, once, so the gate has something to fit.
  *
- * The app's ordinary runs are all about the same size, and a slope
- * cannot be read from those — see `MIN_LEVERAGE`. This runs when the
- * question is still open and stops as soon as it is settled, in either
- * direction: a fit that arrives disables it, and so does a rough figure
- * far enough over budget that no measurement would change the answer.
+ * The app's ordinary runs are all about the same size and none of them
+ * is sharded, so neither the slope nor the strips can be read from them
+ * — see `MIN_LEVERAGE`. This runs while the question is still open and
+ * stops as soon as it is settled, in either direction: a fit that
+ * arrives disables it, and so does a rough figure far enough over budget
+ * that no further measurement would change the answer.
  *
  * Nothing on screen depends on it, so it neither retries nor reports.
  * A device that fails it keeps the coarse map, which is what it would
  * have had anyway.
  */
-export function useEngineCalibration(from: Endpoint, band: BandKey) {
+export function useEngineCalibration(
+  from: Endpoint,
+  band: BandKey,
+  /**
+   * Whether the coarse map has landed.
+   *
+   * The native module runs one prediction at a time, on purpose, so a
+   * probe started before the coarse map is a probe the coarse map queues
+   * behind. The map is what the reader is waiting for; the probe is for
+   * a decision they have not asked about yet. So the probe waits, and on
+   * every device the first thing to paint is still the map.
+   */
+  after: boolean,
+) {
   const date = today();
   const station = useStation();
   const nowcast = nowcastFrom(useSpaceWeather().data);
@@ -606,7 +627,7 @@ export function useEngineCalibration(from: Endpoint, band: BandKey) {
         station: station.station,
         nowcast,
       }),
-    enabled: calibrating && !station.editing,
+    enabled: after && calibrating && !station.editing,
     staleTime: Number.POSITIVE_INFINITY,
     gcTime: Number.POSITIVE_INFINITY,
     retry: false,

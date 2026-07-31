@@ -15,6 +15,8 @@ import { requireOptionalNativeModule } from 'expo-modules-core';
 interface Native {
   /** A directory the app may write engine input files into. */
   scratchDirectory(): string;
+  /** How many cores this device will schedule on. Absent from older builds. */
+  cores?(): number;
   /** Writes one file under that directory and returns its full path. */
   writeFile(name: string, contents: string): Promise<string>;
   /** One request object as JSON, one answer object as JSON. */
@@ -80,6 +82,24 @@ export async function predict<T>(request: unknown): Promise<T> {
 /** Whether this build can run a batch across several threads. */
 export const canBatch = (): boolean =>
   native !== null && typeof native.predictMany === 'function';
+
+/**
+ * How many cores this device will schedule a batch on.
+ *
+ * Four where the answer is not available — an older build of the module, or
+ * no module at all on web. Four rather than one because the callers use this
+ * to size a batch, and sizing it at one on a device that has eight would give
+ * up the whole reason the batch exists. A device that really has fewer cores
+ * than this says loses nothing: the strips still run, sharing what there is.
+ */
+export const DEFAULT_CORES = 4;
+
+export function cores(): number {
+  const count = native?.cores?.();
+  return typeof count === 'number' && Number.isFinite(count) && count >= 1
+    ? Math.floor(count)
+    : DEFAULT_CORES;
+}
 
 /**
  * Runs several requests as one batch, across several threads.

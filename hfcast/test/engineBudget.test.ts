@@ -8,27 +8,61 @@ import {
   FINE_BUDGET_MS,
   FINE_GRID_POINTS,
   fineGlobeAffordable,
+  fitRunCost,
   keepFastest,
   marginalMsPerPoint,
+  MAX_THREADS,
   MIN_LEVERAGE,
-  naiveMsPerPoint,
-  PROBE_LAT_STEP,
-  PROBE_LON_STEP,
-  PROBE_POINTS,
+  naiveCost,
+  PROBE_LARGE_LAT_STEP,
+  PROBE_LARGE_LON_STEP,
+  PROBE_LARGE_POINTS,
+  PROBE_SMALL_LAT_STEP,
+  PROBE_SMALL_LON_STEP,
+  PROBE_SMALL_POINTS,
   projectedFineMs,
-  STRIP_SPEEDUP,
+  stripsFor,
+  STRIPS_PER_THREAD,
+  threadsFor,
 } from '../src/data/engineBudget.ts';
-import { FINE_POINTS } from '../src/data/fineGlobe.ts';
+import {
+  FINE_LAT_STEP,
+  FINE_LON_STEP,
+  FINE_POINTS,
+} from '../src/data/fineGlobe.ts';
+import { latShards, MIN_SHARD_POINTS, pointCount } from '../src/data/shard.ts';
 
 /**
- * Costs per point measured on this desktop, and the device multiples
- * the plan records: a current phone is 1.7 to 3.4 times this desktop,
- * quad-A53 tablets roughly 8 to 12 times.
+ * Devices, described the way the probes would see them.
  *
- * The desktop figure comes from the whole-world fine run: 1,353 ms for
- * 34,560 points on one process.
+ * Each is a fixed cost — one coefficient load per strip, and the strips
+ * run in as many rounds as they need — plus a per-point cost already
+ * divided by the threads that share it. That is exactly what a sharded
+ * run costs, so a probe reading is `fixedMs + points * msPerPoint` and
+ * the fit is being asked to recover the two numbers it was built from.
  */
-const DESKTOP_MS_PER_POINT = 1353 / 34560;
+const probe = (
+  device: { fixedMs: number; msPerPoint: number; },
+  points: number,
+): CostSample => ({
+  points,
+  ms: device.fixedMs + points * device.msPerPoint,
+});
+
+const small = (device: { fixedMs: number; msPerPoint: number; }) =>
+  probe(device, PROBE_SMALL_POINTS);
+const large = (device: { fixedMs: number; msPerPoint: number; }) =>
+  probe(device, PROBE_LARGE_POINTS);
+
+/**
+ * A current phone: eight cores, so sixteen strips in two rounds, and
+ * about five times this desktop on one core. This is the device the
+ * guessed speedup refused — see the test that says so.
+ */
+const PHONE = { fixedMs: 32, msPerPoint: 0.194 / 8 };
+
+/** A quad-A53 tablet: four cores, and ten times this desktop on one. */
+const TABLET = { fixedMs: 40, msPerPoint: 0.388 / 4 };
 
 describe('deciding whether a device can afford the fine grid', () => {
   it('counts the same grid the packing does', () => {
@@ -37,17 +71,18 @@ describe('deciding whether a device can afford the fine grid', () => {
     assert.equal(FINE_GRID_POINTS, FINE_POINTS);
   });
 
-  it('says yes to this desktop and to a current phone', () => {
-    assert.ok(fineGlobeAffordable(DESKTOP_MS_PER_POINT));
-    // The slow end of "a current phone", 3.4 times this desktop.
-    assert.ok(fineGlobeAffordable(DESKTOP_MS_PER_POINT * 3.4));
+  it('says yes to a current phone, from its own two probes', () => {
+    const cost = fitRunCost([small(PHONE), large(PHONE)]);
+    assert.ok(cost !== null);
+    assert.ok(fineGlobeAffordable(cost));
+    // Under a second, against a budget of two and a half.
+    const projected = projectedFineMs(cost);
+    assert.ok(projected !== null && projected < 1000, `${projected}`);
   });
 
-  it('says no to a quad-A53 tablet', () => {
-    // 8 times this desktop is the optimistic end of that class, and it
-    // is already over budget. This is the case the gate exists for.
-    assert.equal(fineGlobeAffordable(DESKTOP_MS_PER_POINT * 8), false);
-    assert.equal(fineGlobeAffordable(DESKTOP_MS_PER_POINT * 12), false);
+  it('says no to a quad-A53 tablet, from its own two probes', () => {
+    const cost = fitRunCost([small(TABLET), large(TABLET)]);
+    assert.equal(fineGlobeAffordable(cost), false);
   });
 
   it('says no before anything has been measured', () => {
@@ -61,38 +96,174 @@ describe('deciding whether a device can afford the fine grid', () => {
     // A zero or a negative reading would project to nothing and turn
     // the grid on everywhere.
     for (const bad of [0, -1, Number.NaN, Number.POSITIVE_INFINITY]) {
-      assert.equal(projectedFineMs(bad), null, `${bad}`);
-      assert.equal(fineGlobeAffordable(bad), false, `${bad}`);
+      const cost = { fixedMs: 0, msPerPoint: bad };
+      assert.equal(projectedFineMs(cost), null, `${bad}`);
+      assert.equal(fineGlobeAffordable(cost), false, `${bad}`);
+    }
+    // And a fixed cost that is not a number is not one either.
+    assert.equal(projectedFineMs({ fixedMs: Number.NaN, msPerPoint: 1 }), null);
+    assert.equal(projectedFineMs({ fixedMs: -5, msPerPoint: 1 }), null);
+  });
+
+  it('counts the fixed cost the strips add, not only the points', () => {
+    // Sixteen strips are sixteen coefficient loads. Dropping the
+    // intercept would understate every sharded run by that whole amount,
+    // and it is the part that does not shrink as the grid grows.
+    const cost = { fixedMs: 32, msPerPoint: 0.0121 };
+    assert.equal(projectedFineMs(cost), 32 + 0.0121 * FINE_GRID_POINTS);
+    assert.notEqual(projectedFineMs(cost), 0.0121 * FINE_GRID_POINTS);
+  });
+});
+
+describe('measuring what the strips recover instead of assuming it', () => {
+  /**
+   * The defect this replaced. The gate timed one single-threaded run and
+   * divided by 2.5, a number written down rather than measured. The
+   * engine's own figures put eight-way sharding at 5.7, so the divisor
+   * was low by more than a factor of two — and a divisor that is too low
+   * makes the projection too high, which refuses devices.
+   */
+  const GUESSED_SPEEDUP = 2.5;
+
+  it('accepts a phone the guessed speedup refused', () => {
+    // The same phone, measured both ways. One thread over the whole
+    // grid, divided by the guess:
+    const guessed = (FINE_GRID_POINTS * 0.194) / GUESSED_SPEEDUP;
+    assert.ok(guessed > FINE_BUDGET_MS, `${guessed}`);
+
+    // And measured on the run that will actually happen:
+    const measured = projectedFineMs(fitRunCost([small(PHONE), large(PHONE)]));
+    assert.ok(measured !== null);
+    assert.ok(measured < FINE_BUDGET_MS, `${measured}`);
+    // Not marginally, either — the guess was wrong by about three times.
+    assert.ok(guessed / measured > 2.5, `${guessed / measured}`);
+  });
+
+  it('recovers both parts of the cost it was built from', () => {
+    // The fit is not being asked to be clever, only to be right: these
+    // readings were constructed from a known fixed and per-point cost,
+    // and it has to hand both of them back.
+    const cost = fitRunCost([small(PHONE), large(PHONE)]);
+    assert.ok(cost !== null);
+    assert.ok(Math.abs(cost.fixedMs - PHONE.fixedMs) < 0.5, `${cost.fixedMs}`);
+    assert.ok(
+      Math.abs(cost.msPerPoint - PHONE.msPerPoint) < 1e-6,
+      `${cost.msPerPoint}`,
+    );
+  });
+
+  it('sizes the two probes past the leverage a fit needs', () => {
+    assert.equal(PROBE_SMALL_POINTS, 3072);
+    assert.equal(PROBE_LARGE_POINTS, 13824);
+    assert.ok(PROBE_LARGE_POINTS >= PROBE_SMALL_POINTS * MIN_LEVERAGE);
+    // Whole rows and columns on both axes, or the engine snaps to a
+    // different lattice and the strips cut between rows that are not
+    // where `shard.ts` thinks they are.
+    for (const step of [PROBE_SMALL_LAT_STEP, PROBE_LARGE_LAT_STEP]) {
+      assert.equal(180 % step, 0, `lat ${step}`);
+    }
+    for (const step of [PROBE_SMALL_LON_STEP, PROBE_LARGE_LON_STEP]) {
+      assert.equal(360 % step, 0, `lon ${step}`);
     }
   });
 
-  it('projects the time the strips are expected to leave', () => {
-    const projected = projectedFineMs(DESKTOP_MS_PER_POINT);
-    assert.ok(projected !== null);
-    assert.equal(projected, (1353 * 34560) / 34560 / STRIP_SPEEDUP);
-    // Which is well inside the budget, as measured: 376 ms in four
-    // strips against a 2,500 ms allowance.
-    assert.ok(projected < FINE_BUDGET_MS);
+  it('keeps the probes well short of the grid they stand in for', () => {
+    // They exist to avoid running the fine grid on a device that cannot
+    // hold it. Both together are about 40 percent of one fine grid, so
+    // the worst case — a slow device that probes and is then refused —
+    // costs less than the single run it prevented.
+    const both = PROBE_SMALL_POINTS + PROBE_LARGE_POINTS;
+    assert.ok(both < FINE_GRID_POINTS / 2, `${both}`);
+  });
+});
+
+describe('sizing the batch to the device that runs it', () => {
+  it('uses every core it is told about, up to a limit', () => {
+    assert.equal(threadsFor(8), 8);
+    assert.equal(threadsFor(6), 6);
+    assert.equal(threadsFor(16), MAX_THREADS);
   });
 
-  it('finds the boundary where the answer turns over', () => {
-    // Written as a search rather than a constant so the number cannot
-    // silently drift when a budget or a speedup changes.
-    const limit = (FINE_BUDGET_MS * STRIP_SPEEDUP) / FINE_GRID_POINTS;
-    assert.ok(fineGlobeAffordable(limit));
-    assert.equal(fineGlobeAffordable(limit * 1.001), false);
-    // As a multiple of this desktop, so it can be compared with a
-    // device: about five times slower is where it stops.
-    assert.ok(limit / DESKTOP_MS_PER_POINT > 4);
-    assert.ok(limit / DESKTOP_MS_PER_POINT < 6);
+  it('never asks for fewer than two', () => {
+    // A device reporting one core is more likely to be reporting badly
+    // than to have one, and two strips on one core cost only the second
+    // strip's coefficient load.
+    assert.equal(threadsFor(1), 2);
+    assert.equal(threadsFor(0), 4);
+    assert.equal(threadsFor(Number.NaN), 4);
+    assert.equal(threadsFor(-3), 4);
+  });
+
+  it('cuts more strips than there are threads', () => {
+    // So a fast core that finishes early takes the next strip off the
+    // queue instead of waiting for a slow one. On a big.LITTLE phone the
+    // slow cores take two to three times as long over the same strip,
+    // and one strip per thread would end the run at their pace.
+    assert.equal(stripsFor(8), 8 * STRIPS_PER_THREAD);
+    assert.ok(stripsFor(8) > threadsFor(8));
+    assert.ok(STRIPS_PER_THREAD >= 2);
+  });
+
+  it('cuts whole strips', () => {
+    for (const cores of [1, 2, 3, 4, 6, 8, 12, 16]) {
+      assert.equal(stripsFor(cores) % 1, 0, `${cores}`);
+      assert.equal(stripsFor(cores) % threadsFor(cores), 0, `${cores}`);
+    }
+  });
+});
+
+describe('cutting the probes exactly as the fine grid is cut', () => {
+  /**
+   * The assumption the whole fit rests on, checked against the code that
+   * does the cutting rather than asserted in a comment.
+   *
+   * A line through the two probes only passes through the fine grid if
+   * all three runs share one fixed cost and one per-point cost. The
+   * fixed cost is one coefficient load per strip, so they have to be cut
+   * into the same number of strips — if the probes ran in four and the
+   * fine grid in sixteen, the fit would describe a run that never
+   * happens, and it would understate the real one by twelve loads.
+   */
+  const GRIDS = [
+    ['small', PROBE_SMALL_LAT_STEP, PROBE_SMALL_LON_STEP, PROBE_SMALL_POINTS],
+    ['large', PROBE_LARGE_LAT_STEP, PROBE_LARGE_LON_STEP, PROBE_LARGE_POINTS],
+    ['fine grid', FINE_LAT_STEP, FINE_LON_STEP, FINE_POINTS],
+  ] as const;
+
+  it('covers the points each grid is said to cover', () => {
+    // The engine snaps a step to a whole number of bands. Where it snaps
+    // to something other than the step asked for, the constants above
+    // would describe a grid the engine does not run.
+    for (const [name, lat, lon, points] of GRIDS) {
+      assert.equal(pointCount(undefined, lat, lon), points, name);
+    }
+  });
+
+  it('cuts all three into the same number of strips', () => {
+    for (const cores of [2, 4, 8, 16]) {
+      const counts = GRIDS.map(([name, lat, lon]) => {
+        const strips = latShards(undefined, lat, lon, stripsFor(cores));
+        assert.ok(strips !== null, `${name} at ${cores} cores`);
+        return strips.length;
+      });
+      assert.equal(new Set(counts).size, 1, `${cores} cores: ${counts}`);
+      assert.equal(counts[0], stripsFor(cores), `${cores} cores`);
+    }
+  });
+
+  it('keeps the small probe worth sharding at all', () => {
+    // Below this the per-strip loads are most of the run and splitting
+    // makes it slower — and a probe that was not sharded would measure
+    // the wrong thing entirely.
+    assert.ok(PROBE_SMALL_POINTS > MIN_SHARD_POINTS);
   });
 });
 
 describe("separating a run's fixed cost from its per-point cost", () => {
   // The desktop figures this gate was corrected against: a 192-point
-  // coarse run and a 34,560-point fine run, same engine, same machine.
-  // Their naive per-point costs differ by 2.7 times, entirely because
-  // the small run is mostly fixed cost.
+  // coarse run and a 34,560-point fine run, same engine, same machine,
+  // both on one thread. Their naive per-point costs differ by 2.7 times,
+  // entirely because the small run is mostly fixed cost.
   const COARSE = { points: 192, ms: 20 };
   const FINE = { points: 34560, ms: 1353 };
 
@@ -104,70 +275,26 @@ describe("separating a run's fixed cost from its per-point cost", () => {
     assert.ok(fitted < COARSE.ms / COARSE.points / 2);
   });
 
-  it('lets a capable phone through, where the old model refused it', () => {
-    // This is the defect the first version shipped with. A phone about
-    // 2.5 times this desktop, measured against the calibration run
-    // rather than against a patch 64 points larger than the coarse grid.
-    const phone = [{ points: 192, ms: 50 }, { points: PROBE_POINTS, ms: 330 }];
-    const fitted = marginalMsPerPoint(phone);
-    assert.ok(fitted !== null);
-    assert.ok(fineGlobeAffordable(fitted), `fitted ${fitted}`);
-    // Dividing the coarse run by its point count says no, wrongly.
-    assert.equal(fineGlobeAffordable(50 / 192), false);
-  });
-
-  it('still refuses a genuinely slow device', () => {
-    // A quad-A53 tablet: same shape of numbers, ten times the scale.
-    const tablet = [
-      { points: 192, ms: 500 },
-      { points: PROBE_POINTS, ms: 3300 },
-    ];
-    assert.equal(fineGlobeAffordable(marginalMsPerPoint(tablet)), false);
-  });
-
   it('has no answer from one size alone', () => {
     // Two runs of 192 points cannot say what a 193rd would cost.
     assert.equal(marginalMsPerPoint([COARSE, { points: 192, ms: 22 }]), null);
     assert.equal(marginalMsPerPoint([COARSE]), null);
     assert.equal(marginalMsPerPoint([]), null);
+    assert.equal(fitRunCost([small(PHONE)]), null);
   });
 
   it('has no answer from two sizes that are too close together', () => {
-    // The defect the second version shipped with, in the numbers a
-    // Pixel 8 actually produced. The app timed 192 points and 256
-    // points; the 64 between them are worth about 5 ms and the noise on
-    // one reading was 25, so the fitted slope was noise with a units
-    // label. It read 0.70 ms a point where the truth is near 0.08, and
-    // the gate refused a phone that runs the fine grid comfortably.
+    // The defect an earlier version shipped with, in the numbers a Pixel
+    // 8 actually produced. The app timed 192 points and 256 points; the
+    // 64 between them are worth about 5 ms and the noise on one reading
+    // was 25, so the fitted slope was noise with a units label. It read
+    // 0.70 ms a point where the truth is near 0.08, and the gate refused
+    // a phone that runs the fine grid comfortably.
     const pixel8 = [{ points: 192, ms: 51 }, { points: 256, ms: 62 }];
     assert.equal(marginalMsPerPoint(pixel8), null);
-    // Which must read as "not known yet", not as "too slow".
-    assert.ok(calibrationWorthwhile(pixel8));
+    assert.equal(fitRunCost(pixel8), null);
   });
 
-  it('accepts two sizes once they are far enough apart', () => {
-    // The same phone, with the calibration run added: 3,072 points at a
-    // true marginal cost near 0.08 ms and a fixed cost near 45 ms.
-    const withProbe = [
-      { points: 192, ms: 51 },
-      { points: 256, ms: 62 },
-      { points: PROBE_POINTS, ms: 290 },
-    ];
-    const fitted = marginalMsPerPoint(withProbe);
-    assert.ok(fitted !== null);
-    assert.ok(fitted < 0.12, `${fitted}`);
-    assert.ok(fineGlobeAffordable(fitted), `${fitted}`);
-    // And once it is settled, there is nothing left to calibrate.
-    assert.equal(calibrationWorthwhile(withProbe), false);
-  });
-
-  it('sizes the calibration run past the leverage it has to provide', () => {
-    assert.equal(PROBE_POINTS, 3072);
-    assert.ok(PROBE_POINTS >= 192 * MIN_LEVERAGE);
-    // Whole rows and columns, or the engine runs a different grid.
-    assert.equal(180 % PROBE_LAT_STEP, 0);
-    assert.equal(360 % PROBE_LON_STEP, 0);
-  });
   it('ignores readings that are not measurements', () => {
     const withJunk = [
       COARSE,
@@ -176,8 +303,10 @@ describe("separating a run's fixed cost from its per-point cost", () => {
       { points: 500, ms: 0 },
       { points: 500, ms: Number.NaN },
     ];
-    const clean = marginalMsPerPoint([COARSE, FINE]);
-    assert.equal(marginalMsPerPoint(withJunk), clean);
+    assert.equal(marginalMsPerPoint(withJunk), marginalMsPerPoint([
+      COARSE,
+      FINE,
+    ]));
   });
 
   it('refuses a fit that noise has turned backwards', () => {
@@ -188,58 +317,90 @@ describe("separating a run's fixed cost from its per-point cost", () => {
       null,
     );
   });
+
+  it('never reports a negative fixed cost', () => {
+    // Noise can put the fitted line's intercept below zero. The slope it
+    // came with is still usable, so the intercept is clamped rather than
+    // the whole fit refused — but a negative fixed cost would subtract
+    // from every projection, which is the unsafe direction.
+    const noisy = [{ points: 3072, ms: 20 }, { points: 13824, ms: 200 }];
+    const cost = fitRunCost(noisy);
+    assert.ok(cost !== null);
+    assert.ok(cost.fixedMs >= 0, `${cost.fixedMs}`);
+  });
+
+  it('improves once the fine grid itself has run', () => {
+    // The real run is the best sample there is: the exact size the
+    // projection is about, cut exactly as the probes were. After it, the
+    // fit is no longer an extrapolation.
+    const withReal = [
+      small(PHONE),
+      large(PHONE),
+      probe(PHONE, FINE_GRID_POINTS),
+    ];
+    const projected = projectedFineMs(fitRunCost(withReal));
+    const truth = probe(PHONE, FINE_GRID_POINTS).ms;
+    assert.ok(projected !== null);
+    assert.ok(Math.abs(projected - truth) < 1, `${projected} vs ${truth}`);
+  });
 });
 
 describe('deciding whether to spend a run on measuring properly', () => {
   it('does not measure a device that is obviously far too slow', () => {
-    // A quad-A53 tablet: 192 points in half a second. Even read the way
-    // that most flatters it, the fine grid is half a minute, and no
+    // Ten times the quad-A53 tablet. Even read the way that most
+    // flatters it, the fine grid is over half a minute, and no further
     // measurement would change that answer — so it is not worth the
-    // seconds a calibration run would cost such a device.
-    assert.equal(calibrationWorthwhile([{ points: 192, ms: 500 }]), false);
+    // seconds the large probe would cost such a device.
+    const hopeless = { fixedMs: 400, msPerPoint: TABLET.msPerPoint * 10 };
+    assert.equal(calibrationWorthwhile([small(hopeless)]), false);
   });
 
-  it('measures wherever the answer is still open', () => {
-    // A Pixel 8's own readings. The rough figure puts it over budget,
-    // but only by a little, and the rough figure always overstates —
-    // so this is exactly the case a real measurement decides.
-    const pixel8 = [{ points: 192, ms: 51 }, { points: 256, ms: 62 }];
-    assert.ok(calibrationWorthwhile(pixel8));
+  it('measures a device that is only somewhat over budget', () => {
+    // The tablet is about 1.4 times the budget on the rough reading,
+    // which is well inside the range where a proper fit decides it.
+    assert.ok(calibrationWorthwhile([small(TABLET)]));
+  });
+
+  it('measures a device sitting right at the boundary', () => {
+    // The case the whole thing exists for. The rough figure always
+    // overstates, so a device at exactly the budget looks over it — and
+    // must still be measured rather than refused.
+    const boundary = {
+      fixedMs: 32,
+      msPerPoint: (FINE_BUDGET_MS - 32) / FINE_GRID_POINTS,
+    };
+    assert.ok(calibrationWorthwhile([small(boundary)]));
   });
 
   it('has nothing to say before any run at all', () => {
-    assert.equal(naiveMsPerPoint([]), null);
+    assert.equal(naiveCost([]), null);
     assert.equal(calibrationWorthwhile([]), false);
   });
 
-  it('stops once there is a slope to read', () => {
-    const settled = [
-      { points: 192, ms: 51 },
-      { points: PROBE_POINTS, ms: 290 },
-    ];
-    assert.ok(marginalMsPerPoint(settled) !== null);
-    assert.equal(calibrationWorthwhile(settled), false);
+  it('stops once there is a fit to read', () => {
+    assert.ok(fitRunCost([small(PHONE), large(PHONE)]) !== null);
+    assert.equal(calibrationWorthwhile([small(PHONE), large(PHONE)]), false);
   });
 
   it('reads the rough figure from the fastest run, not the average', () => {
     // A run can be delayed and cannot be hurried, so the smallest
     // reading is the one nearest the truth.
     const noisy = [{ points: 192, ms: 100 }, { points: 256, ms: 62 }];
-    assert.equal(naiveMsPerPoint(noisy), 62 / 256);
+    assert.deepEqual(naiveCost(noisy), { fixedMs: 0, msPerPoint: 62 / 256 });
   });
 
   it('never understates the marginal cost', () => {
     // The rough figure spreads a run's fixed cost over its points, so it
     // can only ever be too high. That is what makes it safe to refuse a
     // device on, and unsafe to accept one on.
-    const samples = [{ points: 192, ms: 51 }, {
-      points: PROBE_POINTS,
-      ms: 290,
-    }];
-    const rough = naiveMsPerPoint(samples);
-    const fitted = marginalMsPerPoint(samples);
+    const samples = [small(PHONE), large(PHONE)];
+    const rough = naiveCost(samples);
+    const fitted = fitRunCost(samples);
     assert.ok(rough !== null && fitted !== null);
-    assert.ok(rough > fitted, `${rough} !> ${fitted}`);
+    assert.ok(
+      rough.msPerPoint > fitted.msPerPoint,
+      `${rough.msPerPoint} !> ${fitted.msPerPoint}`,
+    );
   });
 });
 
@@ -257,15 +418,16 @@ describe('what the device remembers about its own speed', () => {
   });
 
   it('holds one entry per size rather than one per run', () => {
-    // The reason it must: the calibration run happens once and the
-    // coarse run happens constantly. A rolling window of runs would push
-    // the one measurement that carries the leverage straight back out.
+    // The reason it must: the probes happen once and the coarse run
+    // happens constantly. A rolling window of runs would push the
+    // measurement that carries the leverage straight back out.
     const runs = Array.from({ length: 40 }, () => ({ points: 192, ms: 60 }));
-    const held = [{ points: PROBE_POINTS, ms: 290 }, ...runs].reduce<
-      CostSample[]
-    >((seen, next) => keepFastest(seen, next), []);
+    const held = [large(PHONE), ...runs].reduce<CostSample[]>(
+      (seen, next) => keepFastest(seen, next),
+      [],
+    );
     assert.equal(held.length, 2);
-    assert.ok(held.some((s) => s.points === PROBE_POINTS));
+    assert.ok(held.some((s) => s.points === PROBE_LARGE_POINTS));
     assert.ok(marginalMsPerPoint(held) !== null);
   });
 
