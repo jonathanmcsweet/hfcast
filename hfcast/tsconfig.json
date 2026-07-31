@@ -23,5 +23,13 @@
     // No `baseUrl`: TypeScript 6 deprecates it, and without one `paths` is
     // read relative to this file, which is where it pointed anyway.
     "paths": { "@/*": ["./src/*"] }
-  }
+  },
+  // `legacy/` holds the files `tools/build-android.sh` copies over their
+  // modern counterparts in the legacy tree — `render/skia.ts` and
+  // `render/CellLayer.tsx` stand in for the Skia seam, which the legacy
+  // dependency set does not contain. Their imports are written for where
+  // they land, `src/render/`, not for where they sit, so they only
+  // resolve after the copy. They are checked there, by the legacy tree's
+  // own typecheck.
+  "exclude": ["node_modules", "legacy", "build", "dist"]
 }

@@ -493,6 +493,75 @@ export interface MapView {
 export const MIN_SCALE = 1;
 
 /**
+ * Where the view puts a disc point on the screen, in both the forms the
+ * map needs to draw it.
+ *
+ * The map is drawn on two surfaces at once: a Skia canvas carrying the
+ * cell field, and an SVG layer over it carrying the coast, the rings,
+ * the night cap and the markers. They place a point by different means —
+ * SVG through a `viewBox` string, Skia through a matrix — and if the two
+ * ever disagree the coastlines slide off the cells. That is the first
+ * fault a reader sees, and it does not look like a rounding error; it
+ * looks like the map is wrong about where land is.
+ *
+ * So neither renderer computes this. Both take it from here, and
+ * `projection.test.ts` checks that a point lands on the same pixel
+ * through both.
+ *
+ * `scale`, `tx` and `ty` are a similarity transform: multiply, then
+ * offset. That is all an azimuthal disc under a square window needs —
+ * the window is square and the zoom is uniform, so there is no rotation
+ * and no aspect to carry.
+ */
+export interface ViewTransform {
+  /** For `<Svg viewBox=…>`. */
+  viewBox: string;
+  /** Uniform, so one number serves both axes. */
+  scale: number;
+  tx: number;
+  ty: number;
+}
+
+export function viewTransform(view: MapView, size: number): ViewTransform {
+  // The viewBox is text, and text is rounded. Both layers are then
+  // derived from the rounded numbers rather than from the exact ones,
+  // because SVG can only use what the string says.
+  //
+  // Rounding the window's *width* is what makes this matter: it changes
+  // the scale SVG actually applies, by size/round(w) against size/w, and
+  // that error multiplies with distance from the window's corner. At the
+  // 30x ceiling it reached 1.35 px — small as a number, but it is the
+  // coastlines sliding off the cells, which reads as the map being wrong
+  // about where land is.
+  const round = (n: number) => Number(n.toFixed(2));
+
+  const windowSize = round(size / view.scale);
+  const minX = round(view.cxF * size - windowSize / 2);
+  const minY = round(view.cyF * size - windowSize / 2);
+
+  // SVG is given the window in disc units and fits it to the element.
+  // Skia is given the same mapping written out: a point at `minX` lands
+  // at 0, and one disc unit becomes `scale` pixels.
+  const scale = size / windowSize;
+
+  return {
+    viewBox: [minX, minY, windowSize, windowSize]
+      .map((n) => n.toFixed(2))
+      .join(' '),
+    scale,
+    tx: -minX * scale,
+    ty: -minY * scale,
+  };
+}
+
+/** A disc point in screen pixels. The canvas draws through this. */
+export const toScreen = (
+  t: ViewTransform,
+  x: number,
+  y: number,
+): [number, number] => [x * t.scale + t.tx, y * t.scale + t.ty];
+
+/**
  * The part of the world the map is showing, in degrees.
  *
  * The centre comes back through the projection's inverse, which is
