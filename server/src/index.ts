@@ -47,6 +47,7 @@ import {
   BAND_ORDER,
   type BandKey,
   type Endpoint,
+  type MapRegion,
   type PredictionResponse,
   type SpaceWeather,
 } from './types.ts';
@@ -324,7 +325,49 @@ async function handleCoverage(url: URL) {
  * about where it is rather than a failure — see `coveragePatch.ts`.
  */
 async function handleCoveragePatch(url: URL) {
-  return await coveragePatch(await coverageRequest(url));
+  const region = parseRegion(url);
+  return await coveragePatch({
+    ...(await coverageRequest(url)),
+    ...(region ? { region } : {}),
+  });
+}
+
+/**
+ * Where the map is pointed, if the caller said.
+ *
+ * All three together or none: a half-extent with no centre, or a centre
+ * with no half-extent, describes nothing, and guessing the missing one
+ * would put the detail somewhere the reader is not looking. Absent is
+ * the whole-globe view, where the fine grid belongs at the station.
+ */
+function parseRegion(url: URL): MapRegion | null {
+  const at = ['atLat', 'atLon', 'halfLat']
+    .map((name) => url.searchParams.get(name));
+  if (at.every((value) => value === null)) return null;
+  if (at.some((value) => value === null)) {
+    throw new BadRequest('atLat, atLon and halfLat go together or not at all');
+  }
+  const [lat, lon, halfLatDeg] = at.map((value) => Number(value));
+  if (
+    !Number.isFinite(lat) || !Number.isFinite(lon)
+    || !Number.isFinite(halfLatDeg)
+  ) {
+    throw new BadRequest('atLat, atLon and halfLat must be numbers');
+  }
+  if ((lat as number) < -90 || (lat as number) > 90) {
+    throw new BadRequest('atLat must be between -90 and 90');
+  }
+  if ((lon as number) < -180 || (lon as number) > 180) {
+    throw new BadRequest('atLon must be between -180 and 180');
+  }
+  if ((halfLatDeg as number) <= 0) {
+    throw new BadRequest('halfLat must be above zero');
+  }
+  return {
+    lat: lat as number,
+    lon: lon as number,
+    halfLatDeg: halfLatDeg as number,
+  };
 }
 
 async function handleForecast(

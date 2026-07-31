@@ -245,3 +245,17 @@ export interface CoveragePatch {
   basis: PredictionBasis;
   points: readonly CoveragePoint[];
 }
+
+/**
+ * The part of the world the map is showing.
+ *
+ * `halfLatDeg` is half the height of the frame, in degrees of latitude,
+ * so a zoomed-in view asks for a small number and a zoomed-out one a
+ * large one. It is the whole of what the fine grid needs to know about
+ * the view: where to centre, and how much has to fit.
+ */
+export interface MapRegion {
+  lat: number;
+  lon: number;
+  halfLatDeg: number;
+}

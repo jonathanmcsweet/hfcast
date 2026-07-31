@@ -5,6 +5,7 @@ import {
   angularDistanceDeg,
   cellRing,
   circleAround,
+  containView,
   destination,
   discRing,
   EARTH_KM,
@@ -16,6 +17,7 @@ import {
   polygonContains,
   projector,
   projectRing,
+  regionOf,
   signedArea,
   subsolarPoint,
 } from '../src/data/projection.ts';
@@ -379,5 +381,83 @@ describe('the inverse projection', () => {
         assert.ok(back[1] >= -90 && back[1] <= 90, `lat ${back[1]}`);
       }
     }
+  });
+});
+
+/**
+ * Turning what the map is showing back into degrees.
+ *
+ * This is what lets the fine grid follow the view: the map knows its
+ * projection and its zoom, and the query needs a place and a size. The
+ * inverse is closed form on this projection, so the centre is the place
+ * under the middle of the frame rather than an estimate of it.
+ */
+describe('the region the map is showing', () => {
+  const SIZE = 322;
+  const p = projector(-104.98, 39.74, SIZE);
+  const centred = (scale: number) => ({ scale, cxF: 0.5, cyF: 0.5 });
+
+  it('answers nothing at a whole-globe view', () => {
+    // Nothing to follow: the patch belongs at the station, which is
+    // where the projection is centred anyway.
+    assert.equal(regionOf(p, centred(1), SIZE), null);
+  });
+
+  it('reads the station under the middle of an unpanned view', () => {
+    // The projection is centred on the station, so zooming without
+    // panning must not move the fine grid off it.
+    const region = regionOf(p, centred(8), SIZE);
+    assert.ok(region);
+    assert.ok(Math.abs(region.lat - 39.74) < 1e-6, `${region.lat}`);
+    assert.ok(Math.abs(region.lon - -104.98) < 1e-6, `${region.lon}`);
+  });
+
+  it('halves what is visible when the zoom doubles', () => {
+    const near = regionOf(p, centred(8), SIZE);
+    const far = regionOf(p, centred(16), SIZE);
+    assert.ok(near && far);
+    assert.ok(
+      Math.abs(near.halfLatDeg / far.halfLatDeg - 2) < 1e-9,
+      `${near.halfLatDeg} against ${far.halfLatDeg}`,
+    );
+  });
+
+  it('follows a panned view to where it is pointed', () => {
+    // The whole point of the feature.
+    //
+    // Only the direction is asserted, not the distance. On this
+    // projection a straight line across the frame is a great circle, not
+    // a parallel, so panning east also changes the latitude — which is
+    // correct, and is why the region comes from the inverse rather than
+    // from adding degrees to the centre.
+    const home = regionOf(p, centred(4), SIZE);
+    const east = regionOf(p, { scale: 4, cxF: 0.6, cyF: 0.5 }, SIZE);
+    const north = regionOf(p, { scale: 4, cxF: 0.5, cyF: 0.4 }, SIZE);
+    assert.ok(home && east && north);
+    assert.ok(east.lon > home.lon, `${east.lon} not east of ${home.lon}`);
+    assert.ok(north.lat > home.lat, `${north.lat} not north of ${home.lat}`);
+    // Panning straight up the screen stays on the same meridian, which
+    // it does because the centre of the projection is on it.
+    assert.ok(Math.abs(north.lon - home.lon) < 1e-6);
+  });
+
+  it('answers nothing where the middle of the frame is off the world', () => {
+    // Panned into a corner, the middle of the frame is outside the disc
+    // and there is no place under it. Null rather than a guess: a guess
+    // would run the engine on somewhere the reader is not looking.
+    assert.equal(regionOf(p, { scale: 30, cxF: 0.02, cyF: 0.02 }, SIZE), null);
+  });
+
+  it('keeps the view inside the disc', () => {
+    // `containView` is what stops that last case arising from a drag:
+    // at any zoom the centre is held far enough in that the frame stays
+    // on the globe.
+    const held = containView({ scale: 4, cxF: 0, cyF: 1 });
+    assert.ok(held.cxF >= 1 / 8 && held.cyF <= 1 - 1 / 8);
+    assert.deepEqual(containView({ scale: 1, cxF: 0.2, cyF: 0.9 }), {
+      scale: 1,
+      cxF: 0.5,
+      cyF: 0.5,
+    });
   });
 });
