@@ -13,7 +13,7 @@ on:
 # deliberately, with the tests as the evidence.
 env:
   ENGINE_REPO: jonathanmcsweet/hfcast-engine
-  ENGINE_COMMIT: dbb566437a00b1451b31fe5922777c4699a0f160
+  ENGINE_COMMIT: 40689684890aa726848afd0d88b4b3e8de95c8f4
 
 jobs:
   check:
