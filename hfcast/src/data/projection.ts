@@ -141,14 +141,23 @@ export function projectRing(
   return runs;
 }
 
-/** An SVG path from a list of projected points. */
+/**
+ * An SVG path from a list of projected points.
+ *
+ * Two decimals, because the viewBox multiplies rounding error by the
+ * zoom. The coordinates are written once, in the base space, and the
+ * deepest zoom magnifies whatever error they carry: at one decimal the
+ * worst case is 0.05 px, which is invisible at 1x and 1.5 px of wobble
+ * at the 30x ceiling — every line in the map wiggled. Two decimals is
+ * 0.15 px at 30x, under what a screen can show.
+ */
 export function pathOf(
   points: readonly (readonly [number, number])[],
   close = false,
 ): string {
   if (points.length === 0) return '';
   const parts = points.map(([x, y], i) =>
-    `${i === 0 ? 'M' : 'L'}${x.toFixed(1)} ${y.toFixed(1)}`
+    `${i === 0 ? 'M' : 'L'}${x.toFixed(2)} ${y.toFixed(2)}`
   );
   return parts.join(' ') + (close ? ' Z' : '');
 }
@@ -473,6 +482,17 @@ export interface MapView {
 }
 
 /**
+ * The scale at which the whole disc fits the frame.
+ *
+ * Owned here rather than by the map component, because two pieces of
+ * arithmetic assume it: `regionOf` reads "at or below this" as "showing
+ * the whole globe", and `containView` pins the centre when the window is
+ * the disc. A component free to change its own minimum would move one
+ * without the other.
+ */
+export const MIN_SCALE = 1;
+
+/**
  * The part of the world the map is showing, in degrees.
  *
  * The centre comes back through the projection's inverse, which is
@@ -492,7 +512,7 @@ export function regionOf(
   view: MapView,
   size: number,
 ): MapRegion | null {
-  if (view.scale <= 1) return null;
+  if (view.scale <= MIN_SCALE) return null;
   const centre = p.invert(view.cxF * size, view.cyF * size);
   if (centre === null) return null;
   const [lon, lat] = centre;

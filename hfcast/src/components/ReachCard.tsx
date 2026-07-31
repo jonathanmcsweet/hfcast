@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { StyleSheet, View } from 'react-native';
 import { Text, useTheme } from 'react-native-paper';
 import { useCoverage, useCoveragePatch } from '../api/queries';
-import { isNvis, nvisReachKm, qualityFor } from '../data/quality';
+import { anyNvis, isNvis, nvisReachKm, qualityFor } from '../data/quality';
 import { cellFor } from '../data/selectors';
 import type { BandKey, MapRegion, PathPrediction } from '../data/types';
 import { useFormatters } from '../hooks/useFormatters';
@@ -60,7 +60,20 @@ export default function ReachCard({
   // Stable, so reporting the region does not rebuild the effect that
   // reports it.
   const onRegion = useCallback(
-    (next: MapRegion | null) => setRegion(next),
+    (next: MapRegion | null) =>
+      setRegion((prev) =>
+        // The same values keep the old object. The map re-reports its
+        // region whenever its geometry rebuilds — a patch arriving, the
+        // hour changing — and each report is a fresh object; passed on
+        // as-is, every one would restart the settle timer downstream for
+        // a view that had not moved.
+        prev !== null && next !== null
+          && prev.lat === next.lat
+          && prev.lon === next.lon
+          && prev.halfLatDeg === next.halfLatDeg
+          ? prev
+          : next
+      ),
     [],
   );
   const { data: coverage, error } = useCoverage(prediction.from, band, hour);
@@ -73,6 +86,13 @@ export default function ReachCard({
     hour,
     region,
   );
+  // The sentence under the map describes the station — how far ITS
+  // near-vertical region reaches — so its data must not follow the view:
+  // panned to the far side of the world, the patch above holds no point
+  // steep from here, and the sentence would vanish while the fact it
+  // states had not changed. At the default view this is the same query
+  // as the map's, so it costs nothing until the reader pans away.
+  const { data: homePatch } = useCoveragePatch(prediction.from, band, hour);
 
   // Null for a survey, where the card answers "how much of the world" rather
   // than "will this reach one place".
@@ -89,7 +109,9 @@ export default function ReachCard({
   // shading shows its shape and this is its size, which a shape cannot
   // give — and the difference between "the next county" and "the next
   // state" is the whole of what an operator wants from it.
-  const nvisKm = patch ? nvisReachKm(prediction.from, patch.points) : null;
+  const nvisKm = homePatch
+    ? nvisReachKm(prediction.from, homePatch.points)
+    : null;
 
   return (
     <Card>
@@ -158,7 +180,7 @@ export default function ReachCard({
           : null}
       </View>
 
-      <MapLegend hasNvis={nvisKm !== null} />
+      <MapLegend hasNvis={patch ? anyNvis(patch.points) : false} />
 
       {
         /* The map's headline number in words, because a shape is not a

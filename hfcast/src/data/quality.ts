@@ -79,3 +79,18 @@ export function nvisReachKm(
     );
   return reaches.length === 0 ? null : Math.max(...reaches);
 }
+
+/**
+ * Whether any point works by near-vertical incidence.
+ *
+ * The legend's "no skip zone" row explains the dots the map draws, and
+ * the map draws dots from whatever patch it was given — which follows
+ * the view. So this is asked of the drawn patch, where `nvisReachKm` is
+ * asked of the station's own: the two agree until the reader pans away,
+ * and then each stays truthful about its own subject.
+ */
+export function anyNvis(points: readonly CoveragePoint[]): boolean {
+  return points.some(
+    (point) => isNvis(point.takeoffAngleDeg, point.reliability),
+  );
+}
