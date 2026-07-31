@@ -54,6 +54,18 @@ interface Props {
   from: Endpoint;
   /** Drawn as a great circle from the centre. */
   to: Endpoint | null;
+  /**
+   * Whether the selected band is closed to `to` at this hour.
+   *
+   * The line to the destination is the one mark of it that survives
+   * every zoom. Zoomed into the region the band does reach, a bright
+   * line through a field of reachable cells reads as though the path
+   * works, directly under a headline saying it does not. Muted, the
+   * line carries the card's own answer onto the map. The colour is
+   * supplementary — the answer is stated in text above the map — so
+   * nothing rides on it alone.
+   */
+  toClosed?: boolean;
   /** UTC hour the terminator is drawn for. */
   hour: number;
   size: number;
@@ -140,6 +152,7 @@ export default function CoverageGlobe({
   patch,
   from,
   to,
+  toClosed,
   hour,
   size,
   onRegion,
@@ -583,7 +596,8 @@ export default function CoverageGlobe({
               key={`p${d}`}
               d={d}
               fill="none"
-              stroke={ui.amberNum}
+              stroke={toClosed ? ui.text3 : ui.amberNum}
+              strokeOpacity={toClosed ? 0.6 : 1}
               strokeWidth={px(1.6)}
             />
           ))}
@@ -595,7 +609,7 @@ export default function CoverageGlobe({
                 cy={geometry.target[1]}
                 r={px(4)}
                 fill={ui.card}
-                stroke={ui.amberNum}
+                stroke={toClosed ? ui.text3 : ui.amberNum}
                 strokeWidth={px(2)}
               />
             )

@@ -172,6 +172,7 @@ export default function ReachCard({
               patch={patch ?? null}
               from={prediction.from}
               to={prediction.to}
+              toClosed={destination !== null && quality === 'closed'}
               hour={hour}
               size={Math.min(width, MAX_MAP)}
               onRegion={onRegion}
