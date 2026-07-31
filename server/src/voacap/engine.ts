@@ -18,7 +18,7 @@
  * `paritycheck` proves it over the request shapes this server sends.
  */
 import { execFile } from 'node:child_process';
-import { homedir } from 'node:os';
+import { cpus, homedir } from 'node:os';
 import path from 'node:path';
 import type { AntennaCard } from '../antenna.ts';
 import {
@@ -28,6 +28,7 @@ import {
   type OperatingWindow,
 } from '../types.ts';
 import type { ParsedPrediction, RawBandHour } from './parse.ts';
+import { type AreaBounds, latShards } from './shard.ts';
 
 export const PREDICT_BIN = process.env.HFCAST_PREDICT
   ?? path.join(homedir(), 'workspace/hfcast-engine/target/release/predict');
@@ -38,6 +39,31 @@ export const ITSHFBC_DIR = process.env.HFCAST_ITSHFBC
 
 /** A run times out well before any sensible HTTP client does. */
 const RUN_TIMEOUT_MS = 30_000;
+
+/**
+ * How many processes a large area grid is split across.
+ *
+ * The engine is single-threaded, so a grid runs on one core however many
+ * the host has. Measured on a 16-core host over the 34,560-point grid,
+ * every count giving identical points:
+ *
+ * | strips | 1 | 2 | 3 | 4 | 6 | 8 | 12 | 16 |
+ * | --- | --: | --: | --: | --: | --: | --: | --: | --: |
+ * | ms | 1300 | 681 | 471 | 377 | 272 | 227 | 221 | 241 |
+ *
+ * Eight is where it stops paying: twelve is two percent better and
+ * sixteen is worse, because each process re-reads the coefficient tables
+ * and they start to contend. Capped at the core count as well, so a
+ * small host does not oversubscribe itself, and left below the core
+ * count on a large one so a second request is not starved by the first.
+ *
+ * `HFCAST_COVERAGE_SHARDS=1` turns splitting off.
+ */
+export const COVERAGE_SHARDS = (() => {
+  const asked = Number(process.env.HFCAST_COVERAGE_SHARDS);
+  if (Number.isInteger(asked) && asked >= 1) return asked;
+  return Math.max(1, Math.min(8, cpus().length));
+})();
 
 export interface EngineRequest {
   fromLat: number;
@@ -263,14 +289,11 @@ interface WireCoverage {
  * The rectangle an area run covers, in degrees.
  *
  * Absent, the engine runs the whole world, which is what every caller did
- * before a rectangle could be asked for.
+ * before a rectangle could be asked for. Defined beside the splitting,
+ * which is the other thing that has to know where the lattice falls, and
+ * re-exported here because this is where callers reach for it.
  */
-export interface AreaBounds {
-  latMin: number;
-  latMax: number;
-  lonMin: number;
-  lonMax: number;
-}
+export type { AreaBounds };
 
 export interface CoverageRequest {
   fromLat: number;
@@ -319,38 +342,60 @@ export interface Coverage extends Partial<AreaBounds> {
  */
 export async function runCoverage(
   request: CoverageRequest,
+  shards: number = COVERAGE_SHARDS,
 ): Promise<Coverage> {
   const { band, bounds, ...rest } = request;
-  const parsed = await callPredict<WireCoverage>(JSON.stringify({
-    ...rest,
-    mode: 'area',
-    freqMhz: BAND_MHZ[band],
-    itshfbc: ITSHFBC_DIR,
-    // All four edges together or none: the engine refuses a partial
-    // rectangle rather than filling the rest in from the world.
-    ...(bounds ?? {}),
-  }));
+  const ask = (over: AreaBounds | undefined) =>
+    callPredict<WireCoverage>(JSON.stringify({
+      ...rest,
+      mode: 'area',
+      freqMhz: BAND_MHZ[band],
+      itshfbc: ITSHFBC_DIR,
+      // All four edges together or none: the engine refuses a partial
+      // rectangle rather than filling the rest in from the world.
+      ...(over ?? {}),
+    }));
+
+  const strips = latShards(
+    bounds,
+    request.latStep,
+    request.lonStep,
+    shards,
+  );
+  // Concatenated south to north, which is the order one whole run emits
+  // its rows in, so a split grid is the same sequence and not just the
+  // same set.
+  const parts = strips === null
+    ? [await ask(bounds)]
+    : await Promise.all(strips.map(ask));
+
+  const first = parts[0] as WireCoverage;
+  const last = parts[parts.length - 1] as WireCoverage;
 
   return {
     band,
     hour: request.hour,
-    latStep: parsed.latStep ?? request.latStep,
-    lonStep: parsed.lonStep ?? request.lonStep,
+    latStep: first.latStep ?? request.latStep,
+    lonStep: first.lonStep ?? request.lonStep,
     // The engine snaps a rectangle to its own lattice, so what comes back
-    // is the grid that ran rather than the one asked for.
+    // is the grid that ran rather than the one asked for. A whole-world
+    // request reports no rectangle whether it was split or not: the
+    // strips are this function's business, not its caller's.
     ...(bounds
       ? {
-        latMin: parsed.latMin ?? bounds.latMin,
-        latMax: parsed.latMax ?? bounds.latMax,
-        lonMin: parsed.lonMin ?? bounds.lonMin,
-        lonMax: parsed.lonMax ?? bounds.lonMax,
+        latMin: first.latMin ?? bounds.latMin,
+        latMax: last.latMax ?? bounds.latMax,
+        lonMin: first.lonMin ?? bounds.lonMin,
+        lonMax: first.lonMax ?? bounds.lonMax,
       }
       : {}),
-    points: (parsed.points ?? []).map((p) => ({
-      lat: p.lat,
-      lon: p.lon,
-      reliability: Math.min(1, Math.max(0, p.reliability)),
-      takeoffAngleDeg: p.takeoffAngleDeg ?? null,
-    })),
+    points: parts.flatMap((part) =>
+      (part.points ?? []).map((p) => ({
+        lat: p.lat,
+        lon: p.lon,
+        reliability: Math.min(1, Math.max(0, p.reliability)),
+        takeoffAngleDeg: p.takeoffAngleDeg ?? null,
+      }))
+    ),
   };
 }
