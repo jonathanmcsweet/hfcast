@@ -2,8 +2,10 @@ import * as Engine from '../../modules/hfcast-engine';
 import type { Station } from '../store/useStationStore';
 import { LAT_STEP, LON_STEP, reachOf } from './coverageGrid';
 import { patchGrid, patchRequestBounds } from './coveragePatch';
+import { FINE_LAT_STEP, FINE_LON_STEP, packGlobe } from './fineGlobe';
 import { engineStation, type Nowcast, ssnFor } from './localPredict';
 import { requiredSnrFor } from './modes';
+import { latShards } from './shard';
 import {
   BAND_MHZ,
   type BandKey,
@@ -11,6 +13,7 @@ import {
   type CoveragePatch,
   type CoveragePoint,
   type Endpoint,
+  type FineGlobe,
   type MapRegion,
 } from './types';
 
@@ -72,6 +75,21 @@ export interface LocalCoverageRequest {
   region?: MapRegion | null;
 }
 
+/**
+ * How the fine grid is cut on a device, and how many threads run it.
+ *
+ * Equal, because a strip is handed to a thread and an extra strip only
+ * adds a coefficient load. Four is where a modern phone's cores stop
+ * being idle without asking a four-core tablet to run more threads than
+ * it has; the plan calls for measuring two and four on real hardware,
+ * and this is the number that changes when that is done.
+ *
+ * Not the emulator: it runs five to ten times slow and its ratios do
+ * not carry over to a device.
+ */
+const DEVICE_STRIPS = 4;
+const DEVICE_THREADS = 4;
+
 export async function coverLocally(
   request: LocalCoverageRequest,
 ): Promise<Coverage> {
@@ -118,6 +136,82 @@ export async function coverLocally(
     basis,
     points,
   };
+}
+
+/**
+ * The fine grid, over the whole world, on the device.
+ *
+ * One call at 34,560 points. The engine module runs predictions on a
+ * single background thread by design — one intention at a time — so this
+ * occupies it for as long as the run takes, which is seconds rather than
+ * the coarse map's tens of milliseconds. Milestone 3 of
+ * `docs/handoff-skia-globe.md` is what decides whether a given device
+ * should be asked at all; this function only answers.
+ *
+ * The result is packed into typed arrays before returning, so the
+ * objects the engine produced are released rather than cached.
+ */
+export async function coverFineLocally(
+  request: LocalCoverageRequest,
+): Promise<FineGlobe> {
+  const month = request.date.getUTCMonth() + 1;
+  const year = request.date.getUTCFullYear();
+  const { ssn, basis } = ssnFor(year, month, request.nowcast);
+  const station = await engineStation(request.station);
+
+  const ask = {
+    ...station,
+    mode: 'area' as const,
+    fromLat: request.from.lat,
+    fromLon: request.from.lon,
+    month,
+    year,
+    ssn,
+    watts: request.station.watts,
+    requiredSnrDb: requiredSnrFor(request.station.mode),
+    noiseDbw: NOISE_DBW,
+    hour: request.hour,
+    freqMhz: BAND_MHZ[request.band],
+    latStep: FINE_LAT_STEP,
+    lonStep: FINE_LON_STEP,
+  };
+
+  // Cut into latitude strips so the batch can use more than one core.
+  // The arithmetic is the server's, copied character for character, so
+  // the two paths run the same lattice — see `shard.ts`. Null means the
+  // grid should not be split, and then it runs whole.
+  const strips = Engine.canBatch()
+    ? latShards(undefined, FINE_LAT_STEP, FINE_LON_STEP, DEVICE_STRIPS)
+    : null;
+
+  const answers = strips === null
+    ? [await Engine.predict<WireCoverage>(ask)]
+    : await Engine.predictMany<WireCoverage>(
+      strips.map((bounds) => ({ ...ask, ...bounds })),
+      DEVICE_THREADS,
+    );
+
+  // Concatenated in strip order. The engine emits rows south to north,
+  // the strips are cut south to north, so this is the sequence one run
+  // would have produced — not the same points in some other order, which
+  // is what the columnar packing depends on.
+  const points = answers.flatMap((answer) =>
+    (answer.points ?? []).map(asPoint)
+  );
+  if (points.length === 0) {
+    throw new Error('the engine produced no fine coverage points');
+  }
+
+  const first = answers[0] as WireCoverage;
+  return packGlobe(request.band, request.hour, {
+    band: request.band,
+    hour: request.hour,
+    latStep: first.latStep ?? FINE_LAT_STEP,
+    lonStep: first.lonStep ?? FINE_LON_STEP,
+    reach: 0,
+    basis,
+    points,
+  });
 }
 
 /**

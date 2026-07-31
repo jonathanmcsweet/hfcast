@@ -20,6 +20,7 @@ import {
   STORM_WIDENING_START_KP,
   SWING_FACTOR,
 } from '../src/voacap/correct.ts';
+import { MIN_SHARD_POINTS } from '../src/voacap/shard.ts';
 
 /**
  * The app computes predictions and coverage maps itself now, with the engine
@@ -159,6 +160,33 @@ describe('the fine grid the app and the server both run', () => {
     const marker = 'export const PATCH_LAT_STEP';
     const mine = readFileSync(
       path.join(import.meta.dirname, '..', 'src', 'coveragePatch.ts'),
+      'utf8',
+    );
+    assert.ok(source.includes(marker) && mine.includes(marker));
+    assert.equal(
+      mine.slice(mine.indexOf(marker)),
+      source.slice(source.indexOf(marker)),
+    );
+  });
+});
+
+describe('the strips both sides cut a big grid into', () => {
+  const source = appFile('shard.ts');
+
+  it('agrees on when a grid is worth splitting', () => {
+    assert.equal(constantIn(source, 'MIN_SHARD_POINTS'), MIN_SHARD_POINTS);
+  });
+
+  it('holds the whole cut identical, not only the threshold', () => {
+    // The threshold is the least of it. What matters is where the cut
+    // lands: the engine snaps a rectangle to its own lattice, and a
+    // strip edge sitting a hair off a cell centre either runs a row
+    // twice or drops it. The server splits across processes and the app
+    // across threads, but both must reproduce the grid one run would
+    // have produced — so the arithmetic is copied, not reimplemented.
+    const marker = 'export const MIN_SHARD_POINTS';
+    const mine = readFileSync(
+      path.join(import.meta.dirname, '..', 'src', 'voacap', 'shard.ts'),
       'utf8',
     );
     assert.ok(source.includes(marker) && mine.includes(marker));

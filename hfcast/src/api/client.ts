@@ -1,6 +1,9 @@
+import { packGlobe } from '../data/fineGlobe';
 import type {
+  BandKey,
   Coverage,
   CoveragePatch,
+  FineGlobe,
   MapRegion,
   PredictionResponse,
   Sounding,
@@ -191,6 +194,38 @@ export function fetchCoverage(p: {
     nowcast: p.nowcast ? '1' : '',
     ...p.station,
   });
+}
+
+/**
+ * The fine grid, over the whole world.
+ *
+ * About 2.2 MB on the wire, and packed into typed arrays before it is
+ * returned so the objects it arrived as are released straight away and
+ * never reach a cache. See `fineGlobe.ts`.
+ *
+ * Asked once per band and hour, with nothing about the view in it: the
+ * whole point of a whole-world answer is that panning and zooming never
+ * need another one.
+ */
+export async function fetchFineGlobe(p: {
+  from: string;
+  fromLabel: string;
+  band: BandKey;
+  hour: number;
+  date: string;
+  nowcast?: boolean;
+  station: Record<string, string>;
+}): Promise<FineGlobe> {
+  const answer = await getJson<Coverage>('/api/coverage/fine', {
+    from: p.from,
+    fromLabel: p.fromLabel,
+    band: p.band,
+    hour: String(p.hour),
+    date: p.date,
+    nowcast: p.nowcast ? '1' : '',
+    ...p.station,
+  });
+  return packGlobe(p.band, p.hour, answer);
 }
 
 /**
