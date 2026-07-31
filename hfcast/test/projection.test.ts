@@ -9,6 +9,7 @@ import {
   discRing,
   EARTH_KM,
   greatCircle,
+  gridOutline,
   isNight,
   nightIsInside,
   opposedTo,
@@ -253,5 +254,78 @@ describe('cutting one shape out of another', () => {
 
   it('gives the rim a non-zero area', () => {
     assert.ok(Math.abs(signedArea(discRing(0, 0, 10))) > 300);
+  });
+});
+
+describe('the outline round a whole grid of cells', () => {
+  // The fine grid is drawn over the coarse one, and every cell on this
+  // map is partly transparent, so the region has to be cleared first or
+  // the coarse colours show through. That backing is this outline, and if
+  // it is half a step small a hairline of coarse colour is left round the
+  // edge — which is exactly what the fine grid was run to replace.
+  const bounds = {
+    lonMin: -117.75,
+    lonMax: -92.25,
+    latMin: 30.625,
+    latMax: 49.375,
+  };
+  const lonStep = 1.5;
+  const latStep = 1.25;
+
+  it('reaches the outer edge of the outermost cells', () => {
+    const ring = gridOutline(bounds, lonStep, latStep);
+    const lons = ring.map(([lon]) => lon);
+    const lats = ring.map(([, lat]) => lat);
+    // The bounds name the first and last point; a cell round a point
+    // reaches half a step further.
+    assert.equal(Math.min(...lons), bounds.lonMin - lonStep / 2);
+    assert.equal(Math.max(...lons), bounds.lonMax + lonStep / 2);
+    assert.equal(Math.min(...lats), bounds.latMin - latStep / 2);
+    assert.equal(Math.max(...lats), bounds.latMax + latStep / 2);
+  });
+
+  it('covers every cell the grid holds and no more', () => {
+    // Walked against the cells themselves rather than against the
+    // arithmetic above, so the two cannot be wrong the same way.
+    const ring = gridOutline(bounds, lonStep, latStep);
+    const lons = ring.map(([lon]) => lon);
+    const lats = ring.map(([, lat]) => lat);
+    for (let lat = bounds.latMin; lat <= bounds.latMax + 1e-9; lat += latStep) {
+      for (
+        let lon = bounds.lonMin;
+        lon <= bounds.lonMax + 1e-9;
+        lon += lonStep
+      ) {
+        for (
+          const [cornerLon, cornerLat] of cellRing(lon, lat, lonStep, latStep)
+        ) {
+          assert.ok(
+            cornerLon >= Math.min(...lons) - 1e-9,
+            `${cornerLon} is west of the outline`,
+          );
+          assert.ok(
+            cornerLon <= Math.max(...lons) + 1e-9,
+            `${cornerLon} is east of the outline`,
+          );
+          assert.ok(
+            cornerLat >= Math.min(...lats) - 1e-9,
+            `${cornerLat} is south of the outline`,
+          );
+          assert.ok(
+            cornerLat <= Math.max(...lats) + 1e-9,
+            `${cornerLat} is north of the outline`,
+          );
+        }
+      }
+    }
+  });
+
+  it('subdivides its edges more finely than one cell does', () => {
+    // An edge many cells long needs more segments to stay a curve, or the
+    // backing cuts corners the cells on top of it do not.
+    assert.ok(
+      gridOutline(bounds, lonStep, latStep).length
+        > cellRing(0, 0, 22.5, 15).length,
+    );
   });
 });
