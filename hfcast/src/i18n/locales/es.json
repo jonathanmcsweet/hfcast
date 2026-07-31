@@ -20,7 +20,8 @@
     "detailWorld": "Detalle fino, todo el mundo.",
     "detailNear": "Detalle fino solo cerca de {{place}}.",
     "detailMeasuring": "Midiendo este dispositivo antes de añadir detalle fino.",
-    "detailCoarse": "Solo detalle grueso. Este dispositivo es demasiado lento para la cuadrícula fina."
+    "detailCoarse": "Solo detalle grueso. Este dispositivo es demasiado lento para la cuadrícula fina.",
+    "detailNearOnly": "Detalle fino solo cerca de {{place}}. Este dispositivo es demasiado lento para todo el mundo."
   },
   "path": {
     "summary": "{{distance}} · rumbo {{bearing}} · {{hops}} saltos",

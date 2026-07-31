@@ -95,6 +95,131 @@ export interface CostSample {
 }
 
 /**
+ * How much larger the biggest timed run must be than the smallest.
+ *
+ * A slope needs two sizes far enough apart that the difference between
+ * them is the work rather than the noise. Measured on a Pixel 8: the
+ * same 192-point run took 51 ms once and 100 ms another time, so the
+ * noise on one reading is about 25 ms. The app's own two sizes were 192
+ * and 256 points, and the 64 points between them are worth about 5 ms —
+ * a fifth of the noise. Least squares through that pair returned 0.70 ms
+ * a point where the truth is nearer 0.08, and the gate refused a phone
+ * that runs the fine grid comfortably.
+ *
+ * Four times is enough for the work to outweigh the noise, and it is
+ * what the calibration run below is sized to provide.
+ */
+export const MIN_LEVERAGE = 4;
+
+/**
+ * The grid the calibration run covers: the whole world, at a quarter of
+ * the coarse map's step in each direction.
+ *
+ * Deliberately the same shape as the run it is compared against. The
+ * coarse map is already a whole-world grid at 15 by 22.5 degrees, so
+ * quartering the step gives the same geometry, the same spread of path
+ * lengths and the same work per point — only more of them. A rectangle
+ * somewhere else would have measured a different question.
+ *
+ * 48 rows by 64 columns, which is 16 times the coarse run and well past
+ * `MIN_LEVERAGE`.
+ */
+export const PROBE_LAT_STEP = 3.75;
+export const PROBE_LON_STEP = 5.625;
+export const PROBE_POINTS = (180 / PROBE_LAT_STEP) * (360 / PROBE_LON_STEP);
+
+/**
+ * How far over budget a device may look before it is refused without
+ * measuring properly.
+ *
+ * The calibration run costs a device about a third of a second, and on
+ * a slow one it would cost seconds. Spending that to confirm what is
+ * already obvious is not worth it, so a device whose roughest estimate
+ * is many times the budget is refused on that estimate alone. Eight is
+ * chosen so the rough figure's own overstatement — it counts fixed cost
+ * as though it were per-point — cannot push a capable device past it.
+ */
+export const HOPELESS_FACTOR = 8;
+
+/**
+ * How many grid sizes are remembered.
+ *
+ * Sizes, not runs: one entry each, holding the fastest run seen at that
+ * size. The app produces a handful — the 192-point coarse grid, the
+ * calibration run, and one per zoom level the viewport patch settles on
+ * — so twelve holds every size a reader is likely to reach without
+ * letting the list grow without limit.
+ */
+export const COST_SAMPLES = 12;
+
+/**
+ * Keeps the fastest reading at each grid size.
+ *
+ * Two things this fixes at once. A run can be delayed — by another app,
+ * by the scheduler, by the phone deciding to cool down — but it cannot
+ * be hurried, so the noise is one-sided and the smallest reading is the
+ * best estimate of the true cost. And keeping one entry per size rather
+ * than a rolling window of runs stops the calibration run, which happens
+ * once, from being pushed out by the coarse runs, which happen
+ * constantly.
+ *
+ * Over capacity, the entry dropped is the one nearest the middle. The
+ * smallest and the largest are what give the fit its leverage, so those
+ * are the two that must survive.
+ */
+export const keepFastest = (
+  samples: readonly CostSample[],
+  next: CostSample,
+): CostSample[] => {
+  const seen = samples.find((s) => s.points === next.points);
+  if (seen !== undefined) {
+    return next.ms < seen.ms
+      ? samples.map((s) => (s.points === next.points ? next : s))
+      : [...samples];
+  }
+  const grown = [...samples, next];
+  if (grown.length <= COST_SAMPLES) return grown;
+  const bySize = [...grown].sort((a, b) => a.points - b.points);
+  const middle = bySize[Math.floor(bySize.length / 2)];
+  return grown.filter((s) => s !== middle);
+};
+
+/**
+ * The cost per point a run appears to have, fixed cost included.
+ *
+ * Always an overstatement of the marginal cost, because every run's
+ * fixed cost is divided among its points. That makes it useful in one
+ * direction only: if this says the fine grid fits the budget, it fits.
+ * The smallest reading is taken rather than the average, for the reason
+ * `record` keeps minima — a run can be delayed but never hurried.
+ */
+export function naiveMsPerPoint(
+  samples: readonly CostSample[],
+): number | null {
+  const rates = samples
+    .filter((s) => s.points > 0 && Number.isFinite(s.ms) && s.ms > 0)
+    .map((s) => s.ms / s.points);
+  return rates.length === 0 ? null : Math.min(...rates);
+}
+
+/**
+ * Whether it is worth timing a deliberately larger run on this device.
+ *
+ * Only when the question is open: there is no trustworthy slope yet,
+ * and the rough figure does not already put the device far out of
+ * reach. Answering false here is not a refusal — it means the answer is
+ * already known, one way or the other.
+ */
+export function calibrationWorthwhile(
+  samples: readonly CostSample[],
+  budgetMs: number = FINE_BUDGET_MS,
+): boolean {
+  if (marginalMsPerPoint(samples) !== null) return false;
+  const rough = projectedFineMs(naiveMsPerPoint(samples));
+  return rough !== null && rough <= budgetMs * HOPELESS_FACTOR;
+}
+
+/**
  * The marginal cost of one more grid point, in milliseconds.
  *
  * Not simply "time divided by points". A run has a fixed cost — loading
@@ -127,7 +252,11 @@ export function marginalMsPerPoint(
     (s) => s.points > 0 && Number.isFinite(s.ms) && s.ms > 0,
   );
   if (usable.length < 2) return null;
-  if (new Set(usable.map((s) => s.points)).size < 2) return null;
+  // Two different sizes are not enough; they have to be far enough
+  // apart. See `MIN_LEVERAGE` — this is the check whose absence made the
+  // gate fit a line through noise and refuse a capable phone.
+  const sizes = usable.map((s) => s.points);
+  if (Math.max(...sizes) < Math.min(...sizes) * MIN_LEVERAGE) return null;
 
   const meanPoints = usable.reduce((sum, s) => sum + s.points, 0)
     / usable.length;

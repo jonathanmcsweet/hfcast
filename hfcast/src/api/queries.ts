@@ -5,6 +5,7 @@ import { searchCities } from '../data/cities';
 import { formatLatLon, parseCoordinates } from '../data/coords';
 import { patchGrid, patchKey } from '../data/coveragePatch';
 import {
+  calibrationWorthwhile,
   fineGlobeAffordable,
   marginalMsPerPoint,
   projectedFineMs,
@@ -16,6 +17,7 @@ import {
   usefulStation,
 } from '../data/ionosonde';
 import {
+  calibrateLocally,
   canMapLocally,
   coverFineLocally,
   coverLocally,
@@ -103,6 +105,12 @@ export const queryKeys = {
     nowcast: string,
     station: string,
   ) => ['coverage', server, from, band, hour, date, nowcast, station] as const,
+  // Only the station, because what this measures is how fast the engine
+  // runs here — which does not depend on the hour, the band or where the
+  // reader is pointing. The station is in it because a different antenna
+  // is a different file for the engine to read.
+  engineCalibration: (station: string) =>
+    ['engineCalibration', station] as const,
   fineGlobe: (
     server: string,
     from: string,
@@ -545,15 +553,57 @@ export function useFineGate() {
   return {
     /** True when this device runs the engine itself. */
     local,
-    /** How many timed runs are held. */
+    /** How many grid sizes have been timed. */
     sampleCount: samples.length,
-    /** Null until runs of two different sizes have been seen. */
+    /** Null until two sizes far enough apart have been seen. */
     msPerPoint,
     /** What the fine grid is expected to cost here, in milliseconds. */
     projectedMs: projectedFineMs(msPerPoint),
     /** Nothing to weigh where the server answers. */
     affordable: !local || fineGlobeAffordable(msPerPoint),
+    /** True while a deliberately larger run would settle the question. */
+    calibrating: local && calibrationWorthwhile(samples),
   };
+}
+
+/**
+ * Times one larger run, once, so the gate has something to fit.
+ *
+ * The app's ordinary runs are all about the same size, and a slope
+ * cannot be read from those — see `MIN_LEVERAGE`. This runs when the
+ * question is still open and stops as soon as it is settled, in either
+ * direction: a fit that arrives disables it, and so does a rough figure
+ * far enough over budget that no measurement would change the answer.
+ *
+ * Nothing on screen depends on it, so it neither retries nor reports.
+ * A device that fails it keeps the coarse map, which is what it would
+ * have had anyway.
+ */
+export function useEngineCalibration(from: Endpoint, band: BandKey) {
+  const date = today();
+  const station = useStation();
+  const nowcast = nowcastFrom(useSpaceWeather().data);
+  const { calibrating } = useFineGate();
+
+  return useQuery({
+    // Not keyed by hour or band: the cost of a run does not depend on
+    // which hour it asks about, and keying by one would run it again
+    // every time the reader moved the clock.
+    queryKey: queryKeys.engineCalibration(station.key),
+    queryFn: () =>
+      calibrateLocally({
+        from,
+        band,
+        hour: 12,
+        date: new Date(`${date}T00:00:00Z`),
+        station: station.station,
+        nowcast,
+      }),
+    enabled: calibrating && !station.editing,
+    staleTime: Number.POSITIVE_INFINITY,
+    gcTime: Number.POSITIVE_INFINITY,
+    retry: false,
+  });
 }
 
 export function useFineGlobe(

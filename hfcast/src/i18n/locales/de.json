@@ -20,7 +20,8 @@
     "detailWorld": "Feine Auflösung, ganze Welt.",
     "detailNear": "Feine Auflösung nur in der Nähe von {{place}}.",
     "detailMeasuring": "Das Gerät wird gemessen, bevor feine Details hinzukommen.",
-    "detailCoarse": "Nur grobe Auflösung. Dieses Gerät ist für das feine Gitter zu langsam."
+    "detailCoarse": "Nur grobe Auflösung. Dieses Gerät ist für das feine Gitter zu langsam.",
+    "detailNearOnly": "Feine Auflösung nur in der Nähe von {{place}}. Dieses Gerät ist für die ganze Welt zu langsam."
   },
   "path": {
     "summary": "{{distance}} · Peilung {{bearing}} · {{hops}} Sprünge",
