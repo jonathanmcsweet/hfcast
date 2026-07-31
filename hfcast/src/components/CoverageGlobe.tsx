@@ -16,6 +16,7 @@ import {
   discRing,
   EARTH_KM,
   greatCircle,
+  gridOutline,
   isNight,
   nightIsInside,
   opposedTo,
@@ -224,6 +225,37 @@ export default function CoverageGlobe({
       };
     }).filter((cell) => cell.d !== '');
 
+    // An opaque backing under the fine cells.
+    //
+    // Every cell on this map is drawn with some transparency — 0.6 for a
+    // closed one — so a fine cell laid straight over a coarse one shows
+    // the coarse colour through it, and the coarse cell's edges stay
+    // visible across the region. That is worst exactly where the two
+    // disagree, which is the whole reason the fine grid is run.
+    //
+    // Filling the rectangle with the disc's own colour first puts the
+    // fine cells on the same background the coarse cells have, so the
+    // same reliability is the same colour whichever grid drew it and the
+    // legend means one thing.
+    //
+    // The patch is centred on the operator and the projection is centred
+    // on the operator, so this rectangle is always at the middle of the
+    // disc and never near the rim where a ring breaks into runs. The
+    // check is here because "always" is a claim about two things staying
+    // in step, not about this function.
+    const patchOutline = patch
+      ? projectRing(
+        p,
+        (() => {
+          const ring = gridOutline(patch, patch.lonStep, patch.latStep);
+          return [...ring, ring[0] as [number, number]];
+        })(),
+      )
+      : [];
+    const patchBacking = patchOutline.length === 1 && patchOutline[0]
+      ? pathOf(patchOutline[0], true)
+      : '';
+
     // The stipple, as points rather than as a property of a cell: a point
     // beyond the clip boundary projects to nothing, and that is a
     // different question from whether its cell could be drawn.
@@ -289,6 +321,7 @@ export default function CoverageGlobe({
     return {
       cells,
       patchCells,
+      patchBacking,
       nvisDots,
       coast,
       distanceRings,
@@ -440,11 +473,14 @@ export default function CoverageGlobe({
           {
             /* The fine grid over the coarse one, on the same ramp, so a
                reader is not asked to learn a second scale for the same
-               quantity. It is drawn second and simply covers the cells
-               under it — where they disagree, the finer answer is the one
-               computed at that place rather than an average over a
-               thousand kilometres. */
+               quantity. Where they disagree the finer answer wins, which
+               is what the backing underneath is for: it clears the coarse
+               cells out of the region rather than letting them show
+               through cells that are all partly transparent. */
           }
+          {geometry.patchBacking === ''
+            ? null
+            : <Path d={geometry.patchBacking} fill={ui.card} />}
           <G>
             {geometry.patchCells.map((cell) => (
               <Path

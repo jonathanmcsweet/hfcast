@@ -269,6 +269,39 @@ export function cellRing(
 }
 
 /**
+ * The outline of a whole grid of cells, as a ring of lon/lat.
+ *
+ * The bounds are the first and last *point* on each axis, as the engine
+ * echoes them, so the outline is half a step further out on all four
+ * sides — the outer edge of the outermost cells. Getting that wrong by
+ * half a step leaves a hairline of whatever is underneath showing round
+ * the edge.
+ *
+ * Subdivided more finely than a single cell, because it is several cells
+ * long and the same number of segments over a longer edge is a coarser
+ * curve.
+ */
+export function gridOutline(
+  bounds: {
+    readonly lonMin: number;
+    readonly lonMax: number;
+    readonly latMin: number;
+    readonly latMax: number;
+  },
+  lonStep: number,
+  latStep: number,
+  perEdge = 16,
+): (readonly [number, number])[] {
+  return cellRing(
+    (bounds.lonMin + bounds.lonMax) / 2,
+    (bounds.latMin + bounds.latMax) / 2,
+    bounds.lonMax - bounds.lonMin + lonStep,
+    bounds.latMax - bounds.latMin + latStep,
+    perEdge,
+  );
+}
+
+/**
  * The angle between two points on the sphere, in degrees.
  */
 export function angularDistanceDeg(
