@@ -67,6 +67,15 @@ Existing pieces you must reuse, not rebuild:
   worker thread by design**; the comment in `HfcastEngineModule.kt`
   explains why. Changing that is Milestone 2 work and the comment must
   be rewritten honestly when you do.
+- **The legacy build.** One source tree ships as two APKs
+  (`tools/build-android.sh`): modern on Expo SDK 57 for Android 7.0+,
+  and legacy on Expo SDK 50 / React Native 0.73 / React 18 for
+  Android 5.0+ — kept for Fire OS 5 tablets. They share every line of
+  `src/`, so anything you write must typecheck and pass tests under
+  React 18 as well as 19. The check runs in the copy under
+  `build/legacy-app/`: refresh it the way `build_legacy()` does, then
+  `pnpm typecheck && pnpm test` there. Run it before any commit that
+  touches `src/`.
 - **Sentences stay coarse-derived.** `reachOf` (the "N% of the world"
   figure) is computed from the coarse grid only, and the NVIS reach
   sentence from a station-anchored patch query. Neither changes in this
@@ -118,6 +127,13 @@ compatibility table you remember. Verify, do not assume.
 3. Record in the ledger: package version, web bundle delta, APK size
    delta per ABI.
 
+Also answer, without building anything on it: does the library
+install and bundle under the **legacy** tree (React Native 0.73)?
+The expected answer is no, and the design below assumes no — the
+legacy build keeps the SVG renderer. If the answer is somehow yes,
+say so in the ledger and still keep the SVG path: the legacy tier's
+devices are the ones least able to afford a second rendering stack.
+
 **Exit gate:** a Skia shape renders on web and Android; deltas
 recorded. **If the library does not support RN 0.86 yet, stop and
 report** — the options (pin an older RN? wait? another canvas?) are the
@@ -148,8 +164,17 @@ subpaths), coast, rings, path line, markers — about 200 elements.
   opaque `ui.card` backing under the patch (cells are translucent — the
   backing bug is in the ledger, do not reintroduce it), same clipping
   at the disc edge. Compare screenshots on the web build against the
-  SVG version before deleting the SVG cell code. Delete it when
-  satisfied — do not keep two renderers.
+  SVG version.
+- **The SVG cell renderer stays, as the legacy renderer.** The legacy
+  build (React Native 0.73) will not take Skia, and its devices are
+  the reason it exists. Choose the renderer the way the engine module
+  is chosen — by availability, `requireOptionalNativeModule`-style,
+  not by platform sniffing — so one component tree serves both builds.
+  The cost of two renderers is drift; contain it by keeping every
+  decision that could drift (cell geometry, bucketing by quality, ramp
+  colours, backing) in shared data-layer functions both renderers
+  consume, so each renderer is only a draw loop. The parity screenshot
+  comparison doubles as the drift check.
 - Gestures do not change: the `PanResponder` lives on the wrapper
   `View`.
 
@@ -204,10 +229,27 @@ numbers recorded: time-to-fine (hour change → field drawn), coarse
 paint time, JS-thread stalls, heap delta, APK/web unchanged from
 Milestone 1.
 
-## Milestone 3 — the decision gate
+## Milestone 3 — the decision gate, per device at runtime
 
-Measured on the user's phone, not the emulator. The fine globe ships
-as the default if all of:
+One ship-time decision would be wrong somewhere: the range of devices
+runs from the user's phone (1.7–3.4× this desktop, where the fine
+globe projects to 1–2 s threaded) to quad-A53 Fire tablets (roughly
+8–12× this desktop, where it projects to 4–6 s threaded and fails).
+So the decision is made **per device, at run time**, from measurement
+the app already produces: the coarse coverage run is 192 points —
+time it, keep a smoothed per-point cost (persist it; use a median of
+recent runs so one thermally-throttled run does not flip the answer),
+and enable the fine globe only where the projected whole-globe time
+fits the budget. The same number scales the visible-frame patch
+budget where the globe is off ("the points affordable in ~250 ms",
+clamped, and still gated by zoom so the pinned default-view test
+keeps passing untouched). Legacy-build devices never see the globe:
+they keep the SVG renderer and today's tiers, with no code asked to
+decide anything.
+
+Validate the gate on real hardware at both ends — the user's phone
+and the slowest device available — not the emulator. The fine globe
+is allowed on a device only if all of:
 
 - time from settled hour-change to fine field drawn ≤ **2.5 s**, with
   the coarse field visible within **300 ms**;
@@ -215,10 +257,10 @@ as the default if all of:
 - no single JS-thread stall over ~100 ms from data arrival;
 - steady-state heap growth over a 24-hour sweep ≤ ~40 MB.
 
-If it misses, **back off to the visible frame** and record why: keep
-Milestone 1's canvas, disable `useFineGlobe` on device (a constant,
-not a rewrite — web/server may keep the fine globe if it passes
-there), and widen the viewport patch instead. The widening that makes
+Where a device misses, the runtime gate keeps it on **the visible
+frame**: Milestone 1's canvas stays, `useFineGlobe` stays off there
+(web/server keep the fine globe — the server answers in 231 ms), and
+the viewport patch widens instead. The widening that makes
 sense with the view-count wall gone: raise `MAX_PATCH_POINTS` to
 roughly 2,000–5,000 and `PATCH_HALF_LAT_DEG` toward 30, **but** gate
 the budget by zoom so the default whole-globe view keeps today's grid
@@ -259,3 +301,13 @@ the reader zooms in") is the design; the constants are the knob.
   Hardware for every Milestone 3 number.
 - **The build host is small.** ~8 GB RAM, 16 cores, no browser.
   `HFCAST_BUILD_CPUS=0-3` for APKs; the user tests anything visual.
+- **The low end is a hard floor, not a slow lane.** The 2014
+  Fire HD 6 is Android 4.x-class and out of reach of any React Native
+  this project can use (the ledger records this); the oldest devices
+  that install anything get the legacy APK, which this plan leaves
+  exactly as it is today. Quad-A53 tablets on the modern APK get the
+  canvas (a win there: fewer native views, less memory, transform-only
+  pan) and the runtime gate keeps the fine globe away from them.
+  Repeated multi-second all-core engine runs on such hardware are a
+  battery and heat cost as well as a wait — the gate exists for that
+  too.
