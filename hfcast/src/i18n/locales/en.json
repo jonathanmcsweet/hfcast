@@ -20,7 +20,8 @@
     "detailWorld": "Fine detail, whole world.",
     "detailNear": "Fine detail near {{place}} only.",
     "detailMeasuring": "Measuring this device before it adds fine detail.",
-    "detailCoarse": "Coarse detail only. This device is too slow for the fine grid."
+    "detailCoarse": "Coarse detail only. This device is too slow for the fine grid.",
+    "detailNearOnly": "Fine detail near {{place}} only. This device is too slow for the whole world."
   },
   "path": {
     "summary": "{{distance}} · bearing {{bearing}} · {{hops}} hops",

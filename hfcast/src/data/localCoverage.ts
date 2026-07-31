@@ -3,6 +3,7 @@ import { useEngineCost } from '../store/useEngineCost';
 import type { Station } from '../store/useStationStore';
 import { LAT_STEP, LON_STEP, reachOf } from './coverageGrid';
 import { patchGrid, patchRequestBounds } from './coveragePatch';
+import { PROBE_LAT_STEP, PROBE_LON_STEP } from './engineBudget';
 import { FINE_LAT_STEP, FINE_LON_STEP, packGlobe } from './fineGlobe';
 import { engineStation, type Nowcast, ssnFor } from './localPredict';
 import { requiredSnrFor } from './modes';
@@ -160,6 +161,58 @@ export async function coverLocally(
  * The result is packed into typed arrays before returning, so the
  * objects the engine produced are released rather than cached.
  */
+/**
+ * Times one deliberately larger run, so the fine grid's cost can be
+ * fitted from something other than noise.
+ *
+ * The app's ordinary runs are 192 points and a few hundred, which are
+ * too close together to separate a run's fixed cost from its per-point
+ * cost — see `MIN_LEVERAGE`. This covers the whole world at a quarter of
+ * the coarse map's step, which is the same geometry with sixteen times
+ * the points, and that is leverage enough.
+ *
+ * Its answer is thrown away. The only product is the time, which
+ * `record` keeps, and it happens once per device because the readings
+ * are persisted.
+ *
+ * Deliberately not split into strips. The run it is compared against is
+ * a single run, and a fit across runs of different widths would measure
+ * the strips rather than the engine.
+ */
+export async function calibrateLocally(
+  request: LocalCoverageRequest,
+): Promise<number> {
+  const month = request.date.getUTCMonth() + 1;
+  const year = request.date.getUTCFullYear();
+  const { ssn } = ssnFor(year, month, request.nowcast);
+  const station = await engineStation(request.station);
+
+  const startedAt = Date.now();
+  const answer = await Engine.predict<WireCoverage>({
+    ...station,
+    mode: 'area',
+    fromLat: request.from.lat,
+    fromLon: request.from.lon,
+    month,
+    year,
+    ssn,
+    watts: request.station.watts,
+    requiredSnrDb: requiredSnrFor(request.station.mode),
+    noiseDbw: NOISE_DBW,
+    hour: request.hour,
+    freqMhz: BAND_MHZ[request.band],
+    latStep: PROBE_LAT_STEP,
+    lonStep: PROBE_LON_STEP,
+  });
+  const elapsedMs = Date.now() - startedAt;
+
+  const count = (answer.points ?? []).length;
+  if (count === 0) throw new Error('the engine produced no calibration points');
+
+  useEngineCost.getState().record(elapsedMs, count);
+  return elapsedMs;
+}
+
 export async function coverFineLocally(
   request: LocalCoverageRequest,
 ): Promise<FineGlobe> {

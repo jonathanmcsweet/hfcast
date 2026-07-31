@@ -5,6 +5,7 @@ import { ProgressBar, Text, useTheme } from 'react-native-paper';
 import {
   useCoverage,
   useCoveragePatch,
+  useEngineCalibration,
   useFineGate,
   useFineGlobe,
 } from '../api/queries';
@@ -76,18 +77,21 @@ const SHARPEN_HINT_AFTER_MS = 400;
 const detailKey = (
   hasFine: boolean,
   hasPatch: boolean,
-  gate: { affordable: boolean; msPerPoint: number | null; },
+  gate: { affordable: boolean; calibrating: boolean; },
 ): string | null => {
   if (hasFine) return 'reach.detailWorld';
-  // Not affordable with nothing measured is not a refusal, it is a
-  // device that has not answered the question yet. The first coarse run
-  // and the first patch answer it between them.
-  if (!gate.affordable) {
-    return gate.msPerPoint === null
-      ? 'reach.detailMeasuring'
-      : 'reach.detailCoarse';
+  // What is on the screen comes before why there is not more of it. A
+  // patch is fine detail, drawn and visible, so a line reading "coarse
+  // detail only" over a map with fine squares on it would be describing
+  // a different map. The refusal is added to that sentence rather than
+  // replacing it.
+  if (hasPatch) {
+    return gate.affordable || gate.calibrating
+      ? 'reach.detailNear'
+      : 'reach.detailNearOnly';
   }
-  return hasPatch ? 'reach.detailNear' : null;
+  if (gate.calibrating) return 'reach.detailMeasuring';
+  return gate.affordable ? null : 'reach.detailCoarse';
 };
 
 export default function ReachCard({
@@ -167,6 +171,11 @@ export default function ReachCard({
   // line under the map can say which of its outcomes happened.
   const gate = useFineGate();
   const detail = detailKey(Boolean(fine), Boolean(patch), gate);
+  // Times one larger run, once per device, where the ordinary runs are
+  // too alike in size to fit a cost through. Nothing here reads its
+  // result: it writes to the same store the gate reads, so a device that
+  // passes turns the fine grid on by itself.
+  useEngineCalibration(prediction.from, band);
 
   // Null for a survey, where the card answers "how much of the world" rather
   // than "will this reach one place".

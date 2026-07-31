@@ -2,10 +2,19 @@ import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
 import {
+  calibrationWorthwhile,
+  COST_SAMPLES,
+  type CostSample,
   FINE_BUDGET_MS,
   FINE_GRID_POINTS,
   fineGlobeAffordable,
+  keepFastest,
   marginalMsPerPoint,
+  MIN_LEVERAGE,
+  naiveMsPerPoint,
+  PROBE_LAT_STEP,
+  PROBE_LON_STEP,
+  PROBE_POINTS,
   projectedFineMs,
   STRIP_SPEEDUP,
 } from '../src/data/engineBudget.ts';
@@ -97,9 +106,9 @@ describe("separating a run's fixed cost from its per-point cost", () => {
 
   it('lets a capable phone through, where the old model refused it', () => {
     // This is the defect the first version shipped with. A phone about
-    // 2.5 times this desktop measures a coarse run at roughly 50 ms and
-    // a patch of 640 points at roughly 94 ms.
-    const phone = [{ points: 192, ms: 50 }, { points: 640, ms: 94 }];
+    // 2.5 times this desktop, measured against the calibration run
+    // rather than against a patch 64 points larger than the coarse grid.
+    const phone = [{ points: 192, ms: 50 }, { points: PROBE_POINTS, ms: 330 }];
     const fitted = marginalMsPerPoint(phone);
     assert.ok(fitted !== null);
     assert.ok(fineGlobeAffordable(fitted), `fitted ${fitted}`);
@@ -109,7 +118,10 @@ describe("separating a run's fixed cost from its per-point cost", () => {
 
   it('still refuses a genuinely slow device', () => {
     // A quad-A53 tablet: same shape of numbers, ten times the scale.
-    const tablet = [{ points: 192, ms: 500 }, { points: 640, ms: 940 }];
+    const tablet = [
+      { points: 192, ms: 500 },
+      { points: PROBE_POINTS, ms: 3300 },
+    ];
     assert.equal(fineGlobeAffordable(marginalMsPerPoint(tablet)), false);
   });
 
@@ -120,6 +132,42 @@ describe("separating a run's fixed cost from its per-point cost", () => {
     assert.equal(marginalMsPerPoint([]), null);
   });
 
+  it('has no answer from two sizes that are too close together', () => {
+    // The defect the second version shipped with, in the numbers a
+    // Pixel 8 actually produced. The app timed 192 points and 256
+    // points; the 64 between them are worth about 5 ms and the noise on
+    // one reading was 25, so the fitted slope was noise with a units
+    // label. It read 0.70 ms a point where the truth is near 0.08, and
+    // the gate refused a phone that runs the fine grid comfortably.
+    const pixel8 = [{ points: 192, ms: 51 }, { points: 256, ms: 62 }];
+    assert.equal(marginalMsPerPoint(pixel8), null);
+    // Which must read as "not known yet", not as "too slow".
+    assert.ok(calibrationWorthwhile(pixel8));
+  });
+
+  it('accepts two sizes once they are far enough apart', () => {
+    // The same phone, with the calibration run added: 3,072 points at a
+    // true marginal cost near 0.08 ms and a fixed cost near 45 ms.
+    const withProbe = [
+      { points: 192, ms: 51 },
+      { points: 256, ms: 62 },
+      { points: PROBE_POINTS, ms: 290 },
+    ];
+    const fitted = marginalMsPerPoint(withProbe);
+    assert.ok(fitted !== null);
+    assert.ok(fitted < 0.12, `${fitted}`);
+    assert.ok(fineGlobeAffordable(fitted), `${fitted}`);
+    // And once it is settled, there is nothing left to calibrate.
+    assert.equal(calibrationWorthwhile(withProbe), false);
+  });
+
+  it('sizes the calibration run past the leverage it has to provide', () => {
+    assert.equal(PROBE_POINTS, 3072);
+    assert.ok(PROBE_POINTS >= 192 * MIN_LEVERAGE);
+    // Whole rows and columns, or the engine runs a different grid.
+    assert.equal(180 % PROBE_LAT_STEP, 0);
+    assert.equal(360 % PROBE_LON_STEP, 0);
+  });
   it('ignores readings that are not measurements', () => {
     const withJunk = [
       COARSE,
@@ -139,5 +187,101 @@ describe("separating a run's fixed cost from its per-point cost", () => {
       marginalMsPerPoint([{ points: 192, ms: 90 }, { points: 640, ms: 40 }]),
       null,
     );
+  });
+});
+
+describe('deciding whether to spend a run on measuring properly', () => {
+  it('does not measure a device that is obviously far too slow', () => {
+    // A quad-A53 tablet: 192 points in half a second. Even read the way
+    // that most flatters it, the fine grid is half a minute, and no
+    // measurement would change that answer — so it is not worth the
+    // seconds a calibration run would cost such a device.
+    assert.equal(calibrationWorthwhile([{ points: 192, ms: 500 }]), false);
+  });
+
+  it('measures wherever the answer is still open', () => {
+    // A Pixel 8's own readings. The rough figure puts it over budget,
+    // but only by a little, and the rough figure always overstates —
+    // so this is exactly the case a real measurement decides.
+    const pixel8 = [{ points: 192, ms: 51 }, { points: 256, ms: 62 }];
+    assert.ok(calibrationWorthwhile(pixel8));
+  });
+
+  it('has nothing to say before any run at all', () => {
+    assert.equal(naiveMsPerPoint([]), null);
+    assert.equal(calibrationWorthwhile([]), false);
+  });
+
+  it('stops once there is a slope to read', () => {
+    const settled = [
+      { points: 192, ms: 51 },
+      { points: PROBE_POINTS, ms: 290 },
+    ];
+    assert.ok(marginalMsPerPoint(settled) !== null);
+    assert.equal(calibrationWorthwhile(settled), false);
+  });
+
+  it('reads the rough figure from the fastest run, not the average', () => {
+    // A run can be delayed and cannot be hurried, so the smallest
+    // reading is the one nearest the truth.
+    const noisy = [{ points: 192, ms: 100 }, { points: 256, ms: 62 }];
+    assert.equal(naiveMsPerPoint(noisy), 62 / 256);
+  });
+
+  it('never understates the marginal cost', () => {
+    // The rough figure spreads a run's fixed cost over its points, so it
+    // can only ever be too high. That is what makes it safe to refuse a
+    // device on, and unsafe to accept one on.
+    const samples = [{ points: 192, ms: 51 }, {
+      points: PROBE_POINTS,
+      ms: 290,
+    }];
+    const rough = naiveMsPerPoint(samples);
+    const fitted = marginalMsPerPoint(samples);
+    assert.ok(rough !== null && fitted !== null);
+    assert.ok(rough > fitted, `${rough} !> ${fitted}`);
+  });
+});
+
+describe('what the device remembers about its own speed', () => {
+  it('keeps the fastest reading at each size', () => {
+    // The Pixel 8 timed the same 192-point run at 100 ms and at 51 ms.
+    // Only the second says anything about the engine; the first says
+    // something about whatever else the phone was doing.
+    const after = [
+      { points: 192, ms: 100 },
+      { points: 192, ms: 51 },
+      { points: 192, ms: 70 },
+    ].reduce<CostSample[]>((held, next) => keepFastest(held, next), []);
+    assert.deepEqual(after, [{ points: 192, ms: 51 }]);
+  });
+
+  it('holds one entry per size rather than one per run', () => {
+    // The reason it must: the calibration run happens once and the
+    // coarse run happens constantly. A rolling window of runs would push
+    // the one measurement that carries the leverage straight back out.
+    const runs = Array.from({ length: 40 }, () => ({ points: 192, ms: 60 }));
+    const held = [{ points: PROBE_POINTS, ms: 290 }, ...runs].reduce<
+      CostSample[]
+    >((seen, next) => keepFastest(seen, next), []);
+    assert.equal(held.length, 2);
+    assert.ok(held.some((s) => s.points === PROBE_POINTS));
+    assert.ok(marginalMsPerPoint(held) !== null);
+  });
+
+  it('keeps the extremes when it runs out of room', () => {
+    // The smallest and the largest are what give the fit its leverage.
+    const many = Array.from({ length: COST_SAMPLES + 6 }, (_, i) => ({
+      points: 100 + i * 100,
+      ms: 10 + i,
+    }));
+    const held = many.reduce<CostSample[]>(
+      (seen, next) => keepFastest(seen, next),
+      [],
+    );
+    assert.equal(held.length, COST_SAMPLES);
+    const sizes = held.map((s) => s.points);
+    assert.equal(Math.min(...sizes), 100);
+    assert.equal(Math.max(...sizes), many[many.length - 1]?.points);
   });
 });

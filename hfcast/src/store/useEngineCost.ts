@@ -17,21 +17,10 @@ import { createJSONStorage, persist } from 'zustand/middleware';
 import {
   type CostSample,
   fineGlobeAffordable,
+  keepFastest,
   marginalMsPerPoint,
   projectedFineMs,
 } from '../data/engineBudget';
-
-/**
- * How many readings are kept.
- *
- * Enough that one slow run cannot move the fitted slope, and enough to
- * hold runs of both sizes the app makes — the 192-point coarse grid and
- * the few-hundred-point viewport patch — since a fit needs at least two
- * different sizes. Few enough that a device which has genuinely changed,
- * a tablet taken off a charger and throttled, is followed within a few
- * band changes rather than held to what it managed last week.
- */
-export const COST_SAMPLES = 12;
 
 interface EngineCostState {
   /** Timed runs, newest last, each with the size it covered. */
@@ -66,9 +55,7 @@ export const useEngineCost = create<EngineCostState>()(
           return;
         }
         set((state) => ({
-          samples: [...state.samples, { points, ms: elapsedMs }].slice(
-            -COST_SAMPLES,
-          ),
+          samples: keepFastest(state.samples, { points, ms: elapsedMs }),
         }));
 
         // Said out loud, because this decision is otherwise invisible.
@@ -104,13 +91,13 @@ export const useEngineCost = create<EngineCostState>()(
       // naming what is kept also makes the migration below type-check
       // against the stored shape rather than the whole store.
       partialize: (state) => ({ samples: state.samples }),
-      version: 2,
-      // The stored shape changed from bare numbers to {points, ms} pairs
-      // when the cost model was corrected. A bare number says how long a
-      // run took but not how large it was, and a slope cannot be fitted
-      // through sizes that were never recorded — so the old readings are
-      // dropped and the device measures itself again, which costs one
-      // band change.
+      version: 3,
+      // Version 1 stored bare numbers, which say how long a run took but
+      // not how large it was; version 2 stored every run, so the same
+      // two sizes appeared a dozen times over. Neither can be turned
+      // into what version 3 holds — the fastest run at each size — so
+      // both are dropped and the device measures itself again, which
+      // costs one band change.
       //
       // Written out rather than left to happen: with no `migrate`,
       // zustand drops the state anyway but prints an error while doing
