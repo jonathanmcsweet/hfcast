@@ -35,6 +35,16 @@ export interface Projector {
   readonly cy: number;
   /** Null when the point is beyond the clip angle. */
   project(lon: number, lat: number): readonly [number, number] | null;
+  /**
+   * A screen point back to a longitude and latitude, or null outside the
+   * drawn disc.
+   *
+   * The inverse exists in closed form here, which is not true of every
+   * projection: distance from the centre is the angular distance to
+   * scale, and the direction from the centre is the bearing, so a point
+   * on the screen names a bearing and a range and those name a place.
+   */
+  invert(x: number, y: number): readonly [number, number] | null;
   /** Pixels per kilometre along any radius from the centre. */
   readonly pxPerKm: number;
 }
@@ -77,6 +87,28 @@ export function projector(
       // Angular distance runs 0..π across the disc, so π maps to the rim.
       const scale = radius / Math.PI;
       return [radius + x * scale, radius - y * scale] as const;
+    },
+    invert(x: number, y: number) {
+      const scale = radius / Math.PI;
+      const dx = (x - radius) / scale;
+      // Screen y grows downward and latitude grows upward.
+      const dy = (radius - y) / scale;
+      const c = Math.hypot(dx, dy);
+      if (c > clip) return null;
+      // The centre is the one point with no bearing from itself, and the
+      // formulas below divide by `c`.
+      if (c === 0) return [centreLon, centreLat] as const;
+
+      const sinC = Math.sin(c);
+      const cosC = Math.cos(c);
+      const phi = Math.asin(
+        Math.min(1, Math.max(-1, cosC * sinLat0 + (dy * sinC * cosLat0) / c)),
+      );
+      const lambda = lon0
+        + Math.atan2(dx * sinC, c * cosLat0 * cosC - dy * sinLat0 * sinC);
+      // Folded into -180..180, which is what every other coordinate here
+      // is in.
+      return [((lambda / DEG + 540) % 360) - 180, phi / DEG] as const;
     },
   };
 }

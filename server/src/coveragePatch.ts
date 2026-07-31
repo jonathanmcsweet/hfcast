@@ -35,6 +35,36 @@ export const PATCH_LAT_STEP = 1.25;
 export const PATCH_LON_STEP = 1.5;
 
 /**
+ * The cell sizes a patch may use, coarsest first.
+ *
+ * Every rung divides the world evenly *and* divides a coarse cell evenly,
+ * so whichever is chosen the fine cells nest inside the coarse ones under
+ * them rather than lying across their edges. The first rung is the coarse
+ * grid itself, which is the floor: a patch is never coarser than the map
+ * it is drawn over.
+ */
+export const PATCH_STEPS: readonly (readonly [number, number])[] = [
+  [15, 22.5],
+  [7.5, 11.25],
+  [5, 7.5],
+  [2.5, 3.75],
+  [PATCH_LAT_STEP, PATCH_LON_STEP],
+  [0.625, 0.75],
+];
+
+/**
+ * The most points a patch may ask for.
+ *
+ * This is the whole cost control, and it is a count rather than a step
+ * because the rectangle changes size with the zoom: hold the count and
+ * the run costs the same wherever the reader is looking. Measured at
+ * 0.173 ms a point on this desktop, so 700 is about 120 ms there and
+ * something under half a second on a phone — slow enough to be worth
+ * running behind the coarse map, fast enough to follow a pan.
+ */
+export const MAX_PATCH_POINTS = 700;
+
+/**
  * How far the patch reaches north and south of the station, in degrees.
  *
  * About 1,100 km, which is twice what the near-vertical region needs. The
@@ -93,13 +123,26 @@ export interface PatchBounds {
  * The fix is a rectangle stated in kilometres, which has no meridian in
  * it; the engine has that projection and does not yet offer it over JSON.
  */
-export function patchBounds(lat: number, lon: number): PatchBounds | null {
+export function patchBounds(
+  lat: number,
+  lon: number,
+  halfLatDeg: number = PATCH_HALF_LAT_DEG,
+): PatchBounds | null {
+  // Never wider than the fixed rectangle, however far out the reader is
+  // zoomed. Sized to the whole visible region instead, the rectangle at a
+  // whole-globe view would be the world, the budget below would answer
+  // with the coarse step, and the patch would be the map it is drawn over.
+  const halfLat = Math.min(halfLatDeg, PATCH_HALF_LAT_DEG);
   const wanted = Math.min(
     PATCH_MAX_HALF_LON_DEG,
-    PATCH_HALF_LAT_DEG / Math.max(Math.cos((lat * Math.PI) / 180), 1e-6),
+    halfLat / Math.max(Math.cos((lat * Math.PI) / 180), 1e-6),
   );
   const halfLon = Math.min(wanted, 180 - Math.abs(lon));
-  if (halfLon < PATCH_MIN_HALF_LON_DEG) return null;
+  // The floor applies to what the dateline took away, not to what was
+  // asked for. A reader zoomed right in wants a small rectangle and
+  // should get one; a station beside the dateline asked for a large one
+  // and cannot have it, and that is the case worth refusing.
+  if (halfLon < Math.min(wanted, PATCH_MIN_HALF_LON_DEG)) return null;
   const lonMin = lon - halfLon;
   const lonMax = lon + halfLon;
 
@@ -107,9 +150,60 @@ export function patchBounds(lat: number, lon: number): PatchBounds | null {
     // Clamped at the poles, where the rectangle asks for latitudes that
     // do not exist. The engine clamps too; doing it here as well keeps
     // the request describing something real.
-    latMin: Math.max(-90, lat - PATCH_HALF_LAT_DEG),
-    latMax: Math.min(90, lat + PATCH_HALF_LAT_DEG),
+    latMin: Math.max(-90, lat - halfLat),
+    latMax: Math.min(90, lat + halfLat),
     lonMin,
     lonMax,
   };
+}
+
+/** A rectangle and the cell size chosen to cover it. */
+export interface PatchGrid extends PatchBounds {
+  latStep: number;
+  lonStep: number;
+}
+
+/**
+ * The rectangle to run, and how finely, for a reader looking at
+ * `lat`/`lon` with `halfLatDeg` of latitude visible either side.
+ *
+ * The centre is where the map is pointed rather than where the station
+ * is, so panning at a zoom moves the detail to what is on screen. At the
+ * default whole-globe view the two are the same place, because the
+ * projection is centred on the station, so nothing changes there.
+ *
+ * The step is the finest rung whose point count fits the budget. That is
+ * what keeps the cost flat: a smaller rectangle buys a finer grid rather
+ * than a cheaper run. Null where there is no rectangle to ask for — see
+ * `patchBounds`.
+ */
+export function patchGrid(
+  lat: number,
+  lon: number,
+  halfLatDeg: number = PATCH_HALF_LAT_DEG,
+): PatchGrid | null {
+  const bounds = patchBounds(lat, lon, halfLatDeg);
+  if (bounds === null) return null;
+
+  const rows = (latStep: number) =>
+    Math.ceil((bounds.latMax - bounds.latMin) / latStep);
+  const columns = (lonStep: number) =>
+    Math.ceil((bounds.lonMax - bounds.lonMin) / lonStep);
+
+  // Coarsest first, so the last one that fits is the finest that fits.
+  // The first rung is the coarse grid itself and always fits, which is
+  // what makes this total rather than an option.
+  const chosen = PATCH_STEPS.reduce<readonly [number, number]>(
+    (best, step) =>
+      rows(step[0]) * columns(step[1]) <= MAX_PATCH_POINTS ? step : best,
+    PATCH_STEPS[0] as readonly [number, number],
+  );
+
+  // `Grid::point` in the engine divides by the number of points less one,
+  // so a single-point axis is a division by zero rather than a small
+  // answer and the request is refused. Caught here so a doomed one is
+  // never sent.
+  if (rows(chosen[0]) < 2 || columns(chosen[1]) < 2) return null;
+
+  return { ...bounds, latStep: chosen[0], lonStep: chosen[1] };
 }

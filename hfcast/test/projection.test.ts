@@ -329,3 +329,55 @@ describe('the outline round a whole grid of cells', () => {
     );
   });
 });
+
+describe('the inverse projection', () => {
+  const p = projector(LON, LAT, SIZE);
+
+  it('takes a screen point back to the place it came from', () => {
+    // The map has needed this to answer "what is under the reader's
+    // finger", and the coverage patch needs it to know what is on screen.
+    for (const km of [500, 2000, 6000, 12000, 18000]) {
+      for (let bearing = 0; bearing < 360; bearing += 30) {
+        const [lon, lat] = destination(LON, LAT, bearing, km);
+        const screen = p.project(lon, lat);
+        assert.ok(screen, `${km} km at ${bearing} must project`);
+        const back = p.invert(screen[0], screen[1]);
+        assert.ok(back, `${km} km at ${bearing} must invert`);
+        assert.ok(
+          Math.abs(back[1] - lat) < 1e-6,
+          `latitude ${back[1]} should be ${lat}`,
+        );
+        // Longitudes are compared the short way round, so 179.9 and
+        // -179.9 read as a tenth of a degree apart rather than 360.
+        const dLon = Math.abs(((back[0] - lon + 540) % 360) - 180);
+        assert.ok(dLon < 1e-6, `longitude ${back[0]} should be ${lon}`);
+      }
+    }
+  });
+
+  it('returns the centre for the centre', () => {
+    const back = p.invert(CENTRE, CENTRE);
+    assert.ok(back);
+    assert.ok(Math.abs(back[0] - LON) < 1e-9);
+    assert.ok(Math.abs(back[1] - LAT) < 1e-9);
+  });
+
+  it('refuses a point outside the disc', () => {
+    // The corner of the square the disc is drawn in is not on the earth.
+    assert.equal(p.invert(0, 0), null);
+    assert.equal(p.invert(SIZE, SIZE), null);
+  });
+
+  it('answers in the range every other coordinate uses', () => {
+    // Folded into -180..180. A patch rectangle built from a longitude of
+    // 200 would be refused by the engine as outside the world.
+    for (let x = 10; x < SIZE; x += 17) {
+      for (let y = 10; y < SIZE; y += 17) {
+        const back = p.invert(x, y);
+        if (back === null) continue;
+        assert.ok(back[0] >= -180 && back[0] <= 180, `lon ${back[0]}`);
+        assert.ok(back[1] >= -90 && back[1] <= 90, `lat ${back[1]}`);
+      }
+    }
+  });
+});
