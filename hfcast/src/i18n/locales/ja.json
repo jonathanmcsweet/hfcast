@@ -19,10 +19,7 @@
     "mapSharpening": "地図を詳細にしています",
     "mapUpdating": "地図を更新しています",
     "detailWorld": "全世界を細かく表示しています。",
-    "detailNear": "{{place}} の周辺のみ細かく表示しています。",
-    "detailMeasuring": "細かい表示を追加する前に、この端末を測定しています。",
-    "detailCoarse": "粗い表示のみです。この端末は細かい格子には遅すぎます。",
-    "detailNearOnly": "{{place}} の周辺のみ細かく表示しています。この端末は全世界を細かく表示するには遅すぎます。"
+    "detailNear": "{{place}} の周辺のみ細かく表示しています。"
   },
   "path": {
     "summary": "{{distance}} · 方位 {{bearing}} · {{hops}} ホップ",

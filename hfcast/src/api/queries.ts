@@ -8,12 +8,6 @@ import { useEffect, useMemo } from 'react';
 import { searchCities } from '../data/cities';
 import { formatLatLon, parseCoordinates } from '../data/coords';
 import { patchGrid, patchKey } from '../data/coveragePatch';
-import {
-  calibrationWorthwhile,
-  fineGlobeAffordable,
-  fitRunCost,
-  projectedFineMs,
-} from '../data/engineBudget';
 import { fetchGeocode as fetchGeocodeDirect } from '../data/geocode';
 import { gridToLatLon, isGrid, latLonToGrid } from '../data/grid';
 import {
@@ -21,7 +15,6 @@ import {
   usefulStation,
 } from '../data/ionosonde';
 import {
-  calibrateLocally,
   canMapLocally,
   coverFineLocally,
   coverLocally,
@@ -43,7 +36,6 @@ import type {
 } from '../data/types';
 import { useSettled } from '../hooks/useSettled';
 import { hasSkia } from '../render/available';
-import { useEngineCost } from '../store/useEngineCost';
 import { today } from '../store/usePathStore';
 import {
   activePreset,
@@ -110,12 +102,6 @@ export const queryKeys = {
     nowcast: string,
     station: string,
   ) => ['coverage', server, from, band, hour, date, nowcast, station] as const,
-  // Only the station, because what this measures is how fast the engine
-  // runs here — which does not depend on the hour, the band or where the
-  // reader is pointing. The station is in it because a different antenna
-  // is a different file for the engine to read.
-  engineCalibration: (station: string) =>
-    ['engineCalibration', station] as const,
   fineGlobe: (
     server: string,
     from: string,
@@ -542,98 +528,6 @@ export function useCoverage(
  * Where the server answers, there is nothing to gate: it shards across
  * processes and replies in about 440 ms whatever the phone is.
  */
-/**
- * Whether the fine grid will be asked for, and why.
- *
- * Separated from the query so the map's decision and the line under the
- * map that explains it read the same fact. Two copies of this rule would
- * be a line that says the grid is coming while the query sits disabled —
- * which is worse than saying nothing, because a reader would keep
- * waiting.
- */
-export function useFineGate() {
-  const local = canMapLocally();
-  // Subscribed rather than read once, so a device that has just taken
-  // its first measurement turns the globe on without needing another
-  // reason to re-render. The sharded readings, because the fine grid is
-  // sharded — the whole runs beside them describe different work.
-  const sharded = useEngineCost((state) => state.sharded);
-  const cost = fitRunCost(sharded);
-  return {
-    /** True when this device runs the engine itself. */
-    local,
-    /** How many sharded grid sizes have been timed. */
-    sampleCount: sharded.length,
-    /** Null until two sizes far enough apart have been seen. */
-    msPerPoint: cost?.msPerPoint ?? null,
-    /** What the fine grid is expected to cost here, in milliseconds. */
-    projectedMs: projectedFineMs(cost),
-    /** Nothing to weigh where the server answers. */
-    affordable: !local || fineGlobeAffordable(cost),
-    /**
-     * True while the probes are still running. The first probe is taken
-     * unconditionally on a device that runs the engine, because it is
-     * the measurement everything else here is read from.
-     */
-    calibrating: local
-      && (sharded.length === 0 || calibrationWorthwhile(sharded)),
-  };
-}
-
-/**
- * Times the probe runs, once, so the gate has something to fit.
- *
- * The app's ordinary runs are all about the same size and none of them
- * is sharded, so neither the slope nor the strips can be read from them
- * — see `MIN_LEVERAGE`. This runs while the question is still open and
- * stops as soon as it is settled, in either direction: a fit that
- * arrives disables it, and so does a rough figure far enough over budget
- * that no further measurement would change the answer.
- *
- * Nothing on screen depends on it, so it neither retries nor reports.
- * A device that fails it keeps the coarse map, which is what it would
- * have had anyway.
- */
-export function useEngineCalibration(
-  from: Endpoint,
-  band: BandKey,
-  /**
-   * Whether the coarse map has landed.
-   *
-   * The native module runs one prediction at a time, on purpose, so a
-   * probe started before the coarse map is a probe the coarse map queues
-   * behind. The map is what the reader is waiting for; the probe is for
-   * a decision they have not asked about yet. So the probe waits, and on
-   * every device the first thing to paint is still the map.
-   */
-  after: boolean,
-) {
-  const date = today();
-  const station = useStation();
-  const nowcast = nowcastFrom(useSpaceWeather().data);
-  const { calibrating } = useFineGate();
-
-  return useQuery({
-    // Not keyed by hour or band: the cost of a run does not depend on
-    // which hour it asks about, and keying by one would run it again
-    // every time the reader moved the clock.
-    queryKey: queryKeys.engineCalibration(station.key),
-    queryFn: () =>
-      calibrateLocally({
-        from,
-        band,
-        hour: 12,
-        date: new Date(`${date}T00:00:00Z`),
-        station: station.station,
-        nowcast,
-      }),
-    enabled: after && calibrating && !station.editing,
-    staleTime: Number.POSITIVE_INFINITY,
-    gcTime: Number.POSITIVE_INFINITY,
-    retry: false,
-  });
-}
-
 export function useFineGlobe(
   from: Endpoint,
   band: BandKey,
@@ -645,7 +539,6 @@ export function useFineGlobe(
   const local = canMapLocally();
   const nowcast = nowcastFrom(useSpaceWeather().data);
   const hour = useSettled(reportedHour, 350);
-  const { affordable } = useFineGate();
 
   const query = useQuery({
     queryKey: queryKeys.fineGlobe(
@@ -676,7 +569,11 @@ export function useFineGlobe(
           nowcast: true,
           station: station.params,
         }),
-    enabled: enabled && hasSkia && affordable && !station.editing,
+    // `hasSkia` is a renderer limit, not a speed one: the legacy SVG
+    // cell field cannot hold 34,560 shapes, so on that build the run
+    // would cost seconds and change nothing on screen. Every device that
+    // can draw the grid runs it (user, 2026-08-01).
+    enabled: enabled && hasSkia && !station.editing,
     placeholderData: keepPreviousData,
     staleTime: local ? Number.POSITIVE_INFINITY : SPACE_WEATHER_POLL_MS,
     gcTime: MAP_CACHE_MS,
