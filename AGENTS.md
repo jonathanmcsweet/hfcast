@@ -2,6 +2,8 @@
 
 ## Your behavior
 
+- Speak to me in ASD-STE100 Simplified Technical English
+- Write documentation in ASD-STE100 Simplified Technical English
 - Be concise, articulate with your language in interactions and avoid idioms that may confuse people who don't know what they mean. Use simple language
 
 ## Open work and progress
