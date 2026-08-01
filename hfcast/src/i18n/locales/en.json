@@ -3,8 +3,6 @@
     "label": "Band"
   },
   "reach": {
-    "title": "Where can I reach?",
-    "subtitle": "The forecast below is aimed at {{place}}.",
     "answer": "{{band}} reaches {{place}} at {{hour}} UTC — about {{percent}} chance of contact.",
     "mapLoading": "Working out where this band reaches",
     "mapUnavailable": "The coverage map could not be loaded.",
@@ -12,7 +10,6 @@
     "legendReach": "Reach",
     "legendNight": "Night",
     "panHint": "Two fingers move the map",
-    "subtitleAnywhere": "No destination set, so this is every direction at once.",
     "answerAnywhere": "{{band}} at {{hour}} UTC reaches about {{percent}} of the directions sampled.",
     "legendNvis": "No skip zone",
     "nvisReach": "{{band}} reaches out to about {{distance}} with no skip zone.",

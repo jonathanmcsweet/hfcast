@@ -205,17 +205,19 @@ export default function ReachCard({
 
   return (
     <Card>
-      <View style={styles.head}>
-        <Text style={[typography.cardHeadline, { color: ui.ink }]}>
-          {t('reach.title')}
-        </Text>
-        <Text style={[typography.caption, { color: ui.text3 }]}>
-          {destination
-            ? t('reach.subtitle', { place: destination.label })
-            : t('reach.subtitleAnywhere')}
-        </Text>
-      </View>
+      {
+        /* No headline and no caption. They asked "Where can I reach?"
+           and named the destination, and the sentence directly below
+           answers both — it carries the band, the hour, the place and
+           the chance of contact, with a destination set or without one.
+           The question and its answer were stacked, and only the answer
+           held a figure (user, 2026-08-01).
 
+           Nothing takes over as a heading. The app's heading is the
+           fixed block at the top, and no component here sets
+           `accessibilityRole="header"`, so there is no heading list for
+           this card to fall out of. */
+      }
       <Inset>
         <View style={styles.readoutRow}>
           <Text
@@ -373,7 +375,6 @@ const styles = StyleSheet.create({
   // legend and the sentences under it.
   sharpenRow: { height: 3, justifyContent: 'center' },
   sharpenBar: { height: 3 },
-  head: { gap: spacing.xs },
   readoutRow: {
     flexDirection: 'row',
     alignItems: 'center',

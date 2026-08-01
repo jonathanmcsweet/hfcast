@@ -32,17 +32,15 @@ export const MAP_CACHE_MS = 60 * 60 * 1000;
  *
  * They are the only answers here big enough to matter: 34,560 points as
  * two `Float32Array`s is 276 KB each, against a few kilobytes for a
- * coarse map or a patch.
+ * coarse map or a patch. Twenty-four is a full day's scrubbing on one
+ * band, about 6.6 MB, and it stops a reader who tries every band at
+ * every hour from holding sixty.
  *
- * The unit is now an hour rather than a grid. One hour is computed at
- * every band at once — nine grids, about 2.5 MB — so that a band change
- * draws from memory. Thirty-six holds four such hours, about 10 MB. A
- * cap of twenty-four would have held two hours and a fraction, and the
- * fraction is the problem: it would drop part of an hour's set, leaving
- * a reader who moves the clock back one step with some bands instant
- * and others not, for no saving worth having.
+ * One grid is the unit again. 0.49.0 briefly made it an hour at every
+ * band, and raised this to thirty-six to hold whole sets; the run that
+ * produced those sets is gone, so the reason is gone with it.
  */
-export const FINE_GLOBE_CACHE = 36;
+export const FINE_GLOBE_CACHE = 24;
 
 /**
  * Drops the least recently used fine grids past `FINE_GLOBE_CACHE`.

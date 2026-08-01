@@ -3,8 +3,6 @@
     "label": "バンド"
   },
   "reach": {
-    "title": "どこまで届きますか",
-    "subtitle": "下の予報は {{place}} に向けたものです。",
     "answer": "{{band}} は {{hour}} UTC に {{place}} へ届きます。交信できる可能性は約 {{percent}} です。",
     "mapLoading": "この周波数の到達範囲を計算しています",
     "mapUnavailable": "到達範囲の地図を読み込めませんでした。",
@@ -12,7 +10,6 @@
     "legendReach": "到達範囲",
     "legendNight": "夜",
     "panHint": "地図は2本指で動かします",
-    "subtitleAnywhere": "受信地が未設定のため、全方位をまとめて表示しています。",
     "answerAnywhere": "{{band}} は {{hour}} UTC に調査方位の約 {{percent}} に届きます。",
     "legendNvis": "スキップゾーンなし",
     "nvisReach": "{{band}}はスキップゾーンなしで約{{distance}}まで届きます。",

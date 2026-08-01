@@ -3,8 +3,6 @@
     "label": "Band"
   },
   "reach": {
-    "title": "Wen kann ich erreichen?",
-    "subtitle": "Die Vorhersage unten gilt für {{place}}.",
     "answer": "{{band}} erreicht {{place}} um {{hour}} UTC — Verbindungswahrscheinlichkeit etwa {{percent}}.",
     "mapLoading": "Reichweite dieses Bandes wird berechnet",
     "mapUnavailable": "Die Reichweitenkarte konnte nicht geladen werden.",
@@ -12,7 +10,6 @@
     "legendReach": "Reichweite",
     "legendNight": "Nacht",
     "panHint": "Mit zwei Fingern die Karte bewegen",
-    "subtitleAnywhere": "Kein Ziel gesetzt, daher alle Richtungen zugleich.",
     "answerAnywhere": "{{band}} um {{hour}} UTC erreicht etwa {{percent}} der geprüften Richtungen.",
     "legendNvis": "Keine tote Zone",
     "nvisReach": "{{band}} reicht ohne tote Zone bis etwa {{distance}}.",
