@@ -1,68 +1,88 @@
 # HFcast
 
-HF radio propagation forecasts, presented the way a weather app presents
-weather.
+[![CI](https://github.com/jonathanmcsweet/hfcast/actions/workflows/ci.yml/badge.svg)](https://github.com/jonathanmcsweet/hfcast/actions/workflows/ci.yml)
+[![Licence](https://img.shields.io/badge/licence-Apache--2.0-blue)](LICENSE)
+[![Android 7.0+](https://img.shields.io/badge/Android-7.0%2B-3ddc84)](docs/quick-start.md)
+[![GrapheneOS](https://img.shields.io/badge/GrapheneOS-tested-4a4a4a)](#grapheneos)
+[![Built with Isopod](https://img.shields.io/badge/built%20with-Isopod-6f42c1)](https://github.com/isopod/isopod)
 
-VOACAP output is climatology with a probability attached, which is
-structurally the same thing a weather forecast is. So the app borrows the
-weather app's vocabulary — conditions now, an hourly strip, a per-band
-list, a 24-hour grid — rather than inventing a new one for radio.
+HF radio propagation forecasts, shown the way a weather application
+shows weather.
 
-## What is here
+A VOACAP prediction tells you how probable a radio path is. A weather
+forecast tells you how probable rain is. The two are the same kind of
+answer, so this application uses the same shapes: the conditions now, an
+hourly strip, a list of bands, and a grid of the next 24 hours.
 
-| Part               | What it is                                            |
-| ------------------ | ----------------------------------------------------- |
-| [hfcast/](hfcast/) | The app. React Native, Expo, Material Design 3        |
-| [server/](server/) | The prediction API, for builds with no engine in them |
-| [docs/](docs/)     | Roadmap and the completions ledger                    |
+The application does the calculation on the telephone. It does not send
+your position to a server, and it gives a forecast with no network
+connection.
 
-The propagation engine lives in its own repository,
-[hfcast-engine](https://github.com/jonathanmcsweet/hfcast-engine): a Rust port of
-VOACAP verified against the Fortran reference, with the harness that
-verifies it. The server drives either that or `voacapl` directly.
+When it has a connection, it reads the space weather of today from NOAA
+and the ionosphere measurements from GIRO. It asks for each of these one
+time in 15 minutes at most. It does not use an account or a key.
 
-## Running it
+## Install it
 
-An Android build carries the engine and needs nothing else. The web build
-does not, so it reads from the server — and one command starts both, waits
-for the server to answer, and stops it again on exit.
+Android 7.0 or later.
 
-```sh
-pnpm install
-pnpm dev:app        # or `pnpm dev` — then press w, i or a
-```
+| Method                                             | How                                                                    |
+| -------------------------------------------------- | ---------------------------------------------------------------------- |
+| [Obtainium](https://github.com/ImranR98/Obtainium) | Add the URL `https://github.com/jonathanmcsweet/hfcast`                         |
+| Direct download                                    | Take an APK from [Releases](https://github.com/jonathanmcsweet/hfcast/releases) |
 
-If a server is already listening, that one is used and left running. To
-start either half alone:
+A release has four APK files, one for each processor type. Obtainium
+selects the correct file. If you download the file yourself, use
+`arm64-v8a` unless your device is more than approximately ten years
+old.
 
-```sh
-pnpm dev:server     # the server, on http://127.0.0.1:8787
-pnpm dev:ui         # the app, against a server elsewhere or a mocked API
-```
+F-Droid and Accrescent are planned. See
+[docs/roadmap.md](docs/roadmap.md).
 
-Each has its own README with the details.
+## Build it
 
-The server needs `voacapl` and an `itshfbc` data tree on the host. That
-is a manual build step, documented in [server/README.md](server/README.md).
+See the [quick start](docs/quick-start.md). It takes approximately 15
+minutes on a machine that has the tools.
 
-## What it is honest about
+To work on the code, read the [development guide](docs/development.md) after it.
 
-Predictions are monthly climatology, so every day in a month returns the
-same answer unless the sunspot number moves. Today can differ because it
-can be a now-cast, using live space weather. The forecast says what a
-typical day of that month looks like, with a probability — not what will
-happen on Thursday.
+## What is in this repository
 
-The model's numbers are corrected against measured radio rather than
-trusted as they come. [docs/](docs/) and the engine repository record
-what was measured, what the corrections are, and where they are weakest.
+| Part               | What it is                                             |
+| ------------------ | ------------------------------------------------------ |
+| [hfcast/](hfcast/) | The application. React Native, Expo, Material Design 3 |
+| [server/](server/) | The prediction API, for builds that have no engine     |
+| [docs/](docs/)     | The guides, the roadmap, and the completions ledger    |
+
+The propagation engine is in a different repository:
+[hfcast-engine](https://github.com/jonathanmcsweet/hfcast-engine). It is a Rust
+translation of VOACAP. Tests compare it against the Fortran original,
+cell by cell.
+
+## GrapheneOS
+
+The application is developed and tested on a Pixel 8 with GrapheneOS.
+It reads the position from AOSP, not from Google Play Services, so it
+operates on a device that has no Google software.
+
+## What this application does not do
+
+The prediction is a monthly average. Each day of one month gives the
+same answer, unless the sunspot number changes. Today can be different,
+because the application can use the space weather of today.
+
+So the forecast tells you what a usual day of that month is like, with a
+probability. It does not tell you what will occur on Thursday.
+
+The numbers are corrected against measured radio signals. The
+[documents](docs/) and the engine repository record what was measured,
+what the corrections are, and where they are weakest.
 
 ## Built on the work of
 
-Nearly everything this app knows comes from somebody else. The app carries the
-same list in its About screen, with links and full licence texts, which is
-where the obligations are actually discharged — this is here so a reader of the
-source sees it too.
+Almost all the knowledge in this application comes from other people.
+The application shows the same list in its About screen, with links and
+the full licence texts.
 
 | What                                                                                                                            | Whose                                            | Terms                                                             |
 | ------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------ | ----------------------------------------------------------------- |
@@ -77,16 +97,17 @@ source sees it too.
 | [The aurora on the launch screen](https://commons.wikimedia.org/wiki/File:ISS-42_Aurora_borealis_over_North_Atlantic_Ocean.jpg) | NASA / Samantha Cristoforetti, ESA               | public domain                                                     |
 | [IBM Plex Sans](https://github.com/IBM/plex), the typeface                                                                      | IBM                                              | SIL Open Font License 1.1                                         |
 
-Three of them are live services the app calls directly, without a key. NOAA and
-GIRO are asked once every fifteen minutes at most; Open-Meteo only when
-somebody types a place the bundled list does not hold.
+Three of these are live services that the application calls directly,
+with no key. It asks NOAA and GIRO one time in 15 minutes at most. It
+asks Open-Meteo only when you type a place that the included list does
+not have.
 
-VOACAP was developed by the Institute for Telecommunication Sciences, NTIA, US
-Department of Commerce. Neither NTIA/ITS nor NOAA endorses HFcast, and neither
-is responsible for anything it reports.
+The Institute for Telecommunication Sciences, NTIA, US Department of
+Commerce developed VOACAP. NTIA/ITS and NOAA do not endorse HFcast.
+They are not responsible for what it reports.
 
 ## Licence
 
 Apache-2.0. See [LICENSE](LICENSE) and [NOTICE](NOTICE).
 
-This project drives VOACAP; it does not replace it.
+This project operates VOACAP. It does not replace it.

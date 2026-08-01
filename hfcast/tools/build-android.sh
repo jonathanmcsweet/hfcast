@@ -76,15 +76,47 @@ check_icon_font() {
   echo "$(basename "$apk"): icon font present ($biggest bytes)"
 }
 
+# Collects the four per-architecture APKs a build produced.
+#
+# Both builds split by architecture — see plugins/withAbiSplits.ts, which
+# applies to whichever of the two is being built because `app.json` is shared.
+# A phone can run only one of the four, and one APK carrying all of them made
+# the download about four times what it had to be.
+#
+# Takes the tree that was built and the name to use, `android7` or `android5`.
+collect_apks() {
+  local tree="$1"
+  local label="$2"
+  local src="$tree/android/app/build/outputs/apk/release"
+  local found=0
+
+  for abi in armeabi-v7a arm64-v8a x86 x86_64; do
+    local from="$src/app-$abi-release.apk"
+    if [[ ! -f $from ]]; then
+      continue
+    fi
+    local to="$out/hfcast-$version-$label-$abi.apk"
+    cp "$from" "$to"
+    check_icon_font "$to"
+    found=$((found + 1))
+  done
+
+  if [[ $found -ne 4 ]]; then
+    # A build that quietly produced one file, or three, would look like a
+    # release and leave some devices with nothing to install.
+    echo "expected 4 per-architecture APKs, found $found in $src" >&2
+    ls -1 "$src" >&2
+    exit 1
+  fi
+}
+
 build_modern() {
   echo
   echo "=== modern: Expo SDK 57, Android 7.0 and up ==="
   ANDROID_API=24 bash "$app/modules/hfcast-engine/build-rust.sh"
   (cd "$app" && npx expo prebuild --clean --platform android --no-install)
   run_gradle "$app"
-  cp "$app/android/app/build/outputs/apk/release/app-release.apk" \
-    "$out/hfcast-$version-android7.apk"
-  check_icon_font "$out/hfcast-$version-android7.apk"
+  collect_apks "$app" android7
 }
 
 build_legacy() {
@@ -157,9 +189,7 @@ build_legacy() {
   ANDROID_API=21 bash "$work/modules/hfcast-engine/build-rust.sh"
   (cd "$work" && npx expo prebuild --clean --platform android --no-install)
   run_gradle "$work"
-  cp "$work/android/app/build/outputs/apk/release/app-release.apk" \
-    "$out/hfcast-$version-android5.apk"
-  check_icon_font "$out/hfcast-$version-android5.apk"
+  collect_apks "$work" android5
 }
 
 if [[ $what == modern || $what == both ]]; then build_modern; fi
