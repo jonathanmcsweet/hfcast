@@ -111,9 +111,13 @@ type AreaAsk = Record<string, unknown>;
  * Where the module is too old to run a batch, everything here runs
  * whole, probes included. That stays consistent for the same reason: the
  * fit then describes unsharded runs, which is what this device does.
+ *
+ * Generic over the answer because the same cut serves a one-band grid
+ * and an every-band one. The strips are a property of the lattice, not
+ * of how many frequencies each point carries.
  */
-interface ShardedRun {
-  answers: WireCoverage[];
+interface ShardedRun<T> {
+  answers: T[];
   /** The whole wait, which is what the gate is fitted against. */
   elapsedMs: number;
   /** How much of it was the engine, and how much was parsing. */
@@ -124,11 +128,11 @@ interface ShardedRun {
   threads: number;
 }
 
-async function shardedWholeWorld(
+async function shardedWholeWorld<T>(
   ask: AreaAsk,
   latStep: number,
   lonStep: number,
-): Promise<ShardedRun> {
+): Promise<ShardedRun<T>> {
   const cores = Engine.cores();
   // Cut into latitude strips so the batch can use more than one core.
   // The arithmetic is the server's, copied character for character, so
@@ -143,14 +147,14 @@ async function shardedWholeWorld(
   const startedAt = Date.now();
   const batch = strips === null
     ? {
-      answers: [await Engine.predict<WireCoverage>(request)],
+      answers: [await Engine.predict<T>(request)],
       // An unsharded run cannot separate the two: `predict` parses its
       // one answer inside itself. Charged to the engine rather than
       // split on a guess.
       nativeMs: Date.now() - startedAt,
       parseMs: 0,
     }
-    : await Engine.predictMany<WireCoverage>(
+    : await Engine.predictMany<T>(
       strips.map((bounds) => ({ ...request, ...bounds })),
       threads,
     );
@@ -344,7 +348,11 @@ export async function coverFineLocally(
   const { ssn, basis } = ssnFor(year, month, request.nowcast);
   const ask = await areaAsk(request, ssn);
 
-  const run = await shardedWholeWorld(ask, FINE_LAT_STEP, FINE_LON_STEP);
+  const run = await shardedWholeWorld<WireCoverage>(
+    ask,
+    FINE_LAT_STEP,
+    FINE_LON_STEP,
+  );
   const { answers, elapsedMs } = run;
 
   // Concatenated in strip order. The engine emits rows south to north,
@@ -405,6 +413,88 @@ export async function coverFineLocally(
   );
 
   return globe;
+}
+
+/**
+ * The whole-world fine grid for every band, run behind a drawn map.
+ *
+ * The same 34,560-point lattice as `coverFineLocally`, asked for at
+ * every band at once. Measured in the engine over one strip of that
+ * lattice: one band 170 ms and 285 KB, nine bands 448 ms and 602 KB. So
+ * nine bands cost about two and a half times one band, not nine times,
+ * for the reason the coarse map already shows — the ionosphere is built
+ * once and every band reads it.
+ *
+ * It is still two and a half times, which is why this does not replace
+ * the single-band run. The band the reader chose is drawn by that run at
+ * its own speed; this one follows it and fills in the other eight, so a
+ * band change after it lands costs nothing. The chosen band is computed
+ * twice, about a ninth of the work wasted, in exchange for the first map
+ * arriving no later than it does today.
+ *
+ * Bands are packed one at a time with a yield between, for the reason
+ * `breathe` exists: the packing runs on the thread that draws, and this
+ * run is happening under a map the reader is already using. Nine bands
+ * of unbroken packing would stutter a map that currently does not.
+ */
+export async function coverFineAllBandsLocally(
+  request: LocalCoverageRequest,
+): Promise<Record<BandKey, FineGlobe>> {
+  const month = request.date.getUTCMonth() + 1;
+  const year = request.date.getUTCFullYear();
+  const { ssn, basis } = ssnFor(year, month, request.nowcast);
+  const ask = await areaAsk(request, ssn);
+
+  const startedAt = Date.now();
+  const run = await shardedWholeWorld<WireBands>(
+    { ...ask, freqMhz: undefined, freqsMhz: ALL_FREQS_MHZ },
+    FINE_LAT_STEP,
+    FINE_LON_STEP,
+  );
+
+  const first = run.answers[0] as WireBands;
+  const latStep = first.latStep ?? FINE_LAT_STEP;
+  const lonStep = first.lonStep ?? FINE_LON_STEP;
+
+  // A band at a time, and each one packed before the next is built, so
+  // what is held is the wire answers plus one band rather than the wire
+  // answers plus nine. The loop is here rather than a `map` because the
+  // yields have to fall between the bands — see `coverFineLocally`.
+  const covered: [BandKey, FineGlobe][] = [];
+  for (const [index, band] of BANDS_BY_FREQ.entries()) {
+    // Concatenated in strip order, which is the order the engine emits
+    // rows in, because `packGlobe` reads the sequence as a lattice.
+    const points: CoveragePoint[] = run.answers.flatMap((answer) =>
+      bandPoints(answer, index)
+    );
+    if (points.length === 0) {
+      throw new Error(`the engine produced no fine points for ${band}`);
+    }
+    covered.push([
+      band,
+      packGlobe(band, request.hour, {
+        band,
+        hour: request.hour,
+        latStep,
+        lonStep,
+        reach: 0,
+        basis,
+        points,
+      }),
+    ]);
+    await breathe();
+  }
+
+  console.log(
+    `[hfcast] fine grid ${covered.length} bands`
+      + ` | ${(first.points ?? []).length} points a strip`
+      + ` | ${run.strips} strips on ${run.threads} threads`
+      + ` | engine ${Math.round(run.nativeMs)} ms`
+      + ` | parse ${Math.round(run.parseMs)} ms`
+      + ` | total ${Math.round(Date.now() - startedAt)} ms`,
+  );
+
+  return Object.fromEntries(covered) as unknown as Record<BandKey, FineGlobe>;
 }
 
 /**
