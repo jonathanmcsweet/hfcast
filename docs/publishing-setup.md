@@ -11,17 +11,31 @@ Text in `ANGLE BRACKETS` is a placeholder. Replace it.
 
 ## 1. Make the two GitHub repositories
 
-The application and the engine stay in different repositories. The
-release workflow reads the engine from GitHub at a fixed commit.
+There are **two** repositories here, not three:
 
-1. Make `<ACCOUNT>/hfcast` for the application.
-2. Make `<ACCOUNT>/hfcast-engine` for the engine.
+```
+hfcast/                  <- repository 1
+├── hfcast/                 the application. NOT its own repository
+├── hfcast-engine/       <- repository 2
+├── server/
+├── docs/
+└── tools/
+```
+
+`hfcast/hfcast/` is a directory of repository 1. Do not make a
+repository for it.
+
+The release workflow reads the engine from GitHub at a fixed commit, so
+the two stay separate.
+
+1. Make `<ACCOUNT>/hfcast` for repository 1.
+2. Make `<ACCOUNT>/hfcast-engine` for repository 2.
 
 If `<ACCOUNT>` is not `jonathanmcsweet`, change `ENGINE_REPO` in
 `.github/workflows/ci.yml` and `.github/workflows/release.yml`.
 
-Then push. The engine must go first, because the application's workflow
-reads it.
+Then push. Push the engine first, because the workflow of the other
+repository reads it.
 
 ```bash
 cd hfcast-engine
@@ -33,8 +47,18 @@ git remote add origin git@github.com:<ACCOUNT>/hfcast.git
 git push -u origin main
 ```
 
-`hfcast-engine/` is in the application's `.gitignore`, so the push does
-not include it.
+`hfcast-engine/` is in the `.gitignore` of repository 1, so the second
+push does not include it.
+
+### If the two names are too similar
+
+You can call repository 1 something else, for example `hfcast-app`. The
+directory names inside it must not change: the build reads the engine at
+`../../../../hfcast-engine` from the JNI crate, which is the top of the
+tree.
+
+If you change the name, change it in the badge addresses in `README.md`
+and in the clone command in `docs/quick-start.md`.
 
 ## 2. Point the workflow at the engine commit
 

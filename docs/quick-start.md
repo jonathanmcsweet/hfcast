@@ -18,10 +18,9 @@ You need a Linux or macOS machine with:
 
 ## 1. Get the two repositories
 
-The application and the engine are in different repositories. The
-application reads the engine from a directory beside it, so the engine
-must go **inside** the application directory, with the name
-`hfcast-engine`.
+There are two: `hfcast` and `hfcast-engine`. The engine must go at the
+top of the `hfcast` tree, with the name `hfcast-engine`, because the
+build reads it from that path.
 
 ```bash
 git clone https://github.com/jonathanmcsweet/hfcast.git
@@ -29,8 +28,20 @@ cd hfcast
 git clone https://github.com/jonathanmcsweet/hfcast-engine.git
 ```
 
-The application ignores that directory in git, so it cannot be
-committed by accident.
+You now have this. Note that `hfcast/` holds a directory that is also
+called `hfcast`. The outer one is the repository. The inner one is the
+application.
+
+```
+hfcast/                  <- the repository you cloned
+├── hfcast/              <- the application
+├── hfcast-engine/       <- the engine you just cloned
+├── server/
+└── docs/
+```
+
+The repository ignores `hfcast-engine/` in git, so you cannot commit it
+by accident.
 
 ## 2. Install the tools
 
@@ -82,8 +93,10 @@ them each time.
 
 ## 3. Build
 
+From the **inner** `hfcast` directory, which is the application:
+
 ```bash
-cd hfcast
+cd hfcast          # you are now in hfcast/hfcast
 pnpm install
 tools/build-android.sh modern
 ```
