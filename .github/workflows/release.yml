@@ -1,0 +1,208 @@
+name: Release
+
+# Builds the Android 7 APKs, signs them, and attaches them to a GitHub
+# release. That release is what Obtainium reads, so this workflow is the
+# whole of the first publishing channel.
+#
+# Only the modern build is here. The legacy APK targets Android 5.0 and has
+# never been run on a device that old, so it is not published yet — see
+# "Publishing: what is left" in docs/roadmap.md.
+#
+# Four files come out, one per architecture. A phone can run only one of
+# them, and a single APK holding all four is about four times the download.
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      engine_commit:
+        description: 'Engine commit to build against, if not the pin below'
+        required: false
+
+env:
+  # The engine is a separate repository and the app finds it by path. CI
+  # clones it here instead, at a pinned commit, so a release can be rebuilt
+  # from the same two commits and give the same binary. Move this
+  # deliberately, and say in the commit message why.
+  ENGINE_REPO: jonathanmcsweet/hfcast-engine
+  ENGINE_COMMIT: b9018afefbf5448ddb438a6afba6799cd5133862
+
+  # The NDK the engine's four libraries are built with. `build-rust.sh`
+  # defaults to the same version and fails loudly if it is absent.
+  NDK_VERSION: 27.1.12297006
+
+jobs:
+  android:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    permissions:
+      # Creating the release and attaching files to it.
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      # The engine goes inside the checkout, at the path the JNI crate's
+      # `Cargo.toml` names: `../../../../hfcast-engine` from `rust/`, which
+      # is the repository root. `.gitignore` already excludes it, so this
+      # cannot dirty the tree.
+      - name: Clone the engine at the pinned commit
+        run: |
+          commit="${{ github.event.inputs.engine_commit || env.ENGINE_COMMIT }}"
+          git clone --quiet "https://github.com/$ENGINE_REPO.git" hfcast-engine
+          git -C hfcast-engine checkout --quiet "$commit"
+          echo "engine at $(git -C hfcast-engine rev-parse --short HEAD)"
+
+      - uses: pnpm/action-setup@v4
+        with:
+          run_install: false
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+          cache-dependency-path: hfcast/pnpm-lock.yaml
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Install the NDK
+        run: |
+          "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" \
+            "ndk;$NDK_VERSION" "platforms;android-36" "build-tools;36.0.0"
+
+      - name: Add the four Android Rust targets
+        run: |
+          rustup target add aarch64-linux-android armv7-linux-androideabi \
+            i686-linux-android x86_64-linux-android
+
+      - name: Cache the engine build
+        uses: actions/cache@v4
+        with:
+          path: hfcast/modules/hfcast-engine/rust/target
+          key: jni-${{ runner.os }}-${{ env.ENGINE_COMMIT }}
+
+      - name: Install dependencies
+        working-directory: hfcast
+        run: pnpm install --frozen-lockfile
+
+      # The checks the release must not skip. A tag that fails them should
+      # produce no artefact at all rather than a signed one nobody checked.
+      - name: Typecheck
+        working-directory: hfcast
+        run: pnpm typecheck
+
+      - name: Test
+        working-directory: hfcast
+        run: pnpm test
+
+      # The APK file names come from `package.json`, not from the tag, so a
+      # tag that does not match would publish files named for a different
+      # version. That reads as a mistake nobody made until somebody tries to
+      # work out which build they installed.
+      - name: Check the tag matches the version
+        if: startsWith(github.ref, 'refs/tags/')
+        working-directory: hfcast
+        run: |
+          version=$(node -p "require('./package.json').version")
+          if [ "v$version" != "$GITHUB_REF_NAME" ]; then
+            echo "::error::tag $GITHUB_REF_NAME does not match version $version in hfcast/package.json"
+            exit 1
+          fi
+          echo "building $version"
+
+      - name: Build the engine for the four architectures
+        working-directory: hfcast
+        env:
+          ANDROID_API: '24'
+        run: bash modules/hfcast-engine/build-rust.sh
+
+      # The keystore never reaches the repository. It arrives as one
+      # base64 secret, is written outside the checkout, and the four Gradle
+      # properties `withReleaseSigning.ts` reads are written beside it.
+      #
+      # Without these secrets the build still works and falls back to the
+      # debug key, which is what a fork gets. A debug-signed APK cannot
+      # upgrade a properly signed install, so a release must never be cut
+      # from a run that had no key: the check below fails instead.
+      - name: Write the signing key
+        env:
+          STORE_BASE64: ${{ secrets.HFCAST_STORE_BASE64 }}
+          STORE_PASSWORD: ${{ secrets.HFCAST_STORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.HFCAST_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.HFCAST_KEY_PASSWORD }}
+        run: |
+          if [ -z "$STORE_BASE64" ]; then
+            echo "::error::no signing key. Set the four HFCAST_* secrets — see docs/publishing-setup.md"
+            exit 1
+          fi
+          mkdir -p "$HOME/keys" "$HOME/.gradle"
+          printf '%s' "$STORE_BASE64" | base64 -d > "$HOME/keys/hfcast-release.jks"
+          {
+            echo "HFCAST_STORE_FILE=$HOME/keys/hfcast-release.jks"
+            echo "HFCAST_STORE_PASSWORD=$STORE_PASSWORD"
+            echo "HFCAST_KEY_ALIAS=$KEY_ALIAS"
+            echo "HFCAST_KEY_PASSWORD=$KEY_PASSWORD"
+          } >> "$HOME/.gradle/gradle.properties"
+
+      - name: Build the APKs
+        working-directory: hfcast
+        run: tools/build-android.sh modern
+
+      # `build-android.sh` already fails unless all four APKs exist. This
+      # states the other half: that they are signed with the release key
+      # rather than the debug fallback, which nothing else would notice.
+      - name: Check the APKs are signed with the release key
+        working-directory: hfcast
+        run: |
+          apksigner="$ANDROID_HOME/build-tools/36.0.0/apksigner"
+          for apk in build/apk/*.apk; do
+            if "$apksigner" verify --print-certs "$apk" | grep -qi 'CN=Android Debug'; then
+              echo "::error::$apk is signed with the debug key"
+              exit 1
+            fi
+            echo "$(basename "$apk"): signed"
+          done
+
+      - name: Checksums
+        working-directory: hfcast/build/apk
+        run: sha256sum *.apk | tee SHA256SUMS.txt
+
+      # `gh` is on the runner already. A third-party action here would put
+      # somebody else's code in the path that signs and publishes a
+      # binary, which is the one step where that matters most.
+      - name: Publish the release
+        if: startsWith(github.ref, 'refs/tags/')
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          cat > notes.md <<'EOF'
+          Four APK files, one for each processor type. Install the one your
+          device uses. Obtainium and F-Droid select it for you.
+
+          | file | for |
+          | --- | --- |
+          | `arm64-v8a` | almost all telephones made after about 2016 |
+          | `armeabi-v7a` | older 32-bit ARM devices |
+          | `x86_64`, `x86` | emulators, and some Intel tablets |
+
+          Needs Android 7.0 or later. Check a download against
+          `SHA256SUMS.txt`.
+          EOF
+          gh release create "${GITHUB_REF_NAME}" \
+            --draft \
+            --title "${GITHUB_REF_NAME}" \
+            --notes-file notes.md \
+            hfcast/build/apk/*.apk \
+            hfcast/build/apk/SHA256SUMS.txt
+
+      # A manual run builds and checks but has no tag to release against.
+      # The files are still worth keeping, to install and try.
+      - name: Keep the APKs when there is no tag
+        if: ${{ !startsWith(github.ref, 'refs/tags/') }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: apk
+          path: hfcast/build/apk/
