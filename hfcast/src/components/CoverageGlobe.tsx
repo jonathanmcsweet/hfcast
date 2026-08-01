@@ -180,9 +180,23 @@ export default function CoverageGlobe({
   // at the grid's spacing the middle two states stop reading as two.
   const ramp = dark ? qualityMap.dark : qualityMap.light;
 
-  const geometry = useMemo(() => {
-    const p = projector(from.lon, from.lat, size);
+  // The projection, and everything that is only a function of it and of
+  // the answers. Kept out of the hour-dependent memo below because the
+  // hour slider reports every value it passes through, and the cells are
+  // the expensive part: a whole-world fine grid is 34,560 rings
+  // projected and written out as path text, measured at 141 ms on a
+  // desktop. Rebuilding that on each frame of a drag made the slider
+  // heavy exactly when a fine grid was loaded.
+  //
+  // The band and the settled hour still rebuild it, through `coverage`,
+  // `patch` and `fine` — new answers are new objects. That is the
+  // rebuild that has to happen. This one never did.
+  const p = useMemo(
+    () => projector(from.lon, from.lat, size),
+    [from.lon, from.lat, size],
+  );
 
+  const cells = useMemo(() => {
     // The cells, as one path per quality. The geometry and the bucketing
     // live in `cellField` because the canvas and the SVG fallback both
     // draw from them and must not be able to disagree.
@@ -267,6 +281,31 @@ export default function CoverageGlobe({
 
     const distanceRings = RING_KM.map((km) => ({ km, r: km * p.pxPerKm }));
 
+    const home = p.project(from.lon, from.lat);
+    const target = to ? p.project(to.lon, to.lat) : null;
+    const path = to
+      ? projectRing(p, greatCircle(from.lon, from.lat, to.lon, to.lat))
+        .map((run) => pathOf(run))
+      : [];
+
+    return {
+      coarse: coarse.buckets,
+      patchCells: patchField.buckets,
+      patchBacking,
+      nvisDots,
+      coast,
+      distanceRings,
+      home,
+      target,
+      path,
+      reachBox,
+    };
+  }, [p, coverage, patch, fine, from.lat, from.lon, to]);
+
+  // The terminator, which is the only geometry the hour moves. Cheap —
+  // one ring of a few hundred points — so the slider may rebuild it on
+  // every value it reports.
+  const night = useMemo(() => {
     // Night is the cap centred on the antisolar point — the place where it
     // is local midnight — bounded by the great circle a quarter of the way
     // round the earth from it, which is the terminator.
@@ -305,32 +344,15 @@ export default function CoverageGlobe({
         }`;
       })();
 
-    const home = p.project(from.lon, from.lat);
-    const target = to ? p.project(to.lon, to.lat) : null;
-    const path = to
-      ? projectRing(p, greatCircle(from.lon, from.lat, to.lon, to.lat))
-        .map((run) => pathOf(run))
-      : [];
+    return { nightRuns, terminator, nightFill };
+  }, [p, from.lat, from.lon, hour]);
 
-    return {
-      coarse: coarse.buckets,
-      patchCells: patchField.buckets,
-      patchBacking,
-      nvisDots,
-      coast,
-      distanceRings,
-      nightRuns,
-      terminator,
-      nightFill,
-      home,
-      target,
-      path,
-      p,
-      reachBox,
-    };
-  }, [coverage, patch, fine, from.lat, from.lon, to, hour, size]);
-
-  const { p } = geometry;
+  // One object, so every reader below is unchanged. Both halves are
+  // memoised, so this only rebuilds when one of them does.
+  const geometry = useMemo(
+    () => ({ ...cells, ...night, p }),
+    [cells, night, p],
+  );
 
   const [view, setView] = useState<MapView>(WHOLE_GLOBE);
 
