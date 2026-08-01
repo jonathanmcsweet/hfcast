@@ -17,8 +17,14 @@
  * pair that should fail.
  */
 
-/** `#RGB` or `#RRGGBB`, to three channels of 0-255. */
-function channels(hex: string): [number, number, number] {
+/**
+ * `#RGB` or `#RRGGBB`, to three channels of 0-255.
+ *
+ * Exported because the low-light theme's defining property is that its
+ * green and blue channels are zero, and that is checked by reading them
+ * rather than by trusting the hex strings to look right.
+ */
+export function channels(hex: string): [number, number, number] {
   const text = hex.replace('#', '');
   const wide = text.length === 3
     ? text.split('').map((c) => c + c).join('')

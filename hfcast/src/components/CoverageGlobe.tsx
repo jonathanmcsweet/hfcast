@@ -178,7 +178,9 @@ export default function CoverageGlobe({
   // The globe's own spacing of the quality ramp, wider than the grid's:
   // white coastlines over a partial fill compress perceived contrast, and
   // at the grid's spacing the middle two states stop reading as two.
-  const ramp = dark ? qualityMap.dark : qualityMap.light;
+  // From the theme, not from a boolean: there are three themes now and
+  // only the theme knows which ramp it carries.
+  const ramp = theme.colors.map;
 
   // The projection, and everything that is only a function of it and of
   // the answers. Kept out of the hour-dependent memo below because the

@@ -32,7 +32,7 @@ export default function MapLegend({ hasNvis = false }: Props) {
   const theme = useTheme<AppTheme>();
   const { t } = useTranslation();
   const ui = theme.colors.ui;
-  const ramp = theme.dark ? qualityMap.dark : qualityMap.light;
+  const ramp = theme.colors.map;
 
   return (
     <View

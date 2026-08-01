@@ -2,7 +2,15 @@ import { StyleSheet } from 'react-native';
 import { MD3DarkTheme, MD3LightTheme } from 'react-native-paper';
 // The extension is explicit so this module can be imported by a test under
 // Node, which does not infer one. Metro resolves it either way.
-import { amber, cyan, indigo, rose, slate, violet } from './palette.ts';
+import {
+  amber,
+  cyan,
+  indigo,
+  nightRed,
+  rose,
+  slate,
+  violet,
+} from './palette.ts';
 
 /**
  * Propagation quality is a four-state scale, not a continuous gradient.
@@ -114,6 +122,15 @@ export const qualityMap = {
     weak: { fill: violet[850], opacity: 0.8 },
     closed: { fill: slate[900], opacity: 0.6 },
   },
+  // Brightness alone, and wider apart than the chip ramp above: the map
+  // draws these under coastlines, and the same compression that made the
+  // dark ramp step down applies here with less room to give.
+  lowLight: {
+    reliable: { fill: nightRed[100], opacity: 0.95 },
+    patchy: { fill: nightRed[400], opacity: 0.88 },
+    weak: { fill: nightRed[700], opacity: 0.8 },
+    closed: { fill: nightRed[1000], opacity: 0.6 },
+  },
 } as const;
 
 const trafficLight: QualityColors = {
@@ -130,9 +147,35 @@ const trafficDark: QualityColors = {
   closed: { base: '#3E4459', onBase: slate[300] },
 };
 
+/**
+ * The four states in the low-light theme, by brightness alone.
+ *
+ * Hue is not available here — everything is the red channel and nothing
+ * else — so the whole scale is lightness. That is the property the other
+ * ramps were already built to have, and the reason they read in
+ * greyscale and under any colour blindness; this theme simply has
+ * nothing but that property.
+ *
+ * The chip text is where it stops being compliant. `reliable` carries
+ * black text at 5.25:1, and the three states below it cannot: the ramp
+ * runs out of room long before 4.5. That is a real limit of red on
+ * black, not an oversight, and the answer for anyone it fails is the
+ * same one the other themes already offer — the table under the grid,
+ * which states every figure in words.
+ */
+const signalLowLight: QualityColors = {
+  reliable: { base: nightRed[100], onBase: '#000000' },
+  patchy: { base: nightRed[500], onBase: '#000000' },
+  weak: { base: nightRed[700], onBase: nightRed[100] },
+  closed: { base: nightRed[975], onBase: nightRed[300] },
+};
+
 const quality = {
   light: QUALITY_SCALE === 'signal' ? signalLight : trafficLight,
   dark: QUALITY_SCALE === 'signal' ? signalDark : trafficDark,
+  // One scale only. The traffic alternative is three hues, and this
+  // theme has one.
+  lowLight: signalLowLight,
 };
 
 /**
@@ -280,6 +323,67 @@ export const uiDark: UiColors = {
   mapGuide: slate[300],
 };
 
+/**
+ * Low light: red on black, for reading in the dark without losing it.
+ *
+ * Dark adaptation takes twenty to thirty minutes to build and a moment
+ * of white screen to lose. Rod cells are nearly blind past 620 nm, so a
+ * display with its green and blue channels at zero can be read without
+ * spending that adaptation. Every value here comes from `nightRed`,
+ * which has no other channel.
+ *
+ * **Two things follow, and both are deliberate.**
+ *
+ * *Brightness cannot carry hierarchy.* Pure red on black is 5.25:1 and
+ * that is the ceiling this theme has. Ordinary text needs 4.5, so only
+ * the top three steps of the ramp can hold any, and they are close
+ * enough together to be nearly one colour. Size and weight separate the
+ * levels instead — the type scale already does that, and here it does
+ * all of it.
+ *
+ * *The surfaces are almost all the same black.* Elevation is carried by
+ * borders in every theme, which is what makes this possible: with
+ * `page`, `card` and `headerBg` all at true black there is nothing to
+ * tell apart by lightness, and nothing needs to be. On an OLED that is
+ * also the darkest a screen can go, which is the point.
+ *
+ * `contrast.test.ts` checks this theme against the same marks as the
+ * other two and records where it cannot reach them.
+ */
+export const uiLowLight: UiColors = {
+  page: '#000000',
+  headerBg: '#000000',
+  // A hair above the page, so a card edge is visible even where its
+  // border falls off the screen. Below the threshold that would count as
+  // light of its own.
+  card: nightRed[1000],
+  inset: '#000000',
+  line: nightRed[900],
+  line2: nightRed[800],
+  ink: nightRed[100],
+  inkInv: '#000000',
+  // Barely below `ink`, because there is nowhere else to go. The type
+  // scale is what separates these on screen.
+  text2: nightRed[200],
+  text3: nightRed[300],
+  // Labels and axis ticks only, which the type scale sets in bold at a
+  // size WCAG counts as large — so 3:1 is the mark, and this clears it.
+  text4: nightRed[400],
+  accent: nightRed[100],
+  accentInk: '#000000',
+  amberNum: nightRed[100],
+  amberBg: nightRed[800],
+  amberFg: nightRed[200],
+  ionoBg: nightRed[950],
+  ionoTitle: nightRed[100],
+  ionoSub: nightRed[300],
+  tagBg: nightRed[700],
+  tagFg: nightRed[100],
+  discBg: nightRed[1000],
+  mapLine: nightRed[400],
+  mapGuide: nightRed[600],
+};
+
 const lightColors = {
   ui: uiLight,
   primary: cyan[700],
@@ -323,6 +427,10 @@ const lightColors = {
     level5: slate[0],
   },
   quality: quality.light,
+  // The map ramp travels with the theme, so no component has to work
+  // out which one it is holding. That branch was a boolean, and there
+  // are three themes now.
+  map: qualityMap.light,
 };
 
 const darkColors = {
@@ -373,6 +481,69 @@ const darkColors = {
     level5: slate[700],
   },
   quality: quality.dark,
+  map: qualityMap.dark,
+};
+
+/**
+ * The Material roles for low light.
+ *
+ * Every one of them is red or black, including the ones that normally
+ * carry a hue of their own — primary, secondary, tertiary and error. A
+ * single green or blue pixel from a component this app does not style
+ * directly would undo the dark adaptation the theme exists to protect,
+ * so there is nowhere for a second hue to hide.
+ *
+ * Error is the one worth naming. It is red in every theme, and here so
+ * is everything else, so an error is told apart by its container and its
+ * wording rather than by its colour.
+ */
+const lowLightColors = {
+  ui: uiLowLight,
+  primary: nightRed[100],
+  onPrimary: '#000000',
+  primaryContainer: nightRed[800],
+  onPrimaryContainer: nightRed[100],
+  secondary: nightRed[200],
+  onSecondary: '#000000',
+  secondaryContainer: nightRed[800],
+  onSecondaryContainer: nightRed[100],
+  tertiary: nightRed[300],
+  onTertiary: '#000000',
+  tertiaryContainer: nightRed[800],
+  onTertiaryContainer: nightRed[100],
+  error: nightRed[100],
+  onError: '#000000',
+  errorContainer: nightRed[700],
+  onErrorContainer: nightRed[100],
+  background: '#000000',
+  onBackground: nightRed[100],
+  surface: '#000000',
+  onSurface: nightRed[100],
+  surfaceVariant: nightRed[950],
+  onSurfaceVariant: nightRed[300],
+  outline: nightRed[700],
+  outlineVariant: nightRed[900],
+  shadow: '#000000',
+  scrim: '#000000',
+  inverseSurface: nightRed[100],
+  inverseOnSurface: '#000000',
+  inversePrimary: nightRed[500],
+  surfaceDisabled: 'rgba(255, 0, 0, 0.12)',
+  onSurfaceDisabled: 'rgba(255, 0, 0, 0.38)',
+  backdrop: 'rgba(0, 0, 0, 0.75)',
+  // Flat, unlike the other two. Stepping these up the ramp would light
+  // the screen with every raised surface, and borders already carry
+  // elevation everywhere in this app.
+  elevation: {
+    level0: 'transparent',
+    level1: nightRed[1000],
+    level2: nightRed[1000],
+    level3: nightRed[975],
+    level4: nightRed[975],
+    level5: nightRed[950],
+  },
+  quality: quality.lowLight,
+  map: qualityMap.lowLight,
 };
 
 /**
@@ -438,6 +609,15 @@ export const darkTheme = {
   fonts: plexFonts(MD3DarkTheme.fonts),
 };
 
+/**
+ * Low light. Built on the dark base, because Paper's own dark defaults
+ * are the closer starting point for anything this theme does not name.
+ */
+export const lowLightTheme = {
+  ...MD3DarkTheme,
+  colors: { ...MD3DarkTheme.colors, ...lowLightColors },
+  fonts: plexFonts(MD3DarkTheme.fonts),
+};
 export type AppTheme = typeof lightTheme;
 
 /**

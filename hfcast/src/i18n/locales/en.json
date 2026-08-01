@@ -131,7 +131,8 @@
     "theme": {
       "system": "Follow the device",
       "light": "Light",
-      "dark": "Dark"
+      "dark": "Dark",
+      "lowLight": "Low light"
     },
     "menu": "Settings",
     "themeSection": "Theme",
