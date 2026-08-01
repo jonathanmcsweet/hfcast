@@ -152,6 +152,20 @@ const quality = {
 interface UiColors {
   /** Screen background. */
   page: string;
+  /**
+   * The fixed block at the top: the path, the station controls, the band.
+   *
+   * Darker than `page` in both themes, so the controls read as chrome
+   * rather than as the first thing in the scroll (user, 2026-08-01). In
+   * the dark theme that is true black, which on an OLED is pixels
+   * switched off and joins the header to the status bar with no seam.
+   *
+   * Not every text role can sit on it — see `contrast.test.ts`, which
+   * fails on the ones that cannot. The light value is one step down the
+   * ramp, and that step is what pushed the caption role below the
+   * readability mark, so the header uses the stronger one.
+   */
+  headerBg: string;
   /** Raised surfaces. */
   card: string;
   /** Recessed panels inside a card — readouts, stat tiles. */
@@ -203,6 +217,7 @@ interface UiColors {
 // render when the tree around it has failed.
 export const uiLight: UiColors = {
   page: slate[25],
+  headerBg: slate[50],
   card: slate[0],
   inset: slate[25],
   line: slate[100],
@@ -227,8 +242,11 @@ export const uiLight: UiColors = {
   mapGuide: slate[400],
 };
 
-const uiDark: UiColors = {
+export const uiDark: UiColors = {
   page: slate[1000],
+  // True black. On an OLED these pixels are off, so the header and the
+  // status bar above it become one surface with no visible join.
+  headerBg: '#000000',
   card: slate[950],
   inset: slate[900],
   line: slate[800],

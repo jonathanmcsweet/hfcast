@@ -50,7 +50,13 @@ export default function BandSelector(
           requiredSnrDb={requiredSnrDb}
         />
       </View>
-      <Text style={[typography.label, styles.label, { color: ui.text4 }]}>
+      {
+        /* `text3` and not `text4`. This label sits on the header, which
+           is darker than the page since 2026-08-01, and the lightest
+           text role fell to 2.81 against it — under the 3 that large
+           text needs. `contrast.test.ts` fails on it. */
+      }
+      <Text style={[typography.label, styles.label, { color: ui.text3 }]}>
         {t('bands.label')}
       </Text>
       {

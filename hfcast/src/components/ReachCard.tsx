@@ -29,12 +29,21 @@ interface Props {
 /**
  * The tallest the map is allowed to be.
  *
- * The design's cap, and it exists to keep the card above the fold: on a
- * 1280x800 tablet in landscape the whole answer — headline, readout, map
- * and clock — has to fit the first screen, and the map is the only part
- * that can give.
+ * The cap exists to keep the card above the fold: on a 1280x800 tablet in
+ * landscape the whole answer — readout, map and clock — has to fit the
+ * first screen, and the map is the only part that can give.
+ *
+ * It was 322, which was narrower than the card on an ordinary phone, so
+ * the map sat inset from the readout above it and the sides did not line
+ * up (user, 2026-08-01). A Pixel 8 gives the card 347 points of inside
+ * width, and a large phone about 366, so this covers both and the map
+ * fills the card on either.
+ *
+ * The room came from the headline this card used to carry. Removing it
+ * gave back its two lines and the gap under them, which is close to the
+ * 58 points added here — so the fold is where it was.
  */
-const MAX_MAP = 322;
+const MAX_MAP = 380;
 
 /**
  * The top of the screen: the answer in one sentence, then the clock that
@@ -89,6 +98,10 @@ export default function ReachCard({
   const ui = theme.colors.ui;
 
   const [width, setWidth] = useState(0);
+  // Square, because the projection is a disc. The slot is measured rather
+  // than assumed, so the same card works in a phone's column and a
+  // tablet's.
+  const mapSize = Math.min(width, MAX_MAP);
   // What the map is showing, so the fine grid follows the view rather
   // than staying around the station. Held here rather than inside the
   // map because it is the query that needs it, and the query lives here.
@@ -259,48 +272,55 @@ export default function ReachCard({
       >
         {width > 0
           ? (
-            <CoverageGlobe
-              coverage={error ? null : coverage}
-              patch={patch ?? null}
-              fine={fine ?? null}
-              from={prediction.from}
-              to={prediction.to}
-              toClosed={destination !== null && quality === 'closed'}
-              hour={hour}
-              size={Math.min(width, MAX_MAP)}
-              onRegion={onRegion}
-            />
-          )
-          : null}
-      </View>
+            <View style={{ width: mapSize, height: mapSize }}>
+              <CoverageGlobe
+                coverage={error ? null : coverage}
+                patch={patch ?? null}
+                fine={fine ?? null}
+                from={prediction.from}
+                to={prediction.to}
+                toClosed={destination !== null && quality === 'closed'}
+                hour={hour}
+                size={mapSize}
+                onRegion={onRegion}
+              />
 
-      {
-        /* The map is being recomputed, or made finer.
+              {
+                /* The map is being recomputed, or made finer.
 
-           Under the map rather than over it, because whatever is on
-           screen is already a correct answer to something — the previous
-           band, or this one at a coarser step — and this marks the next
-           answer arriving rather than the map being unusable. The row is
-           always present so its appearance does not move anything below
-           it.
+                   On the map's own bottom edge (user, 2026-08-01), and
+                   positioned rather than stacked, so it takes no height
+                   and nothing below it moves as it comes and goes. It
+                   spans the map exactly, which is what makes it read as
+                   belonging to the map rather than to the card.
 
-           The bar itself carries no text, so the label beside it is what
-           a screen reader announces. `accessibilityLiveRegion` says it
-           without moving focus, which matters here because the reader
-           may be somewhere else on the card when the grid lands. */
-      }
-      <View
-        style={styles.sharpenRow}
-        accessibilityLiveRegion="polite"
-        accessibilityLabel={busy ? t(busyKey) : ''}
-      >
-        {busy
-          ? (
-            <ProgressBar
-              indeterminate
-              color={ui.accent}
-              style={styles.sharpenBar}
-            />
+                   Below the disc rather than across it: whatever is on
+                   screen is already a correct answer to something — the
+                   previous band, or this one at a coarser step — so this
+                   marks the next answer arriving, not the map being
+                   unusable.
+
+                   The bar carries no text, so the label is what a screen
+                   reader announces. `accessibilityLiveRegion` says it
+                   without moving focus, which matters because the reader
+                   may be elsewhere on the card when the grid lands. */
+              }
+              <View
+                style={styles.sharpenRow}
+                accessibilityLiveRegion="polite"
+                accessibilityLabel={busy ? t(busyKey) : ''}
+              >
+                {busy
+                  ? (
+                    <ProgressBar
+                      indeterminate
+                      color={ui.accent}
+                      style={styles.sharpenBar}
+                    />
+                  )
+                  : null}
+              </View>
+            </View>
           )
           : null}
       </View>
@@ -371,9 +391,17 @@ export default function ReachCard({
 }
 
 const styles = StyleSheet.create({
-  // Always present, so the bar arriving and leaving does not move the
-  // legend and the sentences under it.
-  sharpenRow: { height: 3, justifyContent: 'center' },
+  // Laid over the foot of the map, spanning it exactly. Positioned and
+  // not stacked, so it takes no height and the legend and sentences
+  // under the map do not move as it comes and goes.
+  sharpenRow: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    height: 3,
+    justifyContent: 'center',
+  },
   sharpenBar: { height: 3 },
   readoutRow: {
     flexDirection: 'row',
