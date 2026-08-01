@@ -1,17 +1,8 @@
 import * as Engine from '../../modules/hfcast-engine';
-import { useEngineCost } from '../store/useEngineCost';
 import type { Station } from '../store/useStationStore';
 import { LAT_STEP, LON_STEP, reachOf } from './coverageGrid';
 import { patchGrid, patchRequestBounds } from './coveragePatch';
-import {
-  calibrationWorthwhile,
-  PROBE_LARGE_LAT_STEP,
-  PROBE_LARGE_LON_STEP,
-  PROBE_SMALL_LAT_STEP,
-  PROBE_SMALL_LON_STEP,
-  stripsFor,
-  threadsFor,
-} from './engineBudget';
+import { stripsFor, threadsFor } from './engineBudget';
 import { FINE_LAT_STEP, FINE_LON_STEP, packGlobe } from './fineGlobe';
 import { engineStation, type Nowcast, ssnFor } from './localPredict';
 import { requiredSnrFor } from './modes';
@@ -66,28 +57,22 @@ const asPoint = (p: CoveragePoint): CoveragePoint => ({
 
 export const canMapLocally = (): boolean => Engine.isAvailable();
 
-/** How many points a set of strip answers covers between them. */
-const countPoints = (answers: readonly WireCoverage[]): number =>
-  answers.reduce((sum, answer) => sum + (answer.points ?? []).length, 0);
-
 /**
- * Says what a probe cost and how it was cut.
+ * Lets the screen draw a frame before the next piece of work.
  *
- * The probes are what the fine grid's projection is fitted from, so a
- * probe that did not run the way the fine grid will run is a projection
- * about nothing. Only the log can show that: the fit sees a size and a
- * time, and a batch that silently ran on one thread produces a
- * believable pair of numbers.
+ * The engine's strips run on their own threads. Everything after them
+ * does not: turning the answers into objects and packing them into
+ * typed arrays happens on the thread that draws, and while it runs no
+ * progress bar moves and no touch is answered. At 34,560 points that is
+ * long enough to look like the app has stopped.
+ *
+ * A timeout of zero is the only yield React Native offers here that
+ * lets the interface run. It does not make the work shorter — it breaks
+ * one long block into pieces the screen can get between, which is the
+ * difference between a slow device and a frozen one.
  */
-const sayProbe = (points: number, run: ShardedRun): void => {
-  console.log(
-    `[hfcast] probe ${points} points`
-      + ` | ${run.strips} strips on ${run.threads} threads`
-      + ` | engine ${Math.round(run.nativeMs)} ms`
-      + ` | parse ${Math.round(run.parseMs)} ms`
-      + ` | total ${Math.round(run.elapsedMs)} ms`,
-  );
-};
+const breathe = (): Promise<void> =>
+  new Promise((resume) => setTimeout(resume, 0));
 
 export interface LocalCoverageRequest {
   from: Endpoint;
@@ -236,7 +221,10 @@ export async function coverLocally(
     throw new Error('the engine produced no coverage points');
   }
 
-  useEngineCost.getState().record(elapsedMs, points.length);
+  console.log(
+    `[hfcast] coarse grid ${points.length} points`
+      + ` | ${Math.round(elapsedMs)} ms`,
+  );
 
   return {
     band: request.band,
@@ -254,86 +242,20 @@ export async function coverLocally(
 /**
  * The fine grid, over the whole world, on the device.
  *
- * One call at 34,560 points. The engine module runs predictions on a
- * single background thread by design — one intention at a time — so this
- * occupies it for as long as the run takes, which is seconds rather than
- * the coarse map's tens of milliseconds. Milestone 3 of
- * `docs/handoff-skia-globe.md` is what decides whether a given device
- * should be asked at all; this function only answers.
+ * Every device runs it (user, 2026-08-01). There is no measurement of
+ * the device beforehand and no decision taken from one: the coarse map
+ * is on screen the whole time, a progress bar runs beside it, and a
+ * slow device simply finishes later than a fast one.
+ *
+ * The strips run on the module's own threads. Everything after them
+ * runs on the thread that draws, so it is done a strip at a time with a
+ * yield between — see `breathe`. That is what keeps a slow device
+ * responsive rather than frozen, and it is the difference the gate used
+ * to be protecting against without saying so.
  *
  * The result is packed into typed arrays before returning, so the
  * objects the engine produced are released rather than cached.
  */
-/**
- * Times two deliberately sized runs, so the fine grid's cost can be
- * fitted rather than guessed at.
- *
- * The app's ordinary runs are 192 points and a few hundred, all
- * unsharded and all about the same size. Neither fact suits the
- * question: sizes that close cannot separate a run's fixed cost from its
- * per-point cost (see `MIN_LEVERAGE`), and a single-threaded run says
- * nothing about a grid that will be spread over eight cores except
- * through a guess about what the spreading recovers. The previous
- * version made that guess and was wrong by about a factor of two.
- *
- * So these two runs are the fine grid in miniature: whole-world, cut
- * into the same strips, across the same threads. A line through them
- * passes through the fine grid, and no constant stands between the
- * measurement and the decision.
- *
- * Their answers are thrown away. The only product is the two times,
- * which the store keeps, and this happens once per device because the
- * readings are persisted.
- *
- * The large probe is skipped where the small one already settles the
- * question — see `calibrationWorthwhile`. On a slow device it is the
- * expensive one, and it is the one there is least reason to run.
- */
-export async function calibrateLocally(
-  request: LocalCoverageRequest,
-): Promise<number> {
-  const { ssn } = ssnFor(
-    request.date.getUTCFullYear(),
-    request.date.getUTCMonth() + 1,
-    request.nowcast,
-  );
-  const ask = await areaAsk(request, ssn);
-  const cost = useEngineCost.getState();
-
-  const small = await shardedWholeWorld(
-    ask,
-    PROBE_SMALL_LAT_STEP,
-    PROBE_SMALL_LON_STEP,
-  );
-  const smallPoints = countPoints(small.answers);
-  if (smallPoints === 0) {
-    throw new Error('the engine produced no calibration points');
-  }
-  sayProbe(smallPoints, small);
-  cost.recordSharded(small.elapsedMs, smallPoints);
-
-  // Read back rather than reasoned about here: `recordSharded` keeps the
-  // fastest reading at each size, so a device that has probed before may
-  // already hold a better number than the one just taken.
-  if (!calibrationWorthwhile(useEngineCost.getState().sharded)) {
-    return small.elapsedMs;
-  }
-
-  const large = await shardedWholeWorld(
-    ask,
-    PROBE_LARGE_LAT_STEP,
-    PROBE_LARGE_LON_STEP,
-  );
-  const largePoints = countPoints(large.answers);
-  if (largePoints === 0) {
-    throw new Error('the engine produced no calibration points');
-  }
-  sayProbe(largePoints, large);
-  cost.recordSharded(large.elapsedMs, largePoints);
-
-  return small.elapsedMs + large.elapsedMs;
-}
-
 export async function coverFineLocally(
   request: LocalCoverageRequest,
 ): Promise<FineGlobe> {
@@ -349,19 +271,22 @@ export async function coverFineLocally(
   // the strips are cut south to north, so this is the sequence one run
   // would have produced — not the same points in some other order, which
   // is what the columnar packing depends on.
+  //
+  // A strip at a time, with a yield between, rather than one `flatMap`
+  // over all sixteen. The work is the same; what changes is that the
+  // screen gets sixteen chances to draw a frame while it happens
+  // instead of none. A loop rather than a fold because the sequencing is
+  // the point — the yields have to fall between the strips, which is
+  // what a fold over an array cannot express.
   const packingAt = Date.now();
-  const points = answers.flatMap((answer) =>
-    (answer.points ?? []).map(asPoint)
-  );
+  const points: CoveragePoint[] = [];
+  for (const answer of answers) {
+    for (const point of answer.points ?? []) points.push(asPoint(point));
+    await breathe();
+  }
   if (points.length === 0) {
     throw new Error('the engine produced no fine coverage points');
   }
-
-  // The best sample this device will ever take: the run the projection
-  // exists to predict, at its true size, cut exactly as the probes were.
-  // Recorded so the fit stops being an extrapolation as soon as the grid
-  // has run once.
-  useEngineCost.getState().recordSharded(elapsedMs, points.length);
 
   const first = answers[0] as WireCoverage;
   const globe = packGlobe(request.band, request.hour, {
@@ -378,14 +303,18 @@ export async function coverFineLocally(
   // only one of them is the engine. The strips run on their own threads;
   // everything after them — one JSON string per strip parsed, 34,560
   // objects built, then packed into typed arrays — runs on the thread
-  // that draws, and while it does no progress bar can animate and no
-  // touch can be answered.
+  // that draws.
   //
-  // The strip and thread counts are here because the projection they
-  // feed only makes sense against them. A phone measuring roughly what
-  // one core would manage, while claiming eight threads, is a phone
-  // whose batch is not running in parallel — which is a different fault
-  // from a slow engine and is not visible in a total.
+  // This is the measurement that decides what to work on next, and the
+  // two candidates need opposite fixes. If the engine half dominates,
+  // the arithmetic is the target. If the parse and pack halves do, no
+  // amount of engine work helps and the answer is to stop sending
+  // 34,560 points through JSON at all.
+  //
+  // The strip and thread counts are here for a third possibility. A
+  // phone measuring roughly what one core would manage, while claiming
+  // eight threads, is a phone whose batch is not running in parallel —
+  // a different fault again, and not visible in a total.
   console.log(
     `[hfcast] fine grid ${points.length} points`
       + ` | ${run.strips} strips on ${run.threads} threads`
@@ -433,11 +362,8 @@ export async function coverPatchLocally(
   const { ssn, basis } = ssnFor(year, month, request.nowcast);
   const station = await engineStation(request.station);
 
-  // Timed like the coarse run, and for a reason the coarse run alone
-  // cannot serve: the fine grid's cost is fitted from runs of different
-  // sizes, and this one is a few hundred points against the coarse
-  // grid's 192. One size cannot separate a run's fixed cost from its
-  // per-point cost, so without this pair the gate has nothing to fit.
+  // Timed like the coarse run, and now only for the log. Nothing decides
+  // anything from these readings any more.
   const startedAt = Date.now();
   const answer = await Engine.predict<WireCoverage>({
     ...station,
@@ -463,7 +389,9 @@ export async function coverPatchLocally(
     throw new Error('the engine produced no patch points');
   }
 
-  useEngineCost.getState().record(elapsedMs, points.length);
+  console.log(
+    `[hfcast] patch ${points.length} points | ${Math.round(elapsedMs)} ms`,
+  );
 
   return {
     band: request.band,

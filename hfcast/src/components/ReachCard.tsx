@@ -2,13 +2,7 @@ import React, { useCallback, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { StyleSheet, View } from 'react-native';
 import { ProgressBar, Text, useTheme } from 'react-native-paper';
-import {
-  useCoverage,
-  useCoveragePatch,
-  useEngineCalibration,
-  useFineGate,
-  useFineGlobe,
-} from '../api/queries';
+import { useCoverage, useCoveragePatch, useFineGlobe } from '../api/queries';
 import { patchGrid } from '../data/coveragePatch';
 import { FINE_LAT_STEP } from '../data/fineGlobe';
 import { answering } from '../data/mapLayers';
@@ -66,33 +60,21 @@ const MAP_BUSY_MIN_MS = 500;
  *
  * The map shows coarse squares and fine ones the same way — as squares —
  * so a reader looking at a coarse map cannot tell whether the fine one
- * is still coming, was never going to come because this device is too
- * slow for it, or arrived and covers only the area around the station.
- * Those are three different situations and only one of them is worth
- * waiting through. The progress bar above says that something is
- * happening; this says what the map currently is.
+ * is still coming or has arrived and covers only the area around the
+ * station. The progress bar above says that something is happening;
+ * this says what the map currently is.
+ *
+ * It used to have a third thing to say — that this device had been
+ * measured and judged too slow to be given the fine grid at all. Every
+ * device runs it now (user, 2026-08-01), so that sentence describes
+ * nothing and the two that name a state of the wait describe everything.
  *
  * Null where there is nothing to say, which is a map with no detail
- * layer of any kind on it.
+ * layer of any kind on it and one still coming.
  */
-const detailKey = (
-  hasFine: boolean,
-  hasPatch: boolean,
-  gate: { affordable: boolean; calibrating: boolean; },
-): string | null => {
+const detailKey = (hasFine: boolean, hasPatch: boolean): string | null => {
   if (hasFine) return 'reach.detailWorld';
-  // What is on the screen comes before why there is not more of it. A
-  // patch is fine detail, drawn and visible, so a line reading "coarse
-  // detail only" over a map with fine squares on it would be describing
-  // a different map. The refusal is added to that sentence rather than
-  // replacing it.
-  if (hasPatch) {
-    return gate.affordable || gate.calibrating
-      ? 'reach.detailNear'
-      : 'reach.detailNearOnly';
-  }
-  if (gate.calibrating) return 'reach.detailMeasuring';
-  return gate.affordable ? null : 'reach.detailCoarse';
+  return hasPatch ? 'reach.detailNear' : null;
 };
 
 export default function ReachCard({
@@ -200,17 +182,7 @@ export default function ReachCard({
   // sentence rather than seen as a colour: "80m reaches out to about
   // 78 mi" is wrong in a way nobody can catch if the number is 40m's.
   const homePatch = answering(homePatchData, coverage);
-  // The same decision the fine query is enabled by, read here so the
-  // line under the map can say which of its outcomes happened.
-  const gate = useFineGate();
-  const detail = detailKey(Boolean(fine), Boolean(patch), gate);
-  // Times two probe runs, once per device, because the ordinary runs are
-  // too alike in size to fit a cost through and none of them is cut into
-  // strips. Nothing here reads the result: it writes to the same store
-  // the gate reads, so a device that passes turns the fine grid on by
-  // itself. Held until the coarse map has landed, so the probes never
-  // stand between the reader and the map.
-  useEngineCalibration(prediction.from, band, Boolean(coverage));
+  const detail = detailKey(Boolean(fine), Boolean(patch));
 
   // Null for a survey, where the card answers "how much of the world" rather
   // than "will this reach one place".
