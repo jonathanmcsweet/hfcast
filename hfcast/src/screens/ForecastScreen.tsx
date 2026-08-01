@@ -174,7 +174,24 @@ export default function ForecastScreen() {
            It also means the band can be changed while reading the grid
            further down, which is the comparison the grid is for. */
       }
-      <View style={{ paddingTop: insets.top, backgroundColor: ui.page }}>
+      {
+        /* The band chips used to end flush against the map, so a fixed
+           header and a scrolling page met with nothing between them and
+           the join read as one block. A hairline and a small gap under
+           it say where the controls stop and the answer starts (user,
+           2026-08-01).
+
+           `line` rather than `line2`: this is elevation, not a control
+           outline, and it has to stay quiet enough that the map below is
+           still the loudest thing on the screen. */
+      }
+      <View
+        style={[styles.fixed, {
+          paddingTop: insets.top,
+          backgroundColor: ui.page,
+          borderBottomColor: ui.line,
+        }]}
+      >
         <AppHeader
           place={prediction.from.label}
           destination={prediction.to === null
@@ -308,6 +325,13 @@ export default function ForecastScreen() {
 
 const styles = StyleSheet.create({
   root: { flex: 1 },
+  // The gap goes above the rule, not below it. Below, it would read as
+  // space belonging to the map; above, it is the header's own bottom
+  // margin, which is what it is.
+  fixed: {
+    paddingBottom: spacing.sm,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+  },
   centre: {
     flex: 1,
     alignItems: 'center',

@@ -8,6 +8,7 @@ import {
   MAP_CACHE_MS,
   pruneFineGlobes,
 } from '../src/api/mapCache.ts';
+import { BAND_ORDER } from '../src/data/types.ts';
 
 /**
  * Keeping a computed map, and knowing when to stop.
@@ -44,6 +45,16 @@ describe('keeping a map the reader has already waited for', () => {
     // The default is five minutes, which is shorter than a session
     // spent comparing bands — and that was the bug.
     assert.ok(MAP_CACHE_MS >= 60 * 60 * 1000);
+  });
+
+  it('holds a whole number of hours, every band', () => {
+    // One hour is computed at every band at once, so the grids arrive
+    // and are wanted in sets of nine. A cap that cut a set in half would
+    // leave a reader who steps the clock back with some bands instant
+    // and others running the engine — the inconsistency being worse than
+    // the megabyte it saves.
+    assert.equal(FINE_GLOBE_CACHE % BAND_ORDER.length, 0);
+    assert.ok(FINE_GLOBE_CACHE >= BAND_ORDER.length * 2);
   });
 
   it('keeps everything while there is room', () => {
