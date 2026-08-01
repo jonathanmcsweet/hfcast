@@ -306,6 +306,7 @@ export async function coverFineLocally(
   // the strips are cut south to north, so this is the sequence one run
   // would have produced — not the same points in some other order, which
   // is what the columnar packing depends on.
+  const packingAt = Date.now();
   const points = answers.flatMap((answer) =>
     (answer.points ?? []).map(asPoint)
   );
@@ -320,7 +321,7 @@ export async function coverFineLocally(
   useEngineCost.getState().recordSharded(elapsedMs, points.length);
 
   const first = answers[0] as WireCoverage;
-  return packGlobe(request.band, request.hour, {
+  const globe = packGlobe(request.band, request.hour, {
     band: request.band,
     hour: request.hour,
     latStep: first.latStep ?? FINE_LAT_STEP,
@@ -329,6 +330,21 @@ export async function coverFineLocally(
     basis,
     points,
   });
+
+  // Said out loud because the two halves are charged to different
+  // places and only one of them is the engine. The strips run on their
+  // own threads; everything after them — one JSON string per strip
+  // parsed, 34,560 objects built, then packed into typed arrays — runs
+  // on the thread that draws, and while it does no progress bar can
+  // animate and no touch can be answered. If the wait a reader notices
+  // is mostly the second number, no amount of engine work shortens it.
+  console.log(
+    `[hfcast] fine grid ${points.length} points`
+      + ` | engine ${Math.round(elapsedMs)} ms`
+      + ` | unpack ${Math.round(Date.now() - packingAt)} ms`,
+  );
+
+  return globe;
 }
 
 /**
