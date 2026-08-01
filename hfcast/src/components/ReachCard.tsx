@@ -11,12 +11,12 @@ import {
 } from '../api/queries';
 import { patchGrid } from '../data/coveragePatch';
 import { FINE_LAT_STEP } from '../data/fineGlobe';
-import { anyNvis, isNvis, nvisReachKm, qualityFor } from '../data/quality';
 import { answering } from '../data/mapLayers';
+import { anyNvis, isNvis, nvisReachKm, qualityFor } from '../data/quality';
 import { cellFor } from '../data/selectors';
 import type { BandKey, MapRegion, PathPrediction } from '../data/types';
 import { useFormatters } from '../hooks/useFormatters';
-import { useHeldOn } from '../hooks/useHeldOn';
+import { useShownFor } from '../hooks/useShownFor';
 import { numeric, radius, spacing, typography } from '../theme';
 import type { AppTheme } from '../theme';
 import { Card, Inset } from './Card';
@@ -52,22 +52,14 @@ const MAX_MAP = 322;
  * visible instead of asking anybody to imagine it.
  */
 /**
- * How long the fine grid must be running before the map says so.
+ * The shortest time the map's progress bar stays on screen.
  *
- * Below this it is not a wait, it is a redraw: the server answers a
- * repeat view from cache in about 76 ms. Above it there is something
- * worth telling a reader about, because a cold run is about 440 ms
- * through the server and a second or two on a device.
- *
- * Short, and shorter than it was. At 400 ms the bar was missing the
- * wait it exists for (user, 2026-08-01): on a device the grid is asked
- * for after the hour settles, so the bar arrived most of a second after
- * the reader acted and then had little of the wait left to describe.
- * A device that already holds the answer does not refetch at all — the
- * readings are kept — so there is no cached case here for a short delay
- * to protect against, and the one it did protect is the server's.
+ * The bar appears the moment any of the map's three layers starts, and
+ * this is the floor under how long it is visible. Long enough to be seen
+ * and read as feedback; short enough that a coarse run of 40 ms is not
+ * followed by a bar sitting on a finished map.
  */
-const SHARPEN_HINT_AFTER_MS = 120;
+const MAP_BUSY_MIN_MS = 500;
 
 /**
  * Which grid the map is drawn from, in words.
@@ -138,7 +130,11 @@ export default function ReachCard({
       ),
     [],
   );
-  const { data: coverage, error } = useCoverage(prediction.from, band, hour);
+  const { data: coverage, error, isFetching: coarseRunning } = useCoverage(
+    prediction.from,
+    band,
+    hour,
+  );
   // Never awaited and never blocking: the map is drawn from the coarse
   // answer above and this fills in behind it. Its own failure is silent,
   // because nothing on the screen depends on it.
@@ -154,10 +150,6 @@ export default function ReachCard({
   // it decides which band and hour the map is showing. The other two are
   // drawn only where they agree with it — see `answering`.
   const fine = answering(fineData, coverage);
-  // Held on briefly rather than shown at once, so a redraw that is over
-  // before it is noticed does not flash a bar. See `useHeldOn` and the
-  // constant, which is short because the wait it describes is not.
-  const sharpening = useHeldOn(fineRunning, SHARPEN_HINT_AFTER_MS);
   // The viewport patch is only worth running where it can still buy
   // detail the globe does not hold — below the globe's own step, at the
   // deepest zoom. With a globe present and the view above that step, the
@@ -166,7 +158,7 @@ export default function ReachCard({
   const zoomedPastGlobe = region !== null
     && (patchGrid(region.lat, region.lon, region.halfLatDeg)?.latStep ?? 1)
       < FINE_LAT_STEP;
-  const { data: patchData } = useCoveragePatch(
+  const { data: patchData, isFetching: patchRunning } = useCoveragePatch(
     prediction.from,
     band,
     hour,
@@ -174,6 +166,29 @@ export default function ReachCard({
     !fine || zoomedPastGlobe,
   );
   const patch = answering(patchData, coverage);
+  // Whether the map on screen is behind the band selected above it.
+  //
+  // Not the same question as "is a query running". The coarse map is
+  // held while its replacement computes — deliberately, so a band change
+  // does not blank the map — and for the first moments after a tap
+  // nothing has started yet, because the hour settles before any of
+  // these queries are keyed. In both windows the drawn map answers the
+  // previous band while the sentence above it names the new one, and
+  // that gap is what a reader reports as a wrong map.
+  const behind = coverage !== undefined && coverage.band !== band;
+  // Every layer, not the fine grid alone. On a device that the gate
+  // refuses the fine grid is never asked for, so a bar watching only
+  // that query marked nothing at all — a band change recomputed the
+  // whole coarse map in silence (user, 2026-08-01).
+  const working = behind || coarseRunning || fineRunning || patchRunning;
+  const busy = useShownFor(working, MAP_BUSY_MIN_MS);
+  // What the bar is waiting for, in words, for a reader who cannot see
+  // it. Recomputing the map and adding detail to one already drawn are
+  // different waits and the coarse one is the only one that changes
+  // what the map says.
+  const busyKey = behind || coarseRunning
+    ? 'reach.mapUpdating'
+    : 'reach.mapSharpening';
   // The sentence under the map describes the station — how far ITS
   // near-vertical region reaches — so its data must not follow the view:
   // panned to the far side of the world, the patch above holds no point
@@ -286,12 +301,14 @@ export default function ReachCard({
       </View>
 
       {
-        /* The map is being made finer.
+        /* The map is being recomputed, or made finer.
 
-           Under the map rather than over it, because the coarse answer
-           is already on screen and correct — this marks detail arriving,
-           not the map being unusable. The row is always present so its
-           appearance does not move anything below it.
+           Under the map rather than over it, because whatever is on
+           screen is already a correct answer to something — the previous
+           band, or this one at a coarser step — and this marks the next
+           answer arriving rather than the map being unusable. The row is
+           always present so its appearance does not move anything below
+           it.
 
            The bar itself carries no text, so the label beside it is what
            a screen reader announces. `accessibilityLiveRegion` says it
@@ -301,9 +318,9 @@ export default function ReachCard({
       <View
         style={styles.sharpenRow}
         accessibilityLiveRegion="polite"
-        accessibilityLabel={sharpening ? t('reach.mapSharpening') : ''}
+        accessibilityLabel={busy ? t(busyKey) : ''}
       >
-        {sharpening
+        {busy
           ? (
             <ProgressBar
               indeterminate
@@ -334,11 +351,17 @@ export default function ReachCard({
            quantity and the difference between two bands is often a shape
            the eye reads as "about the same". */
       }
+      {
+        /* Named from the grid the figure came out of, not from the band
+           the selector is on. They differ for as long as the map is
+           behind — and "160m reaches about 8% of the world" carrying
+           40m's number is wrong in a way no reader can catch. */
+      }
       {coverage
         ? (
           <Text style={[typography.caption, { color: ui.text3 }]}>
             {t('reach.reachLine', {
-              band,
+              band: coverage.band,
               percent: f.percent(coverage.reach),
             })}
           </Text>
@@ -351,11 +374,15 @@ export default function ReachCard({
            dots is not, and because this is the sentence a reader with no
            sight of the map still gets. */
       }
-      {nvisKm === null
+      {homePatch === null || nvisKm === null
         ? null
         : (
           <Text style={[typography.caption, { color: ui.text3 }]}>
-            {t('reach.nvisReach', { band, distance: f.distance(nvisKm) })}
+            {/* The patch's own band, as for the reach line above. */}
+            {t('reach.nvisReach', {
+              band: homePatch.band,
+              distance: f.distance(nvisKm),
+            })}
           </Text>
         )}
 

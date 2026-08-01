@@ -105,7 +105,11 @@ export const qualityMap = {
     closed: { fill: violet[100], opacity: 0.6 },
   },
   dark: {
-    reliable: { fill: violet[300], opacity: 0.95 },
+    // One step down the ramp, because at violet[300] the brightest reach
+    // washed out the coastlines drawn over it (user, 2026-08-01). The
+    // ramp is spaced in OKLCH, so one step is a measured perceptual step
+    // and it stays clear of `patchy` below it.
+    reliable: { fill: violet[400], opacity: 0.95 },
     patchy: { fill: violet[500], opacity: 0.88 },
     weak: { fill: violet[850], opacity: 0.8 },
     closed: { fill: slate[900], opacity: 0.6 },
@@ -245,7 +249,16 @@ const uiDark: UiColors = {
   tagBg: cyan[700],
   tagFg: cyan[50],
   discBg: slate[900],
-  mapLine: slate[400],
+  // Two steps lighter than they were, so the coastlines read through the
+  // reach fills over them (user, 2026-08-01). Two rather than one because
+  // one step is exactly `mapGuide`, and coastlines the same colour as the
+  // terminator are worse than coastlines that are too dark.
+  //
+  // This also settles what the comment on the token already claimed. It
+  // says the guide is quieter than the coastlines, which was true of the
+  // light theme and backwards here — the guide was the brighter of the
+  // two. Now it holds in both.
+  mapLine: slate[200],
   mapGuide: slate[300],
 };
 

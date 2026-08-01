@@ -17,6 +17,7 @@
     "legendNvis": "No skip zone",
     "nvisReach": "{{band}} reaches out to about {{distance}} with no skip zone.",
     "mapSharpening": "Adding detail to the map",
+    "mapUpdating": "Updating the map",
     "detailWorld": "Fine detail, whole world.",
     "detailNear": "Fine detail near {{place}} only.",
     "detailMeasuring": "Measuring this device before it adds fine detail.",

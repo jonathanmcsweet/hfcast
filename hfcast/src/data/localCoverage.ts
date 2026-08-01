@@ -70,6 +70,25 @@ export const canMapLocally = (): boolean => Engine.isAvailable();
 const countPoints = (answers: readonly WireCoverage[]): number =>
   answers.reduce((sum, answer) => sum + (answer.points ?? []).length, 0);
 
+/**
+ * Says what a probe cost and how it was cut.
+ *
+ * The probes are what the fine grid's projection is fitted from, so a
+ * probe that did not run the way the fine grid will run is a projection
+ * about nothing. Only the log can show that: the fit sees a size and a
+ * time, and a batch that silently ran on one thread produces a
+ * believable pair of numbers.
+ */
+const sayProbe = (points: number, run: ShardedRun): void => {
+  console.log(
+    `[hfcast] probe ${points} points`
+      + ` | ${run.strips} strips on ${run.threads} threads`
+      + ` | engine ${Math.round(run.nativeMs)} ms`
+      + ` | parse ${Math.round(run.parseMs)} ms`
+      + ` | total ${Math.round(run.elapsedMs)} ms`,
+  );
+};
+
 export interface LocalCoverageRequest {
   from: Endpoint;
   band: BandKey;
@@ -107,11 +126,23 @@ type AreaAsk = Record<string, unknown>;
  * whole, probes included. That stays consistent for the same reason: the
  * fit then describes unsharded runs, which is what this device does.
  */
+interface ShardedRun {
+  answers: WireCoverage[];
+  /** The whole wait, which is what the gate is fitted against. */
+  elapsedMs: number;
+  /** How much of it was the engine, and how much was parsing. */
+  nativeMs: number;
+  parseMs: number;
+  /** How the grid was cut. One strip means it was not. */
+  strips: number;
+  threads: number;
+}
+
 async function shardedWholeWorld(
   ask: AreaAsk,
   latStep: number,
   lonStep: number,
-): Promise<{ answers: WireCoverage[]; elapsedMs: number; }> {
+): Promise<ShardedRun> {
   const cores = Engine.cores();
   // Cut into latitude strips so the batch can use more than one core.
   // The arithmetic is the server's, copied character for character, so
@@ -122,14 +153,27 @@ async function shardedWholeWorld(
     : null;
   const request = { ...ask, latStep, lonStep };
 
+  const threads = threadsFor(cores);
   const startedAt = Date.now();
-  const answers = strips === null
-    ? [await Engine.predict<WireCoverage>(request)]
+  const batch = strips === null
+    ? {
+      answers: [await Engine.predict<WireCoverage>(request)],
+      // An unsharded run cannot separate the two: `predict` parses its
+      // one answer inside itself. Charged to the engine rather than
+      // split on a guess.
+      nativeMs: Date.now() - startedAt,
+      parseMs: 0,
+    }
     : await Engine.predictMany<WireCoverage>(
       strips.map((bounds) => ({ ...request, ...bounds })),
-      threadsFor(cores),
+      threads,
     );
-  return { answers, elapsedMs: Date.now() - startedAt };
+  return {
+    ...batch,
+    elapsedMs: Date.now() - startedAt,
+    strips: strips === null ? 1 : strips.length,
+    threads: strips === null ? 1 : threads,
+  };
 }
 
 /** The part of a request that does not depend on the grid. */
@@ -265,6 +309,7 @@ export async function calibrateLocally(
   if (smallPoints === 0) {
     throw new Error('the engine produced no calibration points');
   }
+  sayProbe(smallPoints, small);
   cost.recordSharded(small.elapsedMs, smallPoints);
 
   // Read back rather than reasoned about here: `recordSharded` keeps the
@@ -283,6 +328,7 @@ export async function calibrateLocally(
   if (largePoints === 0) {
     throw new Error('the engine produced no calibration points');
   }
+  sayProbe(largePoints, large);
   cost.recordSharded(large.elapsedMs, largePoints);
 
   return small.elapsedMs + large.elapsedMs;
@@ -296,11 +342,8 @@ export async function coverFineLocally(
   const { ssn, basis } = ssnFor(year, month, request.nowcast);
   const ask = await areaAsk(request, ssn);
 
-  const { answers, elapsedMs } = await shardedWholeWorld(
-    ask,
-    FINE_LAT_STEP,
-    FINE_LON_STEP,
-  );
+  const run = await shardedWholeWorld(ask, FINE_LAT_STEP, FINE_LON_STEP);
+  const { answers, elapsedMs } = run;
 
   // Concatenated in strip order. The engine emits rows south to north,
   // the strips are cut south to north, so this is the sequence one run
@@ -331,17 +374,25 @@ export async function coverFineLocally(
     points,
   });
 
-  // Said out loud because the two halves are charged to different
-  // places and only one of them is the engine. The strips run on their
-  // own threads; everything after them — one JSON string per strip
-  // parsed, 34,560 objects built, then packed into typed arrays — runs
-  // on the thread that draws, and while it does no progress bar can
-  // animate and no touch can be answered. If the wait a reader notices
-  // is mostly the second number, no amount of engine work shortens it.
+  // Said out loud because the parts are charged to different places and
+  // only one of them is the engine. The strips run on their own threads;
+  // everything after them — one JSON string per strip parsed, 34,560
+  // objects built, then packed into typed arrays — runs on the thread
+  // that draws, and while it does no progress bar can animate and no
+  // touch can be answered.
+  //
+  // The strip and thread counts are here because the projection they
+  // feed only makes sense against them. A phone measuring roughly what
+  // one core would manage, while claiming eight threads, is a phone
+  // whose batch is not running in parallel — which is a different fault
+  // from a slow engine and is not visible in a total.
   console.log(
     `[hfcast] fine grid ${points.length} points`
-      + ` | engine ${Math.round(elapsedMs)} ms`
-      + ` | unpack ${Math.round(Date.now() - packingAt)} ms`,
+      + ` | ${run.strips} strips on ${run.threads} threads`
+      + ` | engine ${Math.round(run.nativeMs)} ms`
+      + ` | parse ${Math.round(run.parseMs)} ms`
+      + ` | unpack ${Math.round(Date.now() - packingAt)} ms`
+      + ` | total ${Math.round(elapsedMs)} ms`,
   );
 
   return globe;

@@ -35,12 +35,23 @@ export const FINE_GRID_POINTS = 34560;
 /**
  * How long the fine grid may take, from a settled hour to cells drawn.
  *
- * Two and a half seconds is the point at which a map stops feeling like
- * it is filling in and starts feeling like it is stuck. The coarse map
- * is already on screen throughout, so this is the wait for detail rather
- * than for an answer — which is why it is this long and not shorter.
+ * The coarse map is on screen throughout and a progress bar runs beside
+ * it, so this is the wait for detail rather than for an answer. That is
+ * what makes it seconds rather than a fraction of one.
+ *
+ * Five, raised from two and a half, because two and a half refused a
+ * current phone that had already run the grid. A Pixel 8 measured the
+ * whole-world grid at about 3.4 seconds and recorded that reading — at
+ * which point its own measurement put it over budget and the gate shut
+ * for good. The reader who owns it had seen the refinement happen,
+ * wanted it, and asked only that the wait be marked (user, 2026-08-01).
+ *
+ * So the number was wrong, not the device. This budget exists to refuse
+ * the case that is hopeless — a quad-A53 tablet projecting tens of
+ * seconds, where the detail arrives long after the reader has moved on —
+ * and 3.4 seconds of marked, interruptible filling-in is not that.
  */
-export const FINE_BUDGET_MS = 2500;
+export const FINE_BUDGET_MS = 5000;
 
 /**
  * How many threads a batch runs across, given the device's core count.
