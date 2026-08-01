@@ -3,8 +3,6 @@
     "label": "Banda"
   },
   "reach": {
-    "title": "¿Hasta dónde llego?",
-    "subtitle": "La previsión de abajo apunta a {{place}}.",
     "answer": "{{band}} llega a {{place}} a las {{hour}} UTC: cerca de {{percent}} de probabilidad de contacto.",
     "mapLoading": "Calculando hasta dónde llega esta banda",
     "mapUnavailable": "No se pudo cargar el mapa de cobertura.",
@@ -12,7 +10,6 @@
     "legendReach": "Alcance",
     "legendNight": "Noche",
     "panHint": "Mueve el mapa con dos dedos",
-    "subtitleAnywhere": "Sin destino, así que son todas las direcciones a la vez.",
     "answerAnywhere": "{{band}} a las {{hour}} UTC alcanza cerca del {{percent}} de las direcciones muestreadas.",
     "legendNvis": "Sin zona de silencio",
     "nvisReach": "{{band}} llega hasta unos {{distance}} sin zona de silencio.",

@@ -17,7 +17,6 @@ import {
 import {
   canMapLocally,
   coverAllBandsLocally,
-  coverFineAllBandsLocally,
   coverFineLocally,
   coverPatchAllBandsLocally,
 } from '../data/localCoverage';
@@ -113,21 +112,6 @@ export const queryKeys = {
     nowcast: string,
     station: string,
   ) => ['fineGlobe', server, from, band, hour, date, nowcast, station] as const,
-  /**
-   * The run that fills in the bands the reader did not choose.
-   *
-   * Everything `fineGlobe` is keyed by except the band, because it
-   * answers all of them. It holds no map itself — the maps go into the
-   * `fineGlobe` keys — so this key exists to say the filling has been
-   * done once for these inputs and need not be done again.
-   */
-  fineGlobeSpread: (
-    from: string,
-    hour: number,
-    date: string,
-    nowcast: string,
-    station: string,
-  ) => ['fineGlobeSpread', from, hour, date, nowcast, station] as const,
   coveragePatch: (
     server: string,
     from: string,
@@ -658,94 +642,20 @@ export function useFineGlobe(
     retry: false,
   });
 
-  useFineGlobeSpread({
-    from,
-    band,
-    hour,
-    date,
-    nowcast,
-    station,
-    // Only after the chosen band is on the screen. That ordering is the
-    // whole point: the reader waits exactly as long as before for the
-    // map they asked for, and the rest arrives underneath a map they are
-    // already reading.
-    //
-    // `isFetching` is in the condition as well as `data`, because a
-    // moved hour keeps the previous answer on screen while the new one
-    // runs — `placeholderData` above — and starting nine bands beside
-    // the one run still going would make both slower.
-    ready: local && enabled && hasSkia && !station.editing
-      && query.data !== undefined && !query.isFetching,
-  });
+  // No run here to fill in the other bands. 0.49.0 had one, behind the
+  // drawn map, and it made a band change far worse rather than better:
+  // the engine module runs one request at a time by design — see the
+  // single-thread executor in `HfcastEngineModule.kt` — so the fill-in
+  // did not happen beside the reader's next run, it happened in front
+  // of it. Measured on a Pixel 8: about 30 seconds to change band
+  // (user, 2026-08-01), against 3.4 for the run alone.
+  //
+  // The roadmap section "A band change re-runs the whole-world fine
+  // grid" holds what to do instead, and why it needs the cost split
+  // measured first.
 
   useFineGlobeCache(query.dataUpdatedAt);
   return query;
-}
-
-/**
- * Fills the cache with the fine grids for the bands not chosen.
- *
- * A query rather than an effect so React Query does the deduplication:
- * this key is asked for by every screen holding a fine grid, and one
- * answer per set of inputs is what the key gives. Its own value is only
- * the count — the maps themselves go into the `fineGlobe` keys the band
- * queries already read, so no consumer changes.
- *
- * Nothing observes this query, so it never raises a loading state. That
- * is deliberate. The work happens behind a finished map and a reader
- * who never changes band should not be told it is happening.
- */
-function useFineGlobeSpread(input: {
-  from: Endpoint;
-  band: BandKey;
-  hour: number;
-  date: string;
-  nowcast: Nowcast | undefined;
-  station: ReturnType<typeof useStation>;
-  ready: boolean;
-}): void {
-  const { from, band, hour, date, nowcast, station, ready } = input;
-  const client = useQueryClient();
-
-  useQuery({
-    queryKey: queryKeys.fineGlobeSpread(
-      from.grid,
-      hour,
-      date,
-      nowcastKey(nowcast),
-      station.key,
-    ),
-    queryFn: async () => {
-      const all = await coverFineAllBandsLocally({
-        from,
-        band,
-        hour,
-        date: new Date(`${date}T00:00:00Z`),
-        station: station.station,
-        nowcast,
-      });
-      seedBands(client, band, all, (other) =>
-        queryKeys.fineGlobe(
-          'device',
-          from.grid,
-          other,
-          hour,
-          date,
-          nowcastKey(nowcast),
-          station.key,
-        ));
-      return Object.keys(all).length;
-    },
-    enabled: ready,
-    // Same as the grids it produces: the inputs that would change any
-    // answer are all in the key, so a fresh one means a fresh run.
-    staleTime: Number.POSITIVE_INFINITY,
-    gcTime: MAP_CACHE_MS,
-    // No retry, for the reason the fine grid itself does not: everything
-    // on the screen is already correct, and a second attempt would spend
-    // seconds of engine time to change nothing a reader can see.
-    retry: false,
-  });
 }
 
 /**
