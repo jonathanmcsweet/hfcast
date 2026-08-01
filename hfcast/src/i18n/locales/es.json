@@ -17,6 +17,7 @@
     "legendNvis": "Sin zona de silencio",
     "nvisReach": "{{band}} llega hasta unos {{distance}} sin zona de silencio.",
     "mapSharpening": "Añadiendo detalle al mapa",
+    "mapUpdating": "Actualizando el mapa",
     "detailWorld": "Detalle fino, todo el mundo.",
     "detailNear": "Detalle fino solo cerca de {{place}}.",
     "detailMeasuring": "Midiendo este dispositivo antes de añadir detalle fino.",

@@ -17,6 +17,7 @@
     "legendNvis": "スキップゾーンなし",
     "nvisReach": "{{band}}はスキップゾーンなしで約{{distance}}まで届きます。",
     "mapSharpening": "地図を詳細にしています",
+    "mapUpdating": "地図を更新しています",
     "detailWorld": "全世界を細かく表示しています。",
     "detailNear": "{{place}} の周辺のみ細かく表示しています。",
     "detailMeasuring": "細かい表示を追加する前に、この端末を測定しています。",

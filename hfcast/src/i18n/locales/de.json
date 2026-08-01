@@ -17,6 +17,7 @@
     "legendNvis": "Keine tote Zone",
     "nvisReach": "{{band}} reicht ohne tote Zone bis etwa {{distance}}.",
     "mapSharpening": "Die Karte wird genauer",
+    "mapUpdating": "Die Karte wird aktualisiert",
     "detailWorld": "Feine Auflösung, ganze Welt.",
     "detailNear": "Feine Auflösung nur in der Nähe von {{place}}.",
     "detailMeasuring": "Das Gerät wird gemessen, bevor feine Details hinzukommen.",

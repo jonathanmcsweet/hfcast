@@ -101,6 +101,29 @@ export function cores(): number {
     : DEFAULT_CORES;
 }
 
+/** A batch's answers, and where its time went. */
+export interface Batch<T> {
+  answers: T[];
+  /**
+   * The engine and the crossing into it: strips computed on their own
+   * threads, then handed back as strings.
+   */
+  nativeMs: number;
+  /**
+   * Turning those strings into objects, which happens on the thread that
+   * draws.
+   *
+   * Reported apart from the rest because the two are charged to
+   * different places and only one of them is arithmetic. A whole-world
+   * grid is 34,560 points, and every one of them is parsed here — while
+   * that runs, no bar animates and no touch is answered. A caller
+   * deciding whether the grid is affordable has to know which half it is
+   * paying for, because engine work and parsing are shortened by
+   * completely different things.
+   */
+  parseMs: number;
+}
+
 /**
  * Runs several requests as one batch, across several threads.
  *
@@ -113,20 +136,27 @@ export function cores(): number {
 export async function predictMany<T>(
   requests: readonly unknown[],
   threads: number,
-): Promise<T[]> {
+): Promise<Batch<T>> {
   if (native === null) throw new Error('The engine is not in this build');
   const batch = native.predictMany;
   if (batch === undefined) {
     throw new Error('This build of the engine cannot run a batch');
   }
+  const askedAt = Date.now();
   const texts = await batch.call(
     native,
     requests.map((request) => JSON.stringify(request)),
     threads,
   );
-  return texts.map((text) => {
+  const answeredAt = Date.now();
+  const answers = texts.map((text) => {
     const answer = JSON.parse(text) as T & { error?: string; };
     if (typeof answer.error === 'string') throw new Error(answer.error);
     return answer;
   });
+  return {
+    answers,
+    nativeMs: answeredAt - askedAt,
+    parseMs: Date.now() - answeredAt,
+  };
 }

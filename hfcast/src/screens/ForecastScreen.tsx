@@ -160,17 +160,21 @@ export default function ForecastScreen() {
 
   return (
     <View style={[styles.root, { backgroundColor: ui.page }]}>
-      <ScrollView
-        contentContainerStyle={{
-          // The header scrolls with the content, so nothing else keeps it out
-          // from under the status bar. Without this the place name and its
-          // Change button sit beneath the clock on a phone that draws behind
-          // the bar, which puts the only way to change location out of reach.
-          paddingTop: insets.top,
-          paddingBottom: insets.bottom + spacing.xxl,
-        }}
-        showsVerticalScrollIndicator={false}
-      >
+      {
+        /* Fixed, outside the scroller (user, 2026-08-01).
+
+           These are the controls that say what is being forecast — where,
+           which station, which band — and everything below them is the
+           answer. Scrolled with the content they slid under the status
+           bar, so the place name ended up behind the clock and the signal
+           icons: unreadable, and still the only way to change location.
+           Padding alone could not fix that, because padding sets where
+           content starts and the complaint was about where it goes.
+
+           It also means the band can be changed while reading the grid
+           further down, which is the comparison the grid is for. */
+      }
+      <View style={{ paddingTop: insets.top, backgroundColor: ui.page }}>
         <AppHeader
           place={prediction.from.label}
           destination={prediction.to === null
@@ -195,7 +199,17 @@ export default function ForecastScreen() {
           onEditStation={() => setStationOpen(true)}
           requiredSnrDb={prediction.requiredSnrDb}
         />
+      </View>
 
+      <ScrollView
+        contentContainerStyle={{
+          // No top inset: the fixed header above already clears the status
+          // bar, and repeating it here would leave a gap the width of the
+          // bar between the band chips and the map.
+          paddingBottom: insets.bottom + spacing.xxl,
+        }}
+        showsVerticalScrollIndicator={false}
+      >
         <ReachCard
           prediction={prediction}
           band={band}

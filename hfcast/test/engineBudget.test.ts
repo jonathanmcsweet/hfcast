@@ -21,8 +21,8 @@ import {
   PROBE_SMALL_LON_STEP,
   PROBE_SMALL_POINTS,
   projectedFineMs,
-  stripsFor,
   STRIPS_PER_THREAD,
+  stripsFor,
   threadsFor,
 } from '../src/data/engineBudget.ts';
 import {
@@ -55,14 +55,27 @@ const large = (device: { fixedMs: number; msPerPoint: number; }) =>
   probe(device, PROBE_LARGE_POINTS);
 
 /**
- * A current phone: eight cores, so sixteen strips in two rounds, and
- * about five times this desktop on one core. This is the device the
- * guessed speedup refused — see the test that says so.
+ * A current phone, and the only fixture here that was measured rather
+ * than reasoned out: a Pixel 8 running the shipped APK, read from its
+ * own log on 2026-08-01. Its probes fitted 11 ms plus 0.0982 ms a point,
+ * which puts the whole-world grid at about 3.4 seconds.
+ *
+ * It replaced a hypothetical phone of 32 ms plus 0.0243 — four times
+ * faster — that this file had been reasoning from. The hypothetical one
+ * was built by dividing a desktop's per-point cost by eight cores, which
+ * assumes the batch recovers all eight and that nothing outside the
+ * engine costs anything. The real reading says otherwise, and a test
+ * suite that keeps the invented number would go on agreeing with an
+ * assumption the hardware has already contradicted.
  */
-const PHONE = { fixedMs: 32, msPerPoint: 0.194 / 8 };
+const PHONE = { fixedMs: 11, msPerPoint: 0.0982 };
 
-/** A quad-A53 tablet: four cores, and ten times this desktop on one. */
-const TABLET = { fixedMs: 40, msPerPoint: 0.388 / 4 };
+/**
+ * A quad-A53 tablet: four slow cores, about three times the phone's cost
+ * per point. This is the device the budget exists to refuse — the whole
+ * grid is ten seconds, which arrives long after a reader has moved on.
+ */
+const TABLET = { fixedMs: 40, msPerPoint: 0.295 };
 
 describe('deciding whether a device can afford the fine grid', () => {
   it('counts the same grid the packing does', () => {
@@ -75,9 +88,13 @@ describe('deciding whether a device can afford the fine grid', () => {
     const cost = fitRunCost([small(PHONE), large(PHONE)]);
     assert.ok(cost !== null);
     assert.ok(fineGlobeAffordable(cost));
-    // Under a second, against a budget of two and a half.
+    // About 3.4 seconds, against a budget of five. This is the reading
+    // the old budget of 2500 refused, on a device whose owner had seen
+    // the refinement happen and wanted it (user, 2026-08-01).
     const projected = projectedFineMs(cost);
-    assert.ok(projected !== null && projected < 1000, `${projected}`);
+    assert.ok(projected !== null, 'unprojected');
+    assert.ok(projected > 3000 && projected < 3800, `${projected}`);
+    assert.ok(projected > 2500, 'the old budget would have refused this');
   });
 
   it('says no to a quad-A53 tablet, from its own two probes', () => {
@@ -116,27 +133,35 @@ describe('deciding whether a device can afford the fine grid', () => {
 });
 
 describe('measuring what the strips recover instead of assuming it', () => {
-  /**
-   * The defect this replaced. The gate timed one single-threaded run and
-   * divided by 2.5, a number written down rather than measured. The
-   * engine's own figures put eight-way sharding at 5.7, so the divisor
-   * was low by more than a factor of two — and a divisor that is too low
-   * makes the projection too high, which refuses devices.
-   */
-  const GUESSED_SPEEDUP = 2.5;
+  it('decides a real device from what that device measured', () => {
+    // The phone above is a reading, not a model, and this is the whole
+    // claim the module makes: hand it that device's two probes and it
+    // returns that device's cost, with nothing written down in between.
+    const cost = fitRunCost([small(PHONE), large(PHONE)]);
+    assert.ok(cost !== null);
+    assert.ok(Math.abs(cost.msPerPoint - PHONE.msPerPoint) < 1e-6);
+    assert.ok(projectedFineMs(cost) !== null);
+    assert.ok(fineGlobeAffordable(cost));
+  });
 
-  it('accepts a phone the guessed speedup refused', () => {
-    // The same phone, measured both ways. One thread over the whole
-    // grid, divided by the guess:
-    const guessed = (FINE_GRID_POINTS * 0.194) / GUESSED_SPEEDUP;
+  it('would still have refused this phone under a guessed speedup', () => {
+    // What the old gate did: time one unsharded run and divide by 2.5, a
+    // speedup written down rather than measured. Whatever single-thread
+    // cost that guess is applied to, it cannot land on this device's
+    // measured 3.4 seconds except by accident — and the point is that no
+    // better constant fixes it, because the error is not in the value.
+    //
+    // Assume the strips recover the 5.7 the engine's own figures show.
+    // Then this phone's unsharded grid is its measured cost times 5.7,
+    // and the guess of 2.5 would have projected more than twice the
+    // truth: over the old budget, and over the new one as well.
+    const truth = projectedFineMs(fitRunCost([small(PHONE), large(PHONE)]));
+    assert.ok(truth !== null);
+    const unsharded = truth * 5.7;
+    const guessed = unsharded / 2.5;
+    assert.ok(guessed / truth > 2, `${guessed / truth}`);
     assert.ok(guessed > FINE_BUDGET_MS, `${guessed}`);
-
-    // And measured on the run that will actually happen:
-    const measured = projectedFineMs(fitRunCost([small(PHONE), large(PHONE)]));
-    assert.ok(measured !== null);
-    assert.ok(measured < FINE_BUDGET_MS, `${measured}`);
-    // Not marginally, either — the guess was wrong by about three times.
-    assert.ok(guessed / measured > 2.5, `${guessed / measured}`);
+    assert.ok(truth < FINE_BUDGET_MS, `${truth}`);
   });
 
   it('recovers both parts of the cost it was built from', () => {
@@ -303,10 +328,13 @@ describe("separating a run's fixed cost from its per-point cost", () => {
       { points: 500, ms: 0 },
       { points: 500, ms: Number.NaN },
     ];
-    assert.equal(marginalMsPerPoint(withJunk), marginalMsPerPoint([
-      COARSE,
-      FINE,
-    ]));
+    assert.equal(
+      marginalMsPerPoint(withJunk),
+      marginalMsPerPoint([
+        COARSE,
+        FINE,
+      ]),
+    );
   });
 
   it('refuses a fit that noise has turned backwards', () => {
