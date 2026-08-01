@@ -14,7 +14,7 @@
     "dev:app": "bash tools/dev.sh",
     "test": "pnpm --dir server test",
     "dev": "bash tools/dev.sh",
-    "dev:ui": "pnpm --dir hfcast start"
+    "dev:ui": "pnpm --dir app start"
   },
   "devDependencies": {
     "@biomejs/biome": "^1.9.4",

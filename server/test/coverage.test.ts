@@ -47,7 +47,7 @@ describe('the coverage grid', () => {
 /**
  * The fine grid the second run covers.
  *
- * This mirrors `hfcast/test/coveragePatch.test.ts`. The two are copies
+ * This mirrors `app/test/coveragePatch.test.ts`. The two are copies
  * for the module reason in `shared-with-app.test.ts`, which pins the
  * constants; what these pin is the arithmetic built on them, so a
  * rectangle asked for by the web build and one asked for on a device

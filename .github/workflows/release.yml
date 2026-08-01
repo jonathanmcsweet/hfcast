@@ -61,7 +61,7 @@ jobs:
         with:
           node-version: 24
           cache: pnpm
-          cache-dependency-path: hfcast/pnpm-lock.yaml
+          cache-dependency-path: app/pnpm-lock.yaml
 
       - uses: actions/setup-java@v4
         with:
@@ -81,21 +81,21 @@ jobs:
       - name: Cache the engine build
         uses: actions/cache@v4
         with:
-          path: hfcast/modules/hfcast-engine/rust/target
+          path: app/modules/hfcast-engine/rust/target
           key: jni-${{ runner.os }}-${{ env.ENGINE_COMMIT }}
 
       - name: Install dependencies
-        working-directory: hfcast
+        working-directory: app
         run: pnpm install --frozen-lockfile
 
       # The checks the release must not skip. A tag that fails them should
       # produce no artefact at all rather than a signed one nobody checked.
       - name: Typecheck
-        working-directory: hfcast
+        working-directory: app
         run: pnpm typecheck
 
       - name: Test
-        working-directory: hfcast
+        working-directory: app
         run: pnpm test
 
       # The APK file names come from `package.json`, not from the tag, so a
@@ -104,17 +104,17 @@ jobs:
       # work out which build they installed.
       - name: Check the tag matches the version
         if: startsWith(github.ref, 'refs/tags/')
-        working-directory: hfcast
+        working-directory: app
         run: |
           version=$(node -p "require('./package.json').version")
           if [ "v$version" != "$GITHUB_REF_NAME" ]; then
-            echo "::error::tag $GITHUB_REF_NAME does not match version $version in hfcast/package.json"
+            echo "::error::tag $GITHUB_REF_NAME does not match version $version in app/package.json"
             exit 1
           fi
           echo "building $version"
 
       - name: Build the engine for the four architectures
-        working-directory: hfcast
+        working-directory: app
         env:
           ANDROID_API: '24'
         run: bash modules/hfcast-engine/build-rust.sh
@@ -148,14 +148,14 @@ jobs:
           } >> "$HOME/.gradle/gradle.properties"
 
       - name: Build the APKs
-        working-directory: hfcast
+        working-directory: app
         run: tools/build-android.sh modern
 
       # `build-android.sh` already fails unless all four APKs exist. This
       # states the other half: that they are signed with the release key
       # rather than the debug fallback, which nothing else would notice.
       - name: Check the APKs are signed with the release key
-        working-directory: hfcast
+        working-directory: app
         run: |
           apksigner="$ANDROID_HOME/build-tools/36.0.0/apksigner"
           for apk in build/apk/*.apk; do
@@ -167,7 +167,7 @@ jobs:
           done
 
       - name: Checksums
-        working-directory: hfcast/build/apk
+        working-directory: app/build/apk
         run: sha256sum *.apk | tee SHA256SUMS.txt
 
       # `gh` is on the runner already. A third-party action here would put
@@ -195,8 +195,8 @@ jobs:
             --draft \
             --title "${GITHUB_REF_NAME}" \
             --notes-file notes.md \
-            hfcast/build/apk/*.apk \
-            hfcast/build/apk/SHA256SUMS.txt
+            app/build/apk/*.apk \
+            app/build/apk/SHA256SUMS.txt
 
       # A manual run builds and checks but has no tag to release against.
       # The files are still worth keeping, to install and try.
@@ -205,4 +205,4 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: apk
-          path: hfcast/build/apk/
+          path: app/build/apk/

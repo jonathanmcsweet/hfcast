@@ -28,13 +28,11 @@ cd hfcast
 git clone https://github.com/jonathanmcsweet/hfcast-engine.git
 ```
 
-You now have this. Note that `hfcast/` holds a directory that is also
-called `hfcast`. The outer one is the repository. The inner one is the
-application.
+You now have this:
 
 ```
 hfcast/                  <- the repository you cloned
-├── hfcast/              <- the application
+├── app/                 <- the application
 ├── hfcast-engine/       <- the engine you just cloned
 ├── server/
 └── docs/
@@ -93,10 +91,10 @@ them each time.
 
 ## 3. Build
 
-From the **inner** `hfcast` directory, which is the application:
+From the `app` directory:
 
 ```bash
-cd hfcast          # you are now in hfcast/hfcast
+cd app
 pnpm install
 tools/build-android.sh modern
 ```
