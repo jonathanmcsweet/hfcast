@@ -11,19 +11,19 @@ Text in `ANGLE BRACKETS` is a placeholder. Replace it.
 
 ## 1. Make the two GitHub repositories
 
-There are **two** repositories here, not three:
+There are **two** repositories here:
 
 ```
 hfcast/                  <- repository 1
-├── hfcast/                 the application. NOT its own repository
+├── app/                    the application. NOT its own repository
 ├── hfcast-engine/       <- repository 2
 ├── server/
 ├── docs/
 └── tools/
 ```
 
-`hfcast/hfcast/` is a directory of repository 1. Do not make a
-repository for it.
+`app/` and `server/` are directories of repository 1. Do not make a
+repository for either.
 
 The release workflow reads the engine from GitHub at a fixed commit, so
 the two stay separate.
@@ -50,15 +50,12 @@ git push -u origin main
 `hfcast-engine/` is in the `.gitignore` of repository 1, so the second
 push does not include it.
 
-### If the two names are too similar
-
-You can call repository 1 something else, for example `hfcast-app`. The
-directory names inside it must not change: the build reads the engine at
+You can give repository 1 a different name. The directory names inside
+it must not change: the build reads the engine at
 `../../../../hfcast-engine` from the JNI crate, which is the top of the
-tree.
-
-If you change the name, change it in the badge addresses in `README.md`
-and in the clone command in `docs/quick-start.md`.
+tree. If you change the repository name, change it in the badge
+addresses in `README.md` and in the clone command in
+`docs/quick-start.md`.
 
 ## 2. Point the workflow at the engine commit
 
@@ -97,7 +94,7 @@ Then keep the file safe:
 
 - Copy it to an encrypted backup that is not on the build machine.
 - Write the two passwords in a password manager.
-- Do not put the file in `hfcast/` or `hfcast-engine/`.
+- Do not put the file in either repository.
 
 ## 4. Add the four repository secrets
 
@@ -145,7 +142,7 @@ it cannot update an installation made from a signed one.
 ## 5. Put the privacy policy on the web
 
 F-Droid and Accrescent both need a link to a privacy policy. A file in
-a repository is not sufficient. The text is in `hfcast/docs/privacy.md`.
+a repository is not sufficient. The text is in `app/docs/privacy.md`.
 
 The cheapest method is GitHub Pages:
 
@@ -159,8 +156,8 @@ Then put that address in the README and in each store listing.
 ## 6. Make the first release
 
 ```bash
-git tag v0.53.1
-git push origin v0.53.1
+git tag v0.54.1
+git push origin v0.54.1
 ```
 
 The workflow builds four APKs, signs them, and makes a **draft**
@@ -184,10 +181,12 @@ Put the same URL in the README, with the Obtainium badge.
 Both need more than a release, and both can wait.
 
 **F-Droid** builds from source on its own machines and signs with its
-own key. `hfcast/docs/fdroid.md` holds the recipe. Two things are
-needed first: the metadata files under
-`fastlane/metadata/android/en-US/`, and a build recipe that clones the
-engine the same way the release workflow does. Expect a long review.
+own key. `app/docs/fdroid.md` holds the recipe.
+`app/fastlane/metadata/android/en-US/` already holds the title, the
+short description and the full description. What is missing is the
+screenshots, a changelog for each version, and a build recipe that
+clones the engine the same way the release workflow does. Expect a long
+review.
 
 **Accrescent** wants an app bundle, not a bare APK, and you sign it
 yourself. It is curated, so it needs an approach to the maintainers.

@@ -8,7 +8,7 @@ how to make a change safely.
 
 | Directory        | What it is             | Language                       |
 | ---------------- | ---------------------- | ------------------------------ |
-| `hfcast/`        | The application        | TypeScript, React Native, Expo |
+| `app/`           | The application        | TypeScript, React Native, Expo |
 | `server/`        | The prediction API     | TypeScript, Node               |
 | `hfcast-engine/` | The propagation engine | Rust                           |
 
@@ -31,7 +31,7 @@ The application does not call the server on Android. It has the engine
 in it.
 
 ```
-hfcast/modules/hfcast-engine/
+app/modules/hfcast-engine/
 ├── rust/           A small Rust crate. It calls the engine and gives a
 │                   Java interface (JNI).
 ├── build-rust.sh   Builds that crate one time for each processor type.
@@ -47,8 +47,8 @@ The web build and iOS have no engine. They read from the server.
 
 ## Two builds, one source
 
-`hfcast/package.json` targets Expo SDK 57 and Android 7.0.
-`hfcast/legacy/package.json` targets Expo SDK 50 and Android 5.0,
+`app/package.json` targets Expo SDK 57 and Android 7.0.
+`app/legacy/package.json` targets Expo SDK 50 and Android 5.0,
 because it is the last version of React Native that supports Android
 5.0.
 
@@ -66,7 +66,7 @@ Only the modern build is published now. See the roadmap.
 
 ## Before you commit
 
-Run these in `hfcast/`:
+Run these in `app/`:
 
 ```bash
 pnpm test        # 344 tests, Node's own test runner
@@ -138,8 +138,8 @@ docs: record the publishing decisions
 **Increase the version number** for each part you change, with
 [semantic versioning](https://semver.org). The application and the
 engine have different version numbers. The application has its version
-in three files: `hfcast/package.json`, `hfcast/legacy/package.json` and
-`hfcast/app.json`. A test fails if they disagree.
+in three files: `app/package.json`, `app/legacy/package.json` and
+`app/app.json`. A test fails if they disagree.
 
 `app.json` also has `versionCode`, which Android compares. The pattern
 is `minor * 1000 + patch * 10 + 1`.
@@ -165,7 +165,7 @@ functional form cannot.
 Network state goes in React Query. All other state goes in Zustand.
 
 The interface must satisfy WCAG, must translate, and must operate on a
-telephone and on a tablet. `hfcast/test/contrast.test.ts` measures the
+telephone and on a tablet. `app/test/contrast.test.ts` measures the
 contrast of each colour pair that the design puts on the screen.
 
 ## Documents

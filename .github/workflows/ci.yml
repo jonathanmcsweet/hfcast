@@ -99,7 +99,7 @@ jobs:
     timeout-minutes: 20
     defaults:
       run:
-        working-directory: hfcast
+        working-directory: app
     env:
       EXPO_NO_TELEMETRY: '1'
     steps:
@@ -116,7 +116,7 @@ jobs:
           # The app is a separate project with its own lockfile. Without
           # this the cache keys off the repository root's lockfile, which
           # lists two formatters and none of the app's dependencies.
-          cache-dependency-path: hfcast/pnpm-lock.yaml
+          cache-dependency-path: app/pnpm-lock.yaml
 
       - run: pnpm install --frozen-lockfile
 

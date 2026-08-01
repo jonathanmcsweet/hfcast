@@ -50,7 +50,7 @@ To work on the code, read the [development guide](docs/development.md) after it.
 
 | Part               | What it is                                             |
 | ------------------ | ------------------------------------------------------ |
-| [hfcast/](hfcast/) | The application. React Native, Expo, Material Design 3 |
+| [app/](app/)       | The application. React Native, Expo, Material Design 3 |
 | [server/](server/) | The prediction API, for builds that have no engine     |
 | [docs/](docs/)     | The guides, the roadmap, and the completions ledger    |
 
