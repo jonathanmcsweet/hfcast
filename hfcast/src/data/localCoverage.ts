@@ -9,6 +9,7 @@ import { requiredSnrFor } from './modes';
 import { latShards } from './shard';
 import {
   BAND_MHZ,
+  BAND_ORDER,
   type BandKey,
   type Coverage,
   type CoveragePatch,
@@ -180,63 +181,142 @@ async function areaAsk(request: LocalCoverageRequest, ssn: number) {
   };
 }
 
-export async function coverLocally(
-  request: LocalCoverageRequest,
-): Promise<Coverage> {
-  const month = request.date.getUTCMonth() + 1;
-  const year = request.date.getUTCFullYear();
-  const { ssn, basis } = ssnFor(year, month, request.nowcast);
-  const station = await engineStation(request.station);
+/**
+ * Every band, in the increasing order the engine requires.
+ *
+ * `BAND_ORDER` runs the other way — it is the order the selector shows,
+ * highest frequency first — and the engine refuses a list that is not
+ * increasing, because each band's antenna table is installed in a
+ * window cut halfway to its neighbours.
+ */
+const BANDS_BY_FREQ: readonly BandKey[] = [...BAND_ORDER].sort(
+  (a, b) => BAND_MHZ[a] - BAND_MHZ[b],
+);
 
-  // Timed, because this is the measurement the fine grid's decision
-  // rests on: the same engine, the same antenna, the same coefficient
-  // files, so the cost per point carries straight over to a bigger grid
-  // on this device. It costs nothing — the run happens anyway.
+const ALL_FREQS_MHZ: readonly number[] = BANDS_BY_FREQ.map((b) => BAND_MHZ[b]);
+
+/**
+ * One grid point as a multi-band answer states it: one row, every band.
+ *
+ * `reliability` and `takeoffAngleDeg` are arrays running parallel to the
+ * frequencies asked for.
+ */
+interface WireBandPoint {
+  lat: number;
+  lon: number;
+  reliability: readonly number[];
+  takeoffAngleDeg: readonly (number | null)[];
+}
+
+interface WireBands {
+  latStep?: number;
+  lonStep?: number;
+  latMin?: number;
+  latMax?: number;
+  lonMin?: number;
+  lonMax?: number;
+  freqsMhz?: readonly number[];
+  points?: readonly WireBandPoint[];
+}
+
+/**
+ * Pulls one band out of a multi-band answer.
+ *
+ * The engine echoes the frequencies it answered, and that echo is
+ * checked rather than trusted: reading the arrays at the wrong index
+ * would draw one band's map under another band's name, which is the
+ * fault this app has already shipped once.
+ */
+function bandPoints(
+  answer: WireBands,
+  index: number,
+): CoveragePoint[] {
+  const echoed = answer.freqsMhz;
+  if (echoed === undefined || echoed.length !== BANDS_BY_FREQ.length) {
+    throw new Error('the engine did not say which bands it answered');
+  }
+  const asked = ALL_FREQS_MHZ[index] as number;
+  const said = echoed[index] as number;
+  if (Math.abs(said - asked) > 1e-4) {
+    throw new Error(`the engine answered ${said} MHz where ${asked} was asked`);
+  }
+  return (answer.points ?? []).map((p) =>
+    asPoint({
+      lat: p.lat,
+      lon: p.lon,
+      reliability: p.reliability[index] ?? 0,
+      takeoffAngleDeg: p.takeoffAngleDeg[index] ?? null,
+    })
+  );
+}
+
+/**
+ * The coarse map, for every band at once.
+ *
+ * One run rather than nine. Almost everything an area run does before it
+ * reaches a frequency — the coefficient interpolation, and the ionogram
+ * built from it — is the same whatever the band, so nine bands asked for
+ * together cost far less than nine bands asked for one at a time.
+ * Measured in the engine over a 3,072-point grid: eight bands separately
+ * 1,008 ms, eight bands in one pass 297 ms.
+ *
+ * The reader gets that as a band change that draws from memory instead
+ * of running the engine again.
+ *
+ * It is safe to read one band out of this because the engine holds a
+ * batch to exact equality with the same bands run alone — see
+ * `tests/area_bands.rs` there. That is not a property VOACAP has: its
+ * own multi-frequency area run reports the maximum over the
+ * frequencies, which would saturate every map. This asks for something
+ * different and the engine answers each band separately.
+ */
+export async function coverAllBandsLocally(
+  request: LocalCoverageRequest,
+): Promise<Record<BandKey, Coverage>> {
+  const { ssn, basis } = ssnFor(
+    request.date.getUTCFullYear(),
+    request.date.getUTCMonth() + 1,
+    request.nowcast,
+  );
+  const ask = await areaAsk(request, ssn);
+
   const startedAt = Date.now();
-  const answer = await Engine.predict<WireCoverage>({
-    ...station,
-    mode: 'area',
-    fromLat: request.from.lat,
-    fromLon: request.from.lon,
-    month,
-    year,
-    ssn,
-    watts: request.station.watts,
-    requiredSnrDb: requiredSnrFor(request.station.mode),
-    noiseDbw: NOISE_DBW,
-    hour: request.hour,
-    // One band per call. Asking the engine for several frequencies at once
-    // makes it report the best of them at each point, which saturates the
-    // whole map: the map exists to show how the selected band differs from
-    // the others.
-    freqMhz: BAND_MHZ[request.band],
+  const answer = await Engine.predict<WireBands>({
+    ...ask,
+    freqMhz: undefined,
+    freqsMhz: ALL_FREQS_MHZ,
     latStep: LAT_STEP,
     lonStep: LON_STEP,
   });
   const elapsedMs = Date.now() - startedAt;
 
-  const points = (answer.points ?? []).map(asPoint);
-
-  if (points.length === 0) {
-    throw new Error('the engine produced no coverage points');
-  }
+  const covered = BANDS_BY_FREQ.map((band, index) => {
+    const points = bandPoints(answer, index);
+    if (points.length === 0) {
+      throw new Error(`the engine produced no coverage points for ${band}`);
+    }
+    return [band, {
+      band,
+      hour: request.hour,
+      // The engine echoes the steps it used. Preferred over the steps
+      // asked for, so the drawn cells match the grid that ran.
+      latStep: answer.latStep ?? LAT_STEP,
+      lonStep: answer.lonStep ?? LON_STEP,
+      reach: reachOf(points),
+      basis,
+      points,
+    }] as const;
+  });
 
   console.log(
-    `[hfcast] coarse grid ${points.length} points`
+    `[hfcast] coarse grid ${covered.length} bands`
+      + ` | ${(answer.points ?? []).length} points each`
       + ` | ${Math.round(elapsedMs)} ms`,
   );
 
-  return {
-    band: request.band,
-    hour: request.hour,
-    // The engine echoes the steps it used. Preferred over the steps asked
-    // for, so the drawn cells match the grid that was actually run.
-    latStep: answer.latStep ?? LAT_STEP,
-    lonStep: answer.lonStep ?? LON_STEP,
-    reach: reachOf(points),
-    basis,
-    points,
-  };
+  // Every band of `BANDS_BY_FREQ` is present, which is every `BandKey`,
+  // but `fromEntries` cannot say so.
+  return Object.fromEntries(covered) as unknown as Record<BandKey, Coverage>;
 }
 
 /**
@@ -345,9 +425,9 @@ export async function coverFineLocally(
  *
  * Null where the station is near the antimeridian — see `patchBounds`.
  */
-export async function coverPatchLocally(
+export async function coverPatchAllBandsLocally(
   request: LocalCoverageRequest,
-): Promise<CoveragePatch | null> {
+): Promise<Record<BandKey, CoveragePatch> | null> {
   // Where the map is pointed, or the station when it is showing the
   // whole globe and the two are the same place anyway.
   const region = request.region;
@@ -357,54 +437,56 @@ export async function coverPatchLocally(
   if (grid === null) return null;
   const box = patchRequestBounds(grid);
 
-  const month = request.date.getUTCMonth() + 1;
-  const year = request.date.getUTCFullYear();
-  const { ssn, basis } = ssnFor(year, month, request.nowcast);
-  const station = await engineStation(request.station);
+  const { ssn, basis } = ssnFor(
+    request.date.getUTCFullYear(),
+    request.date.getUTCMonth() + 1,
+    request.nowcast,
+  );
+  const ask = await areaAsk(request, ssn);
 
-  // Timed like the coarse run, and now only for the log. Nothing decides
-  // anything from these readings any more.
+  // Every band, as the coarse grid does and for the same reason: this
+  // rectangle's ionosphere does not depend on which band is drawn over
+  // it, and the reader changes band far more often than they pan.
   const startedAt = Date.now();
-  const answer = await Engine.predict<WireCoverage>({
-    ...station,
-    mode: 'area',
-    fromLat: request.from.lat,
-    fromLon: request.from.lon,
-    month,
-    year,
-    ssn,
-    watts: request.station.watts,
-    requiredSnrDb: requiredSnrFor(request.station.mode),
-    noiseDbw: NOISE_DBW,
-    hour: request.hour,
-    freqMhz: BAND_MHZ[request.band],
+  const answer = await Engine.predict<WireBands>({
+    ...ask,
+    freqMhz: undefined,
+    freqsMhz: ALL_FREQS_MHZ,
     latStep: grid.latStep,
     lonStep: grid.lonStep,
     ...box,
   });
   const elapsedMs = Date.now() - startedAt;
 
-  const points = (answer.points ?? []).map(asPoint);
-  if (points.length === 0) {
-    throw new Error('the engine produced no patch points');
-  }
+  const patched = BANDS_BY_FREQ.map((band, index) => {
+    const points = bandPoints(answer, index);
+    if (points.length === 0) {
+      throw new Error(`the engine produced no patch points for ${band}`);
+    }
+    return [band, {
+      band,
+      hour: request.hour,
+      latStep: answer.latStep ?? grid.latStep,
+      lonStep: answer.lonStep ?? grid.lonStep,
+      // The engine snaps the rectangle to its own lattice, so these are
+      // the grid that ran rather than the one asked for.
+      latMin: answer.latMin ?? grid.latMin,
+      latMax: answer.latMax ?? grid.latMax,
+      lonMin: answer.lonMin ?? grid.lonMin,
+      lonMax: answer.lonMax ?? grid.lonMax,
+      basis,
+      points,
+    }] as const;
+  });
 
   console.log(
-    `[hfcast] patch ${points.length} points | ${Math.round(elapsedMs)} ms`,
+    `[hfcast] patch ${patched.length} bands`
+      + ` | ${(answer.points ?? []).length} points each`
+      + ` | ${Math.round(elapsedMs)} ms`,
   );
 
-  return {
-    band: request.band,
-    hour: request.hour,
-    latStep: answer.latStep ?? grid.latStep,
-    lonStep: answer.lonStep ?? grid.lonStep,
-    // The engine snaps the rectangle to its own lattice, so these are the
-    // grid that ran rather than the one asked for.
-    latMin: answer.latMin ?? grid.latMin,
-    latMax: answer.latMax ?? grid.latMax,
-    lonMin: answer.lonMin ?? grid.lonMin,
-    lonMax: answer.lonMax ?? grid.lonMax,
-    basis,
-    points,
-  };
+  return Object.fromEntries(patched) as unknown as Record<
+    BandKey,
+    CoveragePatch
+  >;
 }
