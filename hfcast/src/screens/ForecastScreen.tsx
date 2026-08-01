@@ -1,6 +1,6 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ScrollView, StyleSheet, View } from 'react-native';
+import { RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 import { ActivityIndicator, Button, Text, useTheme } from 'react-native-paper';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -18,9 +18,19 @@ import StationModal from '../components/StationModal';
 
 import { usePrediction, useSounding, useSpaceWeather } from '../api/queries';
 import { qualityFor } from '../data/quality';
+import { lastAttempt, mayRefresh } from '../data/refreshPolicy';
+import { useShownFor } from '../hooks/useShownFor';
 import { usePathStore } from '../store/usePathStore';
 import { spacing, typography } from '../theme';
 import type { AppTheme } from '../theme';
+
+/**
+ * The shortest time the pull-down spinner stays on screen.
+ *
+ * Long enough that the gesture is acknowledged even when the cooldown
+ * refused the network, which is the common case for a second pull.
+ */
+const PULL_SPINNER_MS = 600;
 
 export default function ForecastScreen() {
   const theme = useTheme<AppTheme>();
@@ -66,10 +76,31 @@ export default function ForecastScreen() {
   // Both refresh paths ask for the same two things: new readings, and the
   // forecast that follows from them. On the device the forecast recomputes on
   // its own once the readings change, but the web build fetches both.
-  const refresh = () => {
+  // Stable, because the pull-down below depends on it. React Query's own
+  // `refetch` functions are stable, so this only rebuilds if the queries
+  // themselves are replaced.
+  const refresh = useCallback(() => {
     void weather.refetch();
     void refetch();
-  };
+  }, [weather.refetch, refetch]);
+
+  // Pulling the screen down at the top asks for the same thing (user,
+  // 2026-08-01), with a floor under how often it may reach the network —
+  // the readings come from NOAA and GIRO, called without a key. See
+  // `refreshPolicy.ts` for why a minute costs the reader nothing.
+  //
+  // The spinner is shown for its minimum whether or not the network was
+  // asked. A gesture that produced no visible response would read as the
+  // app ignoring it, and inside the cooldown there is nothing new to
+  // fetch anyway — SWPC publishes the flux once a day.
+  const [pulling, setPulling] = useState(false);
+  const pullRefresh = useCallback(() => {
+    setPulling(true);
+    const since = lastAttempt(weather.dataUpdatedAt, weather.errorUpdatedAt);
+    if (mayRefresh(since, Date.now())) refresh();
+    setPulling(false);
+  }, [weather.dataUpdatedAt, weather.errorUpdatedAt, refresh]);
+  const showPull = useShownFor(pulling || weather.isFetching, PULL_SPINNER_MS);
 
   // The status bar overlaps these too, and the error screen is tall enough on a
   // small phone to reach it.
@@ -181,15 +212,17 @@ export default function ForecastScreen() {
            it say where the controls stop and the answer starts (user,
            2026-08-01).
 
-           `line` rather than `line2`: this is elevation, not a control
-           outline, and it has to stay quiet enough that the map below is
-           still the loudest thing on the screen. */
+           `line2` rather than `line`. The quieter one was the first
+           choice, and it stopped working when the header took a
+           background of its own: `line` and the light header are
+           neighbouring steps of the same ramp, so the rule vanished into
+           it. `contrast.test.ts` holds that. */
       }
       <View
         style={[styles.fixed, {
           paddingTop: insets.top,
-          backgroundColor: ui.page,
-          borderBottomColor: ui.line,
+          backgroundColor: ui.headerBg,
+          borderBottomColor: ui.line2,
         }]}
       >
         <AppHeader
@@ -226,6 +259,17 @@ export default function ForecastScreen() {
           paddingBottom: insets.bottom + spacing.xxl,
         }}
         showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={showPull}
+            onRefresh={pullRefresh}
+            // The spinner is drawn by the platform, so it takes its
+            // colours as props rather than from the theme.
+            tintColor={ui.accent}
+            colors={[ui.accent]}
+            progressBackgroundColor={ui.card}
+          />
+        }
       >
         <ReachCard
           prediction={prediction}
