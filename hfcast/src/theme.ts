@@ -126,10 +126,10 @@ export const qualityMap = {
   // draws these under coastlines, and the same compression that made the
   // dark ramp step down applies here with less room to give.
   lowLight: {
-    reliable: { fill: nightRed[100], opacity: 0.95 },
+    reliable: { fill: nightRed[200], opacity: 0.95 },
     patchy: { fill: nightRed[400], opacity: 0.88 },
-    weak: { fill: nightRed[700], opacity: 0.8 },
-    closed: { fill: nightRed[1000], opacity: 0.6 },
+    weak: { fill: nightRed[600], opacity: 0.8 },
+    closed: { fill: nightRed[900], opacity: 0.6 },
   },
 } as const;
 
@@ -156,18 +156,21 @@ const trafficDark: QualityColors = {
  * greyscale and under any colour blindness; this theme simply has
  * nothing but that property.
  *
- * The chip text is where it stops being compliant. `reliable` carries
- * black text at 5.25:1, and the three states below it cannot: the ramp
- * runs out of room long before 4.5. That is a real limit of red on
- * black, not an oversight, and the answer for anyone it fails is the
- * same one the other themes already offer — the table under the grid,
- * which states every figure in words.
+ * The chip text does not reach WCAG's mark below the top state, and this
+ * theme is not held to it (user, 2026-08-01) — it is for a niche
+ * situation and the two compliant themes remain. The answer for anyone
+ * it fails is the one the app already offers everywhere: the table under
+ * the grid, which states every figure in words.
+ *
+ * Dimmer than the first version, which was pinned near the top of the
+ * ramp by that mark. A night theme should put out as little light as it
+ * can and still be read.
  */
 const signalLowLight: QualityColors = {
-  reliable: { base: nightRed[100], onBase: '#000000' },
+  reliable: { base: nightRed[200], onBase: '#000000' },
   patchy: { base: nightRed[500], onBase: '#000000' },
-  weak: { base: nightRed[700], onBase: nightRed[100] },
-  closed: { base: nightRed[975], onBase: nightRed[300] },
+  weak: { base: nightRed[700], onBase: nightRed[200] },
+  closed: { base: nightRed[950], onBase: nightRed[400] },
 };
 
 const quality = {
@@ -332,14 +335,24 @@ export const uiDark: UiColors = {
  * spending that adaptation. Every value here comes from `nightRed`,
  * which has no other channel.
  *
- * **Two things follow, and both are deliberate.**
+ * **This theme is not held to the same contrast marks as the other two**
+ * (user, 2026-08-01). It is for a niche situation, it is never reached
+ * by accident, and the two compliant themes remain — so the trade is
+ * available to whoever wants it and imposed on nobody.
  *
- * *Brightness cannot carry hierarchy.* Pure red on black is 5.25:1 and
- * that is the ceiling this theme has. Ordinary text needs 4.5, so only
- * the top three steps of the ramp can hold any, and they are close
- * enough together to be nearly one colour. Size and weight separate the
- * levels instead — the type scale already does that, and here it does
- * all of it.
+ * That decision is what makes the theme work. Pure red on black is
+ * 5.25:1 and that is the ceiling here; holding every role to the 4.5
+ * that ordinary text needs would confine the whole interface to the top
+ * three steps of the ramp, which are nearly one colour. The result was a
+ * night theme that had no hierarchy *and* was brighter than a night
+ * theme should be — the worst of both. Freed from the mark, the roles
+ * step properly down the ramp, the screen puts out far less light, and
+ * the levels are told apart by brightness again.
+ *
+ * `ink` and `accent` are still kept above 4.5 and 3 respectively,
+ * because the answer and the controls have to be readable at a glance
+ * for this to be useful at all. Everything below them is dimmer than
+ * WCAG would allow and is meant to be.
  *
  * *The surfaces are almost all the same black.* Elevation is carried by
  * borders in every theme, which is what makes this possible: with
@@ -347,8 +360,9 @@ export const uiDark: UiColors = {
  * tell apart by lightness, and nothing needs to be. On an OLED that is
  * also the darkest a screen can go, which is the point.
  *
- * `contrast.test.ts` checks this theme against the same marks as the
- * other two and records where it cannot reach them.
+ * `contrast.test.ts` holds the other two themes to WCAG and holds this
+ * one to what it is actually for: no short wavelengths anywhere, and a
+ * text ramp that really does step.
  */
 export const uiLowLight: UiColors = {
   page: '#000000',
@@ -358,30 +372,34 @@ export const uiLowLight: UiColors = {
   // light of its own.
   card: nightRed[1000],
   inset: '#000000',
-  line: nightRed[900],
-  line2: nightRed[800],
-  ink: nightRed[100],
+  line: nightRed[800],
+  line2: nightRed[700],
+  // The answer itself, and the one role still held to 4.5. Not the top
+  // of the ramp: that is reserved for what can be pressed.
+  ink: nightRed[200],
   inkInv: '#000000',
-  // Barely below `ink`, because there is nowhere else to go. The type
-  // scale is what separates these on screen.
-  text2: nightRed[200],
-  text3: nightRed[300],
-  // Labels and axis ticks only, which the type scale sets in bold at a
-  // size WCAG counts as large — so 3:1 is the mark, and this clears it.
-  text4: nightRed[400],
+  // A real ladder now, three measured steps down rather than three
+  // shades of the same red. 3.86, 3.04, 2.35 against black — under the
+  // WCAG marks by intent, and legible on a screen the eye has had
+  // twenty minutes to adapt to.
+  text2: nightRed[400],
+  text3: nightRed[500],
+  text4: nightRed[600],
+  // Brightest, because it is what the reader acts on and the only thing
+  // that should draw the eye in the dark.
   accent: nightRed[100],
   accentInk: '#000000',
-  amberNum: nightRed[100],
-  amberBg: nightRed[800],
-  amberFg: nightRed[200],
-  ionoBg: nightRed[950],
-  ionoTitle: nightRed[100],
-  ionoSub: nightRed[300],
-  tagBg: nightRed[700],
-  tagFg: nightRed[100],
+  amberNum: nightRed[200],
+  amberBg: nightRed[900],
+  amberFg: nightRed[300],
+  ionoBg: nightRed[975],
+  ionoTitle: nightRed[200],
+  ionoSub: nightRed[400],
+  tagBg: nightRed[800],
+  tagFg: nightRed[200],
   discBg: nightRed[1000],
-  mapLine: nightRed[400],
-  mapGuide: nightRed[600],
+  mapLine: nightRed[500],
+  mapGuide: nightRed[700],
 };
 
 const lightColors = {

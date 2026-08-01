@@ -90,9 +90,21 @@ describe('the contrast arithmetic', () => {
   });
 });
 
+/**
+ * The two themes WCAG applies to.
+ *
+ * Low light is deliberately outside it (user, 2026-08-01): it is for a
+ * niche situation, it is never selected by accident, and holding it to
+ * 4.5 would confine the whole interface to the top of a ramp whose
+ * ceiling is 5.25 — which produced a night theme with no hierarchy that
+ * was also too bright. It has its own suite further down.
+ */
+const compliant = async () =>
+  (await themes()).filter(([n]) => n !== 'lowLight');
+
 describe('every text the fixed header shows, on the header', () => {
-  it('is readable in both themes', async () => {
-    for (const [name, ui] of await themes()) {
+  it('is readable in the two compliant themes', async () => {
+    for (const [name, ui] of await compliant()) {
       // The band label is short uppercase at 11pt bold, which WCAG
       // counts as large text. Everything else is ordinary text.
       const shown = [
@@ -162,8 +174,8 @@ describe('the header sits darker than the page below it', () => {
 });
 
 describe('the ordinary text roles, on the surfaces they are used on', () => {
-  it('stay readable in both themes', async () => {
-    for (const [name, ui] of await themes()) {
+  it('stay readable in the two compliant themes', async () => {
+    for (const [name, ui] of await compliant()) {
       const surfaces = [
         ['page', ui.page],
         ['card', ui.card],
@@ -203,14 +215,48 @@ describe('the low-light theme emits no short wavelengths', () => {
     }
   });
 
-  it('reaches the ceiling red on black allows, and no further', async () => {
-    // 5.25 is what pure red on black comes to. Stated so that a later
-    // reader who finds the text hierarchy flat knows it is a limit of
-    // the physics and not a choice that can be undone.
-    const { uiLowLight } = await import('../src/theme.ts');
+  it('knows the ceiling it is working under', async () => {
+    // 5.25 is what pure red on black comes to, against 21 for white on
+    // black. Stated so a later reader knows the flat range is a limit of
+    // the physics rather than a choice that can be undone.
     assert.ok(Math.abs(contrast('#FF0000', '#000000') - 5.25) < 0.01);
-    assert.equal(uiLowLight.ink, '#FF0000');
+    const { uiLowLight } = await import('../src/theme.ts');
     assert.equal(uiLowLight.page, '#000000');
+  });
+
+  it('keeps the answer and the controls legible, and dims the rest', async () => {
+    // The two roles worth spending light on: `ink` is the answer and
+    // `accent` is what can be pressed. Everything below them is under
+    // the WCAG marks on purpose — see the note on `compliant` above.
+    const { uiLowLight: ui } = await import('../src/theme.ts');
+    assert.ok(
+      contrast(ui.ink, ui.page) >= AA_TEXT,
+      `ink is ${contrast(ui.ink, ui.page).toFixed(2)}`,
+    );
+    assert.ok(
+      contrast(ui.accent, ui.page) >= AA_LARGE,
+      `accent is ${contrast(ui.accent, ui.page).toFixed(2)}`,
+    );
+    // And the rest genuinely are dimmer, which is the whole gain from
+    // dropping the mark. If these crept back above it, the theme would
+    // be bright again for no reason.
+    assert.ok(contrast(ui.text3, ui.page) < AA_TEXT);
+    assert.ok(contrast(ui.text4, ui.page) < AA_TEXT);
+  });
+
+  it('steps down a real ladder rather than three shades of one red', async () => {
+    // The first version held every role above 4.5, which pinned them all
+    // to the top three steps of the ramp — no hierarchy, and brighter
+    // than a night theme should be. This is what replaced it.
+    const { uiLowLight: ui } = await import('../src/theme.ts');
+    const ladder = [ui.accent, ui.ink, ui.text2, ui.text3, ui.text4];
+    for (const [i, colour] of ladder.entries()) {
+      if (i === 0) continue;
+      assert.ok(
+        luminance(colour) < luminance(ladder[i - 1] as string),
+        `step ${i} (${colour}) is not dimmer than the one above it`,
+      );
+    }
   });
 });
 
