@@ -12,6 +12,7 @@ import {
 import { patchGrid } from '../data/coveragePatch';
 import { FINE_LAT_STEP } from '../data/fineGlobe';
 import { anyNvis, isNvis, nvisReachKm, qualityFor } from '../data/quality';
+import { answering } from '../data/mapLayers';
 import { cellFor } from '../data/selectors';
 import type { BandKey, MapRegion, PathPrediction } from '../data/types';
 import { useFormatters } from '../hooks/useFormatters';
@@ -57,8 +58,16 @@ const MAX_MAP = 322;
  * repeat view from cache in about 76 ms. Above it there is something
  * worth telling a reader about, because a cold run is about 440 ms
  * through the server and a second or two on a device.
+ *
+ * Short, and shorter than it was. At 400 ms the bar was missing the
+ * wait it exists for (user, 2026-08-01): on a device the grid is asked
+ * for after the hour settles, so the bar arrived most of a second after
+ * the reader acted and then had little of the wait left to describe.
+ * A device that already holds the answer does not refetch at all — the
+ * readings are kept — so there is no cached case here for a short delay
+ * to protect against, and the one it did protect is the server's.
  */
-const SHARPEN_HINT_AFTER_MS = 400;
+const SHARPEN_HINT_AFTER_MS = 120;
 
 /**
  * Which grid the map is drawn from, in words.
@@ -136,14 +145,18 @@ export default function ReachCard({
   // The whole-world fine grid. Asked once per band and hour, with
   // nothing about the view in its key, so panning and zooming never ask
   // again. It replaces the coarse cells when it lands.
-  const { data: fine, isFetching: fineRunning } = useFineGlobe(
+  const { data: fineData, isFetching: fineRunning } = useFineGlobe(
     prediction.from,
     band,
     hour,
   );
-  // Held on rather than shown at once: a cached fine grid arrives in
-  // about 76 ms, and a bar that flashed on every band change would be
-  // noise. See `useHeldOn`.
+  // The coarse grid is the cheapest of the three and settles first, so
+  // it decides which band and hour the map is showing. The other two are
+  // drawn only where they agree with it — see `answering`.
+  const fine = answering(fineData, coverage);
+  // Held on briefly rather than shown at once, so a redraw that is over
+  // before it is noticed does not flash a bar. See `useHeldOn` and the
+  // constant, which is short because the wait it describes is not.
   const sharpening = useHeldOn(fineRunning, SHARPEN_HINT_AFTER_MS);
   // The viewport patch is only worth running where it can still buy
   // detail the globe does not hold — below the globe's own step, at the
@@ -153,20 +166,25 @@ export default function ReachCard({
   const zoomedPastGlobe = region !== null
     && (patchGrid(region.lat, region.lon, region.halfLatDeg)?.latStep ?? 1)
       < FINE_LAT_STEP;
-  const { data: patch } = useCoveragePatch(
+  const { data: patchData } = useCoveragePatch(
     prediction.from,
     band,
     hour,
     region,
     !fine || zoomedPastGlobe,
   );
+  const patch = answering(patchData, coverage);
   // The sentence under the map describes the station — how far ITS
   // near-vertical region reaches — so its data must not follow the view:
   // panned to the far side of the world, the patch above holds no point
   // steep from here, and the sentence would vanish while the fact it
   // states had not changed. At the default view this is the same query
   // as the map's, so it costs nothing until the reader pans away.
-  const { data: homePatch } = useCoveragePatch(prediction.from, band, hour);
+  const { data: homePatchData } = useCoveragePatch(prediction.from, band, hour);
+  // Guarded like the map's layers, and for the same reason read as a
+  // sentence rather than seen as a colour: "80m reaches out to about
+  // 78 mi" is wrong in a way nobody can catch if the number is 40m's.
+  const homePatch = answering(homePatchData, coverage);
   // The same decision the fine query is enabled by, read here so the
   // line under the map can say which of its outcomes happened.
   const gate = useFineGate();
