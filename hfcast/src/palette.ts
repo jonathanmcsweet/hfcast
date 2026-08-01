@@ -110,35 +110,55 @@ export const rose = {
 } as const;
 
 /**
- * The low-light theme, and the only ramp in this file with no blue or
- * green in it at all.
+ * The low-light theme: warm red, desaturating toward the light end.
  *
- * Dark adaptation is destroyed by short wavelengths and is barely
- * touched by long ones: the rod cells that carry night vision are almost
- * blind past about 620 nm. So every value here has its green and blue
- * channels at zero. A red that looks "warm" by mixing in a little green
- * would undo the whole point, which is why the ramp is the red channel
- * alone rather than a tinted grey.
+ * Dark adaptation is spent by short wavelengths and barely touched by
+ * long ones — the rod cells that carry night vision are nearly blind
+ * past about 620 nm — so a red screen can be read at night without
+ * paying for it in the twenty minutes it takes to get back.
  *
- * The consequence is a hard ceiling on contrast. Pure red on black is
- * 5.25:1 — the most this theme can ever reach, against 21 for white on
- * black. It clears the 4.5 that ordinary text needs and nothing more, so
- * only the top of this ramp can carry text, and hierarchy in that theme
- * is carried by size and weight instead of by brightness.
+ * **The first version of this ramp was the red channel alone**, every
+ * value `#RR0000`. It protects adaptation best and it does not work.
+ * Pure red on black tops out at 5.25:1, so a scale from it is either
+ * bright and flat or dim and unreadable, and saturated red is harsh to
+ * read a paragraph in. Shown a reference design, the user asked for less
+ * intensity (2026-08-01), and the reference was right: its text is a
+ * soft warm pink, not a red.
  *
- * Numbered by lightness like the others, so the ramp reads the same way.
+ * **So the light end is desaturated on purpose.** The cost is a little
+ * green and blue in the brightest values, which protects adaptation
+ * slightly less well than pure red would. What it buys is the whole
+ * contrast range — about 12:1 at the top against a ceiling of 5.25 — and
+ * that range is what lets the theme have a readable hierarchy at all.
+ *
+ * Red stays the dominant channel everywhere and green and blue stay
+ * equal to each other, so the hue never drifts off red toward orange or
+ * violet. `contrast.test.ts` checks both.
+ *
+ * The dark end stays deep and nearly saturated: surfaces put out almost
+ * no light, which is where the light actually comes from on a full
+ * screen. Numbered by lightness like the others.
  */
 export const nightRed = {
-  100: '#FF0000',
-  200: '#F70000',
-  300: '#F20000',
-  400: '#D60000',
-  500: '#B80000',
-  600: '#990000',
-  700: '#7A0000',
-  800: '#5C0000',
-  900: '#3D0000',
-  950: '#260000',
-  975: '#1A0000',
-  1000: '#0D0000',
+  100: '#F2D9D9',
+  200: '#E5BFBF',
+  300: '#D1A3A3',
+  400: '#B88585',
+  500: '#9C6B6B',
+  600: '#7D5252',
+  700: '#5E3C3C',
+  800: '#452B2B',
+  900: '#2E1B1B',
+  950: '#211313',
+  975: '#180D0D',
+  1000: '#100909',
 } as const;
+
+/**
+ * The one saturated red in the low-light theme.
+ *
+ * Everything else there is muted, so this is what the eye goes to: the
+ * selected band, a control that can be pressed, the live figure. Used
+ * sparingly on purpose — a screen with several of these has none.
+ */
+export const nightAlert = '#FF4D4D';
