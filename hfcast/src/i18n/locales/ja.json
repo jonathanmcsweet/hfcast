@@ -131,7 +131,8 @@
     "theme": {
       "system": "端末に合わせる",
       "light": "ライト",
-      "dark": "ダーク"
+      "dark": "ダーク",
+      "lowLight": "低照度"
     },
     "menu": "設定",
     "themeSection": "テーマ",

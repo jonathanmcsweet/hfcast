@@ -20,6 +20,11 @@ const THEME_ICONS: Record<ThemeMode, string> = {
   system: 'theme-light-dark',
   light: 'white-balance-sunny',
   dark: 'weather-night',
+  // An owl. The set has no possum and no raccoon — both were asked for
+  // (user, 2026-08-01) and neither exists in Material Community Icons —
+  // and of what is there, the owl is the one that reads as nocturnal at
+  // 24 points rather than as a rodent.
+  lowLight: 'owl',
 };
 
 const UNIT_ICONS: Record<UnitPreference, string> = {

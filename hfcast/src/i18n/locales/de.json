@@ -131,7 +131,8 @@
     "theme": {
       "system": "Gerät folgen",
       "light": "Hell",
-      "dark": "Dunkel"
+      "dark": "Dunkel",
+      "lowLight": "Schwaches Licht"
     },
     "menu": "Einstellungen",
     "themeSection": "Design",

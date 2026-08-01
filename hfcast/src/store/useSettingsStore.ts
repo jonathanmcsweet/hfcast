@@ -20,9 +20,23 @@ import type { UnitPreference } from '../data/units';
  * one app: a light phone in a dark shack, or a screen being read outdoors
  * where the dark theme is the harder one.
  */
-export type ThemeMode = 'system' | 'light' | 'dark';
+/**
+ * `lowLight` is red on black, for reading in the dark without losing
+ * dark adaptation (user, 2026-08-01) — an operator at a night station,
+ * or anyone reading a chart beside a telescope.
+ *
+ * It is a choice and never a default: nothing the device reports says a
+ * reader wants it, so `system` cannot select it, and it stays off until
+ * somebody asks for it.
+ */
+export type ThemeMode = 'system' | 'light' | 'dark' | 'lowLight';
 
-export const THEME_MODES: ThemeMode[] = ['system', 'light', 'dark'];
+export const THEME_MODES: ThemeMode[] = [
+  'system',
+  'light',
+  'dark',
+  'lowLight',
+];
 
 interface SettingsState {
   themeMode: ThemeMode;

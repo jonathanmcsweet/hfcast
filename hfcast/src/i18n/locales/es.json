@@ -131,7 +131,8 @@
     "theme": {
       "system": "Seguir al dispositivo",
       "light": "Claro",
-      "dark": "Oscuro"
+      "dark": "Oscuro",
+      "lowLight": "Luz baja"
     },
     "menu": "Ajustes",
     "themeSection": "Tema",

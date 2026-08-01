@@ -108,3 +108,37 @@ export const rose = {
   800: '#7A1030',
   900: '#48001A',
 } as const;
+
+/**
+ * The low-light theme, and the only ramp in this file with no blue or
+ * green in it at all.
+ *
+ * Dark adaptation is destroyed by short wavelengths and is barely
+ * touched by long ones: the rod cells that carry night vision are almost
+ * blind past about 620 nm. So every value here has its green and blue
+ * channels at zero. A red that looks "warm" by mixing in a little green
+ * would undo the whole point, which is why the ramp is the red channel
+ * alone rather than a tinted grey.
+ *
+ * The consequence is a hard ceiling on contrast. Pure red on black is
+ * 5.25:1 — the most this theme can ever reach, against 21 for white on
+ * black. It clears the 4.5 that ordinary text needs and nothing more, so
+ * only the top of this ramp can carry text, and hierarchy in that theme
+ * is carried by size and weight instead of by brightness.
+ *
+ * Numbered by lightness like the others, so the ramp reads the same way.
+ */
+export const nightRed = {
+  100: '#FF0000',
+  200: '#F70000',
+  300: '#F20000',
+  400: '#D60000',
+  500: '#B80000',
+  600: '#990000',
+  700: '#7A0000',
+  800: '#5C0000',
+  900: '#3D0000',
+  950: '#260000',
+  975: '#1A0000',
+  1000: '#0D0000',
+} as const;

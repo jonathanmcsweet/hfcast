@@ -24,15 +24,21 @@ import LaunchOverlay from './src/components/LaunchOverlay';
 import i18n from './src/i18n';
 import ForecastScreen from './src/screens/ForecastScreen';
 import { useSettingsStore } from './src/store/useSettingsStore';
-import { darkTheme, lightTheme } from './src/theme';
+import { darkTheme, lightTheme, lowLightTheme } from './src/theme';
 
 export default function App() {
   const scheme = useColorScheme();
   const mode = useSettingsStore((s) => s.themeMode);
-  // `system` follows the device; the other two override it. Read here so
-  // one value drives the theme, the status bar and every component below.
-  const dark = mode === 'system' ? scheme === 'dark' : mode === 'dark';
-  const theme = dark ? darkTheme : lightTheme;
+  // `system` follows the device; the others override it. Read here so one
+  // value drives the theme, the status bar and every component below.
+  //
+  // `lowLight` is never reached from `system`: nothing the device reports
+  // says a reader wants red on black, so it is a choice and only a
+  // choice.
+  const lowLight = mode === 'lowLight';
+  const dark = lowLight
+    || (mode === 'system' ? scheme === 'dark' : mode === 'dark');
+  const theme = lowLight ? lowLightTheme : dark ? darkTheme : lightTheme;
 
   // One family, four weights. The type scale picks a weight by naming the
   // face, so all four have to be present before anything renders — with a

@@ -1,7 +1,13 @@
 import assert from 'node:assert/strict';
 import { describe, it, mock } from 'node:test';
 
-import { AA_LARGE, AA_TEXT, contrast, luminance } from '../src/contrast.ts';
+import {
+  AA_LARGE,
+  AA_TEXT,
+  channels,
+  contrast,
+  luminance,
+} from '../src/contrast.ts';
 import { slate } from '../src/palette.ts';
 
 /**
@@ -45,6 +51,7 @@ const themes = async () => {
   return [
     ['light', theme.uiLight],
     ['dark', theme.uiDark],
+    ['lowLight', theme.uiLowLight],
   ] as const;
 };
 
@@ -116,11 +123,26 @@ describe('every text the fixed header shows, on the header', () => {
 });
 
 describe('the header sits darker than the page below it', () => {
-  it('is true in both themes', async () => {
+  it('is never lighter than the page', async () => {
+    // Never lighter, rather than always darker. Low light puts both at
+    // true black — there is nothing below black to step down to, and
+    // that theme separates the two with its border instead. Requiring a
+    // strict step would force a lit header on the one theme whose whole
+    // purpose is that nothing is lit.
     for (const [name, ui] of await themes()) {
       assert.ok(
+        luminance(ui.headerBg) <= luminance(ui.page),
+        `${name}: the header is lighter than the page`,
+      );
+    }
+  });
+
+  it('steps down in the two themes that have room to', async () => {
+    for (const [name, ui] of await themes()) {
+      if (name === 'lowLight') continue;
+      assert.ok(
         luminance(ui.headerBg) < luminance(ui.page),
-        `${name}: the header is not darker than the page`,
+        `${name}: the header does not step down from the page`,
       );
     }
   });
@@ -162,6 +184,33 @@ describe('the ordinary text roles, on the surfaces they are used on', () => {
         }
       }
     }
+  });
+});
+
+describe('the low-light theme emits no short wavelengths', () => {
+  it('has no green and no blue in any surface or text role', async () => {
+    // The whole point of the theme. Rod cells carry dark adaptation and
+    // are nearly blind past 620 nm, so red can be read without spending
+    // it — and a single green or blue channel anywhere undoes that for
+    // the whole screen. This is the property most easily lost by an
+    // ordinary-looking edit, which is why it is checked rather than
+    // documented.
+    const { uiLowLight } = await import('../src/theme.ts');
+    for (const [role, value] of Object.entries(uiLowLight)) {
+      const [, green, blue] = channels(value);
+      assert.equal(green, 0, `${role} is ${value}, which has green in it`);
+      assert.equal(blue, 0, `${role} is ${value}, which has blue in it`);
+    }
+  });
+
+  it('reaches the ceiling red on black allows, and no further', async () => {
+    // 5.25 is what pure red on black comes to. Stated so that a later
+    // reader who finds the text hierarchy flat knows it is a limit of
+    // the physics and not a choice that can be undone.
+    const { uiLowLight } = await import('../src/theme.ts');
+    assert.ok(Math.abs(contrast('#FF0000', '#000000') - 5.25) < 0.01);
+    assert.equal(uiLowLight.ink, '#FF0000');
+    assert.equal(uiLowLight.page, '#000000');
   });
 });
 
