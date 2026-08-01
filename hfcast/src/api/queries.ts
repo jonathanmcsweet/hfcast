@@ -16,9 +16,9 @@ import {
 } from '../data/ionosonde';
 import {
   canMapLocally,
+  coverAllBandsLocally,
   coverFineLocally,
-  coverLocally,
-  coverPatchLocally,
+  coverPatchAllBandsLocally,
 } from '../data/localCoverage';
 import {
   canPredictLocally,
@@ -27,12 +27,13 @@ import {
 } from '../data/localPredict';
 import { surveyLocally } from '../data/localSurvey';
 import { fetchSpaceWeather as fetchSpaceWeatherDirect } from '../data/spaceWeather';
-import type {
-  BandKey,
-  Endpoint,
-  MapRegion,
-  Place,
-  SpaceWeather,
+import {
+  BAND_ORDER,
+  type BandKey,
+  type Endpoint,
+  type MapRegion,
+  type Place,
+  type SpaceWeather,
 } from '../data/types';
 import { useSettled } from '../hooks/useSettled';
 import { hasSkia } from '../render/available';
@@ -133,6 +134,37 @@ export const queryKeys = {
       grid,
     ] as const,
 };
+
+/**
+ * Puts the bands a run answered where their own queries will find them.
+ *
+ * The engine now answers every band from one area run, because almost
+ * everything it does before it reaches a frequency is the same for all
+ * of them. Only one of those bands is the one asked for; the rest would
+ * be thrown away, and then recomputed the moment the reader changed
+ * band.
+ *
+ * Written into the cache rather than returned, so nothing else has to
+ * change: every query stays keyed by its own band, every layer guard
+ * still compares band against band, and a band with no answer yet still
+ * behaves exactly as it did.
+ *
+ * The band asked for is skipped — it is this query's own answer and
+ * React Query stores it.
+ */
+function seedBands<T>(
+  client: ReturnType<typeof useQueryClient>,
+  asked: BandKey,
+  answers: Record<BandKey, T>,
+  keyFor: (band: BandKey) => readonly unknown[],
+): void {
+  for (const band of BAND_ORDER) {
+    if (band === asked) continue;
+    const answer = answers[band];
+    if (answer === undefined) continue;
+    client.setQueryData(keyFor(band), answer);
+  }
+}
 
 /**
  * The station, as the part of a query key and the parameters it sends.
@@ -444,6 +476,7 @@ export function useCoverage(
   // Long enough to swallow a sweep, short enough that choosing one hour feels
   // immediate. The engine's own run is of the same order on a slow device.
   const hour = useSettled(reportedHour, 350);
+  const client = useQueryClient();
 
   return useQuery({
     queryKey: queryKeys.coverage(
@@ -456,17 +489,9 @@ export function useCoverage(
       nowcastKey(nowcast),
       station.key,
     ),
-    queryFn: () =>
-      local
-        ? coverLocally({
-          from,
-          band,
-          hour,
-          date: new Date(`${date}T00:00:00Z`),
-          station: station.station,
-          nowcast,
-        })
-        : fetchCoverage({
+    queryFn: async () => {
+      if (!local) {
+        return await fetchCoverage({
           from: `${from.lat},${from.lon}`,
           fromLabel: from.label,
           band,
@@ -474,7 +499,40 @@ export function useCoverage(
           date,
           nowcast: true,
           station: station.params,
-        }),
+        });
+      }
+      const all = await coverAllBandsLocally({
+        from,
+        band,
+        hour,
+        date: new Date(`${date}T00:00:00Z`),
+        station: station.station,
+        nowcast,
+      });
+      // The other bands came back from the same run, so they are put
+      // where the query for each of them will look. A band change then
+      // reads from memory instead of running the engine again.
+      //
+      // The keys are built by the same function this query is keyed
+      // with, so a key that stopped matching would stop the sharing
+      // rather than serve one band's map under another band's name.
+      seedBands(
+        client,
+        band,
+        all,
+        (other) =>
+          queryKeys.coverage(
+            'device',
+            from.grid,
+            other,
+            hour,
+            date,
+            nowcastKey(nowcast),
+            station.key,
+          ),
+      );
+      return all[band];
+    },
     // As for the prediction: an area run is the more expensive of the two, so
     // holding it while the station is being adjusted matters more here.
     enabled: !station.editing,
@@ -625,6 +683,7 @@ export function useCoveragePatch(
   const local = canMapLocally();
   const nowcast = nowcastFrom(useSpaceWeather().data);
   const hour = useSettled(reportedHour, 350);
+  const client = useQueryClient();
   // The same delay the hour gets, for the same reason: a pinch or a drag
   // is a stream of values, and running the engine on each one would
   // spend a run per frame to show the answer to a view already left.
@@ -648,9 +707,9 @@ export function useCoveragePatch(
       station.key,
       patchKey(grid),
     ),
-    queryFn: () =>
-      local
-        ? coverPatchLocally({
+    queryFn: async () => {
+      if (local) {
+        const all = await coverPatchAllBandsLocally({
           from,
           band,
           hour,
@@ -658,17 +717,39 @@ export function useCoveragePatch(
           station: station.station,
           nowcast,
           region,
-        })
-        : fetchCoveragePatch({
-          from: `${from.lat},${from.lon}`,
-          fromLabel: from.label,
+        });
+        // Null near the antimeridian, where there is no rectangle to
+        // run. Nothing to share then, and every band is equally absent.
+        if (all === null) return null;
+        seedBands(
+          client,
           band,
-          hour,
-          date,
-          nowcast: true,
-          station: station.params,
-          region,
-        }),
+          all,
+          (other) =>
+            queryKeys.coveragePatch(
+              'device',
+              from.grid,
+              other,
+              hour,
+              date,
+              nowcastKey(nowcast),
+              station.key,
+              patchKey(grid),
+            ),
+        );
+        return all[band];
+      }
+      return await fetchCoveragePatch({
+        from: `${from.lat},${from.lon}`,
+        fromLabel: from.label,
+        band,
+        hour,
+        date,
+        nowcast: true,
+        station: station.params,
+        region,
+      });
+    },
     enabled: enabled && !station.editing,
     placeholderData: keepPreviousData,
     staleTime: local ? Number.POSITIVE_INFINITY : SPACE_WEATHER_POLL_MS,
