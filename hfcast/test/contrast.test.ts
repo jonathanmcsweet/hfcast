@@ -137,10 +137,9 @@ describe('every text the fixed header shows, on the header', () => {
 describe('the header sits darker than the page below it', () => {
   it('is never lighter than the page', async () => {
     // Never lighter, rather than always darker. Low light puts both at
-    // true black — there is nothing below black to step down to, and
-    // that theme separates the two with its border instead. Requiring a
-    // strict step would force a lit header on the one theme whose whole
-    // purpose is that nothing is lit.
+    // the same near-black and separates them with its border instead —
+    // a step down from there would be a step toward black on the one
+    // theme where every surface is already as dark as it should go.
     for (const [name, ui] of await themes()) {
       assert.ok(
         luminance(ui.headerBg) <= luminance(ui.page),
@@ -199,35 +198,61 @@ describe('the ordinary text roles, on the surfaces they are used on', () => {
   });
 });
 
-describe('the low-light theme emits no short wavelengths', () => {
-  it('has no green and no blue in any surface or text role', async () => {
-    // The whole point of the theme. Rod cells carry dark adaptation and
-    // are nearly blind past 620 nm, so red can be read without spending
-    // it — and a single green or blue channel anywhere undoes that for
-    // the whole screen. This is the property most easily lost by an
-    // ordinary-looking edit, which is why it is checked rather than
-    // documented.
+describe('the low-light theme stays red, and stays dark', () => {
+  it('never lets green or blue lead, in any role', async () => {
+    // An earlier version used the red channel alone, which was harsh and
+    // capped contrast at 5.25. The light end is desaturated now (user,
+    // 2026-08-01, with a reference design), so green and blue are no
+    // longer zero — but red still has to lead everywhere, or the theme
+    // stops being a red theme.
     const { uiLowLight } = await import('../src/theme.ts');
     for (const [role, value] of Object.entries(uiLowLight)) {
-      const [, green, blue] = channels(value);
-      assert.equal(green, 0, `${role} is ${value}, which has green in it`);
-      assert.equal(blue, 0, `${role} is ${value}, which has blue in it`);
+      const [red, green, blue] = channels(value);
+      assert.ok(red >= green, `${role} is ${value}: green is above red`);
+      assert.ok(red >= blue, `${role} is ${value}: blue is above red`);
     }
   });
 
-  it('knows the ceiling it is working under', async () => {
-    // 5.25 is what pure red on black comes to, against 21 for white on
-    // black. Stated so a later reader knows the flat range is a limit of
-    // the physics rather than a choice that can be undone.
-    assert.ok(Math.abs(contrast('#FF0000', '#000000') - 5.25) < 0.01);
+  it('keeps green and blue equal, so the hue does not drift', async () => {
+    // Equal green and blue is what keeps the hue on red. Let them apart
+    // and the theme slides toward orange one way or violet the other,
+    // and the further it goes the more short-wavelength light it emits.
     const { uiLowLight } = await import('../src/theme.ts');
-    assert.equal(uiLowLight.page, '#000000');
+    for (const [role, value] of Object.entries(uiLowLight)) {
+      const [, green, blue] = channels(value);
+      assert.ok(
+        Math.abs(green - blue) <= 4,
+        `${role} is ${value}: green and blue differ by ${
+          Math.abs(green - blue)
+        }`,
+      );
+    }
   });
 
-  it('keeps the answer and the controls legible, and dims the rest', async () => {
+  it('keeps every surface genuinely dark', async () => {
+    // The surfaces are most of the screen, so they are where the light
+    // actually comes from. Text can be bright because there is little of
+    // it; a page cannot.
+    const { uiLowLight: ui } = await import('../src/theme.ts');
+    for (
+      const [role, value] of [
+        ['page', ui.page],
+        ['headerBg', ui.headerBg],
+        ['card', ui.card],
+        ['inset', ui.inset],
+      ] as const
+    ) {
+      assert.ok(
+        luminance(value) < 0.02,
+        `${role} is ${value}, at ${luminance(value).toFixed(4)}`,
+      );
+    }
+  });
+
+  it('keeps the answer and the controls legible', async () => {
     // The two roles worth spending light on: `ink` is the answer and
-    // `accent` is what can be pressed. Everything below them is under
-    // the WCAG marks on purpose — see the note on `compliant` above.
+    // `accent` is what can be pressed. Desaturating bought the room to
+    // hold both well above the marks rather than at them.
     const { uiLowLight: ui } = await import('../src/theme.ts');
     assert.ok(
       contrast(ui.ink, ui.page) >= AA_TEXT,
@@ -237,19 +262,13 @@ describe('the low-light theme emits no short wavelengths', () => {
       contrast(ui.accent, ui.page) >= AA_LARGE,
       `accent is ${contrast(ui.accent, ui.page).toFixed(2)}`,
     );
-    // And the rest genuinely are dimmer, which is the whole gain from
-    // dropping the mark. If these crept back above it, the theme would
-    // be bright again for no reason.
-    assert.ok(contrast(ui.text3, ui.page) < AA_TEXT);
-    assert.ok(contrast(ui.text4, ui.page) < AA_TEXT);
   });
 
-  it('steps down a real ladder rather than three shades of one red', async () => {
-    // The first version held every role above 4.5, which pinned them all
-    // to the top three steps of the ramp — no hierarchy, and brighter
-    // than a night theme should be. This is what replaced it.
+  it('steps down a real ladder rather than shades of one red', async () => {
+    // Pure red could not do this: its ceiling of 5.25 left no room for
+    // five distinct levels. This is what the desaturation bought.
     const { uiLowLight: ui } = await import('../src/theme.ts');
-    const ladder = [ui.accent, ui.ink, ui.text2, ui.text3, ui.text4];
+    const ladder = [ui.ink, ui.text2, ui.text3, ui.text4];
     for (const [i, colour] of ladder.entries()) {
       if (i === 0) continue;
       assert.ok(
@@ -257,6 +276,8 @@ describe('the low-light theme emits no short wavelengths', () => {
         `step ${i} (${colour}) is not dimmer than the one above it`,
       );
     }
+    // And the range is wide enough to be worth having.
+    assert.ok(contrast(ui.ink, ui.page) / contrast(ui.text4, ui.page) > 2);
   });
 });
 

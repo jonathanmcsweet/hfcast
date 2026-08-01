@@ -6,6 +6,7 @@ import {
   amber,
   cyan,
   indigo,
+  nightAlert,
   nightRed,
   rose,
   slate,
@@ -122,12 +123,15 @@ export const qualityMap = {
     weak: { fill: violet[850], opacity: 0.8 },
     closed: { fill: slate[900], opacity: 0.6 },
   },
-  // Brightness alone, and wider apart than the chip ramp above: the map
-  // draws these under coastlines, and the same compression that made the
-  // dark ramp step down applies here with less room to give.
+  // Brightness alone, and wider apart than the chip ramp: the map draws
+  // these under coastlines, and the same compression that made the dark
+  // ramp step down applies here with less room to give.
+  //
+  // `reliable` is the saturated red, so where the band reaches is the
+  // one thing on the disc that carries colour.
   lowLight: {
-    reliable: { fill: nightRed[200], opacity: 0.95 },
-    patchy: { fill: nightRed[400], opacity: 0.88 },
+    reliable: { fill: nightAlert, opacity: 0.9 },
+    patchy: { fill: nightRed[400], opacity: 0.85 },
     weak: { fill: nightRed[600], opacity: 0.8 },
     closed: { fill: nightRed[900], opacity: 0.6 },
   },
@@ -150,26 +154,22 @@ const trafficDark: QualityColors = {
 /**
  * The four states in the low-light theme, by brightness alone.
  *
- * Hue is not available here — everything is the red channel and nothing
- * else — so the whole scale is lightness. That is the property the other
- * ramps were already built to have, and the reason they read in
- * greyscale and under any colour blindness; this theme simply has
- * nothing but that property.
+ * Hue is not available here — the whole theme is one warm red — so the
+ * scale is lightness and nothing else. That is the property the other
+ * ramps were built to have anyway, and the reason they read in greyscale
+ * and under any colour blindness; this theme simply has no other.
  *
- * The chip text does not reach WCAG's mark below the top state, and this
- * theme is not held to it (user, 2026-08-01) — it is for a niche
- * situation and the two compliant themes remain. The answer for anyone
- * it fails is the one the app already offers everywhere: the table under
- * the grid, which states every figure in words.
- *
- * Dimmer than the first version, which was pinned near the top of the
- * ramp by that mark. A night theme should put out as little light as it
- * can and still be read.
+ * `reliable` is the one saturated fill, so a band that works is what the
+ * eye finds first. The three below it are muted, and their text is
+ * dimmer than WCAG would allow — this theme is not held to that (user,
+ * 2026-08-01), and the answer for anyone it fails is the one the app
+ * already offers everywhere: the table under the grid, which states
+ * every figure in words.
  */
 const signalLowLight: QualityColors = {
-  reliable: { base: nightRed[200], onBase: '#000000' },
-  patchy: { base: nightRed[500], onBase: '#000000' },
-  weak: { base: nightRed[700], onBase: nightRed[200] },
+  reliable: { base: nightAlert, onBase: nightRed[1000] },
+  patchy: { base: nightRed[500], onBase: nightRed[1000] },
+  weak: { base: nightRed[700], onBase: nightRed[100] },
   closed: { base: nightRed[950], onBase: nightRed[400] },
 };
 
@@ -327,79 +327,69 @@ export const uiDark: UiColors = {
 };
 
 /**
- * Low light: red on black, for reading in the dark without losing it.
+ * Low light: warm red on near-black, for reading in the dark.
  *
  * Dark adaptation takes twenty to thirty minutes to build and a moment
  * of white screen to lose. Rod cells are nearly blind past 620 nm, so a
- * display with its green and blue channels at zero can be read without
- * spending that adaptation. Every value here comes from `nightRed`,
- * which has no other channel.
+ * red screen can be read at night without paying that back.
  *
- * **This theme is not held to the same contrast marks as the other two**
- * (user, 2026-08-01). It is for a niche situation, it is never reached
- * by accident, and the two compliant themes remain — so the trade is
- * available to whoever wants it and imposed on nobody.
+ * **Not held to the same contrast marks as the other two** (user,
+ * 2026-08-01). It is niche, it is never selected by accident, and both
+ * compliant themes remain — so the trade is offered and never imposed.
  *
- * That decision is what makes the theme work. Pure red on black is
- * 5.25:1 and that is the ceiling here; holding every role to the 4.5
- * that ordinary text needs would confine the whole interface to the top
- * three steps of the ramp, which are nearly one colour. The result was a
- * night theme that had no hierarchy *and* was brighter than a night
- * theme should be — the worst of both. Freed from the mark, the roles
- * step properly down the ramp, the screen puts out far less light, and
- * the levels are told apart by brightness again.
+ * **Nor is it pure red any more.** The first version used the red
+ * channel alone, which protects adaptation best and reads badly: a hard
+ * ceiling of 5.25:1 and a saturated red that is unpleasant to read a
+ * sentence in. Shown a reference, the user asked for less intensity
+ * (2026-08-01). The light end of `nightRed` is now desaturated — a warm
+ * pink rather than a red — which costs a little green and blue in the
+ * brightest values and buys a contrast range of about 12:1. That range
+ * is what gives this theme a hierarchy at all.
  *
- * `ink` and `accent` are still kept above 4.5 and 3 respectively,
- * because the answer and the controls have to be readable at a glance
- * for this to be useful at all. Everything below them is dimmer than
- * WCAG would allow and is meant to be.
+ * *Surfaces carry the red too.* They are not black: `page` is a very
+ * dark warm brown-red and each surface above it lifts slightly, which is
+ * what makes a card edge visible in a room with no other light. Borders
+ * still do most of the separating, as in every theme here.
  *
- * *The surfaces are almost all the same black.* Elevation is carried by
- * borders in every theme, which is what makes this possible: with
- * `page`, `card` and `headerBg` all at true black there is nothing to
- * tell apart by lightness, and nothing needs to be. On an OLED that is
- * also the darkest a screen can go, which is the point.
+ * *One saturated colour.* `nightAlert` is the only vivid red on screen,
+ * so the selected band and the controls are what the eye lands on. Used
+ * more widely it would stop meaning anything.
  *
- * `contrast.test.ts` holds the other two themes to WCAG and holds this
- * one to what it is actually for: no short wavelengths anywhere, and a
- * text ramp that really does step.
+ * `contrast.test.ts` holds this theme to what it is for rather than to
+ * WCAG: red dominant everywhere, no drift toward orange or violet, a
+ * text ramp that really steps, and surfaces that stay dark.
  */
 export const uiLowLight: UiColors = {
-  page: '#000000',
-  headerBg: '#000000',
-  // A hair above the page, so a card edge is visible even where its
-  // border falls off the screen. Below the threshold that would count as
-  // light of its own.
-  card: nightRed[1000],
-  inset: '#000000',
-  line: nightRed[800],
-  line2: nightRed[700],
-  // The answer itself, and the one role still held to 4.5. Not the top
-  // of the ramp: that is reserved for what can be pressed.
+  page: nightRed[1000],
+  headerBg: nightRed[1000],
+  card: nightRed[975],
+  inset: nightRed[950],
+  line: nightRed[900],
+  line2: nightRed[800],
+  // The answer. Near the top of the ramp, which here is a soft pink
+  // rather than a red — about 12:1 on the page.
   ink: nightRed[200],
-  inkInv: '#000000',
-  // A real ladder now, three measured steps down rather than three
-  // shades of the same red. 3.86, 3.04, 2.35 against black — under the
-  // WCAG marks by intent, and legible on a screen the eye has had
-  // twenty minutes to adapt to.
-  text2: nightRed[400],
-  text3: nightRed[500],
-  text4: nightRed[600],
-  // Brightest, because it is what the reader acts on and the only thing
-  // that should draw the eye in the dark.
-  accent: nightRed[100],
-  accentInk: '#000000',
-  amberNum: nightRed[200],
+  inkInv: nightRed[1000],
+  // A real ladder, and one the pure-red version could not have: three
+  // measured steps rather than three shades of the same red.
+  text2: nightRed[300],
+  text3: nightRed[400],
+  text4: nightRed[500],
+  // The one saturated red. What the reader acts on, and the only thing
+  // that should pull the eye in a dark room.
+  accent: nightAlert,
+  accentInk: nightRed[1000],
+  amberNum: nightRed[100],
   amberBg: nightRed[900],
-  amberFg: nightRed[300],
-  ionoBg: nightRed[975],
-  ionoTitle: nightRed[200],
-  ionoSub: nightRed[400],
+  amberFg: nightRed[200],
+  ionoBg: nightRed[950],
+  ionoTitle: nightRed[100],
+  ionoSub: nightRed[300],
   tagBg: nightRed[800],
-  tagFg: nightRed[200],
-  discBg: nightRed[1000],
-  mapLine: nightRed[500],
-  mapGuide: nightRed[700],
+  tagFg: nightRed[100],
+  discBg: nightRed[975],
+  mapLine: nightRed[400],
+  mapGuide: nightRed[600],
 };
 
 const lightColors = {
@@ -517,48 +507,47 @@ const darkColors = {
  */
 const lowLightColors = {
   ui: uiLowLight,
-  primary: nightRed[100],
-  onPrimary: '#000000',
+  primary: nightAlert,
+  onPrimary: nightRed[1000],
   primaryContainer: nightRed[800],
   onPrimaryContainer: nightRed[100],
   secondary: nightRed[200],
-  onSecondary: '#000000',
-  secondaryContainer: nightRed[800],
+  onSecondary: nightRed[1000],
+  secondaryContainer: nightRed[900],
   onSecondaryContainer: nightRed[100],
   tertiary: nightRed[300],
-  onTertiary: '#000000',
-  tertiaryContainer: nightRed[800],
+  onTertiary: nightRed[1000],
+  tertiaryContainer: nightRed[900],
   onTertiaryContainer: nightRed[100],
-  error: nightRed[100],
-  onError: '#000000',
-  errorContainer: nightRed[700],
+  error: nightAlert,
+  onError: nightRed[1000],
+  errorContainer: nightRed[800],
   onErrorContainer: nightRed[100],
-  background: '#000000',
-  onBackground: nightRed[100],
-  surface: '#000000',
-  onSurface: nightRed[100],
+  background: nightRed[1000],
+  onBackground: nightRed[200],
+  surface: nightRed[1000],
+  onSurface: nightRed[200],
   surfaceVariant: nightRed[950],
   onSurfaceVariant: nightRed[300],
   outline: nightRed[700],
   outlineVariant: nightRed[900],
   shadow: '#000000',
   scrim: '#000000',
-  inverseSurface: nightRed[100],
-  inverseOnSurface: '#000000',
-  inversePrimary: nightRed[500],
-  surfaceDisabled: 'rgba(255, 0, 0, 0.12)',
-  onSurfaceDisabled: 'rgba(255, 0, 0, 0.38)',
-  backdrop: 'rgba(0, 0, 0, 0.75)',
-  // Flat, unlike the other two. Stepping these up the ramp would light
-  // the screen with every raised surface, and borders already carry
-  // elevation everywhere in this app.
+  inverseSurface: nightRed[200],
+  inverseOnSurface: nightRed[1000],
+  inversePrimary: nightRed[600],
+  surfaceDisabled: 'rgba(229, 191, 191, 0.12)',
+  onSurfaceDisabled: 'rgba(229, 191, 191, 0.38)',
+  backdrop: 'rgba(16, 9, 9, 0.75)',
+  // Barely stepped. Every raised surface is another lit area, and
+  // borders carry elevation everywhere in this app anyway.
   elevation: {
     level0: 'transparent',
-    level1: nightRed[1000],
-    level2: nightRed[1000],
-    level3: nightRed[975],
-    level4: nightRed[975],
-    level5: nightRed[950],
+    level1: nightRed[975],
+    level2: nightRed[975],
+    level3: nightRed[950],
+    level4: nightRed[950],
+    level5: nightRed[900],
   },
   quality: quality.lowLight,
   map: qualityMap.lowLight,
