@@ -142,6 +142,18 @@ engine have different version numbers. The application has its version
 in three files: `app/package.json`, `app/legacy/package.json` and
 `app/app.json`. A test fails if they disagree.
 
+Use the script rather than an editor, because `app.json` holds a fourth
+number that must move with them:
+
+```bash
+tools/bump-version.sh patch     # or minor, major, or a version
+tools/bump-version.sh --check   # say what the files hold, change nothing
+```
+
+It stops if the three files already disagree, and it stops if the new
+version would give a code Android will not accept. The server and the
+project at the top have their own versions and are not touched.
+
 `app.json` also has `versionCode`, the integer Android compares to
 decide what is an upgrade. `versionCodeFor` in
 `app/src/data/version.ts` computes it, and a test fails if the number in
