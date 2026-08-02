@@ -104,6 +104,23 @@ jobs:
         working-directory: app
         run: pnpm test
 
+      # The formatter and the linter live in the project at the top, which
+      # is a different one from `app/` with its own two dependencies. A tag
+      # skipped both of them until now, so a release could carry code that
+      # the CI workflow would have refused on a pull request.
+      #
+      # This is the only step here that installs the top project. The
+      # server and its voacapl machinery stay out: this workflow builds an
+      # APK, and the APK does not contain the server.
+      - name: Install the formatter and the linter
+        run: pnpm install --frozen-lockfile
+
+      - name: Formatting
+        run: pnpm fmt:check
+
+      - name: Lint
+        run: pnpm lint
+
       # The APK file names come from `package.json`, not from the tag, so a
       # tag that does not match would publish files named for a different
       # version. That reads as a mistake nobody made until somebody tries to
