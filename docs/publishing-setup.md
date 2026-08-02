@@ -59,16 +59,21 @@ addresses in `README.md` and in the clone command in
 
 ## 2. Point the workflow at the engine commit
 
-`ENGINE_COMMIT` in `.github/workflows/release.yml` holds the engine
-commit that a release is built from. A release built from a moving
-branch cannot be built again and give the same file.
+`.github/engine-commit` holds the engine commit that a release is built
+from. Both workflows read it. A release built from a moving branch
+cannot be built again and give the same file.
 
 ```bash
 git -C hfcast-engine rev-parse HEAD
 ```
 
-Put that value in `ENGINE_COMMIT`. Change it when a release needs a
-newer engine, and say why in the commit message.
+Put that value in the file, on the last line, with the comment above it
+left in place. Change it when a release needs a newer engine, and say
+why in the commit message.
+
+The commit must be on a branch that is pushed. The workflow clones the
+repository and then checks the commit out, so a commit that is only on
+your machine makes the workflow stop there.
 
 ## 3. Make the signing key
 

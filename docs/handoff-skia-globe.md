@@ -39,8 +39,8 @@ of path strings, which fails rather than slows.
 
 Existing pieces you must reuse, not rebuild:
 
-- **Engine.** `hfcast-engine` (separate repo, pinned by `ENGINE_COMMIT`
-  in `.github/workflows/ci.yml`). Area mode takes `latMin`/`latMax`/
+- **Engine.** `hfcast-engine` (separate repo, pinned by
+  `.github/engine-commit`). Area mode takes `latMin`/`latMax`/
   `lonMin`/`lonMax`, and emits points **south to north, west to east**,
   row by row — proven and relied on by the server's sharding. Splitting
   a grid into latitude strips is **exact**: 34,560 points as strips
