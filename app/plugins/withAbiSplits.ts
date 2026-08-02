@@ -59,7 +59,7 @@ const SPLITS = `
  * The order is fixed and must not be reordered — a device that installed
  * `arm64-v8a` as 3 has to keep seeing 3, or an update looks like a downgrade.
  */
-const ABI_CODES = `
+export const ABI_CODES = `
     ext.abiCodes = ["armeabi-v7a": 1, "x86": 2, "arm64-v8a": 3, "x86_64": 4]
     android.applicationVariants.all { variant ->
         variant.outputs.each { output ->
@@ -72,35 +72,45 @@ const ABI_CODES = `
     }
 `;
 
-export const withAbiSplits: ConfigPlugin = (config) =>
-  withAppBuildGradle(config, (gradleConfig) => {
-    const contents = gradleConfig.modResults.contents;
+/**
+ * The whole change, as one function on the text of `app/build.gradle`.
+ *
+ * It is separate from the plugin so that a test can run it. Running the plugin
+ * itself needs a prebuild, an Android SDK and several minutes, which is why
+ * nothing checked this for a long time. `test/gradlePlugins.test.ts` calls
+ * this.
+ */
+export function addAbiSplits(contents: string): string {
+  // Running twice must add nothing twice. `expo prebuild` can call the
+  // plugins again over a tree that already has the change.
+  if (contents.includes('abiCodes')) return contents;
 
-    if (contents.includes('abiCodes')) return gradleConfig;
-
-    if (!/android\s*\{/.test(contents)) {
-      // Louder than a silently unsplit build, which looks like a working
-      // release until somebody measures the download.
-      throw new Error(
-        'withAbiSplits: no `android {` block in app/build.gradle. The template changed; update this plugin.',
-      );
-    }
-
-    // The splits block goes inside `android {`; the version codes have to sit
-    // outside it, because `applicationVariants` is a property of the plugin
-    // rather than of the extension.
-    const split = contents.replace(
-      /android\s*\{/,
-      (match) => `${match}\n${SPLITS}`,
+  if (!/android\s*\{/.test(contents)) {
+    // Louder than a silently unsplit build, which looks like a working
+    // release until somebody measures the download.
+    throw new Error(
+      'withAbiSplits: no `android {` block in app/build.gradle. The template changed; update this plugin.',
     );
+  }
 
-    return {
-      ...gradleConfig,
-      modResults: {
-        ...gradleConfig.modResults,
-        contents: `${split}\n${ABI_CODES}`,
-      },
-    };
-  });
+  // The splits block goes inside `android {`; the version codes have to sit
+  // outside it, because `applicationVariants` is a property of the plugin
+  // rather than of the extension.
+  const split = contents.replace(
+    /android\s*\{/,
+    (match) => `${match}\n${SPLITS}`,
+  );
+
+  return `${split}\n${ABI_CODES}`;
+}
+
+export const withAbiSplits: ConfigPlugin = (config) =>
+  withAppBuildGradle(config, (gradleConfig) => ({
+    ...gradleConfig,
+    modResults: {
+      ...gradleConfig.modResults,
+      contents: addAbiSplits(gradleConfig.modResults.contents),
+    },
+  }));
 
 export default withAbiSplits;
