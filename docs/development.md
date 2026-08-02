@@ -141,8 +141,26 @@ engine have different version numbers. The application has its version
 in three files: `app/package.json`, `app/legacy/package.json` and
 `app/app.json`. A test fails if they disagree.
 
-`app.json` also has `versionCode`, which Android compares. The pattern
-is `minor * 1000 + patch * 10 + 1`.
+`app.json` also has `versionCode`, the integer Android compares to
+decide what is an upgrade. `versionCodeFor` in
+`app/src/data/version.ts` computes it, and a test fails if the number in
+`app.json` is not the one that function gives:
+
+```
+versionCode = major * 100000 + minor * 100 + patch  ...then * 10 + tier
+```
+
+The tier is 0 for the legacy build and 1 for the modern one. The build
+adds one more digit below that, for the architecture:
+`plugins/withAbiSplits.ts` multiplies by ten again and adds 1 for
+`armeabi-v7a`, 2 for `x86`, 3 for `arm64-v8a` and 4 for `x86_64`. For
+example, version 0.54.4, modern, `arm64-v8a` is `540413`.
+
+Each field has its own block of digits, and each block has a limit:
+patch below 100, minor below 1000, major below 210. Past a limit, two
+different versions get one code and the second one will not install.
+Do not change the ABI numbers: a device that installed `arm64-v8a` as 3
+must keep seeing 3.
 
 **Write the open work in `docs/roadmap.md`.** That file holds only work
 that is not finished. When you finish something, write it in

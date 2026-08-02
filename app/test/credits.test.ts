@@ -197,11 +197,40 @@ describe('the version the About screen reports', () => {
   });
 
   it('keeps version codes ordered the way versions are', () => {
-    const ordered = ['0.9.0', '0.28.0', '0.29.0', '1.0.0', '1.0.1', '2.0.0'];
+    // The list crosses each block boundary the scheme has: patch past 9,
+    // minor past 99, and minor past 99 into the next major. The last of
+    // those is the one that was wrong — `0.100.0` and `1.0.0` both came to
+    // 100001 while major was worth 10,000, and the minor of this project
+    // was already at 54.
+    const ordered = [
+      '0.9.0',
+      '0.28.0',
+      '0.29.0',
+      '0.54.3',
+      '0.99.98',
+      '0.99.99',
+      '0.100.0',
+      '0.999.99',
+      '1.0.0',
+      '1.0.1',
+      '2.0.0',
+      '209.999.99',
+    ];
     for (const tier of ['legacy', 'modern'] as const) {
       const codes = ordered.map((v) => versionCodeFor(v, tier));
       assert.deepEqual([...codes].sort((a, b) => a - b), codes, `${codes}`);
+      assert.equal(new Set(codes).size, codes.length, 'two versions, one code');
     }
+  });
+
+  it('stays inside the ceiling Android accepts, with the architecture digit', () => {
+    // `plugins/withAbiSplits.ts` multiplies by ten and adds 1 to 4 for the
+    // architecture, so the largest code a release can produce is this. The
+    // scheme is documented as reaching the ceiling at 210.0.0; this is what
+    // makes that claim true rather than a hope.
+    const largest = (v: string) => versionCodeFor(v, 'modern') * 10 + 4;
+    assert.ok(largest('209.999.99') <= 2_100_000_000);
+    assert.ok(largest('210.0.0') > 2_100_000_000);
   });
 
   it('gives the build with the higher Android floor the higher code', () => {

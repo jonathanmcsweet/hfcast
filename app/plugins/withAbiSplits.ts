@@ -46,9 +46,15 @@ const SPLITS = `
  * APKs from one build therefore cannot share one code.
  *
  * The offsets multiply rather than add so the ordering inside a release never
- * reaches the next release's block: `app.json` holds 53011, and the four
- * become 530111 to 530114. The ceiling is 2,100,000,000, which this scheme
- * reaches at version 210.0.0.
+ * reaches the next release's block: for a release at 0.54.4, `app.json` holds
+ * 54041 and the four become 540411 to 540414.
+ *
+ * That leading number comes from `versionCodeFor` in `src/data/version.ts`,
+ * which gives major 100,000, minor 100, patch 1 and the build tier the last
+ * digit. This digit is below all of them. The largest a release can produce is
+ * therefore 209.999.99 as 2,099,999,914, so version 210.0.0 is the first that
+ * does not fit Android's ceiling of 2,100,000,000. `credits.test.ts` checks
+ * both ends of that.
  *
  * The order is fixed and must not be reordered — a device that installed
  * `arm64-v8a` as 3 has to keep seeing 3, or an update looks like a downgrade.
