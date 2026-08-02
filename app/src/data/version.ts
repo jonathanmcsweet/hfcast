@@ -38,13 +38,27 @@ export type BuildTier = keyof typeof BUILD_TIERS;
  * means the second will not install, which is a release nobody can take.
  *
  * Derived from the version rather than tracked by hand, so it cannot be
- * forgotten: each minor is worth 100 and each patch 1, which stays monotonic as
- * long as neither passes 99. The last digit is the build tier, which leaves
- * room for ten of them and keeps every code of one release adjacent.
+ * forgotten. Each field has its own block of digits: patch is worth 1, minor
+ * 100, major 100,000. The last digit is the build tier, which leaves room for
+ * ten of them and keeps every code of one release adjacent.
+ *
+ * The blocks are what keep it monotonic, so each has a limit: patch below 100,
+ * minor below 1000. Past either, the next version up borrows the block above it
+ * and two different versions get one code.
+ *
+ * Major was worth 10,000 until 0.54.3, which gave minor only its own hundred
+ * slots — and minor was already at 54. `0.100.0` and `1.0.0` both came to
+ * 100001, so whichever shipped second would not install over the first. The
+ * weight is 100,000 now. No 0.x code changes, because major is zero in all of
+ * them.
+ *
+ * `plugins/withAbiSplits.ts` adds one more digit below this one, for the
+ * architecture. The two together reach Android's ceiling of 2,100,000,000 at
+ * version 210.0.0.
  */
 export function versionCodeFor(version: string, tier: BuildTier): number {
   const [major = 0, minor = 0, patch = 0] = version.split('.').map(Number);
-  return (major * 10_000 + minor * 100 + patch) * 10 + BUILD_TIERS[tier];
+  return (major * 100_000 + minor * 100 + patch) * 10 + BUILD_TIERS[tier];
 }
 
 export const APP_VERSION_CODE = config.expo.android?.versionCode ?? 0;
