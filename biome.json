@@ -31,6 +31,7 @@
       "build",
       ".expo",
       "vendor",
+      "hfcast-engine",
       "server/test/fixtures",
       "pnpm-lock.yaml"
     ]

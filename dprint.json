@@ -21,6 +21,7 @@
     "**/build",
     "**/.expo",
     "**/pnpm-lock.yaml",
+    "hfcast-engine/**",
     "vendor/**",
     "server/test/fixtures/**"
   ],
