@@ -17,16 +17,15 @@ on:
   workflow_dispatch:
     inputs:
       engine_commit:
-        description: 'Engine commit to build against, if not the pin below'
+        description: 'Engine commit to build against, instead of .github/engine-commit'
         required: false
 
 env:
   # The engine is a separate repository and the app finds it by path. CI
-  # clones it here instead, at a pinned commit, so a release can be rebuilt
-  # from the same two commits and give the same binary. Move this
-  # deliberately, and say in the commit message why.
+  # clones it here instead, at the commit in `.github/engine-commit`, so a
+  # release can be built again from the same two commits and give the same
+  # binary. That file is also what the CI workflow reads.
   ENGINE_REPO: jonathanmcsweet/hfcast-engine
-  ENGINE_COMMIT: b9018afefbf5448ddb438a6afba6799cd5133862
 
   # The NDK the engine's four libraries are built with. `build-rust.sh`
   # defaults to the same version and fails loudly if it is absent.
@@ -42,15 +41,22 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # A manual run can name a different commit. An empty input means the
+      # file, which is the normal path.
+      - name: Read the engine pin
+        id: engine
+        run: bash .github/read-engine-commit.sh "${{ github.event.inputs.engine_commit }}"
+
       # The engine goes inside the checkout, at the path the JNI crate's
       # `Cargo.toml` names: `../../../../hfcast-engine` from `rust/`, which
       # is the repository root. `.gitignore` already excludes it, so this
       # cannot dirty the tree.
       - name: Clone the engine at the pinned commit
+        env:
+          ENGINE_COMMIT: ${{ steps.engine.outputs.commit }}
         run: |
-          commit="${{ github.event.inputs.engine_commit || env.ENGINE_COMMIT }}"
           git clone --quiet "https://github.com/$ENGINE_REPO.git" hfcast-engine
-          git -C hfcast-engine checkout --quiet "$commit"
+          git -C hfcast-engine checkout --quiet "$ENGINE_COMMIT"
           echo "engine at $(git -C hfcast-engine rev-parse --short HEAD)"
 
       - uses: pnpm/action-setup@v4
@@ -82,7 +88,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: app/modules/engine-bridge/rust/target
-          key: jni-${{ runner.os }}-${{ env.ENGINE_COMMIT }}
+          key: jni-${{ runner.os }}-${{ steps.engine.outputs.commit }}
 
       - name: Install dependencies
         working-directory: app

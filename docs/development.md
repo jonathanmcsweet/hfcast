@@ -21,9 +21,10 @@ This has two results that you must remember:
 - To build the application you must clone both.
 - A change to the engine is a different commit in a different
   repository. Continuous integration reads the engine at a fixed commit,
-  which is `ENGINE_COMMIT` in `.github/workflows/release.yml` and in
-  `ci.yml`. If your change needs a newer engine, move the pin in the
-  same pull request.
+  which is in `.github/engine-commit`. Both workflows read that one
+  file. If your change needs a newer engine, move the pin in the same
+  pull request, and build the engine at the new commit and run the
+  server tests against it before you do.
 
 ## How the engine gets into the application
 
