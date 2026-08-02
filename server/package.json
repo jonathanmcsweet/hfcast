@@ -1,10 +1,11 @@
 {
   "name": "hfcast-server",
-  "version": "0.18.1",
+  "version": "0.18.2",
   "private": true,
   "type": "module",
   "description": "VOACAP prediction and space weather API for the HFcast app",
   "license": "Apache-2.0",
+  "packageManager": "pnpm@11.17.0",
   "scripts": {
     "start": "node --experimental-strip-types src/index.ts",
     "dev": "node --experimental-strip-types --watch src/index.ts",
