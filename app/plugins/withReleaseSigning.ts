@@ -78,34 +78,44 @@ const DEBUG_KEY = 'signingConfig signingConfigs.debug';
 const CHOSEN_KEY =
   "signingConfig project.hasProperty('HFCAST_STORE_FILE') ? signingConfigs.release : signingConfigs.debug";
 
+/**
+ * The whole change, as one function on the text of `app/build.gradle`.
+ *
+ * It is separate from the plugin so that a test can run it. Running the plugin
+ * itself needs a prebuild, an Android SDK and several minutes, which is why
+ * nothing checked this for a long time. `test/gradlePlugins.test.ts` calls
+ * this.
+ */
+export function addReleaseSigning(contents: string): string {
+  // Running twice must add nothing twice. `expo prebuild` can call the
+  // plugins again over a tree that already has the change.
+  if (contents.includes('HFCAST_STORE_FILE')) return contents;
+
+  const parts = contents.split(DEBUG_KEY);
+  const found = parts.length - 1;
+
+  if (found !== 2) {
+    // Louder than a silently unsigned build: the template changed shape and
+    // this plugin no longer knows which assignment to change.
+    throw new Error(
+      `withReleaseSigning: app/build.gradle holds ${found} "${DEBUG_KEY}" lines, expected two. The template changed; update this plugin.`,
+    );
+  }
+
+  const [beforeDebug, betweenBuildTypes, afterRelease] = parts;
+
+  // The signing configs block goes just inside `android {`.
+  return `${beforeDebug}${DEBUG_KEY}${betweenBuildTypes}${CHOSEN_KEY}${afterRelease}`
+    .replace(/android\s*\{/, (match) => `${match}\n${SIGNING_CONFIG}`);
+}
+
 export const withReleaseSigning: ConfigPlugin = (config) =>
-  withAppBuildGradle(config, (gradleConfig) => {
-    const contents = gradleConfig.modResults.contents;
-
-    if (contents.includes('HFCAST_STORE_FILE')) return gradleConfig;
-
-    const parts = contents.split(DEBUG_KEY);
-    const found = parts.length - 1;
-
-    if (found !== 2) {
-      // Louder than a silently unsigned build: the template changed shape and
-      // this plugin no longer knows which assignment to change.
-      throw new Error(
-        `withReleaseSigning: app/build.gradle holds ${found} "${DEBUG_KEY}" lines, expected two. The template changed; update this plugin.`,
-      );
-    }
-
-    const [beforeDebug, betweenBuildTypes, afterRelease] = parts;
-
-    // The signing configs block goes just inside `android {`.
-    const withRelease =
-      `${beforeDebug}${DEBUG_KEY}${betweenBuildTypes}${CHOSEN_KEY}${afterRelease}`
-        .replace(/android\s*\{/, (match) => `${match}\n${SIGNING_CONFIG}`);
-
-    return {
-      ...gradleConfig,
-      modResults: { ...gradleConfig.modResults, contents: withRelease },
-    };
-  });
+  withAppBuildGradle(config, (gradleConfig) => ({
+    ...gradleConfig,
+    modResults: {
+      ...gradleConfig.modResults,
+      contents: addReleaseSigning(gradleConfig.modResults.contents),
+    },
+  }));
 
 export default withReleaseSigning;
