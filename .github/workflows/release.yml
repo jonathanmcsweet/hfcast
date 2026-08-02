@@ -81,7 +81,7 @@ jobs:
       - name: Cache the engine build
         uses: actions/cache@v4
         with:
-          path: app/modules/hfcast-engine/rust/target
+          path: app/modules/engine-bridge/rust/target
           key: jni-${{ runner.os }}-${{ env.ENGINE_COMMIT }}
 
       - name: Install dependencies
@@ -117,7 +117,7 @@ jobs:
         working-directory: app
         env:
           ANDROID_API: '24'
-        run: bash modules/hfcast-engine/build-rust.sh
+        run: bash modules/engine-bridge/build-rust.sh
 
       # The keystore never reaches the repository. It arrives as one
       # base64 secret, is written outside the checkout, and the four Gradle

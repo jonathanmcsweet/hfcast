@@ -31,7 +31,7 @@ The application does not call the server on Android. It has the engine
 in it.
 
 ```
-app/modules/hfcast-engine/
+app/modules/engine-bridge/
 ├── rust/           A small Rust crate. It calls the engine and gives a
 │                   Java interface (JNI).
 ├── build-rust.sh   Builds that crate one time for each processor type.

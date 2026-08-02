@@ -265,14 +265,14 @@ policy rather than a limitation here.
 
 ## Predicting on the device
 
-`modules/hfcast-engine` compiles VOACAP into the APK, so an Android build needs
+`modules/engine-bridge` compiles VOACAP into the APK, so an Android build needs
 no server and no network. The forecast and the coverage map are both computed
 locally.
 
 The Rust engine is built as one shared library per ABI with the coefficient files
 compiled into it, reached through the same JSON interface the server uses over a
 pipe — so the device and the server cannot disagree about a number they were both
-given the same inputs for. `modules/hfcast-engine/build-rust.sh` builds the four
+given the same inputs for. `modules/engine-bridge/build-rust.sh` builds the four
 libraries; they are committed under `android/src/main/jniLibs/`, so an ordinary
 build does not need Rust installed.
 

@@ -1,4 +1,4 @@
-import * as Engine from '../../modules/hfcast-engine';
+import * as Engine from '../../modules/engine-bridge';
 import type { Station } from '../store/useStationStore';
 import { LAT_STEP, LON_STEP, reachOf } from './coverageGrid';
 import { patchGrid, patchRequestBounds } from './coveragePatch';

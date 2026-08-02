@@ -10,7 +10,7 @@ web-build/
 /android/
 /ios/
 
-# Built by modules/hfcast-engine/build-rust.sh, one shared library per ABI.
+# Built by modules/engine-bridge/build-rust.sh, one shared library per ABI.
 modules/*/android/src/main/jniLibs/
 modules/*/rust/target/
 
