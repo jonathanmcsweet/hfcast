@@ -1,4 +1,4 @@
-import * as Engine from '../../modules/hfcast-engine';
+import * as Engine from '../../modules/engine-bridge';
 import { type Station, usesBeam } from '../store/useStationStore';
 import { antennaOnDisk } from './antennaFile';
 import { correctCells, factorsFor, type RawBandHour } from './correct';

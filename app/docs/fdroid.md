@@ -7,7 +7,7 @@ does not.
 ## Nothing to remove
 
 The four `libhfcast_jni.so` files are **not** in the repository. `jniLibs/` is
-gitignored the same way `android/` is, and `modules/hfcast-engine/build-rust.sh`
+gitignored the same way `android/` is, and `modules/engine-bridge/build-rust.sh`
 produces them. So there is no binary blob to strip out — the build simply has to
 run one more step than a plain React Native app.
 
@@ -21,7 +21,7 @@ Three things have to happen before Gradle runs, in this order:
 
 ```bash
 pnpm install --frozen-lockfile
-modules/hfcast-engine/build-rust.sh      # needs cargo and the Android NDK
+modules/engine-bridge/build-rust.sh      # needs cargo and the Android NDK
 npx expo prebuild --platform android --no-install
 cd android && ./gradlew assembleRelease
 ```
@@ -92,7 +92,7 @@ Builds:
       - hfcast-engine@<commit>
     prebuild:
       - cd .. && pnpm install --frozen-lockfile
-      - cd .. && modules/hfcast-engine/build-rust.sh
+      - cd .. && modules/engine-bridge/build-rust.sh
       - cd .. && npx expo prebuild --platform android --no-install
 
   # The Android 5.0 build. Same commit, same source; what differs is the
@@ -116,7 +116,7 @@ Builds:
       - cd .. && cp legacy/pnpm-lock.yaml pnpm-lock.yaml
       - cd .. && node --experimental-strip-types tools/legacy-config.ts app.json
       - cd .. && pnpm install --frozen-lockfile
-      - cd .. && ANDROID_API=21 modules/hfcast-engine/build-rust.sh
+      - cd .. && ANDROID_API=21 modules/engine-bridge/build-rust.sh
       - cd .. && npx expo prebuild --platform android --no-install
 
 # Two builds per release, so a version tag does not describe one build.

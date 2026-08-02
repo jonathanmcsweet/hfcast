@@ -113,7 +113,7 @@ collect_apks() {
 build_modern() {
   echo
   echo "=== modern: Expo SDK 57, Android 7.0 and up ==="
-  ANDROID_API=24 bash "$app/modules/hfcast-engine/build-rust.sh"
+  ANDROID_API=24 bash "$app/modules/engine-bridge/build-rust.sh"
   (cd "$app" && npx expo prebuild --clean --platform android --no-install)
   run_gradle "$app"
   collect_apks "$app" android7
@@ -181,12 +181,12 @@ build_legacy() {
   cp "$work/pnpm-lock.yaml" "$app/legacy/pnpm-lock.yaml"
 
   # The engine is a Cargo path dependency four directories up from
-  # modules/hfcast-engine/rust, which is the repository root from the app but
+  # modules/engine-bridge/rust, which is the repository root from the app but
   # lands inside `build/` from the copy, since the copy sits one directory
   # deeper. A link at the place it now looks sends it to the real one.
   ln -sfn "$root/hfcast-engine" "$root/build/hfcast-engine"
 
-  ANDROID_API=21 bash "$work/modules/hfcast-engine/build-rust.sh"
+  ANDROID_API=21 bash "$work/modules/engine-bridge/build-rust.sh"
   (cd "$work" && npx expo prebuild --clean --platform android --no-install)
   run_gradle "$work"
   collect_apks "$work" android5

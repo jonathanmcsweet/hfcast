@@ -156,8 +156,8 @@ Then put that address in the README and in each store listing.
 ## 6. Make the first release
 
 ```bash
-git tag v0.54.1
-git push origin v0.54.1
+git tag v0.54.2
+git push origin v0.54.2
 ```
 
 The workflow builds four APKs, signs them, and makes a **draft**

@@ -62,7 +62,7 @@ Existing pieces you must reuse, not rebuild:
   (`MapView` in `src/data/projection.ts`), `MIN_SCALE = 1`,
   `MAX_SCALE = 30`. `projection.ts` owns the projector (closed-form
   `invert`), `regionOf`, `containView`.
-- **The native module.** `app/modules/hfcast-engine/` — Kotlin +
+- **The native module.** `app/modules/engine-bridge/` — Kotlin +
   a Rust JNI wrapper around the engine crate. `predict()` runs on **one
   worker thread by design**; the comment in `HfcastEngineModule.kt`
   explains why. Changing that is Milestone 2 work and the comment must
