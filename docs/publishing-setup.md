@@ -14,15 +14,15 @@ Text in `ANGLE BRACKETS` is a placeholder. Replace it.
 There are **two** repositories here:
 
 ```
-hfcast/                  <- repository 1
-├── app/                    the application. NOT its own repository
-├── hfcast-engine/       <- repository 2
+hfcast/                <- repository 1
+├── mobile/               the application. NOT its own repository
+├── hfcast-engine/     <- repository 2
 ├── server/
 ├── docs/
 └── tools/
 ```
 
-`app/` and `server/` are directories of repository 1. Do not make a
+`mobile/` and `server/` are directories of repository 1. Do not make a
 repository for either.
 
 The release workflow reads the engine from GitHub at a fixed commit, so
@@ -147,7 +147,7 @@ it cannot update an installation made from a signed one.
 ## 5. Put the privacy policy on the web
 
 F-Droid and Accrescent both need a link to a privacy policy. A file in
-a repository is not sufficient. The text is in `app/docs/privacy.md`.
+a repository is not sufficient. The text is in `mobile/docs/privacy.md`.
 
 The cheapest method is GitHub Pages:
 
@@ -186,8 +186,8 @@ Put the same URL in the README, with the Obtainium badge.
 Both need more than a release, and both can wait.
 
 **F-Droid** builds from source on its own machines and signs with its
-own key. `app/docs/fdroid.md` holds the recipe.
-`app/fastlane/metadata/android/en-US/` already holds the title, the
+own key. `mobile/docs/fdroid.md` holds the recipe.
+`mobile/fastlane/metadata/android/en-US/` already holds the title, the
 short description and the full description. What is missing is the
 screenshots, a changelog for each version, and a build recipe that
 clones the engine the same way the release workflow does. Expect a long

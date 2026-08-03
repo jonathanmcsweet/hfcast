@@ -16,15 +16,15 @@
 # Run before `expo export --platform web`. Safe to run repeatedly.
 set -euo pipefail
 
-app="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-src="$app/node_modules/canvaskit-wasm/bin/full/canvaskit.wasm"
-dest="$app/public/canvaskit.wasm"
+mobile="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+src="$mobile/node_modules/canvaskit-wasm/bin/full/canvaskit.wasm"
+dest="$mobile/public/canvaskit.wasm"
 
 if [[ ! -f $src ]]; then
   echo "no CanvasKit at $src — is @shopify/react-native-skia installed?" >&2
   exit 1
 fi
 
-mkdir -p "$app/public"
+mkdir -p "$mobile/public"
 cp "$src" "$dest"
 echo "canvaskit.wasm -> public/ ($(du -h "$dest" | cut -f1))"

@@ -14,7 +14,7 @@
 # number, the installed package carries another.
 #
 # `versionCode` is what Android compares to decide what is an upgrade. The
-# formula is in `app/src/data/version.ts` and this reads it from there
+# formula is in `mobile/src/data/version.ts` and this reads it from there
 # rather than repeating it, so the two cannot drift apart. See
 # `docs/development.md`.
 #
@@ -25,7 +25,7 @@ set -euo pipefail
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$root"
 
-files=(app/package.json app/legacy/package.json app/app.json)
+files=(mobile/package.json mobile/legacy/package.json mobile/app.json)
 
 node_bin() {
   # node is not always on PATH here. Take the one in use if it is, and the
@@ -73,7 +73,7 @@ current() {
 now="$(current)"
 
 if [[ ${1:-} == --check ]]; then
-  code="$("$node" -p "require('$root/app/app.json').expo.android.versionCode")"
+  code="$("$node" -p "require('$root/mobile/app.json').expo.android.versionCode")"
   echo "version      $now  (in ${#files[@]} files, all agreeing)"
   echo "versionCode  $code"
   exit 0
@@ -102,7 +102,7 @@ esac
 # one `app.json` carries; the legacy build takes its own from the same
 # function at build time.
 code="$(
-  cd app && "$node" --experimental-strip-types -e "
+  cd mobile && "$node" --experimental-strip-types -e "
     import('./src/data/version.ts').then(({ versionCodeFor }) => {
       process.stdout.write(String(versionCodeFor('$next', 'modern')));
     });

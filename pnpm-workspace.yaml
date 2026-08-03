@@ -1,9 +1,9 @@
-# Settings only: no `packages:` key, so app/ and server/ stay independent
+# Settings only: no `packages:` key, so mobile/ and server/ stay independent
 # projects rather than becoming workspace members.
 #
 # pnpm 11 no longer reads pnpm-specific settings from .npmrc or from the "pnpm"
 # field in package.json. This file is the only place it looks, and it is also
-# what makes pnpm treat a directory as a root project. app/ carries its own
+# what makes pnpm treat a directory as a root project. mobile/ carries its own
 # copy for that reason: without one, `pnpm install` run from there walks up to
 # this file and installs this project instead of the app.
 #

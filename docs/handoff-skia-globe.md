@@ -50,19 +50,19 @@ Existing pieces you must reuse, not rebuild:
   cuts a grid into whole-row strips with a quarter-cell inset;
   `runCoverage()` in `server/src/voacap/engine.ts` runs them
   concurrently. Grids under `MIN_SHARD_POINTS = 2000` are left whole.
-- **Viewport patch.** `app/src/data/coveragePatch.ts` (mirrored
+- **Viewport patch.** `mobile/src/data/coveragePatch.ts` (mirrored
   byte-identically in `server/src/coveragePatch.ts`, pinned by
   `server/test/shared-with-app.test.ts`): `patchGrid()` snaps a view
   region to the engine lattice; `useCoveragePatch` in
-  `app/src/api/queries.ts` follows the map view. This machinery is
+  `mobile/src/api/queries.ts` follows the map view. This machinery is
   the fallback tier — do not remove it.
-- **The map.** `app/src/components/CoverageGlobe.tsx`: SVG layers in
+- **The map.** `mobile/src/components/CoverageGlobe.tsx`: SVG layers in
   order — coarse cells, patch backing, patch cells, NVIS dots, night,
   coast, rings, path, markers. View state is `{scale, cxF, cyF}`
   (`MapView` in `src/data/projection.ts`), `MIN_SCALE = 1`,
   `MAX_SCALE = 30`. `projection.ts` owns the projector (closed-form
   `invert`), `regionOf`, `containView`.
-- **The native module.** `app/modules/engine-bridge/` — Kotlin +
+- **The native module.** `mobile/modules/engine-bridge/` — Kotlin +
   a Rust JNI wrapper around the engine crate. `predict()` runs on **one
   worker thread by design**; the comment in `HfcastEngineModule.kt`
   explains why. Changing that is Milestone 2 work and the comment must
@@ -91,7 +91,7 @@ Existing pieces you must reuse, not rebuild:
   tier 1. End commit messages with a `Co-Authored-By:` trailer naming
   your model.
 - Before each commit: `pnpm fmt:check`, `pnpm lint` (repo root), `tsc`
-  typechecks and tests in both `app/` and `server/`, all green.
+  typechecks and tests in both `mobile/` and `server/`, all green.
   Node and pnpm are at `/home/dev/.nvm/versions/node/v24.18.0/bin`
   (not on PATH). Never pipe pnpm output.
 - Each finished milestone gets a ledger entry in

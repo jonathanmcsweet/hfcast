@@ -48,11 +48,11 @@ To work on the code, read the [development guide](docs/development.md) after it.
 
 ## What is in this repository
 
-| Part               | What it is                                             |
-| ------------------ | ------------------------------------------------------ |
-| [app/](app/)       | The application. React Native, Expo, Material Design 3 |
-| [server/](server/) | The prediction API, for builds that have no engine     |
-| [docs/](docs/)     | The guides, the roadmap, and the completions ledger    |
+| Part               | What it is                                          |
+| ------------------ | --------------------------------------------------- |
+| [mobile/](mobile/) | The application, for Android and the web            |
+| [server/](server/) | The prediction API, for builds that have no engine  |
+| [docs/](docs/)     | The guides, the roadmap, and the completions ledger |
 
 The propagation engine is in a different repository:
 [hfcast-engine](https://github.com/jonathanmcsweet/hfcast-engine). It is a Rust

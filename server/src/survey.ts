@@ -1,7 +1,7 @@
 /**
  * A forecast with no destination: how much of the world hears this station.
  *
- * This mirrors `app/src/data/survey.ts`, which is where the reasoning for
+ * This mirrors `mobile/src/data/survey.ts`, which is where the reasoning for
  * the approach and the measurements behind it are written down. The short
  * version: filling the 9 x 24 grid with area runs is 216 of them and about ten
  * seconds, while sampling directions with ordinary path runs is 48 runs and

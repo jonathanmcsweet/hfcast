@@ -8,9 +8,15 @@ how to make a change safely.
 
 | Directory        | What it is             | Language                       |
 | ---------------- | ---------------------- | ------------------------------ |
-| `app/`           | The application        | TypeScript, React Native, Expo |
+| `mobile/`        | The application        | TypeScript, React Native, Expo |
 | `server/`        | The prediction API     | TypeScript, Node               |
 | `hfcast-engine/` | The propagation engine | Rust                           |
+
+`mobile/` is named for the kind of device, not for one operating
+system. It builds the Android APK and it builds for the web, and
+`app.json` also carries an iOS configuration. A desktop application, if
+one is written, gets its own directory beside it rather than a place
+inside this one.
 
 The engine is a different git repository. It is not a submodule. The
 application finds it at `hfcast-engine/` beside the application
@@ -32,7 +38,7 @@ The application does not call the server on Android. It has the engine
 in it.
 
 ```
-app/modules/engine-bridge/
+mobile/modules/engine-bridge/
 ├── rust/           A small Rust crate. It calls the engine and gives a
 │                   Java interface (JNI).
 ├── build-rust.sh   Builds that crate one time for each processor type.
@@ -48,8 +54,8 @@ The web build and iOS have no engine. They read from the server.
 
 ## Two builds, one source
 
-`app/package.json` targets Expo SDK 57 and Android 7.0.
-`app/legacy/package.json` targets Expo SDK 50 and Android 5.0,
+`mobile/package.json` targets Expo SDK 57 and Android 7.0.
+`mobile/legacy/package.json` targets Expo SDK 50 and Android 5.0,
 because it is the last version of React Native that supports Android
 5.0.
 
@@ -67,7 +73,7 @@ Only the modern build is published now. See the roadmap.
 
 ## Before you commit
 
-Run these in `app/`:
+Run these in `mobile/`:
 
 ```bash
 pnpm test        # 344 tests, Node's own test runner
@@ -139,8 +145,8 @@ docs: record the publishing decisions
 **Increase the version number** for each part you change, with
 [semantic versioning](https://semver.org). The application and the
 engine have different version numbers. The application has its version
-in three files: `app/package.json`, `app/legacy/package.json` and
-`app/app.json`. A test fails if they disagree.
+in three files: `mobile/package.json`, `mobile/legacy/package.json` and
+`mobile/app.json`. A test fails if they disagree.
 
 Use the script rather than an editor, because `app.json` holds a fourth
 number that must move with them:
@@ -156,7 +162,7 @@ project at the top have their own versions and are not touched.
 
 `app.json` also has `versionCode`, the integer Android compares to
 decide what is an upgrade. `versionCodeFor` in
-`app/src/data/version.ts` computes it, and a test fails if the number in
+`mobile/src/data/version.ts` computes it, and a test fails if the number in
 `app.json` is not the one that function gives:
 
 ```
@@ -196,7 +202,7 @@ functional form cannot.
 Network state goes in React Query. All other state goes in Zustand.
 
 The interface must satisfy WCAG, must translate, and must operate on a
-telephone and on a tablet. `app/test/contrast.test.ts` measures the
+telephone and on a tablet. `mobile/test/contrast.test.ts` measures the
 contrast of each colour pair that the design puts on the screen.
 
 ## Documents

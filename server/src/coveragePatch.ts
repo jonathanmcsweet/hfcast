@@ -14,7 +14,7 @@
  * work. Over one region it is a few hundred points, and the engine takes a
  * rectangle for exactly this.
  *
- * This mirrors `app/src/data/coveragePatch.ts`, and
+ * This mirrors `mobile/src/data/coveragePatch.ts`, and
  * `test/shared-with-app.test.ts` pins the two together. The reason they
  * are copies rather than one module is in that file.
  */

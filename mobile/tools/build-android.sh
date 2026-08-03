@@ -27,10 +27,10 @@
 # Needs the JDK, the Android SDK and both NDKs. See README.md.
 set -euo pipefail
 
-app="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-root="$(cd "$app/.." && pwd)"
+mobile="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+root="$(cd "$mobile/.." && pwd)"
 work="$root/build/legacy-app"
-out="$app/build/apk"
+out="$mobile/build/apk"
 
 what="${1:-both}"
 case "$what" in
@@ -41,7 +41,7 @@ case "$what" in
     ;;
 esac
 
-version="$(node -p "require('$app/package.json').version")"
+version="$(node -p "require('$mobile/package.json').version")"
 mkdir -p "$out"
 
 # Ninja decides how many compilers to run from the CPUs it is allowed, and each
@@ -113,10 +113,10 @@ collect_apks() {
 build_modern() {
   echo
   echo "=== modern: Expo SDK 57, Android 7.0 and up ==="
-  ANDROID_API=24 bash "$app/modules/engine-bridge/build-rust.sh"
-  (cd "$app" && npx expo prebuild --clean --platform android --no-install)
-  run_gradle "$app"
-  collect_apks "$app" android7
+  ANDROID_API=24 bash "$mobile/modules/engine-bridge/build-rust.sh"
+  (cd "$mobile" && npx expo prebuild --clean --platform android --no-install)
+  run_gradle "$mobile"
+  collect_apks "$mobile" android7
 }
 
 build_legacy() {
@@ -131,7 +131,7 @@ build_legacy() {
   # Everything the build reads, and nothing generated. `android` and the Rust
   # output are excluded because they are built from the copy's own
   # dependencies, against a different NDK and a different minimum API.
-  tar -cf - -C "$app" \
+  tar -cf - -C "$mobile" \
     --exclude=./node_modules \
     --exclude=./build \
     --exclude=./android \
@@ -143,7 +143,7 @@ build_legacy() {
     --exclude='./modules/*/android/build' \
     . | tar -xf - -C "$work"
 
-  cp "$app/legacy/package.json" "$work/package.json"
+  cp "$mobile/legacy/package.json" "$work/package.json"
 
   # The Skia seam, which this build does not have a Skia for.
   #
@@ -161,24 +161,24 @@ build_legacy() {
   # needs a stand-in here, and a missing one fails the legacy build
   # rather than passing quietly.
   rm -rf "$work/src/render"
-  cp -r "$app/legacy/render" "$work/src/render"
+  cp -r "$mobile/legacy/render" "$work/src/render"
 
   # The copy arrives holding the modern lockfile, which describes a different
   # dependency set entirely. It is replaced by the legacy one, or removed so
   # pnpm resolves from nothing rather than from something wrong.
-  if [[ -f $app/legacy/pnpm-lock.yaml ]]; then
-    cp "$app/legacy/pnpm-lock.yaml" "$work/pnpm-lock.yaml"
+  if [[ -f $mobile/legacy/pnpm-lock.yaml ]]; then
+    cp "$mobile/legacy/pnpm-lock.yaml" "$work/pnpm-lock.yaml"
   else
     rm -f "$work/pnpm-lock.yaml"
   fi
 
   # The one configuration difference, derived rather than duplicated.
-  node --experimental-strip-types "$app/tools/legacy-config.ts" "$work/app.json"
+  node --experimental-strip-types "$mobile/tools/legacy-config.ts" "$work/app.json"
 
   (cd "$work" && pnpm install --no-frozen-lockfile)
 
   # Kept so the legacy build resolves the same versions on any machine.
-  cp "$work/pnpm-lock.yaml" "$app/legacy/pnpm-lock.yaml"
+  cp "$work/pnpm-lock.yaml" "$mobile/legacy/pnpm-lock.yaml"
 
   # The engine is a Cargo path dependency four directories up from
   # modules/engine-bridge/rust, which is the repository root from the app but
