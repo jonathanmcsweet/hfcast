@@ -1,6 +1,6 @@
 {
   "name": "hfcast-workspace",
-  "version": "0.40.5",
+  "version": "0.40.6",
   "private": true,
   "description": "Tooling shared by the HFcast app and its prediction server",
   "license": "Apache-2.0",

@@ -17,9 +17,9 @@ product backs off to a fine grid over the visible frame only — and
 keeps deliverable 1, which is worth having alone. Structure the work so
 deliverable 1 never depends on deliverable 2.
 
-Read `docs/roadmap.md` and `docs/roadmap-progress.md` before starting.
-The ledger records several things this plan relies on; check it before
-assuming anything is open.
+Ask the maintainer what has already shipped before starting. This plan
+relies on several things that may be done, so check before assuming
+anything is still open.
 
 ## What exists, and the numbers that motivate this
 
@@ -94,9 +94,8 @@ Existing pieces you must reuse, not rebuild:
   typechecks and tests in both `mobile/` and `server/`, all green.
   Node and pnpm are at `/home/dev/.nvm/versions/node/v24.18.0/bin`
   (not on PATH). Never pipe pnpm output.
-- Each finished milestone gets a ledger entry in
-  `docs/roadmap-progress.md` with measured numbers; roadmap.md holds
-  only open work.
+- Each finished milestone is reported to the maintainer with the
+  measured numbers, who records it.
 - Functional-first, immutability-first TypeScript. React Query for
   network state, Zustand for app state. No inline foreign-language
   code.
@@ -271,10 +270,9 @@ the reader zooms in") is the design; the constants are the knob.
 
 ## Milestone 4 — records and cleanup
 
-- Ledger entries per milestone with the measured numbers.
-- roadmap.md: delete what shipped from the "fine grid over the whole
-  world" section; leave only what is genuinely open. Update the canvas
-  trigger note — it will have been executed or consciously deferred.
+- Report each milestone to the maintainer with the measured numbers.
+- Say what shipped of the fine grid over the whole world, what is still
+  open, and whether the canvas trigger was executed or deferred.
 - Remove dead SVG cell code and any spike scaffolding.
 - Versions: bump `hfcast` (minor — new capability) and `server` if
   touched; move nothing in `hfcast-engine`.

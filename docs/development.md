@@ -69,7 +69,7 @@ tools/build-android.sh modern   # Android 7.0 and later
 tools/build-android.sh legacy   # Android 5.0 and later
 ```
 
-Only the modern build is published now. See the roadmap.
+Only the modern build is published now.
 
 ## Before you commit
 
@@ -181,11 +181,9 @@ different versions get one code and the second one will not install.
 Do not change the ABI numbers: a device that installed `arm64-v8a` as 3
 must keep seeing 3.
 
-**Write the open work in `docs/roadmap.md`.** That file holds only work
-that is not finished. When you finish something, write it in
-`docs/roadmap-progress.md` with the date and the version, and delete the
-section from the roadmap. The engine repository has the same two files
-for its own work.
+**Open work is tracked by the maintainer outside this repository.** Do
+not add tracker or progress documents. If you defer work or find a gap,
+describe it in the pull request and the maintainer will record it.
 
 ## Style
 

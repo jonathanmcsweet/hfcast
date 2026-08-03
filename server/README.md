@@ -104,7 +104,7 @@ cannot be handed today's raw count. Three cases:
 
 Effective SSN inverts the standard `F = 63.7 + 0.728R + 0.00089R²` relation and
 then derates for geomagnetic activity. The derate is a heuristic, not a
-published relation, and is recorded as open work in `docs/roadmap.md`.
+published relation, and is recorded as open work.
 
 ## Parsing notes
 

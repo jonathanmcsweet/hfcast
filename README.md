@@ -36,8 +36,7 @@ selects the correct file. If you download the file yourself, use
 `arm64-v8a` unless your device is more than approximately ten years
 old.
 
-F-Droid and Accrescent are planned. See
-[docs/roadmap.md](docs/roadmap.md).
+F-Droid and Accrescent are planned.
 
 ## Build it
 
@@ -48,11 +47,11 @@ To work on the code, read the [development guide](docs/development.md) after it.
 
 ## What is in this repository
 
-| Part               | What it is                                          |
-| ------------------ | --------------------------------------------------- |
-| [mobile/](mobile/) | The application, for Android and the web            |
-| [server/](server/) | The prediction API, for builds that have no engine  |
-| [docs/](docs/)     | The guides, the roadmap, and the completions ledger |
+| Part               | What it is                                         |
+| ------------------ | -------------------------------------------------- |
+| [mobile/](mobile/) | The application, for Android and the web           |
+| [server/](server/) | The prediction API, for builds that have no engine |
+| [docs/](docs/)     | The guides                                         |
 
 The propagation engine is in a different repository:
 [hfcast-engine](https://github.com/jonathanmcsweet/hfcast-engine). It is a Rust

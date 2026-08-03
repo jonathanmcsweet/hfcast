@@ -303,7 +303,7 @@ which is VOACAP's own `itshfbc/geocity` index built by `tools/build-cities.ts` �
 few matches, so an online reader still reaches somewhere smaller than a city. The
 list is from about 2001 and names thirteen cities as they were then; the generator
 corrects those and keeps the old names searchable. Its country names are not
-corrected — see the roadmap.
+corrected, which is open work.
 
 Cost, measured with the engine compiled in: a point-to-point forecast over five
 bands is 15 ms, and a 192-point coverage map is 48 ms — both on a desktop, with
