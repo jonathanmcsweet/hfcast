@@ -15,6 +15,24 @@ env:
   ENGINE_REPO: jonathanmcsweet/hfcast-engine
 
 jobs:
+  # A change that does not move the version of the part it changed fails
+  # here. The three parts move independently, so a change under `server/`
+  # needs the server version and nothing else. Pull requests only: it
+  # compares against the base branch, and a push to `main` has no base
+  # branch to compare against.
+  version:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # The merge base has to be reachable, so the whole history.
+          fetch-depth: 0
+
+      - name: The changed parts must move their versions
+        run: tools/check-version-bump.sh "origin/${{ github.base_ref }}"
+
   check:
     runs-on: ubuntu-latest
     timeout-minutes: 30

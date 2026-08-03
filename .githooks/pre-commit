@@ -1,0 +1,46 @@
+#!/usr/bin/env bash
+#
+# Runs before every commit. Formatting and lint only, so that it stays
+# fast. The tests are in the pre-push hook.
+#
+# Turn the hooks on once per clone:
+#
+#     git config core.hooksPath .githooks
+#
+# To commit without them: `git commit --no-verify`.
+set -euo pipefail
+
+cd "$(git rev-parse --show-toplevel)"
+
+# The roadmap and the completions ledger are kept outside this
+# repository. `.gitignore` names them, but `git add -f` gets past
+# `.gitignore`, so refuse them here as well.
+if git diff --cached --name-only | grep -qE '^docs/roadmap(-progress)?\.md$'; then
+  echo "pre-commit: docs/roadmap.md and docs/roadmap-progress.md are kept" >&2
+  echo "            outside this repository. Unstage them." >&2
+  exit 1
+fi
+
+# pnpm is not always on PATH. Take the one in use if it is there, and the
+# newest nvm install if it is not.
+pnpm_bin() {
+  if command -v pnpm > /dev/null 2>&1; then
+    command -v pnpm
+    return
+  fi
+  local newest
+  newest="$(ls -d "$HOME"/.nvm/versions/node/*/bin/pnpm 2> /dev/null | sort -V | tail -1)"
+  [[ -n $newest ]] || {
+    echo "pre-commit: no pnpm found. Put it on PATH." >&2
+    exit 1
+  }
+  echo "$newest"
+}
+
+pnpm="$(pnpm_bin)"
+
+echo "pre-commit: formatting"
+"$pnpm" fmt:check
+
+echo "pre-commit: lint"
+"$pnpm" lint

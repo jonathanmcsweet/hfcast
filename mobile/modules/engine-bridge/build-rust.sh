@@ -14,6 +14,11 @@
 #
 # ANDROID_HOME must point at the SDK. NDK_VERSION can override the version
 # below when the SDK has more than one.
+#
+# Arguments name the ABIs to build. With none it builds all four:
+#
+#   build-rust.sh                    # all four
+#   build-rust.sh arm64-v8a          # one, which is what a CI matrix leg asks for
 set -euo pipefail
 
 here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -42,8 +47,18 @@ targets=(
   "i686-linux-android x86 i686-linux-android"
 )
 
+wanted=("$@")
+built=0
+
 for entry in "${targets[@]}"; do
   read -r triple abi linker_prefix <<<"$entry"
+
+  # With no arguments every ABI is wanted. With arguments, only the named
+  # ones, so that one CI job can build one ABI and fail on its own.
+  if [[ ${#wanted[@]} -gt 0 ]] && ! printf '%s\n' "${wanted[@]}" | grep -qx "$abi"; then
+    continue
+  fi
+
   linker="$ndk/${linker_prefix}${api}-clang"
   if [[ ! -x $linker ]]; then
     echo "no linker for $abi at $linker" >&2
@@ -63,7 +78,15 @@ for entry in "${targets[@]}"; do
   out="$here/android/src/main/jniLibs/$abi"
   mkdir -p "$out"
   cp "$here/rust/target/$triple/release/libhfcast_jni.so" "$out/"
+  built=$((built + 1))
 done
+
+# An ABI name with a typo would otherwise build nothing and report success.
+if [[ ${#wanted[@]} -gt 0 && $built -ne ${#wanted[@]} ]]; then
+  echo "asked for ${#wanted[@]} ABIs and built $built. Names are:" >&2
+  printf '  %s\n' arm64-v8a armeabi-v7a x86_64 x86 >&2
+  exit 1
+fi
 
 echo
 echo "libraries in $here/android/src/main/jniLibs:"

@@ -1,0 +1,45 @@
+#!/usr/bin/env bash
+#
+# Runs before every push: the typechecks and the tests of both packages.
+# The formatting and lint checks are in the pre-commit hook.
+#
+# Turn the hooks on once per clone:
+#
+#     git config core.hooksPath .githooks
+#
+# To push without them: `git push --no-verify`.
+#
+# CI runs four more tests that start the engine as a subprocess and check
+# the JSON contract between it and the server. They need gfortran and a
+# build of the engine at `.github/engine-commit`, so they are not here.
+set -euo pipefail
+
+cd "$(git rev-parse --show-toplevel)"
+
+pnpm_bin() {
+  if command -v pnpm > /dev/null 2>&1; then
+    command -v pnpm
+    return
+  fi
+  local newest
+  newest="$(ls -d "$HOME"/.nvm/versions/node/*/bin/pnpm 2> /dev/null | sort -V | tail -1)"
+  [[ -n $newest ]] || {
+    echo "pre-push: no pnpm found. Put it on PATH." >&2
+    exit 1
+  }
+  echo "$newest"
+}
+
+pnpm="$(pnpm_bin)"
+
+echo "pre-push: mobile typecheck"
+"$pnpm" --dir mobile typecheck
+
+echo "pre-push: mobile tests"
+"$pnpm" --dir mobile test
+
+echo "pre-push: server typecheck"
+"$pnpm" --dir server typecheck
+
+echo "pre-push: server tests"
+"$pnpm" --dir server test
