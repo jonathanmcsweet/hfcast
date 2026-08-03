@@ -650,9 +650,8 @@ export function useFineGlobe(
   // of it. Measured on a Pixel 8: about 30 seconds to change band
   // (user, 2026-08-01), against 3.4 for the run alone.
   //
-  // The roadmap section "A band change re-runs the whole-world fine
-  // grid" holds what to do instead, and why it needs the cost split
-  // measured first.
+  // What to do instead is open work. It needs the cost of the run and
+  // the cost of the fill-in split and measured first.
 
   useFineGlobeCache(query.dataUpdatedAt);
   return query;

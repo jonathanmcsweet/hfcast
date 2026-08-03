@@ -11,7 +11,7 @@
 # reviewed. dprint and biome resolve their prebuilt platform binary that way.
 # `onlyBuiltDependencies` is read by `pnpm config` but does not clear the check
 # in 11.10.0, so the gate is turned off for this tooling-only project. Both
-# binaries are verified to run without their build script. See docs/roadmap.md.
+# binaries are verified to run without their build script.
 strictDepBuilds: false
 allowBuilds:
   '@biomejs/biome': set this to true or false

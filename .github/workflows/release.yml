@@ -5,8 +5,7 @@ name: Release
 # whole of the first publishing channel.
 #
 # Only the modern build is here. The legacy APK targets Android 5.0 and has
-# never been run on a device that old, so it is not published yet — see
-# "Publishing: what is left" in docs/roadmap.md.
+# never been run on a device that old, so it is not published yet.
 #
 # Four files come out, one per architecture. A phone can run only one of
 # them, and a single APK holding all four is about four times the download.
