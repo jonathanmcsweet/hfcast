@@ -14,7 +14,51 @@ describe it in the pull request and the maintainer will record it.
 
 ## Build and verify
 
-- //TODO
+Node 24 and pnpm. Three packages: `mobile/`, `server/`, and the tooling
+at the top.
+
+```bash
+pnpm install --frozen-lockfile
+pnpm fmt:check                 # dprint
+pnpm lint                      # biome
+pnpm --dir mobile typecheck    # tsc --noEmit
+pnpm --dir mobile test
+pnpm --dir server typecheck
+pnpm --dir server test
+```
+
+CI runs all of these, and four more tests that start the engine as a
+subprocess and check the JSON contract between it and the server. Those
+need `gfortran` and a build of the engine at `.github/engine-commit`, so
+they skip in a plain checkout.
+
+Builds, from `mobile/`:
+
+```bash
+pnpm web                        # faster to test than an APK
+tools/build-android.sh modern   # Android 7.0 and later
+tools/build-android.sh legacy   # Android 5.0 and later, not published
+```
+
+An APK takes about ten minutes. Offer the web build first.
+
+Four files hold the application version and have to agree. Move them
+with the script, never by hand:
+
+```bash
+tools/bump-version.sh patch
+tools/bump-version.sh --check   # say what the files hold, change nothing
+```
+
+Hooks run the checks for you: formatting and lint before a commit, the
+typechecks and tests before a push. Turn them on once per clone:
+
+```bash
+git config core.hooksPath .githooks
+```
+
+The propagation engine is a separate repository with its own tests. This
+one pins it by commit in `.github/engine-commit`.
 
 ## Chores
 

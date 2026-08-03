@@ -1,0 +1,113 @@
+name: Architectures
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+env:
+  # The engine is a separate repository and the app finds it by path. Each
+  # job clones it here at the commit in `.github/engine-commit`, exactly as
+  # the release workflow does.
+  ENGINE_REPO: jonathanmcsweet/hfcast-engine
+
+  # The NDK the four libraries are built with. `build-rust.sh` defaults to
+  # the same version and fails loudly if it is absent.
+  NDK_VERSION: 27.1.12297006
+
+# One job per Android ABI, so a badge that goes red names the ABI that
+# broke. What each one builds is the real artefact the APK carries: the
+# engine compiled as a shared library through the NDK, not a source-only
+# check. Every job writes its own badge whatever happens to it, and the
+# last job publishes them to the `badges` branch that the README reads.
+jobs:
+  abi:
+    name: ${{ matrix.abi }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - slug: android-arm64-v8a
+            abi: arm64-v8a
+            target: aarch64-linux-android
+          - slug: android-armeabi-v7a
+            abi: armeabi-v7a
+            target: armv7-linux-androideabi
+          - slug: android-x86-64
+            abi: x86_64
+            target: x86_64-linux-android
+          - slug: android-x86
+            abi: x86
+            target: i686-linux-android
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Read the engine pin
+        id: engine
+        run: bash .github/read-engine-commit.sh
+
+      # The engine goes at the path the JNI crate's `Cargo.toml` names:
+      # `../../../../hfcast-engine` from `rust/`, which is the repository
+      # root. `.gitignore` already excludes it.
+      - name: Clone the engine at the pinned commit
+        env:
+          ENGINE_COMMIT: ${{ steps.engine.outputs.commit }}
+        run: |
+          git clone --quiet "https://github.com/$ENGINE_REPO.git" hfcast-engine
+          git -C hfcast-engine checkout --quiet "$ENGINE_COMMIT"
+          echo "engine at $(git -C hfcast-engine rev-parse --short HEAD)"
+
+      - name: Install the NDK
+        run: |
+          "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "ndk;$NDK_VERSION"
+
+      - run: rustup target add ${{ matrix.target }}
+
+      - name: Cache the engine build
+        uses: actions/cache@v4
+        with:
+          path: mobile/modules/engine-bridge/rust/target
+          key: abi-${{ matrix.slug }}-${{ steps.engine.outputs.commit }}
+
+      # API 24 is the modern APK's minimum. A library built against a newer
+      # API than the app declares fails to load on a device rather than at
+      # build time.
+      - name: Build the shared library
+        working-directory: mobile
+        env:
+          ANDROID_API: '24'
+        run: bash modules/engine-bridge/build-rust.sh ${{ matrix.abi }}
+
+      - name: Write the badge
+        if: always()
+        run: tools/write-badge.sh "android ${{ matrix.abi }}" "${{ job.status }}" "badges/${{ matrix.slug }}.json"
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: badge-${{ matrix.slug }}
+          path: badges/
+          retention-days: 1
+
+  # Only from `main`. A pull request builds every ABI and reports in its
+  # own checks, but it must not move the badges the README shows.
+  publish-badges:
+    needs: abi
+    if: always() && github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          path: badges
+          pattern: badge-*
+          merge-multiple: true
+
+      - run: tools/publish-badges.sh badges

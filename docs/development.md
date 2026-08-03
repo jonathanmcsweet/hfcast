@@ -97,6 +97,16 @@ tools/analyze.sh --gate   # the same, but it fails on a broken gate
 
 Continuous integration runs all of these.
 
+Hooks run them for you: formatting and lint before a commit, the
+typechecks and the tests before a push. Turn them on once per clone,
+because git does not enable a hook directory by itself:
+
+```bash
+git config core.hooksPath .githooks
+```
+
+`git commit --no-verify` and `git push --no-verify` get past them.
+
 ## The engine has more tests than the application
 
 The engine is a translation of 22,800 lines of Fortran. The proof that
