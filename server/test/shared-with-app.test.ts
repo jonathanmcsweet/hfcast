@@ -47,7 +47,7 @@ import { MIN_SHARD_POINTS } from '../src/voacap/shard.ts';
 
 const appFile = (name: string) =>
   readFileSync(
-    path.join(import.meta.dirname, '..', '..', 'app', 'src', 'data', name),
+    path.join(import.meta.dirname, '..', '..', 'mobile', 'src', 'data', name),
     'utf8',
   );
 

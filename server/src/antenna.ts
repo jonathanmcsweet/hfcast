@@ -147,7 +147,7 @@ const param = (value: string, index: number, name: string) =>
  * roughly 30 to 45 degrees below horizontal — and it is a stated
  * approximation rather than a measurement.
  *
- * Mirrors `app/src/data/antennaFile.ts`, and
+ * Mirrors `mobile/src/data/antennaFile.ts`, and
  * `test/shared-with-app.test.ts` pins the two together: two fractions
  * would give one station two forecasts depending on which path answered.
  */

@@ -67,7 +67,7 @@ jobs:
         with:
           node-version: 24
           cache: pnpm
-          cache-dependency-path: app/pnpm-lock.yaml
+          cache-dependency-path: mobile/pnpm-lock.yaml
 
       - uses: actions/setup-java@v4
         with:
@@ -87,25 +87,25 @@ jobs:
       - name: Cache the engine build
         uses: actions/cache@v4
         with:
-          path: app/modules/engine-bridge/rust/target
+          path: mobile/modules/engine-bridge/rust/target
           key: jni-${{ runner.os }}-${{ steps.engine.outputs.commit }}
 
       - name: Install dependencies
-        working-directory: app
+        working-directory: mobile
         run: pnpm install --frozen-lockfile
 
       # The checks the release must not skip. A tag that fails them should
       # produce no artefact at all rather than a signed one nobody checked.
       - name: Typecheck
-        working-directory: app
+        working-directory: mobile
         run: pnpm typecheck
 
       - name: Test
-        working-directory: app
+        working-directory: mobile
         run: pnpm test
 
       # The formatter and the linter live in the project at the top, which
-      # is a different one from `app/` with its own two dependencies. A tag
+      # is a different one from `mobile/` with its own two dependencies. A tag
       # skipped both of them until now, so a release could carry code that
       # the CI workflow would have refused on a pull request.
       #
@@ -127,17 +127,17 @@ jobs:
       # work out which build they installed.
       - name: Check the tag matches the version
         if: startsWith(github.ref, 'refs/tags/')
-        working-directory: app
+        working-directory: mobile
         run: |
           version=$(node -p "require('./package.json').version")
           if [ "v$version" != "$GITHUB_REF_NAME" ]; then
-            echo "::error::tag $GITHUB_REF_NAME does not match version $version in app/package.json"
+            echo "::error::tag $GITHUB_REF_NAME does not match version $version in mobile/package.json"
             exit 1
           fi
           echo "building $version"
 
       - name: Build the engine for the four architectures
-        working-directory: app
+        working-directory: mobile
         env:
           ANDROID_API: '24'
         run: bash modules/engine-bridge/build-rust.sh
@@ -171,14 +171,14 @@ jobs:
           } >> "$HOME/.gradle/gradle.properties"
 
       - name: Build the APKs
-        working-directory: app
+        working-directory: mobile
         run: tools/build-android.sh modern
 
       # `build-android.sh` already fails unless all four APKs exist. This
       # states the other half: that they are signed with the release key
       # rather than the debug fallback, which nothing else would notice.
       - name: Check the APKs are signed with the release key
-        working-directory: app
+        working-directory: mobile
         run: |
           apksigner="$ANDROID_HOME/build-tools/36.0.0/apksigner"
           for apk in build/apk/*.apk; do
@@ -190,7 +190,7 @@ jobs:
           done
 
       - name: Checksums
-        working-directory: app/build/apk
+        working-directory: mobile/build/apk
         run: sha256sum *.apk | tee SHA256SUMS.txt
 
       # `gh` is on the runner already. A third-party action here would put
@@ -218,8 +218,8 @@ jobs:
             --draft \
             --title "${GITHUB_REF_NAME}" \
             --notes-file notes.md \
-            app/build/apk/*.apk \
-            app/build/apk/SHA256SUMS.txt
+            mobile/build/apk/*.apk \
+            mobile/build/apk/SHA256SUMS.txt
 
       # A manual run builds and checks but has no tag to release against.
       # The files are still worth keeping, to install and try.
@@ -228,4 +228,4 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: apk
-          path: app/build/apk/
+          path: mobile/build/apk/

@@ -76,4 +76,4 @@ cleanup() {
 }
 trap cleanup EXIT INT TERM
 
-pnpm --dir "$root/app" start
+pnpm --dir "$root/mobile" start

@@ -1,6 +1,6 @@
 {
   "name": "hfcast-workspace",
-  "version": "0.40.3",
+  "version": "0.40.4",
   "private": true,
   "description": "Tooling shared by the HFcast app and its prediction server",
   "license": "Apache-2.0",
@@ -15,7 +15,7 @@
     "dev:app": "bash tools/dev.sh",
     "test": "pnpm --dir server test",
     "dev": "bash tools/dev.sh",
-    "dev:ui": "pnpm --dir app start"
+    "dev:ui": "pnpm --dir mobile start"
   },
   "devDependencies": {
     "@biomejs/biome": "^1.9.4",

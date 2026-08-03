@@ -31,9 +31,9 @@ git clone https://github.com/jonathanmcsweet/hfcast-engine.git
 You now have this:
 
 ```
-hfcast/                  <- the repository you cloned
-├── app/                 <- the application
-├── hfcast-engine/       <- the engine you just cloned
+hfcast/                <- the repository you cloned
+├── mobile/            <- the application, for Android and the web
+├── hfcast-engine/     <- the engine you just cloned
 ├── server/
 └── docs/
 ```
@@ -91,10 +91,10 @@ them each time.
 
 ## 3. Build
 
-From the `app` directory:
+From the `mobile` directory:
 
 ```bash
-cd app
+cd mobile
 pnpm install
 tools/build-android.sh modern
 ```
