@@ -11,7 +11,13 @@ crate-type = ["cdylib"]
 [dependencies]
 # The engine itself, by path: it is a sibling repository inside this
 # monorepo, exactly as the server's use of the `predict` binary assumes.
-hfcast = { path = "../../../../hfcast-engine" }
+#
+# `embedded-coefficients` is not on by default in the engine, because the
+# published crate does not redistribute those files. A telephone has no
+# `itshfbc` tree to read them from, so this build compiles them in. That is
+# a build for our own devices, not redistribution — the distinction is in
+# the engine's docs/licence.md.
+hfcast = { path = "../../../../hfcast-engine", features = ["embedded-coefficients"] }
 jni = "0.21"
 
 [profile.release]
