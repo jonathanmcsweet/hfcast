@@ -1,16 +1,1 @@
-# The hfcast-engine commit that this repository builds and tests against.
-#
-# The engine is a separate repository. Both workflows here clone it and
-# check out this commit, so a build can be made again later and give the
-# same binary. This file is the only place the value is written: it was
-# in two workflows before, and they drifted apart.
-#
-# Move it deliberately. The evidence that a new commit is safe is the
-# server test run: the server talks to the engine over a JSON contract
-# through a subprocess, and nothing else checks that the two agree. Build
-# the engine at the new commit and run `pnpm test` with HFCAST_PREDICT
-# pointing at it. Say in the commit message what moved and why.
-#
-# Comments and blank space are removed when it is read. What is left must
-# be one full 40-character commit hash.
-12f60ed318f5170ffa65e094d7c5a93d822bbf3e
+b7b985ad458bacedbe18ada4de81af4e3a0c10dd

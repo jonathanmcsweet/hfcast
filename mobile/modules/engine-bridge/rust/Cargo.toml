@@ -13,15 +13,16 @@ crate-type = ["cdylib"]
 # monorepo, exactly as the server's use of the `predict` binary assumes.
 #
 # `embedded-coefficients` is not on by default in the engine, because the
-# published crate does not redistribute those files. A telephone has no
-# `itshfbc` tree to read them from, so this build compiles them in. That is
-# a build for our own devices, not redistribution — the distinction is in
-# the engine's docs/licence.md.
+# published crate does not carry those files. A telephone has no `itshfbc`
+# tree to read them from, so this build compiles them in: 544 KB, of which
+# 195 KB is NTIA/ITS work and the rest is CCIR Report 322 and 340 data that
+# the ITU publishes itself for implementers. The URSI-88 maps are not
+# included and cannot be. See the engine's NOTICE and docs/licence.md.
 hfcast = { path = "../../../../hfcast-engine", features = ["embedded-coefficients"] }
 jni = "0.21"
 
 [profile.release]
-# The engine ships 653 KB of data and a lot of tables; size matters in an
+# The engine ships 560 KB of data and a lot of tables; size matters in an
 # APK, and none of this is hot enough to need the extra unrolling.
 opt-level = 2
 lto = true

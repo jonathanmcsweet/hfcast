@@ -49,9 +49,9 @@ export const CREDITS: readonly Credit[] = [
   },
   {
     id: 'coefficients',
-    who: 'CCIR Report 340 and URSI, published by ITU-R',
+    who: 'CCIR Reports 322 and 340, published by ITU-R',
     terms: 'published for implementers free from copyright assertions',
-    url: 'https://www.itu.int/rec/R-REC-P.1239/',
+    url: 'https://github.com/ITU-R-Study-Group-3/ITU-R-HF',
   },
   {
     id: 'cities',
