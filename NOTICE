@@ -25,6 +25,51 @@ NTIA/ITS disclaimer, carried forward from the original distribution:
     no liability for its use. Use of this software does not imply
     endorsement by NTIA/ITS or the United States Government.
 
+
+THE IONOSPHERIC COEFFICIENTS IN AN ANDROID BUILD
+
+This repository holds no coefficient data. An Android build compiles
+544 KB of it in from the hfcast-engine repository, because a telephone
+has no `itshfbc` tree to read it from, so an APK carries it.
+
+Apache-2.0 covers the software here. It does not cover that data,
+which is the work of other bodies. Measured record by record:
+
+    195 KB   Sporadic-E, E region and F1 maps, the F2 height ratio,
+             the solar index table and the prediction error
+             statistics. NTIA/ITS work, same status as above.
+
+    216 KB   Atmospheric radio noise: Fam, its variability and the
+             related maps. From CCIR Report 322.
+
+    134 KB   The foF2 and M(3000)F2 ionospheric maps. From CCIR
+             Report 340.
+
+The ITU publishes the CCIR Report 322 and Report 340 data itself, in
+the reference software of ITU-R Study Group 3 for Recommendations
+P.372 and P.533, at github.com/ITU-R-Study-Group-3/ITU-R-HF, with this
+statement:
+
+    The ITURHFProp, P533 and P372 software has been developed
+    collaboratively by participants in ITU-R Study Group 3. It may be
+    used by implementers in their implementation of the Recommendation
+    as well as in revisions of the specific original Recommendation and
+    in other ITU Recommendations, free from any copyright assertions.
+
+The URSI-88 foF2 maps are not carried. See hfcast-engine's NOTICE and
+docs/licence.md for the full account.
+
+
+LIBRARIES AND ASSETS THIS PRODUCT CARRIES
+
+IBM Plex Sans, by IBM, under the SIL Open Font License 1.1. The
+licence asks that its notice and text travel with the font, and the
+application carries both on its About screen.
+
+The application is built from libraries under the MIT, ISC, BSD and
+Apache-2.0 licences. The About screen lists what is credited and
+carries the licence texts the terms oblige it to carry.
+
 This product fetches data at run time from services it does not
 include or redistribute:
 
