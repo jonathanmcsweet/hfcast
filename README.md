@@ -34,8 +34,8 @@ time in 15 minutes at most. It does not use an account or a key.
 
 Android 7.0 or later.
 
-| Method                                             | How                                                                    |
-| -------------------------------------------------- | ---------------------------------------------------------------------- |
+| Method                                             | How                                                                             |
+| -------------------------------------------------- | ------------------------------------------------------------------------------- |
 | [Obtainium](https://github.com/ImranR98/Obtainium) | Add the URL `https://github.com/jonathanmcsweet/hfcast`                         |
 | Direct download                                    | Take an APK from [Releases](https://github.com/jonathanmcsweet/hfcast/releases) |
 
