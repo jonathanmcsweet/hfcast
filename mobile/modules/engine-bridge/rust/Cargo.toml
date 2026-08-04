@@ -9,8 +9,8 @@ publish = false
 crate-type = ["cdylib"]
 
 [dependencies]
-# The engine itself, by path: it is a sibling repository inside this
-# monorepo, exactly as the server's use of the `predict` binary assumes.
+# The engine, from crates.io. This version is what the application is
+# built against, and what a change here is judged by.
 #
 # `embedded-coefficients` is not on by default in the engine, because the
 # published crate does not carry those files. A telephone has no `itshfbc`
@@ -18,6 +18,11 @@ crate-type = ["cdylib"]
 # 195 KB is NTIA/ITS work and the rest is CCIR Report 322 and 340 data that
 # the ITU publishes itself for implementers. The URSI-88 maps are not
 # included and cannot be. See the engine's NOTICE and docs/licence.md.
+#
+# Because those files are only in the engine repository, an Android build
+# takes the crate from a checkout of it instead. `build-rust.sh` finds the
+# checkout and applies a Cargo path override, which changes where the
+# crate comes from and nothing else.
 hfcast = { version = "0.66", features = ["embedded-coefficients"] }
 jni = "0.21"
 
