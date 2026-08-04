@@ -46,18 +46,6 @@ jobs:
         id: engine
         run: bash .github/read-engine-commit.sh "${{ github.event.inputs.engine_commit }}"
 
-      # The engine goes inside the checkout, at the path the JNI crate's
-      # `Cargo.toml` names: `../../../../hfcast-engine` from `rust/`, which
-      # is the repository root. `.gitignore` already excludes it, so this
-      # cannot dirty the tree.
-      - name: Clone the engine at the pinned commit
-        env:
-          ENGINE_COMMIT: ${{ steps.engine.outputs.commit }}
-        run: |
-          git clone --quiet "https://github.com/$ENGINE_REPO.git" hfcast-engine
-          git -C hfcast-engine checkout --quiet "$ENGINE_COMMIT"
-          echo "engine at $(git -C hfcast-engine rev-parse --short HEAD)"
-
       - uses: pnpm/action-setup@v4
         with:
           run_install: false

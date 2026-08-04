@@ -18,7 +18,7 @@ crate-type = ["cdylib"]
 # 195 KB is NTIA/ITS work and the rest is CCIR Report 322 and 340 data that
 # the ITU publishes itself for implementers. The URSI-88 maps are not
 # included and cannot be. See the engine's NOTICE and docs/licence.md.
-hfcast = { path = "../../../../hfcast-engine", features = ["embedded-coefficients"] }
+hfcast = { version = "0.66", features = ["embedded-coefficients"] }
 jni = "0.21"
 
 [profile.release]

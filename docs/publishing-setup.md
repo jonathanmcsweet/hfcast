@@ -9,14 +9,11 @@ release. Steps 6 and 7 come later.
 
 Text in `ANGLE BRACKETS` is a placeholder. Replace it.
 
-## 1. Make the two GitHub repositories
-
-There are **two** repositories here:
+## 1. Clone the repo
 
 ```
-hfcast/                <- repository 1
-├── mobile/               the application. NOT its own repository
-├── hfcast-engine/     <- repository 2
+hfcast/
+├── mobile/
 ├── server/
 ├── docs/
 └── tools/
@@ -25,55 +22,14 @@ hfcast/                <- repository 1
 `mobile/` and `server/` are directories of repository 1. Do not make a
 repository for either.
 
-The release workflow reads the engine from GitHub at a fixed commit, so
-the two stay separate.
 
-1. Make `<ACCOUNT>/hfcast` for repository 1.
-2. Make `<ACCOUNT>/hfcast-engine` for repository 2.
-
-If `<ACCOUNT>` is not `jonathanmcsweet`, change `ENGINE_REPO` in
-`.github/workflows/ci.yml` and `.github/workflows/release.yml`.
-
-Then push. Push the engine first, because the workflow of the other
-repository reads it.
+## 2. Make `<ACCOUNT>/hfcast`
 
 ```bash
-cd hfcast-engine
-git remote add origin git@github.com:<ACCOUNT>/hfcast-engine.git
-git push -u origin main
-
 cd ..
 git remote add origin git@github.com:<ACCOUNT>/hfcast.git
 git push -u origin main
 ```
-
-`hfcast-engine/` is in the `.gitignore` of repository 1, so the second
-push does not include it.
-
-You can give repository 1 a different name. The directory names inside
-it must not change: the build reads the engine at
-`../../../../hfcast-engine` from the JNI crate, which is the top of the
-tree. If you change the repository name, change it in the badge
-addresses in `README.md` and in the clone command in
-`docs/quick-start.md`.
-
-## 2. Point the workflow at the engine commit
-
-`.github/engine-commit` holds the engine commit that a release is built
-from. Both workflows read it. A release built from a moving branch
-cannot be built again and give the same file.
-
-```bash
-git -C hfcast-engine rev-parse HEAD
-```
-
-Put that value in the file, on the last line, with the comment above it
-left in place. Change it when a release needs a newer engine, and say
-why in the commit message.
-
-The commit must be on a branch that is pushed. The workflow clones the
-repository and then checks the commit out, so a commit that is only on
-your machine makes the workflow stop there.
 
 ## 3. Make the signing key
 
@@ -189,9 +145,7 @@ Both need more than a release, and both can wait.
 own key. `mobile/docs/fdroid.md` holds the recipe.
 `mobile/fastlane/metadata/android/en-US/` already holds the title, the
 short description and the full description. What is missing is the
-screenshots, a changelog for each version, and a build recipe that
-clones the engine the same way the release workflow does. Expect a long
-review.
+screenshots, a changelog for each version.
 
 **Accrescent** wants an app bundle, not a bare APK, and you sign it
 yourself. It is curated, so it needs an approach to the maintainers.

@@ -103,14 +103,6 @@ jobs:
           path: /tmp/hfcast-engine/target
           key: engine-${{ runner.os }}-${{ steps.engine.outputs.commit }}
 
-      - name: Build the engine at the pinned commit
-        env:
-          ENGINE_COMMIT: ${{ steps.engine.outputs.commit }}
-        run: |
-          git clone --quiet "https://github.com/$ENGINE_REPO.git" /tmp/hfcast-engine
-          git -C /tmp/hfcast-engine checkout --quiet "$ENGINE_COMMIT"
-          cargo build --release --manifest-path /tmp/hfcast-engine/Cargo.toml --bin predict
-
       - name: Test
         env:
           HFCAST_PREDICT: /tmp/hfcast-engine/target/release/predict

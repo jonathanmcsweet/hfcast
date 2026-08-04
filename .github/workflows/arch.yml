@@ -49,17 +49,6 @@ jobs:
         id: engine
         run: bash .github/read-engine-commit.sh
 
-      # The engine goes at the path the JNI crate's `Cargo.toml` names:
-      # `../../../../hfcast-engine` from `rust/`, which is the repository
-      # root. `.gitignore` already excludes it.
-      - name: Clone the engine at the pinned commit
-        env:
-          ENGINE_COMMIT: ${{ steps.engine.outputs.commit }}
-        run: |
-          git clone --quiet "https://github.com/$ENGINE_REPO.git" hfcast-engine
-          git -C hfcast-engine checkout --quiet "$ENGINE_COMMIT"
-          echo "engine at $(git -C hfcast-engine rev-parse --short HEAD)"
-
       - name: Install the NDK
         run: |
           "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "ndk;$NDK_VERSION"

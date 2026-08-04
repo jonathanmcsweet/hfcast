@@ -18,14 +18,9 @@ You need a Linux or macOS machine with:
 
 ## 1. Get the two repositories
 
-There are two: `hfcast` and `hfcast-engine`. The engine must go at the
-top of the `hfcast` tree, with the name `hfcast-engine`, because the
-build reads it from that path.
-
 ```bash
 git clone https://github.com/jonathanmcsweet/hfcast.git
 cd hfcast
-git clone https://github.com/jonathanmcsweet/hfcast-engine.git
 ```
 
 You now have this:
@@ -33,13 +28,9 @@ You now have this:
 ```
 hfcast/                <- the repository you cloned
 ├── mobile/            <- the application, for Android and the web
-├── hfcast-engine/     <- the engine you just cloned
 ├── server/
 └── docs/
 ```
-
-The repository ignores `hfcast-engine/` in git, so you cannot commit it
-by accident.
 
 ## 2. Install the tools
 
