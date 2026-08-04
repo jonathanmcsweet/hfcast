@@ -4,7 +4,7 @@
 [![Licence](https://img.shields.io/badge/licence-Apache--2.0-blue)](LICENSE)
 [![Android 7.0+](https://img.shields.io/badge/Android-7.0%2B-3ddc84)](docs/quick-start.md)
 [![GrapheneOS](https://img.shields.io/badge/GrapheneOS-tested-4a4a4a)](#grapheneos)
-[![Built with Isopod](https://img.shields.io/badge/built%20with-Isopod-6f42c1)](https://github.com/isopod/isopod)
+[![Built with Isopod](https://img.shields.io/badge/built%20with-Isopod-6f42c1)](https://github.com/jonathanmcsweet/jonathanmcsweet)
 
 The engine is built as a shared library for each Android processor type,
 and each one is checked on its own:
@@ -116,5 +116,3 @@ They are not responsible for what it reports.
 ## Licence
 
 Apache-2.0. See [LICENSE](LICENSE) and [NOTICE](NOTICE).
-
-This project operates VOACAP. It does not replace it.
