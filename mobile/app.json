@@ -47,6 +47,7 @@
       "expo-font",
       "./plugins/withReleaseSigning.ts",
       "./plugins/withAbiSplits.ts",
+      "./plugins/withBuildMemory.ts",
       [
         "expo-build-properties",
         {
