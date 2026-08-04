@@ -285,7 +285,7 @@ const abiCodes = (): Map<string, number> => {
   const line = /ext\.abiCodes = \[([^\]]+)\]/.exec(ABI_CODES);
   assert.ok(line, 'the plugin no longer declares ext.abiCodes');
   return new Map(
-    line[1]
+    line?.[1]
       .split(',')
       .map((entry) => entry.split(':').map((part) => part.trim()))
       .map(([name, code]) => [name.replaceAll('"', ''), Number(code)]),
