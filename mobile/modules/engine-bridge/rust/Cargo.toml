@@ -23,6 +23,7 @@ crate-type = ["cdylib"]
 # takes the crate from a checkout of it instead. `build-rust.sh` finds the
 # checkout and applies a Cargo path override, which changes where the
 # crate comes from and nothing else.
+
 hfcast = { version = "0.66", features = ["embedded-coefficients"] }
 jni = "0.21"
 

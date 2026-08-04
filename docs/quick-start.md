@@ -21,7 +21,6 @@ You need a Linux or macOS machine with:
 ```bash
 git clone https://github.com/jonathanmcsweet/hfcast.git
 cd hfcast
-git clone https://github.com/jonathanmcsweet/hfcast-engine.git
 ```
 
 You now have this:
@@ -30,14 +29,8 @@ You now have this:
 hfcast/                <- the repository you cloned
 ├── mobile/            <- the application, for Android and the web
 ├── server/
-├── docs/
-└── hfcast-engine/     <- the engine, a second repository
+└── docs/
 ```
-
-The application depends on the published `hfcast` crate, but an APK has
-the ionospheric coefficients compiled in and the published crate does
-not carry them. So the Android build takes the crate from this checkout.
-See [development.md](development.md).
 
 ## 2. Install the tools
 
