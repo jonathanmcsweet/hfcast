@@ -5,10 +5,6 @@
 [![Android 7.0+](https://img.shields.io/badge/Android-7.0%2B-3ddc84)](docs/quick-start.md)
 [![GrapheneOS](https://img.shields.io/badge/GrapheneOS-tested-4a4a4a)](#grapheneos)
 [![Built with Isopod](https://img.shields.io/badge/built%20with-Isopod-6f42c1)](https://github.com/jonathanmcsweet/jonathanmcsweet)
-
-The engine is built as a shared library for each Android processor type,
-and each one is checked on its own:
-
 [![arm64-v8a](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/jonathanmcsweet/hfcast/badges/android-arm64-v8a.json)](https://github.com/jonathanmcsweet/hfcast/actions/workflows/arch.yml)
 [![armeabi-v7a](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/jonathanmcsweet/hfcast/badges/android-armeabi-v7a.json)](https://github.com/jonathanmcsweet/hfcast/actions/workflows/arch.yml)
 [![x86_64](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/jonathanmcsweet/hfcast/badges/android-x86-64.json)](https://github.com/jonathanmcsweet/hfcast/actions/workflows/arch.yml)
