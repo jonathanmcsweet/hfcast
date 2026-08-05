@@ -8,8 +8,8 @@ on:
 
 env:
   # The engine is a separate repository and the app finds it by path. Each
-  # job clones it here at the commit in `.github/engine-commit`, exactly as
-  # the release workflow does.
+  # job clones it here at the tag of the version in the application's
+  # `Cargo.lock`, exactly as the release workflow does.
   ENGINE_REPO: jonathanmcsweet/hfcast-engine
 
   # The NDK the four libraries are built with. `build-rust.sh` defaults to
@@ -45,9 +45,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Read the engine pin
+      - name: Read the engine version the application depends on
         id: engine
-        run: bash .github/read-engine-commit.sh
+        run: bash .github/read-engine-version.sh
 
       - name: Install the NDK
         run: |
@@ -57,19 +57,15 @@ jobs:
 
       # The library has the ionospheric coefficients compiled in, and the
       # published crate does not carry them. `build-rust.sh` takes the
-      # crate from this checkout instead, at the pinned commit.
-      - name: Clone the engine at the pin
-        run: |
-          git clone --quiet --filter=blob:none \
-            "https://github.com/$ENGINE_REPO.git" /tmp/hfcast-engine
-          git -C /tmp/hfcast-engine checkout --quiet \
-            "${{ steps.engine.outputs.commit }}"
+      # crate from this checkout instead, at the tag of that version.
+      - name: Clone the engine at that version
+        run: bash .github/clone-engine.sh "${{ steps.engine.outputs.version }}" /tmp/hfcast-engine
 
       - name: Cache the engine build
         uses: actions/cache@v4
         with:
           path: mobile/modules/engine-bridge/rust/target
-          key: abi-${{ matrix.slug }}-${{ steps.engine.outputs.commit }}
+          key: abi-${{ matrix.slug }}-${{ steps.engine.outputs.version }}
 
       # API 24 is the modern APK's minimum. A library built against a newer
       # API than the app declares fails to load on a device rather than at

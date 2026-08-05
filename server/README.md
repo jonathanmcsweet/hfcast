@@ -50,11 +50,12 @@ The server looks for it at `~/workspace/hfcast-engine/target/release/predict`,
 or wherever `HFCAST_PREDICT` points. `HFCAST_ENGINE=fortran` uses `voacapl`
 directly instead.
 
-**The engine version is pinned in CI**, in `ENGINE_COMMIT` in
-`.github/workflows/ci.yml`. The server and the engine agree on a JSON contract
-that nothing else checks, so that pin is the answer to "which engine does this
-server work with". Moving it is a deliberate change with the four engine tests
-in `test/engine.test.ts` as the evidence.
+**The engine is pinned to a published version**, the `hfcast` version in
+`mobile/modules/engine-bridge/rust/Cargo.lock`. CI installs that version from
+crates.io. The server and the engine agree on a JSON contract that nothing else
+checks, so that pin is the answer to "which engine does this server work with".
+Moving it is a deliberate change with the four engine tests in
+`test/engine.test.ts` as the evidence.
 
 ## Running
 

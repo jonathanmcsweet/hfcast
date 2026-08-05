@@ -9,8 +9,13 @@ publish = false
 crate-type = ["cdylib"]
 
 [dependencies]
-# The engine, from crates.io. This version is what the application is
-# built against, and what a change here is judged by.
+# The engine, from crates.io. `Cargo.lock` holds the one version cargo
+# resolved from the range below, with its checksum, and that version is
+# the pin: the CI workflow installs it from crates.io for the server
+# tests, and an Android build takes the engine repository at the tag of
+# the same version. Nothing here names an engine commit.
+#
+# Move it with `cargo update -p hfcast --precise <version>`.
 #
 # `embedded-coefficients` is not on by default in the engine, because the
 # published crate does not carry those files. A telephone has no `itshfbc`
@@ -24,7 +29,7 @@ crate-type = ["cdylib"]
 # checkout and applies a Cargo path override, which changes where the
 # crate comes from and nothing else.
 
-hfcast = { version = "0.66", features = ["embedded-coefficients"] }
+hfcast = { version = "0.66.6", features = ["embedded-coefficients"] }
 jni = "0.21"
 
 [profile.release]

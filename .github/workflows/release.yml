@@ -15,15 +15,16 @@ on:
     tags: ['v*']
   workflow_dispatch:
     inputs:
-      engine_commit:
-        description: 'Engine commit to build against, instead of .github/engine-commit'
+      engine_version:
+        description: 'Engine version to build against, instead of the one in Cargo.lock'
         required: false
 
 env:
   # The engine is a separate repository and the app finds it by path. CI
-  # clones it here instead, at the commit in `.github/engine-commit`, so a
-  # release can be built again from the same two commits and give the same
-  # binary. That file is also what the CI workflow reads.
+  # clones it here instead, at the tag of the version in the application's
+  # `Cargo.lock`, so a release built again from the same application
+  # commit gives the same binary. That lock is also what the CI workflow
+  # reads.
   ENGINE_REPO: jonathanmcsweet/hfcast-engine
 
   # The NDK the engine's four libraries are built with. `build-rust.sh`
@@ -40,11 +41,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # A manual run can name a different commit. An empty input means the
-      # file, which is the normal path.
-      - name: Read the engine pin
+      # A manual run can name a different version. An empty input means
+      # the lock, which is the normal path.
+      - name: Read the engine version the application depends on
         id: engine
-        run: bash .github/read-engine-commit.sh "${{ github.event.inputs.engine_commit }}"
+        run: bash .github/read-engine-version.sh "${{ github.event.inputs.engine_version }}"
 
       - uses: pnpm/action-setup@v4
         with:
@@ -73,20 +74,16 @@ jobs:
 
       # The APK has the ionospheric coefficients compiled in, and the
       # published crate does not carry them. `build-rust.sh` takes the
-      # crate from this checkout instead, at the pinned commit, so the same
-      # two commits always give the same libraries.
-      - name: Clone the engine at the pin
-        run: |
-          git clone --quiet --filter=blob:none \
-            "https://github.com/$ENGINE_REPO.git" /tmp/hfcast-engine
-          git -C /tmp/hfcast-engine checkout --quiet \
-            "${{ steps.engine.outputs.commit }}"
+      # crate from this checkout instead, at the tag of that version, so
+      # the same application commit always gives the same libraries.
+      - name: Clone the engine at that version
+        run: bash .github/clone-engine.sh "${{ steps.engine.outputs.version }}" /tmp/hfcast-engine
 
       - name: Cache the engine build
         uses: actions/cache@v4
         with:
           path: mobile/modules/engine-bridge/rust/target
-          key: jni-${{ runner.os }}-${{ steps.engine.outputs.commit }}
+          key: jni-${{ runner.os }}-${{ steps.engine.outputs.version }}
 
       - name: Install dependencies
         working-directory: mobile
