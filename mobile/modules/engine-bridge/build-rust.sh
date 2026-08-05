@@ -15,6 +15,11 @@
 # ANDROID_HOME must point at the SDK. NDK_VERSION can override the version
 # below when the SDK has more than one.
 #
+# It also needs a checkout of the engine repository beside this one, because
+# the APK carries the ionospheric coefficients and the published crate does
+# not have them. HFCAST_ENGINE names it; with nothing set, each parent
+# directory is examined for `hfcast-engine`. See the block below.
+#
 # Arguments name the ABIs to build. With none it builds all four:
 #
 #   build-rust.sh                    # all four
@@ -31,6 +36,44 @@ if [[ ! -d $ndk ]]; then
   echo "install it with: sdkmanager 'ndk;$ndk_version'" >&2
   exit 1
 fi
+
+# Where the engine comes from.
+#
+# `rust/Cargo.toml` asks for the published crate, which is the version the
+# application is built against. But this build turns on
+# `embedded-coefficients`, and the published crate does not carry the
+# coefficient files: part of that data is CCIR Report 322 and 340 material
+# that the engine does not redistribute. So an APK is built from a checkout
+# of the engine repository, which has the files.
+#
+# A Cargo path override does that. It replaces the source of the crate and
+# nothing else, so the version in `Cargo.toml` still says what the
+# application depends on, and `Cargo.lock` is not changed. It is also the
+# way to try an engine change here before it is published.
+engine="${HFCAST_ENGINE:-}"
+if [[ -z $engine ]]; then
+  dir="$here"
+  while [[ $dir != / ]]; do
+    if [[ -f $dir/hfcast-engine/embedded/coeffs/coeff01w.bin ]]; then
+      engine="$dir/hfcast-engine"
+      break
+    fi
+    dir="$(dirname "$dir")"
+  done
+fi
+
+if [[ -z $engine ]]; then
+  echo "no engine checkout found beside this repository" >&2
+  echo >&2
+  echo "The APK has the ionospheric coefficients compiled in, and the" >&2
+  echo "published crate does not carry them. Clone the engine next to" >&2
+  echo "this repository, or name it:" >&2
+  echo >&2
+  echo "  git clone https://github.com/jonathanmcsweet/hfcast-engine.git" >&2
+  echo "  HFCAST_ENGINE=/path/to/hfcast-engine $(basename "${BASH_SOURCE[0]}")" >&2
+  exit 1
+fi
+echo "engine: $engine"
 
 # The minimum API this build supports, which differs between the two APKs: 24
 # for the modern one and 21 for the legacy one. A library built against a newer
@@ -73,6 +116,7 @@ for entry in "${targets[@]}"; do
     "CC_${triple//-/_}=$linker" \
     "AR_${triple//-/_}=$ndk/llvm-ar" \
     cargo build --release --manifest-path "$here/rust/Cargo.toml" \
+      --config "paths=[\"$engine\"]" \
       --target "$triple" --jobs "${CARGO_JOBS:-2}"
 
   out="$here/android/src/main/jniLibs/$abi"

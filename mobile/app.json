@@ -2,7 +2,7 @@
   "expo": {
     "name": "HFcast",
     "slug": "hfcast",
-    "version": "0.54.11",
+    "version": "0.54.12",
     "icon": "./src/assets/icon.png",
     "orientation": "portrait",
     "userInterfaceStyle": "automatic",
@@ -12,7 +12,7 @@
     },
     "android": {
       "package": "solutions.cloudburner.hfcast",
-      "versionCode": 54111,
+      "versionCode": 54121,
       "adaptiveIcon": {
         "foregroundImage": "./src/assets/icon-foreground.png",
         "monochromeImage": "./src/assets/icon-monochrome.png",
@@ -47,6 +47,7 @@
       "expo-font",
       "./plugins/withReleaseSigning.ts",
       "./plugins/withAbiSplits.ts",
+      "./plugins/withBuildMemory.ts",
       [
         "expo-build-properties",
         {

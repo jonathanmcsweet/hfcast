@@ -22,7 +22,6 @@ hfcast/
 `mobile/` and `server/` are directories of repository 1. Do not make a
 repository for either.
 
-
 ## 2. Make `<ACCOUNT>/hfcast`
 
 ```bash
