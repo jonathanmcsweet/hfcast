@@ -6,13 +6,21 @@ on:
   pull_request:
   workflow_dispatch:
 
-# The engine commit the server is tested against is in
-# `.github/engine-commit`, which the release workflow reads as well. It
-# is the written answer to "which engine version does this server work
-# with?", because the server talks to the engine over a JSON contract
-# through a subprocess and nothing else checks that the two agree.
-env:
-  ENGINE_REPO: jonathanmcsweet/hfcast-engine
+# The server talks to the engine over a JSON contract, through a
+# subprocess, and nothing else checks that the two agree. So this builds
+# the engine and runs those four tests for real.
+#
+# The engine comes from crates.io, at the version in the application's
+# `Cargo.lock`. That is the version the application is built against, so
+# it is the one the server has to agree with, and there is no second
+# place to keep in step. The published crate carries the `predict`
+# binary and nothing else of its 22.
+#
+# It carries no ionospheric coefficients either — see the engine's
+# NOTICE — so `predict` reads them from the `itshfbc` tree this job
+# builds below, which is how the reference engine has always found them.
+# An Android build is the case that needs them compiled in, and that one
+# still needs an engine checkout: see `arch.yml`.
 
 jobs:
   # A change that does not move the version of the part it changed fails
@@ -39,9 +47,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Read the engine pin
+      - name: Read the engine version the application depends on
         id: engine
-        run: bash .github/read-engine-commit.sh
+        run: bash .github/read-engine-version.sh
 
       - uses: pnpm/action-setup@v4
         with:
@@ -97,15 +105,25 @@ jobs:
           # install hook, and the source copy still says __PREFIX__.
           "$HOME/.local/bin/makeitshfbc"
 
-      - name: Cache the engine build
+      # The installed binary, not a build tree. `cargo install` writes its
+      # own record beside it, so a restored cache makes the step below say
+      # "already installed" and do nothing.
+      - name: Cache the engine binary
         uses: actions/cache@v4
         with:
-          path: /tmp/hfcast-engine/target
-          key: engine-${{ runner.os }}-${{ steps.engine.outputs.commit }}
+          path: /tmp/engine
+          key: predict-${{ runner.os }}-${{ steps.engine.outputs.version }}
+
+      - name: Install the engine from crates.io
+        run: |
+          cargo install hfcast \
+            --version "${{ steps.engine.outputs.version }}" \
+            --root /tmp/engine --locked
+          test -x /tmp/engine/bin/predict
 
       - name: Test
         env:
-          HFCAST_PREDICT: /tmp/hfcast-engine/target/release/predict
+          HFCAST_PREDICT: /tmp/engine/bin/predict
         run: |
           pnpm test 2>&1 | tee test.log
           # A skipped engine test means the wiring above silently failed,
