@@ -294,6 +294,9 @@ export default function ForecastScreen() {
           band={band}
           hour={hour}
           anchor={anchor}
+          // The exact moment behind the now-cast: the live readings when
+          // they have arrived, the clock when they have not.
+          liveAt={weather.dataUpdatedAt || now.getTime()}
           onHourChange={setHour}
         />
 

@@ -25,6 +25,8 @@ interface Props {
   hour: number;
   /** The hour the slider's track starts at. See `src/data/timeline.ts`. */
   anchor: number;
+  /** When the live readings were pulled, for the clock. See `HourSlider`. */
+  liveAt?: number | null;
   onHourChange: (hour: number) => void;
 }
 
@@ -93,6 +95,7 @@ export default function ReachCard({
   band,
   hour,
   anchor,
+  liveAt,
   onHourChange,
 }: Props) {
   const theme = useTheme<AppTheme>();
@@ -386,6 +389,7 @@ export default function ReachCard({
       <HourSlider
         hour={hour}
         anchor={anchor}
+        liveAt={liveAt}
         onChange={onHourChange}
         place={prediction.from.label}
         lon={prediction.from.lon}
