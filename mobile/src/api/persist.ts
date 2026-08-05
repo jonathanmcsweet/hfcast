@@ -47,7 +47,10 @@ export const OFFLINE_GC_TIME = 7 * 24 * 60 * 60 * 1000;
 export const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      refetchOnWindowFocus: false,
+      // On focus a stale query refetches, and only a stale one: coming
+      // back inside a query's `staleTime` fetches nothing. `api/focus.ts`
+      // is what tells React Query the app came to the front at all.
+      refetchOnWindowFocus: true,
       retry: 1,
       gcTime: OFFLINE_GC_TIME,
     },
