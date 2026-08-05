@@ -4,6 +4,7 @@ import { ScrollView, StyleSheet, View } from 'react-native';
 import { Text, useTheme } from 'react-native-paper';
 import { qualityFor } from '../data/quality';
 import { cellFor } from '../data/selectors';
+import { hoursFrom } from '../data/timeline';
 import { BAND_ORDER } from '../data/types';
 import type { BandKey, PathPrediction } from '../data/types';
 import { useFormatters } from '../hooks/useFormatters';
@@ -14,9 +15,9 @@ interface Props {
   prediction: PathPrediction;
   band: BandKey;
   hour: number;
+  /** The hour the first column shows: "now". Columns run 24 h forward. */
+  anchor: number;
 }
-
-const HOURS = Array.from({ length: 24 }, (_, h) => h);
 
 /**
  * The same numbers as the heatmap, as numbers.
@@ -29,11 +30,14 @@ const HOURS = Array.from({ length: 24 }, (_, h) => h);
  * The band column stays put while the hours scroll, because a row of numbers
  * with its label off-screen is a row of numbers about nothing.
  */
-export default function BandTable({ prediction, band, hour }: Props) {
+export default function BandTable({ prediction, band, hour, anchor }: Props) {
   const theme = useTheme<AppTheme>();
   const { t } = useTranslation();
   const f = useFormatters();
   const ui = theme.colors.ui;
+
+  // The same track order as the heatmap, so the two tell one story.
+  const hours = hoursFrom(anchor);
 
   return (
     <View style={styles.wrap}>
@@ -64,7 +68,7 @@ export default function BandTable({ prediction, band, hour }: Props) {
       <ScrollView horizontal showsHorizontalScrollIndicator={false}>
         <View>
           <View style={styles.row}>
-            {HOURS.map((h) => (
+            {hours.map((h) => (
               <View key={h} style={[styles.headCell, styles.dataCell]}>
                 <Text
                   style={[typography.axis, numeric, {
@@ -78,7 +82,7 @@ export default function BandTable({ prediction, band, hour }: Props) {
           </View>
           {BAND_ORDER.map((key) => (
             <View key={key} style={styles.row}>
-              {HOURS.map((h) => {
+              {hours.map((h) => {
                 const reliability = cellFor(prediction, key, h)?.reliability
                   ?? 0;
                 const quality = qualityFor(reliability);

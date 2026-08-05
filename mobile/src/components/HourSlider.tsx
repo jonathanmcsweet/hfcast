@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { StyleSheet, View } from 'react-native';
 import { Text, useTheme } from 'react-native-paper';
 import { localHour } from '../data/time';
+import { hourAt, offsetOf } from '../data/timeline';
 import { useFormatters } from '../hooks/useFormatters';
 import { numeric, spacing, typography } from '../theme';
 import type { AppTheme } from '../theme';
@@ -11,6 +12,8 @@ import type { AppTheme } from '../theme';
 interface Props {
   /** The UTC hour every module is showing, 0..23. */
   hour: number;
+  /** The hour the track starts at: "now". The track runs 24 h forward. */
+  anchor: number;
   onChange: (hour: number) => void;
   /** Where the operator is: named in the label, and sets local time. */
   place: string;
@@ -41,7 +44,9 @@ const OFFSET = 1;
  * question. Making the reader convert between them is the kind of small
  * arithmetic that goes wrong in the field.
  */
-export default function HourSlider({ hour, onChange, place, lon }: Props) {
+export default function HourSlider(
+  { hour, anchor, onChange, place, lon }: Props,
+) {
   const theme = useTheme<AppTheme>();
   const { t } = useTranslation();
   const f = useFormatters();
@@ -64,12 +69,18 @@ export default function HourSlider({ hour, onChange, place, lon }: Props) {
           })}
         </Text>
       </View>
+      {
+        /* The track is the next 24 hours: the left edge is now and the
+           right edge is this hour tomorrow, wrapping past midnight. The
+           control still moves over positions; the timeline arithmetic
+           turns a position into the UTC hour it means. */
+      }
       <Slider
-        value={hour + OFFSET}
+        value={offsetOf(hour, anchor) + OFFSET}
         minimumValue={0 + OFFSET}
         maximumValue={23 + OFFSET}
         step={1}
-        onValueChange={(value) => onChange(value - OFFSET)}
+        onValueChange={(value) => onChange(hourAt(value - OFFSET, anchor))}
         minimumTrackTintColor={ui.accent}
         maximumTrackTintColor={ui.line2}
         thumbTintColor={ui.accent}

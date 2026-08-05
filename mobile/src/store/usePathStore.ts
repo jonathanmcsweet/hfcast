@@ -57,6 +57,12 @@ interface PathState {
   /** The hour every module is showing, 0..23. */
   hour: number;
   /**
+   * Where the rolling timeline starts: the current hour, taken at launch
+   * and again when the app returns to the foreground. Every track runs
+   * 24 hours forward from here. See `src/data/timeline.ts`.
+   */
+  anchor: number;
+  /**
    * Whether the operator has been asked where they are.
    *
    * False only until the first-run pane has been answered or skipped. It is
@@ -69,6 +75,11 @@ interface PathState {
   swapEnds: () => void;
   setBand: (band: BandKey) => void;
   setHour: (hour: number) => void;
+  /**
+   * Moves the timeline's start to the current hour, and the selection
+   * with it. Called when the app returns to the foreground.
+   */
+  reanchor: () => void;
   /** Marks the first run answered, with whatever location it settled on. */
   finishFirstRun: (from: Endpoint) => void;
 }
@@ -87,6 +98,7 @@ export const usePathStore = create<PathState>()(
       to: DEFAULT_TO,
       band: DEFAULT_BAND,
       hour: new Date().getUTCHours(),
+      anchor: new Date().getUTCHours(),
       ready: false,
       setFrom: (from) => set({ from }),
       setTo: (to) => set({ to }),
@@ -99,15 +111,26 @@ export const usePathStore = create<PathState>()(
       setBand: (band) => set({ band }),
       setHour: (hour) =>
         set({ hour: Math.min(23, Math.max(0, Math.round(hour))) }),
+      // A no-op inside the same hour, so switching apps and straight back
+      // never moves anything. Across an hour boundary the selection snaps
+      // to the new now rather than keeping its old hour: that hour still
+      // exists on the track, but it would have slid towards the far end
+      // and now mean tomorrow — a quiet change of meaning under a
+      // selection the user made with today in mind.
+      reanchor: () =>
+        set((state) => {
+          const now = new Date().getUTCHours();
+          return now === state.anchor ? state : { anchor: now, hour: now };
+        }),
       finishFirstRun: (from) => set({ from, ready: true }),
     }),
     {
       name: 'hfcast.path',
       version: PERSIST_VERSION,
       storage: createJSONStorage(() => AsyncStorage),
-      // The path and the band are worth restoring. `hour` is not: the app
-      // should open on the current hour, not on whatever hour the user was
-      // last inspecting.
+      // The path and the band are worth restoring. `hour` and `anchor`
+      // are not: the app should open on the current hour, not on whatever
+      // hour the user was last inspecting.
       partialize: (state) => ({
         from: state.from,
         to: state.to,
