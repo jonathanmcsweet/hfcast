@@ -2,6 +2,11 @@ import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
 import { ABI_CODES, addAbiSplits } from '../plugins/withAbiSplits.ts';
+import {
+  JVM_ARGS,
+  type PropertiesItem,
+  setBuildMemory,
+} from '../plugins/withBuildMemory.ts';
 import { addReleaseSigning } from '../plugins/withReleaseSigning.ts';
 import { BUILD_TIERS, versionCodeFor } from '../src/data/version.ts';
 
@@ -208,6 +213,66 @@ describe('the architecture split plugin', () => {
   });
 });
 
+describe('the build memory plugin', () => {
+  /** The shape `expo prebuild` writes, cut down to the lines this reads. */
+  const TEMPLATE = [
+    {
+      type: 'comment',
+      value: 'Specifies the JVM arguments used for the daemon',
+    },
+    {
+      type: 'property',
+      key: 'org.gradle.jvmargs',
+      value: '-Xmx2048m -XX:MaxMetaspaceSize=512m',
+    },
+    { type: 'property', key: 'org.gradle.parallel', value: 'true' },
+  ] as const;
+
+  /** Narrows to the entries that have a key, which comments do not. */
+  const named = (entries: readonly PropertiesItem[], key: string) =>
+    entries.filter((entry) =>
+      entry.type === 'property' && entry.key === key
+    ) as {
+      type: 'property';
+      key: string;
+      value: string;
+    }[];
+
+  it('raises the metaspace the daemon runs out of', () => {
+    const out = setBuildMemory(TEMPLATE);
+    const [args] = named(out, 'org.gradle.jvmargs');
+    assert.equal(args?.value, JVM_ARGS);
+    assert.match(JVM_ARGS, /MaxMetaspaceSize=1024m/);
+  });
+
+  it('leaves every other property where it was', () => {
+    const out = setBuildMemory(TEMPLATE);
+    assert.equal(out.length, TEMPLATE.length);
+    assert.deepEqual(out[0], TEMPLATE[0]);
+    assert.deepEqual(out[2], TEMPLATE[2]);
+  });
+
+  it('adds the key if the template stops writing it', () => {
+    // A template without the key would otherwise leave the daemon on the
+    // JVM's own default, which is smaller than what it starts with today.
+    const without = TEMPLATE.filter(
+      (entry) =>
+        entry.type !== 'property' || entry.key !== 'org.gradle.jvmargs',
+    );
+    const out = setBuildMemory(without);
+    assert.equal(named(out, 'org.gradle.jvmargs').length, 1);
+  });
+
+  it('adds nothing a second time', () => {
+    // `expo prebuild` can call the plugins again over a tree that already
+    // has the change.
+    assert.deepEqual(
+      setBuildMemory(setBuildMemory(TEMPLATE)),
+      setBuildMemory(TEMPLATE),
+    );
+  });
+});
+
 /**
  * The version code arithmetic, read out of the plugin's own Groovy.
  *
@@ -220,7 +285,7 @@ const abiCodes = (): Map<string, number> => {
   const line = /ext\.abiCodes = \[([^\]]+)\]/.exec(ABI_CODES);
   assert.ok(line, 'the plugin no longer declares ext.abiCodes');
   return new Map(
-    line[1]
+    line?.[1]
       .split(',')
       .map((entry) => entry.split(':').map((part) => part.trim()))
       .map(([name, code]) => [name.replaceAll('"', ''), Number(code)]),

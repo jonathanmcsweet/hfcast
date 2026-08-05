@@ -55,6 +55,16 @@ jobs:
 
       - run: rustup target add ${{ matrix.target }}
 
+      # The library has the ionospheric coefficients compiled in, and the
+      # published crate does not carry them. `build-rust.sh` takes the
+      # crate from this checkout instead, at the pinned commit.
+      - name: Clone the engine at the pin
+        run: |
+          git clone --quiet --filter=blob:none \
+            "https://github.com/$ENGINE_REPO.git" /tmp/hfcast-engine
+          git -C /tmp/hfcast-engine checkout --quiet \
+            "${{ steps.engine.outputs.commit }}"
+
       - name: Cache the engine build
         uses: actions/cache@v4
         with:
@@ -68,6 +78,7 @@ jobs:
         working-directory: mobile
         env:
           ANDROID_API: '24'
+          HFCAST_ENGINE: /tmp/hfcast-engine
         run: bash modules/engine-bridge/build-rust.sh ${{ matrix.abi }}
 
       - name: Write the badge

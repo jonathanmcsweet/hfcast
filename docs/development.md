@@ -50,6 +50,28 @@ mobile/modules/engine-bridge/
 `android/src/main/jniLibs/`. They are not in git. Run the script again
 after a change to the engine or to the JNI crate.
 
+### Where the engine crate comes from
+
+`rust/Cargo.toml` asks for the published `hfcast` crate. That version is
+what the application depends on.
+
+An APK also needs the ionospheric coefficients compiled in, because a
+telephone has no `itshfbc` tree to read. The published crate does not
+carry those files: part of that data is CCIR Report 322 and 340 material
+that the engine does not redistribute. Only the engine repository has
+them.
+
+So `build-rust.sh` finds the engine checkout and applies a Cargo path
+override, which changes where the crate comes from and nothing else. The
+version in `Cargo.toml` still says what the application depends on, and
+`Cargo.lock` does not change. The script looks in each parent directory
+for `hfcast-engine/`; `HFCAST_ENGINE` names it instead.
+
+This is also how you try an engine change before it is published: build
+in the engine checkout, then build here. When the change is published,
+move `.github/engine-commit` and the version in `rust/Cargo.toml`
+together.
+
 The web build and iOS have no engine. They read from the server.
 
 ## Two builds, one source

@@ -180,10 +180,11 @@ build_legacy() {
   # Kept so the legacy build resolves the same versions on any machine.
   cp "$work/pnpm-lock.yaml" "$mobile/legacy/pnpm-lock.yaml"
 
-  # The engine is a Cargo path dependency four directories up from
-  # modules/engine-bridge/rust, which is the repository root from the app but
-  # lands inside `build/` from the copy, since the copy sits one directory
-  # deeper. A link at the place it now looks sends it to the real one.
+  # `build-rust.sh` takes the engine crate from a checkout, which it finds by
+  # examining each parent directory for `hfcast-engine`. From the copy those
+  # parents start inside `build/`, since the copy sits one directory deeper
+  # than the application. A link at the place it now looks sends it to the
+  # real one.
   ln -sfn "$root/hfcast-engine" "$root/build/hfcast-engine"
 
   ANDROID_API=21 bash "$work/modules/engine-bridge/build-rust.sh"
