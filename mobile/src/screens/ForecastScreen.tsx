@@ -24,7 +24,7 @@ import StationModal from '../components/StationModal';
 
 import { usePrediction, useSounding, useSpaceWeather } from '../api/queries';
 import { qualityFor } from '../data/quality';
-import { lastAttempt, mayRefresh } from '../data/refreshPolicy';
+import { mayRefresh } from '../data/refreshPolicy';
 import { useShownFor } from '../hooks/useShownFor';
 import { usePathStore } from '../store/usePathStore';
 import { spacing, typography } from '../theme';
@@ -105,17 +105,19 @@ export default function ForecastScreen() {
   // Pulling the screen down at the top asks for the same thing (user,
   // 2026-08-01), with a floor under how often it may reach the network —
   // the readings come from NOAA and GIRO, called without a key. See
-  // `refreshPolicy.ts` for why a minute costs the reader nothing.
+  // `refreshPolicy.ts` for the two floors: an answer holds for the poll
+  // interval, a failure may be retried after a minute.
   //
   // The spinner is shown for its minimum whether or not the network was
   // asked. A gesture that produced no visible response would read as the
-  // app ignoring it, and inside the cooldown there is nothing new to
-  // fetch anyway — SWPC publishes the flux once a day.
+  // app ignoring it, and inside the floor there is nothing new to fetch
+  // anyway — SWPC publishes the flux once a day.
   const [pulling, setPulling] = useState(false);
   const pullRefresh = useCallback(() => {
     setPulling(true);
-    const since = lastAttempt(weather.dataUpdatedAt, weather.errorUpdatedAt);
-    if (mayRefresh(since, Date.now())) refresh();
+    if (mayRefresh(weather.dataUpdatedAt, weather.errorUpdatedAt, Date.now())) {
+      refresh();
+    }
     setPulling(false);
   }, [weather.dataUpdatedAt, weather.errorUpdatedAt, refresh]);
   const showPull = useShownFor(pulling || weather.isFetching, PULL_SPINNER_MS);
