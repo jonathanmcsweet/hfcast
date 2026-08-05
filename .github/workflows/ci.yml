@@ -33,7 +33,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           # The merge base has to be reachable, so the whole history.
           fetch-depth: 0
@@ -45,17 +45,17 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Read the engine version the application depends on
         id: engine
         run: bash .github/read-engine-version.sh
 
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@v6
         with:
           run_install: false
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: 24
           cache: pnpm
@@ -109,7 +109,7 @@ jobs:
       # own record beside it, so a restored cache makes the step below say
       # "already installed" and do nothing.
       - name: Cache the engine binary
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: /tmp/engine
           key: predict-${{ runner.os }}-${{ steps.engine.outputs.version }}
@@ -154,13 +154,13 @@ jobs:
     env:
       EXPO_NO_TELEMETRY: '1'
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@v6
         with:
           run_install: false
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: 24
           cache: pnpm
