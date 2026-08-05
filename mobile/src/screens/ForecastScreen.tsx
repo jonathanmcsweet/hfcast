@@ -1,6 +1,12 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
+import {
+  AppState,
+  RefreshControl,
+  ScrollView,
+  StyleSheet,
+  View,
+} from 'react-native';
 import { ActivityIndicator, Button, Text, useTheme } from 'react-native-paper';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -48,10 +54,22 @@ export default function ForecastScreen() {
   const setBand = usePathStore((s) => s.setBand);
   const hour = usePathStore((s) => s.hour);
   const setHour = usePathStore((s) => s.setHour);
+  const anchor = usePathStore((s) => s.anchor);
 
   useEffect(() => {
     const id = setInterval(() => setNow(new Date()), 60_000);
     return () => clearInterval(id);
+  }, []);
+
+  // The timeline starts at "now", and this is where "now" is refreshed:
+  // when the app returns to the foreground, not while the user watches.
+  // A track that shifted mid-session would move the selection under a
+  // thumb that is on it.
+  useEffect(() => {
+    const sub = AppState.addEventListener('change', (state) => {
+      if (state === 'active') usePathStore.getState().reanchor();
+    });
+    return () => sub.remove();
   }, []);
 
   const { data, error, isPending, refetch } = usePrediction(from, to);
@@ -275,6 +293,7 @@ export default function ForecastScreen() {
           prediction={prediction}
           band={band}
           hour={hour}
+          anchor={anchor}
           onHourChange={setHour}
         />
 
@@ -298,6 +317,7 @@ export default function ForecastScreen() {
           band={band}
           hour={hour}
           nowHour={nowHour}
+          anchor={anchor}
           offline={offline}
           onSelect={(nextBand, nextHour) => {
             setBand(nextBand);
