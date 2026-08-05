@@ -3,7 +3,7 @@ import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { StyleSheet, View } from 'react-native';
 import { Text, useTheme } from 'react-native-paper';
-import { localHour } from '../data/time';
+import { localHour, utcOffsetHours } from '../data/time';
 import { hourAt, offsetOf } from '../data/timeline';
 import { useFormatters } from '../hooks/useFormatters';
 import { numeric, spacing, typography } from '../theme';
@@ -14,6 +14,13 @@ interface Props {
   hour: number;
   /** The hour the track starts at: "now". The track runs 24 h forward. */
   anchor: number;
+  /**
+   * When the live readings behind the now-cast were pulled, epoch ms.
+   * While the selection sits on now, the clock shows this exact moment —
+   * minutes and all — because that position is a reading, not a forecast
+   * hour. Null when nothing live has arrived.
+   */
+  liveAt?: number | null;
   onChange: (hour: number) => void;
   /** Where the operator is: named in the label, and sets local time. */
   place: string;
@@ -45,12 +52,28 @@ const OFFSET = 1;
  * arithmetic that goes wrong in the field.
  */
 export default function HourSlider(
-  { hour, anchor, onChange, place, lon }: Props,
+  { hour, anchor, liveAt, onChange, place, lon }: Props,
 ) {
   const theme = useTheme<AppTheme>();
   const { t } = useTranslation();
   const f = useFormatters();
   const ui = theme.colors.ui;
+
+  // On now, the exact time of the live readings; anywhere else, the whole
+  // forecast hour. Local time is solar, so the longitude offset is whole
+  // hours and the minutes carry over unchanged — see `data/time.ts`.
+  const atNow = hour === anchor && liveAt != null;
+  const clock = atNow
+    ? {
+      local: f.hourMinute(
+        new Date(liveAt + utcOffsetHours(lon) * 3_600_000),
+      ),
+      utc: f.hourMinute(new Date(liveAt)),
+    }
+    : {
+      local: f.utcClock(localHour(hour, lon)),
+      utc: f.utcClock(hour),
+    };
 
   return (
     <View style={styles.wrap}>
@@ -63,10 +86,7 @@ export default function HourSlider(
             color: ui.ink,
           }]}
         >
-          {t('time.bothZones', {
-            local: f.utcClock(localHour(hour, lon)),
-            utc: f.utcClock(hour),
-          })}
+          {t('time.bothZones', clock)}
         </Text>
       </View>
       {
