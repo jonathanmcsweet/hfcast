@@ -89,7 +89,7 @@ Builds:
     gradle:
       - yes
     srclibs:
-      - hfcast-engine@<commit>
+      - hfcast-engine@v<engine version>
     prebuild:
       - cd .. && pnpm install --frozen-lockfile
       - cd .. && modules/engine-bridge/build-rust.sh
@@ -110,7 +110,7 @@ Builds:
     gradle:
       - yes
     srclibs:
-      - hfcast-engine@<commit>
+      - hfcast-engine@v<engine version>
     prebuild:
       - cd .. && cp legacy/package.json package.json
       - cd .. && cp legacy/pnpm-lock.yaml pnpm-lock.yaml
@@ -144,5 +144,7 @@ directly.
 ## One thing to settle first
 
 **The engine is a separate repository.** `hfcast-engine` is where the Rust lives,
-and the app depends on it by path. F-Droid needs it as a `srclib` pinned to a
-commit, or the two repositories merged. Neither is done.
+and the app depends on it by path. F-Droid needs it as a `srclib`, or the two
+repositories merged. Neither is done. The `srclib` takes the release tag of the
+version in `mobile/modules/engine-bridge/rust/Cargo.lock`, which is how this
+repository pins the engine everywhere else.

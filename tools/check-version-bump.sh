@@ -13,6 +13,11 @@
 # A change under `mobile/` has to move the application version. A change
 # that touches two parts has to move both of their versions.
 #
+# Documentation is not counted. A version says what a part does, and a
+# `.md` file changes none of that, so a pull request that only corrects
+# the words in `server/README.md` must not ask for a new server version.
+# Only files that are not documentation decide that a part changed.
+#
 # The comparison is "greater than", not "different from", so a version
 # that goes backwards fails as well.
 set -euo pipefail
@@ -37,6 +42,15 @@ changed="$(git diff --name-only "$base"...HEAD)"
 
 if [[ -z $changed ]]; then
   echo "no files changed against $base"
+  exit 0
+fi
+
+# Everything except documentation: `.md` anywhere, and anything under a
+# `docs/` directory. These are what decide that a part changed.
+code="$(grep -Ev '(^|/)docs/|\.md$' <<< "$changed" || true)"
+
+if [[ -z $code ]]; then
+  echo "only documentation changed against $base: no version has to move"
   exit 0
 fi
 
@@ -65,15 +79,19 @@ check() {
 
 echo "changed against $base:"
 
-if grep -q '^mobile/' <<< "$changed"; then
+if grep -q '^mobile/' <<< "$code"; then
   check "the application" mobile/package.json
 fi
 
-if grep -q '^server/' <<< "$changed"; then
+if grep -q '^server/' <<< "$code"; then
   check "the server" server/package.json
 fi
 
-if grep -qv '^\(mobile\|server\)/' <<< "$changed"; then
+# The lines the two tests above did not take. This asks for the list and
+# then tests it, rather than `grep -qv`: `-q` with `-v` reports the
+# pattern, not the lines that were kept, in more than one grep.
+elsewhere="$(grep -Ev '^(mobile|server)/' <<< "$code" || true)"
+if [[ -n $elsewhere ]]; then
   check "the project" package.json
 fi
 

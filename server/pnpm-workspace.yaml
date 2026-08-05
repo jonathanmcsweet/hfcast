@@ -1,0 +1,10 @@
+# Settings only: no `packages:` key. This file exists so that pnpm, run from
+# this directory, treats the server as its own root project with its own
+# pnpm-lock.yaml, rather than walking up to the repository root and installing
+# that project instead.
+#
+# Without it, `pnpm --dir server install` reported "Already up to date" for
+# the root project and installed nothing here. The server's dependencies are
+# all devDependencies, so a fresh clone was left with no node_modules at all
+# and the pre-push hook failed with "tsc: command not found". mobile/ carries
+# its own copy of this file for the same reason.

@@ -29,8 +29,9 @@ pnpm --dir server test
 
 CI runs all of these, and four more tests that start the engine as a
 subprocess and check the JSON contract between it and the server. Those
-need `gfortran` and a build of the engine at `.github/engine-commit`, so
-they skip in a plain checkout.
+need `gfortran` and the engine version in
+`mobile/modules/engine-bridge/rust/Cargo.lock`, so they skip in a plain
+checkout.
 
 Builds, from `mobile/`:
 
@@ -58,7 +59,11 @@ git config core.hooksPath .githooks
 ```
 
 The propagation engine is a separate repository with its own tests. This
-one pins it by commit in `.github/engine-commit`.
+one pins it by published version, in
+`mobile/modules/engine-bridge/rust/Cargo.lock`. It names no engine
+commit. Move the pin with
+`cargo update -p hfcast --precise <version>` in
+`mobile/modules/engine-bridge/rust/`.
 
 ## Chores
 

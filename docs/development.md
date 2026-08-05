@@ -25,12 +25,21 @@ directory, and `.gitignore` excludes that path.
 This has two results that you must remember:
 
 - To build the application you must clone both.
-- A change to the engine is a different commit in a different
-  repository. Continuous integration reads the engine at a fixed commit,
-  which is in `.github/engine-commit`. Both workflows read that one
-  file. If your change needs a newer engine, move the pin in the same
-  pull request, and build the engine at the new commit and run the
-  server tests against it before you do.
+- A change to the engine is a different repository, and this one uses
+  only released versions of it. The pin is the `hfcast` version in
+  `mobile/modules/engine-bridge/rust/Cargo.lock`. Every workflow reads
+  that one file: the server tests install that version from crates.io,
+  and an Android build takes the engine repository at the tag of the
+  same version. No engine commit is named anywhere.
+- If your change needs a newer engine, publish that engine version and
+  tag it, then move the pin in the same pull request:
+
+  ```bash
+  cd mobile/modules/engine-bridge/rust
+  cargo update -p hfcast --precise 0.66.6
+  ```
+
+  Run the server tests against the new version before you do.
 
 ## How the engine gets into the application
 
@@ -69,8 +78,13 @@ for `hfcast-engine/`; `HFCAST_ENGINE` names it instead.
 
 This is also how you try an engine change before it is published: build
 in the engine checkout, then build here. When the change is published,
-move `.github/engine-commit` and the version in `rust/Cargo.toml`
-together.
+move the version with `cargo update -p hfcast --precise <version>`. That
+writes `Cargo.lock`, which is the pin the workflows read.
+
+The engine repository must have a tag for that version — `v0.66.6` —
+because an Android build in CI takes the coefficient files from the
+repository at that tag. The build fails and says so if the tag is not
+there.
 
 The web build and iOS have no engine. They read from the server.
 

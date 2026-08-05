@@ -26,3 +26,8 @@ modules/*/rust/target/
 # the next Skia upgrade brings, which fails at run time rather than at
 # build time.
 public/canvaskit.wasm
+
+# Playwright: the browser's own output. `test/e2e/` is the suite and is
+# kept; these two are what a run leaves behind.
+/test-results/
+/playwright-report/
