@@ -70,6 +70,11 @@ The application is built from libraries under the MIT, ISC, BSD and
 Apache-2.0 licences. The About screen lists what is credited and
 carries the licence texts the terms oblige it to carry.
 
+The "Get it on Obtainium" badge, docs/badges/obtainium.png, is from
+the Obtainium project (github.com/ImranR98/Obtainium), by Imran
+Remtulla, under GPL-3.0. The licence text is beside it. It is in the
+repository only, not in the application.
+
 This product fetches data at run time from services it does not
 include or redistribute:
 
