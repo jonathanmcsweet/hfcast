@@ -27,6 +27,12 @@ env:
   # reads.
   ENGINE_REPO: jonathanmcsweet/hfcast-engine
 
+  # Where that clone goes. Set for the whole job, not one step: the APK
+  # build runs `build-rust.sh` again inside `build-android.sh`, and
+  # without this it searches parent directories for a checkout the
+  # runner does not have.
+  HFCAST_ENGINE: /tmp/hfcast-engine
+
   # The NDK the engine's four libraries are built with. `build-rust.sh`
   # defaults to the same version and fails loudly if it is absent.
   NDK_VERSION: 27.1.12297006
@@ -77,7 +83,7 @@ jobs:
       # crate from this checkout instead, at the tag of that version, so
       # the same application commit always gives the same libraries.
       - name: Clone the engine at that version
-        run: bash .github/clone-engine.sh "${{ steps.engine.outputs.version }}" /tmp/hfcast-engine
+        run: bash .github/clone-engine.sh "${{ steps.engine.outputs.version }}" "$HFCAST_ENGINE"
 
       - name: Cache the engine build
         uses: actions/cache@v6
@@ -135,7 +141,6 @@ jobs:
         working-directory: mobile
         env:
           ANDROID_API: '24'
-          HFCAST_ENGINE: /tmp/hfcast-engine
         run: bash modules/engine-bridge/build-rust.sh
 
       # The keystore never reaches the repository. It arrives as one
