@@ -10,8 +10,9 @@
 # To push without them: `git push --no-verify`.
 #
 # CI runs four more tests that start the engine as a subprocess and check
-# the JSON contract between it and the server. They need gfortran and a
-# build of the engine at `.github/engine-commit`, so they are not here.
+# the JSON contract between it and the server. They need gfortran and the
+# engine version in `mobile/modules/engine-bridge/rust/Cargo.lock`, so
+# they are not here.
 set -euo pipefail
 
 cd "$(git rev-parse --show-toplevel)"

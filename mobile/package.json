@@ -1,6 +1,6 @@
 {
   "name": "hfcast",
-  "version": "0.54.12",
+  "version": "0.54.14",
   "license": "Apache-2.0",
   "packageManager": "pnpm@11.17.0",
   "main": "index.js",
@@ -10,7 +10,10 @@
     "ios": "expo run:ios",
     "web": "expo start --web",
     "typecheck": "tsc --noEmit",
-    "test": "node --experimental-strip-types --experimental-test-module-mocks --test test/*.test.ts"
+    "test": "node --experimental-strip-types --experimental-test-module-mocks --test test/*.test.ts",
+    "web:export": "bash tools/copy-canvaskit.sh && expo export --platform web",
+    "e2e": "pnpm web:export && playwright test",
+    "e2e:only": "playwright test"
   },
   "dependencies": {
     "@babel/runtime": "^7.24.0",
@@ -50,6 +53,7 @@
   },
   "devDependencies": {
     "@babel/core": "^7.24.0",
+    "@playwright/test": "^1.62.1",
     "@types/node": "^24.13.3",
     "@types/react": "~19.2.0",
     "babel-preset-expo": "~57.0.5",
