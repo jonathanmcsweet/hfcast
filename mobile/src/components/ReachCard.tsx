@@ -30,6 +30,8 @@ interface Props {
   /** The clock, epoch ms. */
   nowMs: number;
   onHourChange: (hour: number) => void;
+  /** True while the map owns a two-finger pan. See `CoverageGlobe`. */
+  onMapPanning?: (active: boolean) => void;
 }
 
 /**
@@ -100,6 +102,7 @@ export default function ReachCard({
   liveAt,
   nowMs,
   onHourChange,
+  onMapPanning,
 }: Props) {
   const theme = useTheme<AppTheme>();
   const { t } = useTranslation();
@@ -292,6 +295,7 @@ export default function ReachCard({
                 hour={hour}
                 size={mapSize}
                 onRegion={onRegion}
+                onPanning={onMapPanning}
               />
 
               {
