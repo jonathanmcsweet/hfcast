@@ -152,13 +152,11 @@ export default function ReachCard({
         : null}
 
       <MapLegend hasNvis={map.hasNvis} />
-
       <ReachLines
         coverage={map.coverage}
         nvisBand={map.nvisBand}
         nvisKm={map.nvisKm}
       />
-
       <HourSlider
         hour={hour}
         start={start}

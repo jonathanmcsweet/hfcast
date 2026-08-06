@@ -190,9 +190,7 @@ export default function ForecastScreen() {
             onOpenStation={() => setStationOpen(true)}
           />
         </FixedHeader>
-
         <SkeletonForecast />
-
         <LocationPicker
           visible={pickerOpen}
           onDismiss={() => setPickerOpen(false)}
