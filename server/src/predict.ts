@@ -206,5 +206,3 @@ export function endpointFromLatLon(
   const grid = latLonToGrid(lat, lon);
   return { grid, label: label ?? grid, lat, lon };
 }
-
-export const predictionCacheSize = () => cache.size;

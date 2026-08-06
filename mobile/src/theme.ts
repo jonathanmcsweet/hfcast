@@ -660,23 +660,6 @@ export const spacing = {
   xxl: 32,
 } as const;
 
-/**
- * Screen padding, which is not a single step: the top is deliberately tight
- * because the header sits close to what follows it.
- */
-export const screenPadding = {
-  phone: {
-    paddingTop: 4,
-    paddingHorizontal: spacing.lg,
-    paddingBottom: spacing.xxl,
-  },
-  tablet: {
-    paddingTop: spacing.sm,
-    paddingHorizontal: 20,
-    paddingBottom: spacing.xxl,
-  },
-} as const;
-
 /** Corner radii, largest to smallest surface. */
 export const radius = {
   /** The device frame in the design; sheets and full-screen panes. */

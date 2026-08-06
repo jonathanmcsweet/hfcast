@@ -189,8 +189,6 @@ async function worldCoverage(
   return result;
 }
 
-export const coverageCacheSize = () => cache.size;
-
 /**
  * The fine grid, over the whole world.
  *
@@ -227,8 +225,6 @@ export async function coverageFine(
     'fine|',
   );
 }
-
-export const coverageFineCacheSize = () => fineCache.size;
 
 /**
  * The fine grid around the operator, at the same band and hour.
@@ -323,5 +319,3 @@ export async function coveragePatch(
   patchCache.set(key, result);
   return result;
 }
-
-export const coveragePatchCacheSize = () => patchCache.size;

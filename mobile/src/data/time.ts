@@ -21,8 +21,3 @@ export function utcOffsetHours(lon: number): number {
 export function localHour(utcHour: number, lon: number): number {
   return (((utcHour + utcOffsetHours(lon)) % 24) + 24) % 24;
 }
-
-/** The UTC hour that corresponds to a local hour at this longitude. */
-export function utcHourFromLocal(local: number, lon: number): number {
-  return (((local - utcOffsetHours(lon)) % 24) + 24) % 24;
-}
