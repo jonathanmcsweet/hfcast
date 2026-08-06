@@ -104,8 +104,10 @@ const signalDark: QualityColors = {
  *
  * Wider spacing than the grid ramp, because white coastlines over partial
  * fill opacity compress perceived contrast — at the grid's spacing the
- * middle two states stop reading as two. Nothing consumes this yet; it
- * lands with the map.
+ * middle two states stop reading as two.
+ *
+ * Reached as `theme.colors.map`, so the ramp travels with the theme and
+ * no component has to work out which of the three it is holding.
  */
 export const qualityMap = {
   light: {

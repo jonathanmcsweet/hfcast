@@ -88,11 +88,11 @@ export function nvisReachKm(
 /**
  * Whether any point works by near-vertical incidence.
  *
- * The legend's "no skip zone" row explains the dots the map draws, and
- * the map draws dots from whatever patch it was given — which follows
- * the view. So this is asked of the drawn patch, where `nvisReachKm` is
- * asked of the station's own: the two agree until the reader pans away,
- * and then each stays truthful about its own subject.
+ * The legend's "no skip zone" row is asked of the station's own grid,
+ * the same one `nvisReachKm` reads. The row explains a mark that only
+ * appears near the station, so a reader panned to the far side of the
+ * world should still be told what it means rather than have the legend
+ * lose a line for having looked away.
  */
 export function anyNvis(points: Iterable<CoveragePoint>): boolean {
   // `some` over a generator is not available, and the whole-world grid

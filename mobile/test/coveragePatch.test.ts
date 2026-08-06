@@ -187,12 +187,11 @@ describe('how far the near-vertical region reaches', () => {
     assert.equal(nvisReachKm(from, []), null);
   });
 
-  it('is asked of the drawn patch and the station patch separately', () => {
-    // The map's patch follows the view; the sentence's does not. A patch
-    // panned to the far side of the world holds points that are NVIS in
-    // no direction from the station, so the sentence's function answers
-    // null there — and the legend's function must still answer from
-    // what is actually drawn, not from the sentence.
+  it('answers about the grid it is given, whichever that is', () => {
+    // The map's patch follows the view; the station's grid does not, and
+    // the sentence and the legend are both about the station. A grid
+    // panned to the far side of the world holds no point that is steep
+    // from here, so both functions answer nothing for it.
     const farAway = [point(35, 139, 80)];
     // From Denver, a steep *local* angle 9,000 km away is not
     // near-vertical coverage of anywhere the station reaches... but the

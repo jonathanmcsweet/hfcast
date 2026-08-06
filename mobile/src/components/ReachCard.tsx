@@ -192,10 +192,12 @@ export default function ReachCard({
   // previous band while the sentence above it names the new one, and
   // that gap is what a reader reports as a wrong map.
   const behind = coverage !== undefined && coverage.band !== band;
-  // Every layer, not the fine grid alone. On a device that the gate
-  // refuses the fine grid is never asked for, so a bar watching only
-  // that query marked nothing at all — a band change recomputed the
-  // whole coarse map in silence (user, 2026-08-01).
+  // Every layer, not the fine grid alone. The layers are gated against
+  // one another — the patch stands down once the fine grid is there, and
+  // the fine grid needs a canvas — so at any moment some of these queries
+  // are not running by design. A bar watching one of them marked nothing
+  // at all whenever that was the quiet one, and a band change recomputed
+  // the whole coarse map in silence (user, 2026-08-01).
   const working = behind || coarseRunning || fineRunning || patchRunning;
   const busy = useShownFor(working, MAP_BUSY_MIN_MS);
   // What the bar is waiting for, in words, for a reader who cannot see
