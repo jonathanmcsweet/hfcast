@@ -86,6 +86,11 @@ export interface StationPreset extends Station {
  * What the server clamps to. Repeated here so the controls stop at the
  * same place the server would, rather than letting a value be set that
  * quietly becomes something else on the way through.
+ *
+ * `MIN_WATTS` and `MAX_WATTS` in `server/src/index.ts` are these two
+ * numbers. They had drifted — the server took 10,000 W while this
+ * offered 1500 — which made the sentence under the power field name a
+ * ceiling that was not the one being enforced.
  */
 export const LIMITS = {
   // A tenth of a watt is where VOACAP stops tracking power: below that
@@ -93,6 +98,9 @@ export const LIMITS = {
   // it returns a better answer than a hundred watts. QRP work happens at
   // and below one watt, so the range reaches there and stops where the
   // model does.
+  //
+  // 1500 W is the legal ceiling for an amateur station in the countries
+  // this is built for.
   watts: { min: 0.1, max: 1500 },
   heightM: { min: 1, max: 100 },
   gainDbd: { min: 0, max: 20 },
