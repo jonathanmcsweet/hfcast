@@ -7,6 +7,7 @@
     "mapLoading": "Calculando hasta dónde llega esta banda",
     "mapUnavailable": "No se pudo cargar el mapa de cobertura.",
     "reachLine": "{{band}} llega a cerca del {{percent}} del mundo a esta hora.",
+    "reachAndNvis": "{{band}} llega a cerca del {{percent}} del mundo a esta hora y llega hasta unos {{distance}} sin zona de silencio.",
     "legendReach": "Alcance",
     "legendNight": "Noche",
     "panHint": "Mueve el mapa con dos dedos",
