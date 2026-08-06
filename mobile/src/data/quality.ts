@@ -69,15 +69,20 @@ const KM_PER_DEGREE = (EARTH_KM * Math.PI) / 180;
  */
 export function nvisReachKm(
   from: { lat: number; lon: number; },
-  points: readonly CoveragePoint[],
+  points: Iterable<CoveragePoint>,
 ): number | null {
-  const reaches = points
-    .filter((point) => isNvis(point.takeoffAngleDeg, point.reliability))
-    .map((point) =>
-      angularDistanceDeg(from.lon, from.lat, point.lon, point.lat)
-      * KM_PER_DEGREE
-    );
-  return reaches.length === 0 ? null : Math.max(...reaches);
+  // A loop rather than filter-map-max, because the whole-world fine grid
+  // is offered here as a generator over typed arrays. Materialising it
+  // would build the 34,560 objects the packing exists to avoid, and
+  // `Math.max(...list)` at that length overflows the argument stack.
+  let furthest: number | null = null;
+  for (const point of points) {
+    if (!isNvis(point.takeoffAngleDeg, point.reliability)) continue;
+    const km = angularDistanceDeg(from.lon, from.lat, point.lon, point.lat)
+      * KM_PER_DEGREE;
+    if (furthest === null || km > furthest) furthest = km;
+  }
+  return furthest;
 }
 
 /**
@@ -89,8 +94,11 @@ export function nvisReachKm(
  * asked of the station's own: the two agree until the reader pans away,
  * and then each stays truthful about its own subject.
  */
-export function anyNvis(points: readonly CoveragePoint[]): boolean {
-  return points.some(
-    (point) => isNvis(point.takeoffAngleDeg, point.reliability),
-  );
+export function anyNvis(points: Iterable<CoveragePoint>): boolean {
+  // `some` over a generator is not available, and the whole-world grid
+  // is offered as one — see `nvisReachKm` above.
+  for (const point of points) {
+    if (isNvis(point.takeoffAngleDeg, point.reliability)) return true;
+  }
+  return false;
 }

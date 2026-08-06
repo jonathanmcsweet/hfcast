@@ -3,12 +3,18 @@ import { useTranslation } from 'react-i18next';
 import { StyleSheet, View } from 'react-native';
 import { ProgressBar, Text, useTheme } from 'react-native-paper';
 import { useCoverage, useCoveragePatch, useFineGlobe } from '../api/queries';
+import { gridPoints } from '../data/cellField';
 import { patchGrid } from '../data/coveragePatch';
 import { FINE_LAT_STEP } from '../data/fineGlobe';
 import { answering } from '../data/mapLayers';
 import { anyNvis, isNvis, nvisReachKm, qualityFor } from '../data/quality';
 import { cellFor } from '../data/selectors';
-import type { BandKey, MapRegion, PathPrediction } from '../data/types';
+import type {
+  BandKey,
+  CoveragePoint,
+  MapRegion,
+  PathPrediction,
+} from '../data/types';
 import { useFormatters } from '../hooks/useFormatters';
 import { useShownFor } from '../hooks/useShownFor';
 import { numeric, radius, spacing, typography } from '../theme';
@@ -205,11 +211,30 @@ export default function ReachCard({
   // steep from here, and the sentence would vanish while the fact it
   // states had not changed. At the default view this is the same query
   // as the map's, so it costs nothing until the reader pans away.
-  const { data: homePatchData } = useCoveragePatch(prediction.from, band, hour);
+  //
+  // Asked only where there is no whole-world fine grid. That grid runs
+  // at 1.25 by 1.5 degrees on the world lattice, which is the rung this
+  // patch settles on at the default view and the same lattice, so the
+  // points around the station coincide and the answer is the same one.
+  // Ungated, it defeated the gate on the map's own patch above: the
+  // layer was held back to save a run, and then the run happened here.
+  const { data: homePatchData } = useCoveragePatch(
+    prediction.from,
+    band,
+    hour,
+    null,
+    !fine,
+  );
   // Guarded like the map's layers, and for the same reason read as a
   // sentence rather than seen as a colour: "80m reaches out to about
   // 78 mi" is wrong in a way nobody can catch if the number is 40m's.
   const homePatch = answering(homePatchData, coverage);
+  // The station's grid, whichever holds it. Both halves are already
+  // checked against the coarse map, so either is about the band and the
+  // hour on screen. A function rather than a value because `gridPoints`
+  // is a generator: the two readings below need one each.
+  const homeGrid = (): Iterable<CoveragePoint> | null =>
+    fine ? gridPoints(fine) : homePatch?.points ?? null;
   const detail = detailKey(Boolean(fine), Boolean(patch));
 
   // Null for a survey, where the card answers "how much of the world" rather
@@ -227,9 +252,17 @@ export default function ReachCard({
   // shading shows its shape and this is its size, which a shape cannot
   // give — and the difference between "the next county" and "the next
   // state" is the whole of what an operator wants from it.
-  const nvisKm = homePatch
-    ? nvisReachKm(prediction.from, homePatch.points)
-    : null;
+  const nvisGrid = homeGrid();
+  const nvisKm = nvisGrid === null
+    ? null
+    : nvisReachKm(prediction.from, nvisGrid);
+  // The band the figures above came out of, for the sentences below.
+  // Never the selector's, which runs ahead of every grid.
+  const nvisBand = fine?.band ?? homePatch?.band ?? null;
+  // Whether the legend explains the stipple. Its own iterator, for the
+  // reason `homeGrid` is a function.
+  const legendGrid = homeGrid();
+  const hasNvis = legendGrid !== null && anyNvis(legendGrid);
 
   return (
     <Card>
@@ -354,7 +387,7 @@ export default function ReachCard({
         )
         : null}
 
-      <MapLegend hasNvis={homePatch ? anyNvis(homePatch.points) : false} />
+      <MapLegend hasNvis={hasNvis} />
 
       {
         /* The map's headline number in words, because a shape is not a
@@ -374,8 +407,8 @@ export default function ReachCard({
            and "40m reaches 4% and out to 247 mi" carrying two bands'
            numbers is wrong in a way no reader can catch. */
       }
-      {coverage && homePatch && nvisKm !== null
-          && coverage.band === homePatch.band
+      {coverage && nvisBand !== null && nvisKm !== null
+          && coverage.band === nvisBand
         ? (
           <Text style={[typography.caption, { color: ui.text3 }]}>
             {t('reach.reachAndNvis', {
@@ -404,13 +437,13 @@ export default function ReachCard({
                  pattern of dots is not, and because this is the sentence a
                  reader with no sight of the map still gets. */
             }
-            {homePatch === null || nvisKm === null
+            {nvisBand === null || nvisKm === null
               ? null
               : (
                 <Text style={[typography.caption, { color: ui.text3 }]}>
-                  {/* The patch's own band, as for the reach line above. */}
+                  {/* The grid's own band, as for the reach line above. */}
                   {t('reach.nvisReach', {
-                    band: homePatch.band,
+                    band: nvisBand,
                     distance: f.distance(nvisKm),
                   })}
                 </Text>
