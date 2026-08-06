@@ -105,19 +105,34 @@ export async function predict(
     request.basis,
   );
 
+  // Date and basis are per-request; the VOACAP run behind them is not,
+  // so they are put back on the answer rather than cached with it.
+  //
+  // Through `fetch` so that two requests for the same path arriving
+  // together run the engine once. A survey is forty-eight of these in a
+  // row, and two readers on one path used to be ninety-six runs.
   const key = keyFor(request, ssn);
-  const cached = cache.get(key);
-  if (cached) {
-    // Date and basis are per-request; the VOACAP run behind them is not.
-    return { ...cached, date: isoDate(request.date), basis };
-  }
+  const prediction = await cache.fetch(key, async () => {
+    // Written before the run, because the card names a file the engine
+    // opens. Null for an isotropic station, which names no file at all.
+    const txAntenna = request.antenna
+      ? await txCard(ITSHFBC_DIR, request.antenna)
+      : null;
 
-  // Written before the run, because the card names a file the engine
-  // opens. Null for an isotropic station, which names no file at all.
-  const txAntenna = request.antenna
-    ? await txCard(ITSHFBC_DIR, request.antenna)
-    : null;
+    return await runOnce(request, ssn, basis, month, year, txAntenna);
+  });
+  return { ...prediction, date: isoDate(request.date), basis };
+}
 
+/** One run of whichever engine is configured, corrected and assembled. */
+async function runOnce(
+  request: PredictRequest,
+  ssn: number,
+  basis: PredictionBasis,
+  month: number,
+  year: number,
+  txAntenna: Awaited<ReturnType<typeof txCard>> | null,
+): Promise<PathPrediction> {
   const engineRequest = {
     fromLat: request.from.lat,
     fromLon: request.from.lon,
@@ -161,7 +176,7 @@ export async function predict(
   );
   const mufByHour = parsed.mufByHour;
 
-  const prediction: PathPrediction = {
+  return {
     from: request.from,
     to: request.to,
     distanceKm: distanceKm(
@@ -188,9 +203,6 @@ export async function predict(
     window: parsed.window,
     cells,
   };
-
-  cache.set(key, prediction);
-  return prediction;
 }
 
 export function isoDate(date: Date): string {
