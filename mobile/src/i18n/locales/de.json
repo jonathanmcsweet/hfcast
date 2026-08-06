@@ -84,7 +84,7 @@
     "closed": "Dieses Band trägt jetzt nicht"
   },
   "time": {
-    "utc": "UTC",
+    "utcAt": "UTC-Zeit in {{place}}",
     "now": "Jetzt",
     "localAt": "Ortszeit in {{place}}"
   },

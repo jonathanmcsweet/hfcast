@@ -84,7 +84,7 @@
     "closed": "Esta banda no ahora"
   },
   "time": {
-    "utc": "UTC",
+    "utcAt": "Hora UTC en {{place}}",
     "now": "Ahora",
     "localAt": "Hora local en {{place}}"
   },

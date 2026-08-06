@@ -84,7 +84,7 @@
     "closed": "この周波数は今は使えません"
   },
   "time": {
-    "utc": "UTC",
+    "utcAt": "{{place}} の UTC 時刻",
     "now": "今",
     "localAt": "{{place}} の現地時刻"
   },
