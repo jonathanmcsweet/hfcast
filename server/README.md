@@ -76,7 +76,6 @@ TypeScript runs through Node's type stripping, so there is no build step.
 | `GET /api/spaceweather`                  | current F10.7, Kp and effective SSN                   |
 | `GET /api/geocode?q=`                    | place name search, or a locator resolved directly     |
 | `GET /api/prediction?from&to`            | one day, `nowcast=1` to drive from current conditions |
-| `GET /api/forecast?from&to&days`         | several days, one prediction each                     |
 | `GET /api/survey?from`                   | one day with no destination, as reach by direction    |
 | `GET /api/coverage?from&band&hour`       | the whole world, one band, one hour                   |
 | `GET /api/coverage/patch?from&band&hour` | the same hour over a fine grid near `from`            |

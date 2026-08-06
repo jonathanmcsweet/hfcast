@@ -7,7 +7,6 @@
  *   GET /api/geocode?q=            place name search, or a Maidenhead locator
  *   GET /api/prediction?from&to    one day, optionally as a now-cast
  *   GET /api/survey?from           one day with no destination, every direction
- *   GET /api/forecast?from&to&days several days, one prediction each
  *   GET /api/ionosonde?at=lat,lon  measured foF2 from the nearest sounder
  */
 import {
@@ -392,48 +391,6 @@ function parseRegion(url: URL): MapRegion | null {
   };
 }
 
-async function handleForecast(
-  url: URL,
-): Promise<readonly PredictionResponse[]> {
-  const days = Math.min(14, Math.max(1, num(url.searchParams.get('days'), 5)));
-  const start = parseDate(url.searchParams.get('date'));
-  const from = parseEndpoint(
-    url.searchParams.get('from'),
-    url.searchParams.get('fromLabel'),
-    'from',
-  );
-  const to = parseEndpoint(
-    url.searchParams.get('to'),
-    url.searchParams.get('toLabel'),
-    'to',
-  );
-
-  // Parsed once rather than per day: it is the same station on all of
-  // them, and a rejected value should be reported before any run starts.
-  const station = parseStation(url);
-
-  const dates = Array.from(
-    { length: days },
-    (_, day) => new Date(start.getTime() + day * 86_400_000),
-  );
-
-  // A reduce rather than `Promise.all`, because these must run one at a
-  // time: each prediction is a separate process, and this box has far
-  // less memory than it has cores. Awaiting the accumulator before
-  // calling `predict` is what holds them in order — `map` and `Promise.all`
-  // would start all fourteen at once.
-  return await dates.reduce<Promise<readonly PredictionResponse[]>>(
-    async (soFar, date) => [
-      ...(await soFar),
-      {
-        prediction: await predict({ from, to, date, ...station }),
-        spaceWeather: null,
-      },
-    ],
-    Promise.resolve([]),
-  );
-}
-
 /**
  * Measured foF2 near a point. `null` when there is no live station in
  * range or the service did not answer, which is the ordinary case outside
@@ -541,8 +498,6 @@ async function route(url: URL): Promise<unknown> {
       return await handleCoveragePatch(url);
     case '/api/coverage/fine':
       return await handleCoverageFine(url);
-    case '/api/forecast':
-      return await handleForecast(url);
     case '/api/ionosonde':
       return await handleIonosonde(url);
     default:
