@@ -181,26 +181,11 @@ export default function HourSlider(
           {
             /* The marks hang from both sides of the track, one per hour
                with the labelled ones taller, anchored to the slider so
-               the two rows mirror each other around it. */
+               the two rows mirror each other around it. They are drawn
+               before the slider: later siblings paint on top, and the
+               thumb belongs over the marks, not under them. */
           }
           <View>
-            <Slider
-              value={offsetOf(hour, anchor) + OFFSET}
-              minimumValue={0 + OFFSET}
-              maximumValue={23 + OFFSET}
-              step={1}
-              onValueChange={(value) =>
-                onChange(hourAt(value - OFFSET, anchor))}
-              minimumTrackTintColor={ui.accent}
-              maximumTrackTintColor={ui.line2}
-              thumbTintColor={ui.accent}
-              accessibilityLabel={t('a11y.hourSlider')}
-              // The control reports nothing by itself, so the hour is
-              // stated here — unshifted, because this is the number that
-              // gets announced.
-              accessibilityValue={{ min: 0, max: 23, now: hour }}
-              style={styles.slider}
-            />
             {(['above', 'below'] as const).map((side) => (
               <View
                 key={side}
@@ -229,6 +214,23 @@ export default function HourSlider(
                 ))}
               </View>
             ))}
+            <Slider
+              value={offsetOf(hour, anchor) + OFFSET}
+              minimumValue={0 + OFFSET}
+              maximumValue={23 + OFFSET}
+              step={1}
+              onValueChange={(value) =>
+                onChange(hourAt(value - OFFSET, anchor))}
+              minimumTrackTintColor={ui.accent}
+              maximumTrackTintColor={ui.line2}
+              thumbTintColor={ui.accent}
+              accessibilityLabel={t('a11y.hourSlider')}
+              // The control reports nothing by itself, so the hour is
+              // stated here — unshifted, because this is the number that
+              // gets announced.
+              accessibilityValue={{ min: 0, max: 23, now: hour }}
+              style={styles.slider}
+            />
           </View>
           <View
             style={styles.tickRow}
