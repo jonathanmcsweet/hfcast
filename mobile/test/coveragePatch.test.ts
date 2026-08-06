@@ -206,6 +206,28 @@ describe('how far the near-vertical region reaches', () => {
     assert.ok(nvisReachKm(from, farAway) !== null);
   });
 
+  it('reads a generator, which is how the fine globe offers itself', () => {
+    // `gridPoints` walks the packed typed arrays and yields rather than
+    // building 34,560 objects, so the card reads the whole-world grid
+    // through it instead of running the patch a second time. Both
+    // functions have to take that, and neither may spread it into an
+    // argument list.
+    const steep = [point(41, -105, 80), point(44, -105, 75)];
+    const asGenerator = function*() {
+      yield* steep;
+    };
+    assert.equal(
+      nvisReachKm(from, asGenerator()),
+      nvisReachKm(from, steep),
+    );
+    assert.equal(anyNvis(asGenerator()), true);
+    // An exhausted iterator is empty, not an error, which is why the
+    // card takes a fresh one for each reading.
+    const once = asGenerator();
+    assert.equal(anyNvis(once), true);
+    assert.equal(anyNvis(once), false);
+  });
+
   it('ignores a point the engine gave no angle for', () => {
     // An older cached answer, or the coarse grid, which does not carry
     // one. Absent is not steep.
