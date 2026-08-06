@@ -13,7 +13,8 @@
     "test": "node --experimental-strip-types --experimental-test-module-mocks --test test/*.test.ts",
     "web:export": "bash tools/copy-canvaskit.sh && expo export --platform web",
     "test:e2e": "pnpm web:export && playwright test",
-    "test:e2e:only": "playwright test"
+    "test:e2e:only": "playwright test",
+    "test:e2e:ui": "playwright test --ui-host=127.0.0.1 --ui-port=9323"
   },
   "dependencies": {
     "@babel/runtime": "^7.24.0",
