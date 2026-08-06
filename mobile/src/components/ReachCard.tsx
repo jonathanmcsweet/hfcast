@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from 'react';
+import { useCallback, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { StyleSheet, View } from 'react-native';
 import { ProgressBar, Text, useTheme } from 'react-native-paper';
@@ -17,7 +17,7 @@ import type {
 } from '../data/types';
 import { useFormatters } from '../hooks/useFormatters';
 import { useShownFor } from '../hooks/useShownFor';
-import { numeric, radius, spacing, typography } from '../theme';
+import { numeric, spacing, typography } from '../theme';
 import type { AppTheme } from '../theme';
 import { Card, Inset } from './Card';
 import CoverageGlobe from './CoverageGlobe';
@@ -34,12 +34,12 @@ interface Props {
   /** How many of the track's first hours are past. See `HourSlider`. */
   past: number;
   /** When the live readings were pulled, for the clock. See `HourSlider`. */
-  liveAt?: number | null;
+  liveAt?: number | null | undefined;
   /** The clock, epoch ms. */
   nowMs: number;
   onHourChange: (hour: number) => void;
   /** True while the map owns a two-finger pan. See `CoverageGlobe`. */
-  onMapPanning?: (active: boolean) => void;
+  onMapPanning?: ((active: boolean) => void) | undefined;
 }
 
 /**

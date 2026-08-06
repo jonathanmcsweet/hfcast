@@ -1,5 +1,5 @@
 import Slider from '@react-native-community/slider';
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ScrollView, StyleSheet, View } from 'react-native';
 import {
@@ -55,9 +55,9 @@ interface Props {
    * Offers the one heading an operator actually wants for a beam, so it
    * does not have to be looked up and typed.
    */
-  bearingToDestination?: number;
+  bearingToDestination?: number | undefined;
   /** Name of the other end, for the label on that button. */
-  destinationLabel?: string;
+  destinationLabel?: string | undefined;
   /**
    * The threshold the current forecast was actually computed at, as the
    * run reported it. Shown rather than derived, so the dialog cannot name
@@ -71,7 +71,7 @@ interface Props {
    * the mode shown here is the one about to be used, not the one the
    * absent answer was worked out from.
    */
-  requiredSnrDb?: number;
+  requiredSnrDb?: number | undefined;
 }
 
 /**

@@ -54,7 +54,7 @@ import {
   fetchSpaceWeather,
   fetchSurvey,
 } from './client';
-import { FINE_GLOBE_CACHE, MAP_CACHE_MS, pruneFineGlobes } from './mapCache';
+import { MAP_CACHE_MS, pruneFineGlobes } from './mapCache';
 
 /**
  * All network state goes through React Query. Query keys carry every input the

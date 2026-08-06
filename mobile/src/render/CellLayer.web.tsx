@@ -27,7 +27,6 @@
  * the whole reason it is the same renderer rather than a cheaper one.
  */
 import { WithSkiaWeb } from '@shopify/react-native-skia/lib/module/web';
-import React from 'react';
 
 import type { CellLayerProps } from '../data/cellField.ts';
 

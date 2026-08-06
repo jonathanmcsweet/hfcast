@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { StyleSheet, View } from 'react-native';
 import { Divider, IconButton, Menu, Text, useTheme } from 'react-native-paper';
@@ -168,7 +168,12 @@ export default function SettingsMenu(
           <Menu.Item
             key={lang}
             title={LANGUAGE_NAMES[lang]}
-            leadingIcon={i18n.language === lang ? 'check' : undefined}
+            {
+              // Spread rather than passed as undefined: Paper's own prop is
+              // optional and not nullable, and an unticked language has no
+              // icon rather than an absent one.
+              ...(i18n.language === lang ? { leadingIcon: 'check' } : {})
+            }
             onPress={() => {
               setOpen(false);
               void setLanguage(lang as SupportedLanguage);

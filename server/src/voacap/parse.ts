@@ -16,7 +16,7 @@
  * labels contain spaces and `SNR LW` and `SIG LW` share a last word.
  */
 import type { RawBandHour } from '../../../shared/bands.ts';
-import type { BandHourPrediction, BandKey, OperatingWindow } from '../types.ts';
+import type { BandKey, OperatingWindow } from '../types.ts';
 
 const FIRST_SLOT = 11;
 const SLOT_WIDTH = 5;

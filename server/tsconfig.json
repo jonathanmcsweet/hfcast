@@ -8,6 +8,13 @@
     "strict": true,
     "noUncheckedIndexedAccess": true,
     "exactOptionalPropertyTypes": true,
+    // The same set the app is checked with. Kept in step deliberately: the
+    // two projects share `shared/`, and a module checked one way here and
+    // another way there is a module nobody is checking properly.
+    "noImplicitOverride": true,
+    "noFallthroughCasesInSwitch": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
     "noEmit": true,
     "allowImportingTsExtensions": true,
     "verbatimModuleSyntax": true,
