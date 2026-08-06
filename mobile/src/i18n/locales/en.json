@@ -84,6 +84,7 @@
     "closed": "Not this band, not now"
   },
   "time": {
+    "now": "Now",
     "localAt": "Local time at {{place}}",
     "bothZones": "{{local}} local · {{utc}} UTC"
   },

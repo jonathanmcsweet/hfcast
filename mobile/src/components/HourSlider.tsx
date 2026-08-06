@@ -28,6 +28,21 @@ interface Props {
 }
 
 /**
+ * Where the axis ticks sit, as track positions 0..23.
+ *
+ * Every fourth position, the same rhythm as the heatmap's axis. The
+ * thumb's centre travels position/23 of the track, so the ticks are
+ * placed by that fraction rather than by 24 equal columns — under a
+ * 24-column layout every label after the first would drift a little
+ * further from the hour it names.
+ */
+const TICKS = [0, 4, 8, 12, 16, 20];
+
+/** A tick's distance along the track, as a percentage for `start`. */
+const tickStart = (position: number): `${number}%` =>
+  `${(position / 23) * 100}%`;
+
+/**
  * The slider runs one higher than the hour it sets.
  *
  * `@react-native-community/slider` tests its value with `!props.value`, so a
@@ -93,8 +108,38 @@ export default function HourSlider(
         /* The track is the next 24 hours: the left edge is now and the
            right edge is this hour tomorrow, wrapping past midnight. The
            control still moves over positions; the timeline arithmetic
-           turns a position into the UTC hour it means. */
+           turns a position into the UTC hour it means.
+
+           UTC ticks above the track and local ticks below it, on the
+           heatmap's every-fourth rhythm. The rows are hidden from screen
+           readers: the slider's own accessible value already answers the
+           question the ticks answer by eye, and six extra numbers per
+           row would be read as noise. */
       }
+      <View
+        style={styles.tickRow}
+        accessibilityElementsHidden
+        importantForAccessibility="no-hide-descendants"
+      >
+        {TICKS.map((position) => (
+          <View
+            key={position}
+            style={[styles.tickSlot, { start: tickStart(position) }]}
+          >
+            <Text
+              style={[
+                typography.axis,
+                numeric,
+                { color: position === 0 ? ui.amberNum : ui.text4 },
+              ]}
+            >
+              {position === 0
+                ? t('time.now')
+                : f.hourTick(hourAt(position, anchor))}
+            </Text>
+          </View>
+        ))}
+      </View>
       <Slider
         value={offsetOf(hour, anchor) + OFFSET}
         minimumValue={0 + OFFSET}
@@ -110,6 +155,27 @@ export default function HourSlider(
         accessibilityValue={{ min: 0, max: 23, now: hour }}
         style={styles.slider}
       />
+      {
+        /* The local row starts where the UTC row says NOW: the exact
+           local time is already on the readout above, and a seventh
+           number under the label would say it a third time. */
+      }
+      <View
+        style={styles.tickRow}
+        accessibilityElementsHidden
+        importantForAccessibility="no-hide-descendants"
+      >
+        {TICKS.filter((position) => position !== 0).map((position) => (
+          <View
+            key={position}
+            style={[styles.tickSlot, { start: tickStart(position) }]}
+          >
+            <Text style={[typography.axis, numeric, { color: ui.text4 }]}>
+              {f.hourTick(localHour(hourAt(position, anchor), lon))}
+            </Text>
+          </View>
+        ))}
+      </View>
     </View>
   );
 }
@@ -124,6 +190,19 @@ const styles = StyleSheet.create({
   // Wraps rather than truncates, since the place name is inside it.
   label: { flexShrink: 1 },
   value: { marginStart: 'auto', textAlign: 'right' },
+  // Just tall enough for one axis label; the slots are positioned along
+  // it absolutely, so the row needs its own height.
+  tickRow: { height: 14 },
+  // A fixed-width box centred on its track position with a logical
+  // margin, not a transform: `start` and `marginStart` both follow the
+  // text direction, so the pair stays centred under RTL where a
+  // physical translate would slide the labels a box-width off.
+  tickSlot: {
+    position: 'absolute',
+    width: 48,
+    marginStart: -24,
+    alignItems: 'center',
+  },
   // 44px tall so the thumb is reachable with a thumb, not a fingertip.
   slider: { width: '100%', height: 44 },
 });
