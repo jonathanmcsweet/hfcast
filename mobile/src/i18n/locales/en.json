@@ -21,8 +21,7 @@
   },
   "path": {
     "summary": "{{distance}} · bearing {{bearing}} · {{hops}} hops",
-    "summaryOneHop": "{{distance}} · bearing {{bearing}} · one hop",
-    "noDestinationHint": "The map shows every direction. Tap the name above to aim at one place."
+    "summaryOneHop": "{{distance}} · bearing {{bearing}} · one hop"
   },
   "window": {
     "label": "Usable window",

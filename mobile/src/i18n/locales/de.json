@@ -21,8 +21,7 @@
   },
   "path": {
     "summary": "{{distance}} · Peilung {{bearing}} · {{hops}} Sprünge",
-    "summaryOneHop": "{{distance}} · Peilung {{bearing}} · ein Sprung",
-    "noDestinationHint": "Die Karte zeigt alle Richtungen. Tippe oben auf den Namen, um ein Ziel zu wählen."
+    "summaryOneHop": "{{distance}} · Peilung {{bearing}} · ein Sprung"
   },
   "window": {
     "label": "Nutzbarer Bereich",
