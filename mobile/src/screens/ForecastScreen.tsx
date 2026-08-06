@@ -25,6 +25,7 @@ import StationModal from '../components/StationModal';
 import { usePrediction, useSounding, useSpaceWeather } from '../api/queries';
 import { qualityFor } from '../data/quality';
 import { mayRefresh } from '../data/refreshPolicy';
+import { trackStart } from '../data/timeline';
 import { useShownFor } from '../hooks/useShownFor';
 import { usePathStore } from '../store/usePathStore';
 import { spacing, typography } from '../theme';
@@ -55,16 +56,24 @@ export default function ForecastScreen() {
   const hour = usePathStore((s) => s.hour);
   const setHour = usePathStore((s) => s.setHour);
   const anchor = usePathStore((s) => s.anchor);
+  const past = usePathStore((s) => s.past);
 
+  // The minute tick also rolls "now". While the past window is filling
+  // the track's start does not move — a passed hour stays where it was,
+  // marked as past — so nothing shifts under a thumb the user has on
+  // the track. Once the window is full the whole track slides one
+  // position an hour, selection and hour together.
   useEffect(() => {
-    const id = setInterval(() => setNow(new Date()), 60_000);
+    const id = setInterval(() => {
+      setNow(new Date());
+      usePathStore.getState().reanchor();
+    }, 60_000);
     return () => clearInterval(id);
   }, []);
 
-  // The timeline starts at "now", and this is where "now" is refreshed:
-  // when the app returns to the foreground, not while the user watches.
-  // A track that shifted mid-session would move the selection under a
-  // thumb that is on it.
+  // Returning to the foreground rolls "now" at once, rather than up to
+  // a minute late: the first thing a returning glance reads is the now
+  // line, and it must not name an hour that has ended.
   useEffect(() => {
     const sub = AppState.addEventListener('change', (state) => {
       if (state === 'active') usePathStore.getState().reanchor();
@@ -85,6 +94,10 @@ export default function ForecastScreen() {
 
   const ui = theme.colors.ui;
   const nowHour = now.getUTCHours();
+
+  // Where every module's track begins: up to `PAST_WINDOW` hours behind
+  // "now", once the session has watched hours go by.
+  const start = trackStart(anchor, past);
 
   // Offline is about the readings, not the forecast. On a device the engine
   // is compiled in, so a forecast is always available and only the live
@@ -303,7 +316,8 @@ export default function ForecastScreen() {
           prediction={prediction}
           band={band}
           hour={hour}
-          anchor={anchor}
+          start={start}
+          past={past}
           // The exact moment behind the now-cast: the live readings when
           // they have arrived, the clock when they have not.
           liveAt={weather.dataUpdatedAt || now.getTime()}
@@ -332,7 +346,7 @@ export default function ForecastScreen() {
           band={band}
           hour={hour}
           nowHour={nowHour}
-          anchor={anchor}
+          start={start}
           offline={offline}
           onSelect={(nextBand, nextHour) => {
             setBand(nextBand);

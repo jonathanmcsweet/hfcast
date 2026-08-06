@@ -15,8 +15,8 @@ interface Props {
   prediction: PathPrediction;
   band: BandKey;
   hour: number;
-  /** The hour the first column shows: "now". Columns run 24 h forward. */
-  anchor: number;
+  /** The hour the first column shows. Columns run 24 h forward. */
+  start: number;
   onSelect: (band: BandKey, hour: number) => void;
 }
 
@@ -42,7 +42,7 @@ export default function BandHeatmap({
   prediction,
   band,
   hour,
-  anchor,
+  start,
   onSelect,
 }: Props) {
   const theme = useTheme<AppTheme>();
@@ -50,10 +50,10 @@ export default function BandHeatmap({
   const f = useFormatters();
   const ui = theme.colors.ui;
 
-  // The day in track order: now leftmost, wrapping past midnight. Each
-  // cell still asks the prediction for its absolute hour.
-  const hours = hoursFrom(anchor);
-  const selectedColumn = offsetOf(hour, anchor);
+  // The day in track order, wrapping past midnight. Each cell still
+  // asks the prediction for its absolute hour.
+  const hours = hoursFrom(start);
+  const selectedColumn = offsetOf(hour, start);
 
   return (
     <View>
@@ -141,7 +141,7 @@ export default function BandHeatmap({
                 /* The selected hour is always labelled; a regular label is
                    dropped when it would collide with it. Regular labels sit
                    on every fourth column, not every fourth hour: the hours
-                   move with the anchor, the columns do not. */
+                   move with the track, the columns do not. */
               }
               {h === hour
                   || (column % AXIS_STEP === 0
