@@ -22,7 +22,7 @@ const DIST = path.join(__dirname, 'dist', 'index.html');
 if (!existsSync(DIST)) {
   // Louder than the server failing to start, which reads as a port problem.
   throw new Error(
-    'no web build in dist/. Run `pnpm web:export` first, or `pnpm e2e`, which does both.',
+    'no web build in dist/. Run `pnpm web:export` first, or `pnpm test:e2e`, which does both.',
   );
 }
 
@@ -38,14 +38,24 @@ export default defineConfig({
   fullyParallel: true,
   forbidOnly: Boolean(process.env.CI),
   retries: process.env.CI ? 1 : 0,
+
+  // The app paints to canvases, and a full parallel run is a dozen
+  // browsers sharing one machine. A first paint that takes a second
+  // alone takes several together, so every expectation gets twice the
+  // default rather than tests growing private extensions one flake at
+  // a time.
+  expect: { timeout: 10_000 },
   reporter: process.env.CI ? [['github'], ['list']] : [['list']],
 
   use: {
     baseURL: `http://127.0.0.1:${PORT}`,
     trace: 'on-first-retry',
     // The app draws to a canvas in places, so a picture is the only useful
-    // record of what a failure looked like.
-    screenshot: 'only-on-failure',
+    // record of what a failure looked like. CI only: there the picture is
+    // all that survives the runner, uploaded as the e2e-results artifact.
+    // A local failure has the live browser and the trace viewer, and the
+    // pictures would pile up in test-results unread.
+    screenshot: process.env.CI ? 'only-on-failure' : 'off',
   },
 
   // Both sizes, because every screen has to work on both. The application

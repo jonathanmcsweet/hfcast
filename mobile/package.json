@@ -1,6 +1,6 @@
 {
   "name": "hfcast",
-  "version": "0.54.15",
+  "version": "0.56.1",
   "license": "Apache-2.0",
   "packageManager": "pnpm@11.17.0",
   "main": "index.js",
@@ -12,8 +12,9 @@
     "typecheck": "tsc --noEmit",
     "test": "node --experimental-strip-types --experimental-test-module-mocks --test test/*.test.ts",
     "web:export": "bash tools/copy-canvaskit.sh && expo export --platform web",
-    "e2e": "pnpm web:export && playwright test",
-    "e2e:only": "playwright test"
+    "test:e2e": "pnpm web:export && playwright test",
+    "test:e2e:only": "playwright test",
+    "test:e2e:ui": "playwright test --ui-host=127.0.0.1 --ui-port=9323"
   },
   "dependencies": {
     "@babel/runtime": "^7.24.0",

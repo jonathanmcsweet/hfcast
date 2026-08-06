@@ -2,6 +2,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 
+import { PAST_WINDOW } from '../data/timeline';
 import type { BandKey, Endpoint } from '../data/types';
 
 /**
@@ -57,6 +58,20 @@ interface PathState {
   /** The hour every module is showing, 0..23. */
   hour: number;
   /**
+   * Where the rolling timeline starts: the current hour, taken at launch
+   * and again when the app returns to the foreground. Every track runs
+   * 24 hours forward from here. See `src/data/timeline.ts`.
+   */
+  anchor: number;
+  /**
+   * How many hours behind "now" the track reaches, 0..`PAST_WINDOW`.
+   *
+   * Grows as hours pass in use and stops at the window, so the track
+   * fills in behind the now line and then rolls. Not persisted, like
+   * `anchor`: a relaunch starts at "now" with nothing behind it.
+   */
+  past: number;
+  /**
    * Whether the operator has been asked where they are.
    *
    * False only until the first-run pane has been answered or skipped. It is
@@ -69,6 +84,12 @@ interface PathState {
   swapEnds: () => void;
   setBand: (band: BandKey) => void;
   setHour: (hour: number) => void;
+  /**
+   * Moves "now" to the current hour, keeping the hours just passed on
+   * the track as its past side. Called every minute while the screen
+   * is open, and when the app returns to the foreground.
+   */
+  reanchor: () => void;
   /** Marks the first run answered, with whatever location it settled on. */
   finishFirstRun: (from: Endpoint) => void;
 }
@@ -87,6 +108,8 @@ export const usePathStore = create<PathState>()(
       to: DEFAULT_TO,
       band: DEFAULT_BAND,
       hour: new Date().getUTCHours(),
+      anchor: new Date().getUTCHours(),
+      past: 0,
       ready: false,
       setFrom: (from) => set({ from }),
       setTo: (to) => set({ to }),
@@ -99,15 +122,40 @@ export const usePathStore = create<PathState>()(
       setBand: (band) => set({ band }),
       setHour: (hour) =>
         set({ hour: Math.min(23, Math.max(0, Math.round(hour))) }),
+      // A no-op inside the same hour, so switching apps and straight back
+      // never moves anything. Across an hour boundary the hours just
+      // passed stay on the track as its past side, up to `PAST_WINDOW`
+      // of them.
+      //
+      // The selection follows "now" when it was on it. A selection the
+      // user had moved keeps its hour: that hour is still on the track,
+      // now as the recent past, and its meaning holds. Only after a gap
+      // longer than the window does the selection snap to "now" — by
+      // then the kept hour could have slid to the far end and mean
+      // tomorrow, a quiet change of meaning under a selection the user
+      // made with today in mind.
+      reanchor: () =>
+        set((state) => {
+          const now = new Date().getUTCHours();
+          if (now === state.anchor) return state;
+          const elapsed = (now - state.anchor + 24) % 24;
+          const follow = state.hour === state.anchor
+            || elapsed > PAST_WINDOW;
+          return {
+            anchor: now,
+            past: Math.min(PAST_WINDOW, state.past + elapsed),
+            hour: follow ? now : state.hour,
+          };
+        }),
       finishFirstRun: (from) => set({ from, ready: true }),
     }),
     {
       name: 'hfcast.path',
       version: PERSIST_VERSION,
       storage: createJSONStorage(() => AsyncStorage),
-      // The path and the band are worth restoring. `hour` is not: the app
-      // should open on the current hour, not on whatever hour the user was
-      // last inspecting.
+      // The path and the band are worth restoring. `hour`, `anchor` and
+      // `past` are not: the app should open on the current hour, not on
+      // whatever hour the user was last inspecting.
       partialize: (state) => ({
         from: state.from,
         to: state.to,

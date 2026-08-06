@@ -7,6 +7,7 @@
     "mapLoading": "この周波数の到達範囲を計算しています",
     "mapUnavailable": "到達範囲の地図を読み込めませんでした。",
     "reachLine": "{{band}} はこの時間、世界の約 {{percent}} に届きます。",
+    "reachAndNvis": "{{band}} はこの時間、世界の約 {{percent}} に届き、スキップゾーンなしで約 {{distance}} まで届きます。",
     "legendReach": "到達範囲",
     "legendNight": "夜",
     "panHint": "地図は2本指で動かします",
@@ -20,8 +21,7 @@
   },
   "path": {
     "summary": "{{distance}} · 方位 {{bearing}} · {{hops}} ホップ",
-    "summaryOneHop": "{{distance}} · 方位 {{bearing}} · 1 ホップ",
-    "noDestinationHint": "地図は全方位を示します。上の名前をタップすると受信地を選べます。"
+    "summaryOneHop": "{{distance}} · 方位 {{bearing}} · 1 ホップ"
   },
   "window": {
     "label": "使用可能な範囲",
@@ -84,8 +84,9 @@
     "closed": "この周波数は今は使えません"
   },
   "time": {
-    "localAt": "{{place}} の現地時刻",
-    "bothZones": "現地 {{local}} · UTC {{utc}}"
+    "utcAt": "{{place}} の UTC 時刻",
+    "now": "今",
+    "localAt": "{{place}} の現地時刻"
   },
   "location": {
     "title": "経路を選ぶ",
@@ -288,8 +289,7 @@
       "noaa": "黒点数と太陽指数",
       "giro": "実測のイオノゾンデ観測",
       "openMeteo": "オンライン時の地名検索",
-      "plex": "IBM Plex Sans、書体",
-      "aurora": "起動画面のオーロラ写真"
+      "plex": "IBM Plex Sans、書体"
     },
     "openSource": "{{who}} のサイトを開く",
     "openTerms": "{{terms}} ライセンスを読む"
@@ -306,18 +306,6 @@
     "skip": "今はスキップ",
     "continue": "続ける",
     "recognised": "認識した形式"
-  },
-  "launch": {
-    "kicker": "短波の伝搬",
-    "title": "どのバンドで届くか",
-    "credit": "ISS 第42次長期滞在 · NASA／S. クリストフォレッティ、パブリックドメイン",
-    "a11y": "起動中: {{step}}",
-    "step": {
-      "flux": "太陽電波フラックス",
-      "ionosonde": "最寄りのイオノゾンデ",
-      "model": "経路モデル",
-      "bands": "バンド一覧"
-    }
   },
   "help": {
     "title": "予報の作り方",

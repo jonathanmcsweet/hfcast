@@ -7,6 +7,7 @@
     "mapLoading": "Working out where this band reaches",
     "mapUnavailable": "The coverage map could not be loaded.",
     "reachLine": "{{band}} reaches about {{percent}} of the world at this hour.",
+    "reachAndNvis": "{{band}} reaches about {{percent}} of the world at this hour and reaches out to about {{distance}} with no skip zone.",
     "legendReach": "Reach",
     "legendNight": "Night",
     "panHint": "Two fingers move the map",
@@ -20,8 +21,7 @@
   },
   "path": {
     "summary": "{{distance}} · bearing {{bearing}} · {{hops}} hops",
-    "summaryOneHop": "{{distance}} · bearing {{bearing}} · one hop",
-    "noDestinationHint": "The map shows every direction. Tap the name above to aim at one place."
+    "summaryOneHop": "{{distance}} · bearing {{bearing}} · one hop"
   },
   "window": {
     "label": "Usable window",
@@ -84,8 +84,9 @@
     "closed": "Not this band, not now"
   },
   "time": {
-    "localAt": "Local time at {{place}}",
-    "bothZones": "{{local}} local · {{utc}} UTC"
+    "utcAt": "UTC time at {{place}}",
+    "now": "Now",
+    "localAt": "Local time at {{place}}"
   },
   "location": {
     "title": "Choose a path",
@@ -288,8 +289,7 @@
       "noaa": "Sunspot numbers and solar indices",
       "giro": "Measured ionosonde soundings",
       "openMeteo": "Place search, when online",
-      "plex": "IBM Plex Sans, the typeface",
-      "aurora": "The aurora on the launch screen"
+      "plex": "IBM Plex Sans, the typeface"
     },
     "openSource": "Open the site for {{who}}",
     "openTerms": "Read the {{terms}} licence"
@@ -306,18 +306,6 @@
     "skip": "Skip for now",
     "continue": "Continue",
     "recognised": "RECOGNISED"
-  },
-  "launch": {
-    "kicker": "HF propagation",
-    "title": "Which band gets you there",
-    "credit": "ISS Expedition 42 · NASA/S. Cristoforetti, public domain",
-    "a11y": "Starting up: {{step}}",
-    "step": {
-      "flux": "Solar flux",
-      "ionosonde": "Nearest ionosonde",
-      "model": "Path model",
-      "bands": "Your bands"
-    }
   },
   "help": {
     "title": "How the forecast is made",

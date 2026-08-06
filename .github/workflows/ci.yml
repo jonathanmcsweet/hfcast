@@ -147,7 +147,7 @@ jobs:
   # dependencies. A type error alone would not have caught it.
   app:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 30
     defaults:
       run:
         working-directory: mobile
@@ -177,8 +177,11 @@ jobs:
       - name: Test
         run: pnpm test
 
+      # The script, not a bare `expo export`: it copies canvaskit in
+      # first, and the end-to-end tests below run against this export —
+      # without those files the map cannot draw.
       - name: Build for web
-        run: pnpm exec expo export --platform web
+        run: pnpm web:export
 
       - name: Check the export produced something
         run: |
@@ -192,3 +195,27 @@ jobs:
             exit 1
           fi
           echo "bundled $bundle"
+
+      - name: Install the Playwright browser
+        run: pnpm exec playwright install --with-deps chromium
+
+      # The application driven as a user drives it, against the export
+      # checked above and a stubbed prediction server — see
+      # `mobile/test/e2e/fixtures.ts`. This is the only check that the
+      # screens draw and answer at all.
+      - name: End-to-end tests
+        run: pnpm test:e2e:only
+
+      # The failure artefacts: a screenshot, the page snapshot and the
+      # error context, written only for failed attempts. `always`, not
+      # `failure`: a test that fails once and passes on the retry leaves
+      # the job green, and the first attempt's picture is exactly the
+      # evidence a flake gets chased with. The glob matches only the
+      # per-test folders, so a clean run has nothing to upload.
+      - name: Keep the failure evidence
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: e2e-results
+          path: mobile/test-results/*/
+          if-no-files-found: ignore

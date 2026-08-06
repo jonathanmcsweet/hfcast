@@ -25,6 +25,8 @@ pnpm --dir mobile typecheck    # tsc --noEmit
 pnpm --dir mobile test
 pnpm --dir server typecheck
 pnpm --dir server test
+pnpm test:e2e                  # web export + Playwright, ~5 minutes
+pnpm test:e2e:only             # Playwright against the existing export
 ```
 
 CI runs all of these, and four more tests that start the engine as a
