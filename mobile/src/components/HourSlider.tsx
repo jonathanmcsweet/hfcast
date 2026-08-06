@@ -120,92 +120,121 @@ export default function HourSlider(
            read as noise. */
       }
       <View style={styles.scale}>
-        <View
-          style={styles.tickRow}
-          accessibilityElementsHidden
-          importantForAccessibility="no-hide-descendants"
-        >
-          {TICKS.map((position) => (
-            <View
-              key={position}
-              style={[styles.tickSlot, { start: tickStart(position) }]}
-            >
-              <Text
-                style={[
-                  typography.axis,
-                  numeric,
-                  { color: position === 0 ? ui.amberNum : ui.text4 },
-                ]}
-              >
-                {position === 0
-                  ? first
-                  : f.utcClock(localHour(hourAt(position, anchor), lon))}
-              </Text>
-            </View>
-          ))}
-        </View>
-        <Slider
-          value={offsetOf(hour, anchor) + OFFSET}
-          minimumValue={0 + OFFSET}
-          maximumValue={23 + OFFSET}
-          step={1}
-          onValueChange={(value) => onChange(hourAt(value - OFFSET, anchor))}
-          minimumTrackTintColor={ui.accent}
-          maximumTrackTintColor={ui.line2}
-          thumbTintColor={ui.accent}
-          accessibilityLabel={t('a11y.hourSlider')}
-          // The control reports nothing by itself, so the hour is stated
-          // here — unshifted, because this is the number that gets
-          // announced.
-          accessibilityValue={{ min: 0, max: 23, now: hour }}
-          style={styles.slider}
-        />
         {
-          /* The marks sit just under the track, inside the slider's own
-             whitespace, one per hour with the labelled ones taller. */
+          /* The inner view is what the now marker's percentage is
+             measured against: the padded outer view would measure it
+             from the card's edge instead of the track's start. */
         }
-        <View
-          style={styles.marksRow}
-          accessibilityElementsHidden
-          importantForAccessibility="no-hide-descendants"
-          pointerEvents="none"
-        >
-          {MARKS.map((position) => (
-            <View
-              key={position}
-              style={[
-                styles.mark,
-                { start: tickStart(position) },
-                position % 4 === 0
-                  ? { height: 6, backgroundColor: ui.text4 }
-                  : { height: 4, backgroundColor: ui.line2 },
-                position === 0 ? { backgroundColor: ui.amberNum } : null,
-              ]}
-            />
-          ))}
-        </View>
-        <View
-          style={styles.tickRow}
-          accessibilityElementsHidden
-          importantForAccessibility="no-hide-descendants"
-        >
+        <View>
           {
-            /* The tag that names this scale, where the top one's header
-               names it local. Level with the row's own labels. */
+            /* The now marker: a dotted line from under the word down
+             through the track to the marks, drawn before the slider so
+             the thumb passes over it. Dots as views, not a dashed
+             border — Android does not draw dashed borders on one side. */
           }
-          <Text style={[typography.label, styles.utcTag, { color: ui.text4 }]}>
-            {t('time.utc')}
-          </Text>
-          {TICKS.filter((position) => position !== 0).map((position) => (
-            <View
-              key={position}
-              style={[styles.tickSlot, { start: tickStart(position) }]}
+          <View
+            style={[styles.nowLine, { start: tickStart(0) }]}
+            pointerEvents="none"
+            accessibilityElementsHidden
+            importantForAccessibility="no-hide-descendants"
+          >
+            {[0, 1, 2, 3, 4].map((i) => (
+              <View
+                key={i}
+                style={[styles.nowDot, { backgroundColor: ui.amberNum }]}
+              />
+            ))}
+          </View>
+          <View
+            style={[styles.tickRow, styles.topRow]}
+            accessibilityElementsHidden
+            importantForAccessibility="no-hide-descendants"
+          >
+            {TICKS.map((position) => (
+              <View
+                key={position}
+                style={[styles.tickSlot, { start: tickStart(position) }]}
+              >
+                <Text
+                  style={[
+                    typography.axis,
+                    numeric,
+                    { color: position === 0 ? ui.amberNum : ui.text4 },
+                  ]}
+                >
+                  {position === 0
+                    ? first
+                    : f.utcClock(localHour(hourAt(position, anchor), lon))}
+                </Text>
+              </View>
+            ))}
+          </View>
+          <Slider
+            value={offsetOf(hour, anchor) + OFFSET}
+            minimumValue={0 + OFFSET}
+            maximumValue={23 + OFFSET}
+            step={1}
+            onValueChange={(value) => onChange(hourAt(value - OFFSET, anchor))}
+            minimumTrackTintColor={ui.accent}
+            maximumTrackTintColor={ui.line2}
+            thumbTintColor={ui.accent}
+            accessibilityLabel={t('a11y.hourSlider')}
+            // The control reports nothing by itself, so the hour is stated
+            // here — unshifted, because this is the number that gets
+            // announced.
+            accessibilityValue={{ min: 0, max: 23, now: hour }}
+            style={styles.slider}
+          />
+          {
+            /* The marks sit just under the track, inside the slider's own
+             whitespace, one per hour with the labelled ones taller. */
+          }
+          <View
+            style={styles.marksRow}
+            accessibilityElementsHidden
+            importantForAccessibility="no-hide-descendants"
+            pointerEvents="none"
+          >
+            {MARKS.map((position) => (
+              <View
+                key={position}
+                style={[
+                  styles.mark,
+                  { start: tickStart(position) },
+                  position % 4 === 0
+                    ? { height: 6, backgroundColor: ui.text4 }
+                    : { height: 4, backgroundColor: ui.line2 },
+                  // The now position's mark is the dotted line above.
+                  position === 0 ? { opacity: 0 } : null,
+                ]}
+              />
+            ))}
+          </View>
+          <View
+            style={styles.tickRow}
+            accessibilityElementsHidden
+            importantForAccessibility="no-hide-descendants"
+          >
+            {
+              /* The tag that names this scale, where the top one's header
+               names it local. Level with the row's own labels. */
+            }
+            <Text
+              style={[typography.label, styles.utcTag, { color: ui.text4 }]}
             >
-              <Text style={[typography.axis, numeric, { color: ui.text4 }]}>
-                {f.utcClock(hourAt(position, anchor))}
-              </Text>
-            </View>
-          ))}
+              {t('time.utc')}
+            </Text>
+            {TICKS.filter((position) => position !== 0).map((position) => (
+              <View
+                key={position}
+                style={[styles.tickSlot, { start: tickStart(position) }]}
+              >
+                <Text style={[typography.axis, numeric, { color: ui.text4 }]}>
+                  {f.utcClock(hourAt(position, anchor))}
+                </Text>
+              </View>
+            ))}
+          </View>
         </View>
       </View>
     </View>
@@ -220,6 +249,22 @@ const styles = StyleSheet.create({
   // Just tall enough for one axis label; the slots are positioned along
   // it absolutely, so the row needs its own height.
   tickRow: { height: 14 },
+  // The label row leans into the slider's top whitespace, so "now" sits
+  // close over the thumb rather than a full row above it.
+  topRow: { marginBottom: -6 },
+  // From just under the word to the marks' baseline, through the track.
+  // The top is the label row's text bottom; the bottom clears the UTC
+  // row. Both are sums of the fixed heights around the slider.
+  nowLine: {
+    position: 'absolute',
+    top: 12,
+    bottom: 18,
+    width: 2,
+    marginStart: -1,
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  nowDot: { width: 2, height: 3, borderRadius: 1 },
   // A fixed-width box centred on its track position with a logical
   // margin, not a transform: `start` and `marginStart` both follow the
   // text direction, so the pair stays centred under RTL where a
