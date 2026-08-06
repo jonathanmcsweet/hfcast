@@ -20,6 +20,7 @@ import {
   queryClient,
   shouldPersistQuery,
 } from './src/api/persist';
+import BootFrame from './src/components/BootFrame';
 import ErrorBoundary from './src/components/ErrorBoundary';
 import i18n from './src/i18n';
 import ForecastScreen from './src/screens/ForecastScreen';
@@ -72,15 +73,12 @@ export default function App() {
   // font is worse-looking, not unreadable, and an operator in the field
   // needs the forecast more than the typeface.
   //
-  // While they are loading the frame is filled with the theme's own page
-  // colour rather than left empty. The fonts are bundled, so this lasts a
-  // frame or two — but an empty frame is white, and white between a dark
-  // system splash and a dark screen is a flash.
-  if (!fontsLoaded && !fontError) {
-    return (
-      <View style={[styles.root, { backgroundColor: theme.colors.ui.page }]} />
-    );
-  }
+  // While they are loading, the frame holds the screen's own skeletons
+  // rather than sitting empty — see `BootFrame` for why the shape does
+  // not have to wait for the type. The whole provider tree mounts
+  // either way, so the screen arrives by swapping one child, not by
+  // rebuilding the world around it.
+  const booted = fontsLoaded || fontError;
 
   return (
     // The children render before the cache has been read back, which is
@@ -123,7 +121,7 @@ export default function App() {
                   retry: i18n.t('status.retry'),
                 }}
               >
-                <ForecastScreen />
+                {booted ? <ForecastScreen /> : <BootFrame />}
               </ErrorBoundary>
             </View>
           </SafeAreaProvider>
