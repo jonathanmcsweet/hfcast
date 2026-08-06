@@ -1,0 +1,93 @@
+import Slider from '@react-native-community/slider';
+import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
+import { StyleSheet } from 'react-native';
+import { TextInput, useTheme } from 'react-native-paper';
+
+import { parsePower, positionOf, POWER_STEPS, wattsAt } from '../../data/power';
+import {
+  LIMITS,
+  useActivePreset,
+  useStationStore,
+} from '../../store/useStationStore';
+import { spacing } from '../../theme';
+import type { AppTheme } from '../../theme';
+import Note from './Note';
+import SectionHeading from './SectionHeading';
+
+/**
+ * The power, typed as well as swept.
+ *
+ * A rig has an exact setting worth entering, and the slider is
+ * logarithmic because the range runs over four decades — a linear one
+ * would spend nine tenths of its travel above 150 W and never reach a QRP
+ * setting at all.
+ */
+export default function PowerSection() {
+  const { t } = useTranslation();
+  const theme = useTheme<AppTheme>();
+  const ui = theme.colors.ui;
+  const { watts } = useActivePreset();
+  const setWatts = useStationStore((s) => s.setWatts);
+
+  /**
+   * The field while it is being typed.
+   *
+   * Held apart from the store so a half-typed "0." is not parsed, clamped
+   * and written back under the reader's fingers. Null means nothing is
+   * being typed and the field shows the stored value, which is also how
+   * it follows the slider.
+   */
+  const [typed, setTyped] = useState<string | null>(null);
+
+  return (
+    <>
+      <SectionHeading text={t('station.powerSection')} />
+      <TextInput
+        mode="outlined"
+        dense
+        keyboardType="decimal-pad"
+        inputMode="decimal"
+        value={typed ?? String(watts)}
+        onChangeText={(text) => {
+          setTyped(text);
+          const parsed = parsePower(text);
+          if (parsed !== null) setWatts(parsed);
+        }}
+        onBlur={() => setTyped(null)}
+        right={<TextInput.Affix text={t('station.wattsUnit')} />}
+        accessibilityLabel={t('station.a11y.power')}
+        style={styles.field}
+      />
+      <Note>
+        {t('station.powerRange', {
+          min: LIMITS.watts.min,
+          max: LIMITS.watts.max,
+        })}
+      </Note>
+      <Slider
+        value={positionOf(watts, LIMITS.watts)}
+        minimumValue={0}
+        maximumValue={POWER_STEPS}
+        step={1}
+        onValueChange={(position) => {
+          setTyped(null);
+          setWatts(wattsAt(position, LIMITS.watts));
+        }}
+        minimumTrackTintColor={ui.accent}
+        maximumTrackTintColor={ui.line2}
+        thumbTintColor={ui.accent}
+        accessibilityLabel={t('station.a11y.power')}
+        accessibilityValue={{
+          min: LIMITS.watts.min,
+          max: LIMITS.watts.max,
+          now: watts,
+        }}
+      />
+    </>
+  );
+}
+
+const styles = StyleSheet.create({
+  field: { marginTop: spacing.xs },
+});
