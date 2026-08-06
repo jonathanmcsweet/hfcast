@@ -44,8 +44,11 @@ export default defineConfig({
     baseURL: `http://127.0.0.1:${PORT}`,
     trace: 'on-first-retry',
     // The app draws to a canvas in places, so a picture is the only useful
-    // record of what a failure looked like.
-    screenshot: 'only-on-failure',
+    // record of what a failure looked like. CI only: there the picture is
+    // all that survives the runner, uploaded as the e2e-results artifact.
+    // A local failure has the live browser and the trace viewer, and the
+    // pictures would pile up in test-results unread.
+    screenshot: process.env.CI ? 'only-on-failure' : 'off',
   },
 
   // Both sizes, because every screen has to work on both. The application
