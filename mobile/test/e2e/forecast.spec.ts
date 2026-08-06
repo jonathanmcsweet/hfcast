@@ -2,21 +2,19 @@
  * What the web build draws, and what it does when an answer is missing.
  *
  * These run the exported application in a browser with the prediction
- * server replaced by fixtures. See `fixtures.ts` for what that leaves
- * uncovered.
+ * server replaced by fixtures. The `test` comes from `fixtures.ts` too:
+ * every test starts behind the stubbed server, and `open` finishes the
+ * launch. See that file for what the stubs do and do not cover.
  *
  * Every locator here is an accessible name or a role. That is how a screen
  * reader finds the same control, so a test that cannot find something is
  * also telling us a reader could not. Nothing is found by test id.
  */
-import { expect, test } from '@playwright/test';
-
-import { openApp, prediction, stubApi } from './fixtures.ts';
+import { allClosed, expect, prediction, stubApi, test } from './fixtures.ts';
 
 test.describe('the forecast screen', () => {
-  test('draws a forecast for the default location', async ({ page }) => {
-    await stubApi(page);
-    await openApp(page);
+  test('draws a forecast for the default location', async ({ page, open }) => {
+    await open();
 
     // The header names where the forecast is from, and offers to change it.
     await expect(
@@ -28,9 +26,8 @@ test.describe('the forecast screen', () => {
     await expect(page.getByText('No forecast available')).toBeHidden();
   });
 
-  test('shows the sun readings that drove the run', async ({ page }) => {
-    await stubApi(page);
-    await openApp(page);
+  test('shows the sun readings that drove the run', async ({ page, open }) => {
+    await open();
 
     // The card is closed until it is asked for: the forecast is the answer,
     // and the readings behind it are the detail.
@@ -43,21 +40,19 @@ test.describe('the forecast screen', () => {
     await expect(page.getByText('K index')).toBeVisible();
   });
 
-  test('says so when no band reaches at any hour', async ({ page }) => {
+  test('says so when no band reaches at any hour', async ({ page, open }) => {
     // A grid of identical closed cells is a true answer that looks like a
     // failed one, so the application says it in words as well.
-    const { allClosed } = await import('./fixtures.ts');
     await stubApi(page, { '/api/survey': allClosed() });
-    await openApp(page);
+    await open();
 
     await expect(page.getByText(/No band reaches/i)).toBeVisible();
   });
 });
 
 test.describe('the band selector', () => {
-  test('offers every band and changes what is shown', async ({ page }) => {
-    await stubApi(page);
-    await openApp(page);
+  test('offers every band and changes what is shown', async ({ page, open }) => {
+    await open();
 
     const fortyMetres = page.getByRole('button', { name: 'Show 40m' });
     const twentyMetres = page.getByRole('button', { name: 'Show 20m' });
@@ -73,20 +68,18 @@ test.describe('the band selector', () => {
 });
 
 test.describe('the hour control', () => {
-  test('is reachable by its accessible name', async ({ page }) => {
-    await stubApi(page);
-    await openApp(page, { hour: 12 });
+  test('is reachable by its accessible name', async ({ page, open }) => {
+    await open({ hour: 12 });
 
     await expect(page.getByLabel('Hour of day, UTC')).toBeVisible();
   });
 });
 
 test.describe('the grid', () => {
-  test('can be read as a table instead', async ({ page }) => {
+  test('can be read as a table instead', async ({ page, open }) => {
     // The table is the alternative for a reader who cannot use the drawn
     // grid, so it has to be reachable and it has to hold the bands.
-    await stubApi(page);
-    await openApp(page);
+    await open();
 
     await page.getByRole('button', { name: 'Show as table' }).click();
 
@@ -97,9 +90,9 @@ test.describe('the grid', () => {
 });
 
 test.describe('when the server does not answer', () => {
-  test('shows the error screen and offers to try again', async ({ page }) => {
+  test('shows the error screen and offers to try again', async ({ page, open }) => {
     await stubApi(page, { '/api/survey': 'fail', '/api/prediction': 'fail' });
-    await openApp(page);
+    await open();
 
     await expect(page.getByText('No forecast available')).toBeVisible();
     await expect(page.getByRole('button', { name: 'Try again' })).toBeVisible();
@@ -109,9 +102,9 @@ test.describe('when the server does not answer', () => {
       .toBeVisible();
   });
 
-  test('recovers when the server comes back', async ({ page }) => {
+  test('recovers when the server comes back', async ({ page, open }) => {
     await stubApi(page, { '/api/survey': 'fail' });
-    await openApp(page);
+    await open();
     await expect(page.getByText('No forecast available')).toBeVisible();
 
     // The same route, answering this time. `page.route` takes the last
@@ -122,11 +115,11 @@ test.describe('when the server does not answer', () => {
     await expect(page.getByText('No forecast available')).toBeHidden();
   });
 
-  test('marks the forecast offline when only the readings fail', async ({ page }) => {
+  test('marks the forecast offline when only the readings fail', async ({ page, open }) => {
     // The forecast still arrives; only the live conditions are missing.
     // That costs accuracy, not the answer, and the chip is what says so.
     await stubApi(page, { '/api/spaceweather': 'fail' });
-    await openApp(page);
+    await open();
 
     await expect(page.getByText('No forecast available')).toBeHidden();
     await expect(page.getByLabel('Saved forecast')).toBeVisible();

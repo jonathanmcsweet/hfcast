@@ -14,6 +14,7 @@
  * The numbers are made by a rule rather than copied from a run, so each
  * one can be predicted by a test without a table of expected values here.
  */
+import { expect, test as base } from '@playwright/test';
 import type { Page } from '@playwright/test';
 
 import {
@@ -189,9 +190,14 @@ export async function stubApi(
  * The hour is fixed because the grid reads the clock. Without it a test
  * that passes at noon fails at midnight.
  */
+interface OpenOptions {
+  hour?: number;
+  to?: Endpoint | null;
+}
+
 export async function openApp(
   page: Page,
-  options: { hour?: number; to?: Endpoint | null; } = {},
+  options: OpenOptions = {},
 ): Promise<void> {
   const { hour = 12, to = null } = options;
 
@@ -220,4 +226,33 @@ export async function openApp(
   await page.clock.resume();
 
   await page.goto('/');
+
+  // The launch photograph covers the whole app until the first forecast
+  // settles. Nothing may be read off the screen before it leaves — an
+  // assertion that something is hidden passes vacuously under the cover,
+  // and a press lands on the photograph. Generous, because a failing
+  // query holds the cover through its retries.
+  await expect(page.getByText('Which band gets you there'))
+    .toBeHidden({ timeout: 20_000 });
 }
+
+/**
+ * The `test` every spec imports, in place of Playwright's own.
+ *
+ * Every test starts behind the stubbed server — no spec repeats that —
+ * and gets `open` to finish the launch: `await open()`, or
+ * `await open({ hour: 12 })`. A test that needs a different answer
+ * still calls `stubApi(page, overrides)` before opening: `page.route`
+ * takes the last handler added, so the override sits over the stubs
+ * this fixture already laid down.
+ */
+export const test = base.extend<{
+  open: (options?: OpenOptions) => Promise<void>;
+}>({
+  open: async ({ page }, use) => {
+    await stubApi(page);
+    await use((options) => openApp(page, options));
+  },
+});
+
+export { expect } from '@playwright/test';
