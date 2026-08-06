@@ -21,8 +21,7 @@
   },
   "path": {
     "summary": "{{distance}} · الاتجاه {{bearing}} · {{hops}} قفزات",
-    "summaryOneHop": "{{distance}} · الاتجاه {{bearing}} · قفزة واحدة",
-    "noDestinationHint": "تعرض الخريطة كل الاتجاهات. اضغط على الاسم بالأعلى لاختيار وجهة."
+    "summaryOneHop": "{{distance}} · الاتجاه {{bearing}} · قفزة واحدة"
   },
   "window": {
     "label": "النافذة الصالحة",
