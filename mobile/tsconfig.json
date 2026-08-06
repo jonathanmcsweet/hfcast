@@ -39,7 +39,12 @@
     // @types package into the program on its own, so the one that is needed has
     // to be named. Without this the imports resolve to nothing and every test
     // file fails to check.
-    "types": ["node"],
+    // `jest` for the same reason: the render tests under `test/render/`
+    // run on jest, and its `describe`, `it` and `expect` are globals. The
+    // rest of the suite imports `describe` and `it` from `node:test`
+    // outright, and a local import beats a global, so the two runners do
+    // not read each other's tests.
+    "types": ["node", "jest"],
     // No `baseUrl`: TypeScript 6 deprecates it, and without one `paths` is
     // read relative to this file, which is where it pointed anyway.
     "paths": { "@/*": ["./src/*"] }
