@@ -14,9 +14,9 @@ import {
 import { isBidirectional, lobes } from '../data/orientation';
 import { useUnits } from '../hooks/useUnits';
 import {
-  activePreset,
   type AntennaKey,
   type ModeKey,
+  useActivePreset,
   usesBeam,
   useStationStore,
 } from '../store/useStationStore';
@@ -82,7 +82,7 @@ export default function StationStrip({ onPress, requiredSnrDb }: Props) {
   const activeId = useStationStore((s) => s.activeId);
   const selectPreset = useStationStore((s) => s.selectPreset);
 
-  const preset = activePreset({ presets, activeId });
+  const preset = useActivePreset();
   const { watts, mode, antenna } = preset;
   // Which way it actually favours, which is not the number stored for a
   // wire: a dipole radiates at right angles to its run, both ways.

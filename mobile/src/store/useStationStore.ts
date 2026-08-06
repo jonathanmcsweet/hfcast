@@ -301,6 +301,17 @@ export function activePreset(state: {
 }
 
 /**
+ * The same, for a component.
+ *
+ * The lookup is a find over the list and it returns an object the store
+ * already holds, so this subscribes to a stable reference and does not
+ * make a new value on every render.
+ */
+export function useActivePreset(): StationPreset {
+  return useStationStore(activePreset);
+}
+
+/**
  * The station as query parameters.
  *
  * Fields the antenna does not use are left out rather than sent as
