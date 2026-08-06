@@ -1,36 +1,15 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { PanResponder, StyleSheet, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import {
   ActivityIndicator,
   IconButton,
   Text,
   useTheme,
 } from 'react-native-paper';
-import Svg, { Circle, G, Path } from 'react-native-svg';
+import Svg, { Circle, Path } from 'react-native-svg';
 
-import land from '../assets/land.json';
-import { cellField, gridPoints, nvisPoints } from '../data/cellField';
-import {
-  circleAround,
-  clamp,
-  containView,
-  discRing,
-  EARTH_KM,
-  greatCircle,
-  gridOutline,
-  isNight,
-  MIN_SCALE,
-  nightIsInside,
-  opposedTo,
-  pathOf,
-  projector,
-  projectRing,
-  regionOf,
-  subsolarPoint,
-  viewTransform,
-} from '../data/projection';
-import type { MapView } from '../data/projection';
+import { regionOf, viewTransform } from '../data/projection';
 import type {
   Coverage,
   CoveragePatch,
@@ -42,6 +21,9 @@ import { hasSkia } from '../render/available';
 import CellLayer from '../render/CellLayer';
 import { radius as radii, spacing, typography } from '../theme';
 import type { AppTheme } from '../theme';
+import GlobeCellsSvg from './globe/GlobeCellsSvg';
+import { useGlobeGeometry } from './globe/useGlobeGeometry';
+import { useGlobeView } from './globe/useGlobeView';
 
 interface Props {
   /** Undefined while loading, null when the request failed. */
@@ -99,11 +81,6 @@ interface Props {
   onPanning?: ((active: boolean) => void) | undefined;
 }
 
-/** Dashed rings, in kilometres. The spacing operators think in. */
-const RING_KM = [1000, 2000, 4000, 8000, 12000];
-
-const RINGS = land as [number, number][][];
-
 /**
  * How dark the night cap is drawn.
  *
@@ -119,40 +96,6 @@ const RINGS = land as [number, number][][];
  * and 0.07 left the night side barely visible.
  */
 const NIGHT_OPACITY = { dark: 0.16, light: 0.18 };
-
-/**
- * How far in the map will go.
- *
- * This was 10, on the reasoning that past it the grid is coarser than
- * the pixels. That reasoning was about the 15 by 22.5 degree grid, and
- * it stopped being true when the fine grid arrived: the patch follows
- * the view and buys a finer step as the rectangle shrinks, so zooming
- * in now asks a better question rather than magnifying the same answer.
- *
- * 30 is where that stops. The ladder's finest rung is 0.625 by 0.75
- * degrees and it is only reached when the visible half-height is under
- * about 3 degrees, which on a 322 px map is a scale near 30. Past that
- * the cells would be magnified again with nothing further to ask for.
- */
-const MAX_SCALE = 30;
-const ZOOM_STEP = 1.6;
-
-const WHOLE_GLOBE: MapView = { scale: MIN_SCALE, cxF: 0.5, cyF: 0.5 };
-
-/** A drag has to beat this before it takes over, so a tap stays a tap. */
-const DRAG_SLOP = 3;
-
-/**
- * Fingers on the map before it moves.
- *
- * One finger belongs to the page. The map fills most of the screen, so
- * claiming a single-finger drag meant a scroll that began over the map panned
- * the map instead — a gesture that reads as "move the list" doing something
- * else entirely, with no way to tell in advance which it would be. Two fingers
- * is the pattern a scrollable map inside a scrollable page usually takes, and
- * it also leaves the single finger free for tapping a square.
- */
-const PAN_FINGERS = 2;
 
 /**
  * The coverage map: where this band reaches, right now, in every direction.
@@ -190,283 +133,29 @@ export default function CoverageGlobe({
   // only the theme knows which ramp it carries.
   const ramp = theme.colors.map;
 
-  // The projection, and everything that is only a function of it and of
-  // the answers. Kept out of the hour-dependent memo below because the
-  // hour slider reports every value it passes through, and the cells are
-  // the expensive part: a whole-world fine grid is 34,560 rings
-  // projected and written out as path text, measured at 141 ms on a
-  // desktop. Rebuilding that on each frame of a drag made the slider
-  // heavy exactly when a fine grid was loaded.
-  //
-  // The band and the settled hour still rebuild it, through `coverage`,
-  // `patch` and `fine` — new answers are new objects. That is the
-  // rebuild that has to happen. This one never did.
-  const p = useMemo(
-    () => projector(from.lon, from.lat, size),
-    [from.lon, from.lat, size],
+  const geometry = useGlobeGeometry(
+    from,
+    to,
+    size,
+    hour,
+    coverage,
+    patch,
+    fine,
   );
-
-  const cells = useMemo(() => {
-    // The cells, as one path per quality. The geometry and the bucketing
-    // live in `cellField` because the canvas and the SVG fallback both
-    // draw from them and must not be able to disagree.
-    //
-    // The fine grid replaces the coarse one outright when it is there.
-    // Both answer the same question over the same world, so drawing the
-    // coarse cells underneath would only show through the gaps of a
-    // better answer. This is the progressive paint: the coarse map is
-    // drawn from the first answer and swapped for the fine one when it
-    // arrives, with nothing in between.
-    const coarse = fine
-      ? cellField(p, gridPoints(fine), fine.lonStep, fine.latStep, true)
-      : cellField(
-        p,
-        coverage?.points ?? [],
-        coverage?.lonStep ?? 22.5,
-        coverage?.latStep ?? 15,
-        true,
-      );
-    const reachBox = coarse.reachBox;
-
-    // The fine grid, drawn the same way and over the top. It covers a
-    // rectangle a few cells wide near the centre, so at a whole-globe
-    // view it is a smudge; it is worth drawing anyway, because zooming in
-    // is what the controls are for and the sentence under the map carries
-    // the same fact for anyone who cannot.
-    //
-    // Deliberately left out of `reachBox` — the last argument — because
-    // the Fit button frames where the band reaches and the patch is a
-    // region rather than an answer about reach. Counting it would pull
-    // the frame toward home on every band, whatever the band did.
-    const patchField = cellField(
-      p,
-      patch?.points ?? [],
-      patch?.lonStep ?? 1.5,
-      patch?.latStep ?? 1.25,
-      false,
-    );
-
-    // An opaque backing under the fine cells.
-    //
-    // Every cell on this map is drawn with some transparency — 0.6 for a
-    // closed one — so a fine cell laid straight over a coarse one shows
-    // the coarse colour through it, and the coarse cell's edges stay
-    // visible across the region. That is worst exactly where the two
-    // disagree, which is the whole reason the fine grid is run.
-    //
-    // Filling the rectangle with the disc's own colour first puts the
-    // fine cells on the same background the coarse cells have, so the
-    // same reliability is the same colour whichever grid drew it and the
-    // legend means one thing.
-    //
-    // The patch is centred on the operator and the projection is centred
-    // on the operator, so this rectangle is always at the middle of the
-    // disc and never near the rim where a ring breaks into runs. The
-    // check is here because "always" is a claim about two things staying
-    // in step, not about this function.
-    const patchOutline = patch
-      ? projectRing(
-        p,
-        (() => {
-          const ring = gridOutline(patch, patch.lonStep, patch.latStep);
-          return [...ring, ring[0] as [number, number]];
-        })(),
-      )
-      : [];
-    const patchBacking = patchOutline.length === 1 && patchOutline[0]
-      ? pathOf(patchOutline[0], true)
-      : '';
-
-    // The stipple follows whichever grid carries take-off angles for the
-    // region: the fine globe when there is one, the patch otherwise.
-    // Steep paths are short ones, so this is a small cluster near the
-    // station either way, however many points were scanned to find it.
-    const nvisDots = fine
-      ? nvisPoints(p, gridPoints(fine))
-      : nvisPoints(p, patch?.points ?? []);
-
-    const coast = RINGS.flatMap((ring) =>
-      projectRing(p, ring).map((run) => pathOf(run))
-    );
-
-    const distanceRings = RING_KM.map((km) => ({ km, r: km * p.pxPerKm }));
-
-    const home = p.project(from.lon, from.lat);
-    const target = to ? p.project(to.lon, to.lat) : null;
-    const path = to
-      ? projectRing(p, greatCircle(from.lon, from.lat, to.lon, to.lat))
-        .map((run) => pathOf(run))
-      : [];
-
-    return {
-      coarse: coarse.buckets,
-      patchCells: patchField.buckets,
-      patchBacking,
-      nvisDots,
-      coast,
-      distanceRings,
-      home,
-      target,
-      path,
-      reachBox,
-    };
-  }, [p, coverage, patch, fine, from.lat, from.lon, to]);
-
-  // The terminator, which is the only geometry the hour moves. Cheap —
-  // one ring of a few hundred points — so the slider may rebuild it on
-  // every value it reports.
-  const night = useMemo(() => {
-    // Night is the cap centred on the antisolar point — the place where it
-    // is local midnight — bounded by the great circle a quarter of the way
-    // round the earth from it, which is the terminator.
-    const now = new Date();
-    now.setUTCHours(hour, 0, 0, 0);
-    const [sunLon, sunLat] = subsolarPoint(now);
-    const antiLon = ((sunLon + 180 + 540) % 360) - 180;
-    const nightRuns = projectRing(
-      p,
-      circleAround(antiLon, -sunLat, (Math.PI / 2) * EARTH_KM),
-    );
-    // One closed curve is the normal case. It only breaks into pieces when
-    // the terminator passes within half a degree of the point opposite the
-    // operator, and a broken curve cannot be filled — that is drawn as a
-    // line alone rather than as a guess.
-    const terminator = nightRuns.length === 1 ? nightRuns[0] : undefined;
-    const nightInside = terminator === undefined
-      ? true
-      : nightIsInside(
-        terminator,
-        p.cx,
-        p.cy,
-        isNight(from.lon, from.lat, now),
-      );
-    // When night is the outer region, the fill is the whole disc with the
-    // lit part cut out of it. The two rings are wound opposite ways so the
-    // cut works under either fill rule.
-    const nightFill = terminator === undefined
-      ? ''
-      : nightInside
-      ? pathOf(terminator, true)
-      : (() => {
-        const rim = discRing(p.cx, p.cy, p.radius);
-        return `${pathOf(rim, true)} ${
-          pathOf(opposedTo(terminator, rim), true)
-        }`;
-      })();
-
-    return { nightRuns, terminator, nightFill };
-  }, [p, from.lat, from.lon, hour]);
-
-  // One object, so every reader below is unchanged. Both halves are
-  // memoised, so this only rebuilds when one of them does.
-  const geometry = useMemo(
-    () => ({ ...cells, ...night, p }),
-    [cells, night, p],
-  );
-
-  const [view, setView] = useState<MapView>(WHOLE_GLOBE);
+  const p = geometry.p;
+  const globe = useGlobeView(size, onPanning);
+  const { view } = globe;
 
   // A stroke is drawn after the viewBox scales everything, so a 1px line at
   // 4x would come out 4px thick. Every width, dash and marker radius is
   // divided by the scale to hold its size on screen.
   const px = (n: number) => n / view.scale;
 
-  // The gesture handlers are made once and read the view through a ref.
-  // Rebuilding them when the view changes would replace the responder in
-  // the middle of a drag.
-  const viewRef = useRef(view);
-  viewRef.current = view;
-  const dragFrom = useRef<MapView | null>(null);
-  // Through a ref for the same reason as the view: the responder is made
-  // once, and it must always call the caller's current listener.
-  const onPanningRef = useRef(onPanning);
-  onPanningRef.current = onPanning;
-
-  const zoom = (factor: number) =>
-    setView((v) =>
-      containView({
-        ...v,
-        scale: clamp(v.scale * factor, MIN_SCALE, MAX_SCALE),
-      })
-    );
-
-  const pan = useMemo(
-    () =>
-      PanResponder.create({
-        // False on start so a press still reaches the buttons above.
-        onStartShouldSetPanResponder: () => false,
-        onMoveShouldSetPanResponder: (event, gesture) =>
-          viewRef.current.scale > MIN_SCALE
-          && event.nativeEvent.touches.length >= PAN_FINGERS
-          && (Math.abs(gesture.dx) > DRAG_SLOP
-            || Math.abs(gesture.dy) > DRAG_SLOP),
-        // Never give the gesture up once it is owned. The default answer
-        // is yes, and on Android the page's scroller asks the moment a
-        // pan has any vertical part — so pans died mid-gesture, a little
-        // scroll happened instead, and two-finger panning felt hesitant.
-        onPanResponderTerminationRequest: () => false,
-        onPanResponderGrant: () => {
-          dragFrom.current = viewRef.current;
-          onPanningRef.current?.(true);
-        },
-        onPanResponderMove: (event, gesture) => {
-          const start = dragFrom.current;
-          if (start === null) return;
-          // A finger lifted mid-drag ends the pan rather than turning it into
-          // a one-finger one. Otherwise letting go of one finger would carry
-          // on moving the map, which is the behaviour this avoids.
-          if (event.nativeEvent.touches.length < PAN_FINGERS) {
-            dragFrom.current = null;
-            return;
-          }
-          // The map follows the finger, so the window moves the other way.
-          // Screen pixels become disc pixels by dividing by the scale.
-          setView(
-            containView({
-              scale: start.scale,
-              cxF: start.cxF - gesture.dx / (size * start.scale),
-              cyF: start.cyF - gesture.dy / (size * start.scale),
-            }),
-          );
-        },
-        onPanResponderRelease: () => {
-          dragFrom.current = null;
-          onPanningRef.current?.(false);
-        },
-        onPanResponderTerminate: () => {
-          dragFrom.current = null;
-          onPanningRef.current?.(false);
-        },
-      }),
-    [size],
-  );
-
-  const fitToReach = () => {
-    const box = geometry.reachBox;
-    if (box === null) return;
-    const width = Math.max(1, box.maxX - box.minX);
-    const height = Math.max(1, box.maxY - box.minY);
-    // A tenth of margin, so the edge cells are inside the frame rather
-    // than cut by it.
-    const scale = clamp(
-      (size / Math.max(width, height)) * 0.9,
-      MIN_SCALE,
-      MAX_SCALE,
-    );
-    setView(containView({
-      scale,
-      cxF: (box.minX + box.maxX) / 2 / size,
-      cyF: (box.minY + box.maxY) / 2 / size,
-    }));
-  };
-
   // Both layers place a point from this one value. If the canvas and the
   // SVG ever computed it separately the coastlines would slide off the
   // cells, which reads as the map being wrong about where land is rather
   // than as a rounding error.
   const transform = viewTransform(view, size);
-
-  const zoomedIn = view.scale > MIN_SCALE;
 
   // Where the map is pointed, for whoever runs the fine grid. Reported
   // rather than computed there because only this component knows the
@@ -518,7 +207,7 @@ export default function CoverageGlobe({
            marked `accessible` swallows the buttons inside it. */
       }
       <View
-        {...pan.panHandlers}
+        {...globe.pan.panHandlers}
         accessible
         accessibilityLabel={coverage
           ? t('a11y.coverage', {
@@ -528,65 +217,20 @@ export default function CoverageGlobe({
           : t('reach.mapLoading')}
       >
         <Svg width={size} height={size} viewBox={transform.viewBox}>
-          {
-            /* The cell field, for a build with no canvas.
-
-               Everything in this block is drawn by `CellLayer` when Skia
-               is present, from the same bucket strings — including the
-               disc, which has to be under the cells and would otherwise
-               cover the canvas. So the whole group is one or the other,
-               never both.
-
-               The fine grid goes over the coarse one on the same ramp, so
-               a reader is not asked to learn a second scale for the same
-               quantity. Where they disagree the finer answer wins, which
-               is what the backing underneath is for: it clears the coarse
-               cells out of the region rather than letting them show
-               through cells that are all partly transparent.
-
-               The stipple marks near-vertical incidence. Reliability
-               already owns colour and night owns tint, so a third
-               quantity carried by either would make the map contradict
-               its own scale. */
-          }
           {hasSkia ? null : (
-            <G>
-              {/* The disc is the whole earth. Nothing is drawn outside it. */}
-              <Circle cx={p.cx} cy={p.cy} r={p.radius} fill={ui.card} />
-
-              {geometry.coarse.map((bucket) => (
-                <Path
-                  key={bucket.quality}
-                  d={bucket.d}
-                  fill={ramp[bucket.quality].fill}
-                  fillOpacity={ramp[bucket.quality].opacity}
-                />
-              ))}
-
-              {geometry.patchBacking === ''
-                ? null
-                : <Path d={geometry.patchBacking} fill={ui.card} />}
-
-              {geometry.patchCells.map((bucket) => (
-                <Path
-                  key={`p${bucket.quality}`}
-                  d={bucket.d}
-                  fill={ramp[bucket.quality].fill}
-                  fillOpacity={ramp[bucket.quality].opacity}
-                />
-              ))}
-
-              {geometry.nvisDots.map(([x, y]) => (
-                <Circle
-                  key={`n${x},${y}`}
-                  cx={x}
-                  cy={y}
-                  r={px(1.2)}
-                  fill={ui.ink}
-                  fillOpacity={0.55}
-                />
-              ))}
-            </G>
+            <GlobeCellsSvg
+              cx={p.cx}
+              cy={p.cy}
+              radius={p.radius}
+              coarse={geometry.coarse}
+              patch={geometry.patchCells}
+              patchBacking={geometry.patchBacking}
+              nvis={geometry.nvisDots}
+              ramp={ramp}
+              card={ui.card}
+              ink={ui.ink}
+              px={px}
+            />
           )}
 
           {
@@ -607,10 +251,10 @@ export default function CoverageGlobe({
             />
           )}
 
-          {geometry.nightRuns.map((run) => (
+          {geometry.nightPaths.map((d) => (
             <Path
-              key={`n${run.length}-${run[0]?.[0]}`}
-              d={pathOf(run, geometry.terminator !== undefined)}
+              key={`n${d}`}
+              d={d}
               fill="none"
               stroke={ui.mapGuide}
               strokeWidth={px(0.9)}
@@ -702,8 +346,8 @@ export default function CoverageGlobe({
           icon="plus"
           size={20}
           mode="contained-tonal"
-          disabled={view.scale >= MAX_SCALE}
-          onPress={() => zoom(ZOOM_STEP)}
+          disabled={globe.atMaxScale}
+          onPress={globe.zoomIn}
           accessibilityLabel={t('a11y.zoomIn')}
           style={styles.control}
         />
@@ -711,8 +355,8 @@ export default function CoverageGlobe({
           icon="minus"
           size={20}
           mode="contained-tonal"
-          disabled={!zoomedIn}
-          onPress={() => zoom(1 / ZOOM_STEP)}
+          disabled={!globe.zoomedIn}
+          onPress={globe.zoomOut}
           accessibilityLabel={t('a11y.zoomOut')}
           style={styles.control}
         />
@@ -725,7 +369,7 @@ export default function CoverageGlobe({
           size={20}
           mode="contained-tonal"
           disabled={geometry.reachBox === null}
-          onPress={fitToReach}
+          onPress={() => globe.fitTo(geometry.reachBox)}
           accessibilityLabel={t('a11y.fitReach')}
           style={styles.control}
         />
@@ -733,8 +377,8 @@ export default function CoverageGlobe({
           icon="earth"
           size={20}
           mode="contained-tonal"
-          disabled={!zoomedIn && view.cxF === 0.5 && view.cyF === 0.5}
-          onPress={() => setView(WHOLE_GLOBE)}
+          disabled={globe.atWholeGlobe}
+          onPress={globe.showWholeGlobe}
           accessibilityLabel={t('a11y.wholeGlobe')}
           style={styles.control}
         />
@@ -766,7 +410,7 @@ export default function CoverageGlobe({
            has to be said, and saying it before it works would be noise on
            every other screenful. */
       }
-      {zoomedIn
+      {globe.zoomedIn
         ? (
           <View
             pointerEvents="none"
