@@ -15,6 +15,7 @@ import BandSelector from '../components/BandSelector';
 import Collapsible from '../components/Collapsible';
 import DisclaimerCard from '../components/DisclaimerCard';
 import FirstRunLocation from '../components/FirstRunLocation';
+import FixedHeader from '../components/FixedHeader';
 import LocationPicker from '../components/LocationPicker';
 import ReachCard from '../components/ReachCard';
 import ReachGrid from '../components/ReachGrid';
@@ -178,13 +179,7 @@ export default function ForecastScreen() {
   if (isPending) {
     return (
       <View style={[styles.root, { backgroundColor: ui.page }]}>
-        <View
-          style={[styles.fixed, {
-            paddingTop: insets.top,
-            backgroundColor: ui.headerBg,
-            borderBottomColor: ui.line2,
-          }]}
-        >
+        <FixedHeader>
           <AppHeader
             place={from.label}
             destination={null}
@@ -194,7 +189,7 @@ export default function ForecastScreen() {
             refreshing={weather.isFetching}
             onOpenStation={() => setStationOpen(true)}
           />
-        </View>
+        </FixedHeader>
 
         <SkeletonForecast />
 
@@ -277,40 +272,7 @@ export default function ForecastScreen() {
 
   return (
     <View style={[styles.root, { backgroundColor: ui.page }]}>
-      {
-        /* Fixed, outside the scroller (user, 2026-08-01).
-
-           These are the controls that say what is being forecast — where,
-           which station, which band — and everything below them is the
-           answer. Scrolled with the content they slid under the status
-           bar, so the place name ended up behind the clock and the signal
-           icons: unreadable, and still the only way to change location.
-           Padding alone could not fix that, because padding sets where
-           content starts and the complaint was about where it goes.
-
-           It also means the band can be changed while reading the grid
-           further down, which is the comparison the grid is for. */
-      }
-      {
-        /* The band chips used to end flush against the map, so a fixed
-           header and a scrolling page met with nothing between them and
-           the join read as one block. A hairline and a small gap under
-           it say where the controls stop and the answer starts (user,
-           2026-08-01).
-
-           `line2` rather than `line`. The quieter one was the first
-           choice, and it stopped working when the header took a
-           background of its own: `line` and the light header are
-           neighbouring steps of the same ramp, so the rule vanished into
-           it. `contrast.test.ts` holds that. */
-      }
-      <View
-        style={[styles.fixed, {
-          paddingTop: insets.top,
-          backgroundColor: ui.headerBg,
-          borderBottomColor: ui.line2,
-        }]}
-      >
+      <FixedHeader>
         <AppHeader
           place={prediction.from.label}
           destination={prediction.to === null
@@ -335,7 +297,7 @@ export default function ForecastScreen() {
           onEditStation={() => setStationOpen(true)}
           requiredSnrDb={prediction.requiredSnrDb}
         />
-      </View>
+      </FixedHeader>
 
       <ScrollView
         scrollEnabled={!mapPanning}
@@ -464,13 +426,6 @@ export default function ForecastScreen() {
 
 const styles = StyleSheet.create({
   root: { flex: 1 },
-  // The gap goes above the rule, not below it. Below, it would read as
-  // space belonging to the map; above, it is the header's own bottom
-  // margin, which is what it is.
-  fixed: {
-    paddingBottom: spacing.sm,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-  },
   centre: {
     flex: 1,
     alignItems: 'center',
