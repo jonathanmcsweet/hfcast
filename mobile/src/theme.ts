@@ -35,22 +35,23 @@ export type QualityKey = 'reliable' | 'patchy' | 'weak' | 'closed';
 type QualityColors = Record<QualityKey, { base: string; onBase: string; }>;
 
 /**
- * Two scales ship. `signal` is the default.
- *
- * `signal` is ordinal: quality maps to lightness against the page, so it
- * stays readable in greyscale and under every form of colour blindness.
- * Darker against a light page, brighter against a dark one — the ramp
- * inverts between themes, and either way more contrast means more signal.
+ * The quality ramp is ordinal: quality maps to lightness against the
+ * page, so it stays readable in greyscale and under every form of colour
+ * blindness. Darker against a light page, brighter against a dark one —
+ * the ramp inverts between themes, and either way more contrast means
+ * more signal.
  *
  * It is violet rather than the interface's cyan so the two never compete:
  * cyan is what the user can press, violet is what the ionosphere is doing.
  *
- * `traffic` is the familiar green/amber/red. It trades those accessibility
- * properties for instant recognition. Switch if testing says the ordinal ramp
- * costs more than it gains.
+ * A green/amber/red alternative was carried here behind a `QUALITY_SCALE`
+ * constant. It was declared as a single literal, so TypeScript narrowed
+ * every test of it to true and the second set of colours could not be
+ * reached — a switch with nothing on the other side of it. If the ordinal
+ * ramp is ever measured to cost more than it gains, the replacement is a
+ * setting in `useSettingsStore`, next to the theme, rather than a
+ * constant somebody edits and rebuilds.
  */
-export type QualityScale = 'signal' | 'traffic';
-export const QUALITY_SCALE: QualityScale = 'signal';
 
 /**
  * Both ramps have a floor: the darkest state still has to read as a filled
@@ -137,20 +138,6 @@ export const qualityMap = {
   },
 } as const;
 
-const trafficLight: QualityColors = {
-  reliable: { base: '#2F7D32', onBase: '#FFFFFF' },
-  patchy: { base: '#9A6200', onBase: '#FFFFFF' },
-  weak: { base: '#B3261E', onBase: '#FFFFFF' },
-  closed: { base: '#C3C9D9', onBase: slate[600] },
-};
-
-const trafficDark: QualityColors = {
-  reliable: { base: '#7BC97F', onBase: '#0E2B10' },
-  patchy: { base: '#F0B152', onBase: '#331F00' },
-  weak: { base: '#F2857D', onBase: '#410E0B' },
-  closed: { base: '#3E4459', onBase: slate[300] },
-};
-
 /**
  * The four states in the low-light theme, by brightness alone.
  *
@@ -174,10 +161,8 @@ const signalLowLight: QualityColors = {
 };
 
 const quality = {
-  light: QUALITY_SCALE === 'signal' ? signalLight : trafficLight,
-  dark: QUALITY_SCALE === 'signal' ? signalDark : trafficDark,
-  // One scale only. The traffic alternative is three hues, and this
-  // theme has one.
+  light: signalLight,
+  dark: signalDark,
   lowLight: signalLowLight,
 };
 
