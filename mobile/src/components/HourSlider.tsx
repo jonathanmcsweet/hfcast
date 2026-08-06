@@ -101,6 +101,9 @@ export default function HourSlider(
   const f = useFormatters();
   const ui = theme.colors.ui;
 
+  // The position the thumb is drawn at, shared by the control's value.
+  const position = offsetOf(hour, anchor);
+
   // The first label of the local scale: "now" while the reading behind
   // the now-cast is minutes old, and the reading's own local time once
   // it is older. Local time is solar, so the longitude offset is whole
@@ -215,15 +218,25 @@ export default function HourSlider(
               </View>
             ))}
             <Slider
-              value={offsetOf(hour, anchor) + OFFSET}
+              value={position + OFFSET}
               minimumValue={0 + OFFSET}
               maximumValue={23 + OFFSET}
               step={1}
               onValueChange={(value) =>
                 onChange(hourAt(value - OFFSET, anchor))}
-              minimumTrackTintColor={ui.accent}
-              maximumTrackTintColor={ui.line2}
-              thumbTintColor={ui.accent}
+              // The control draws nothing: thumb and track are both
+              // transparent, and the ones below are drawn instead. Each
+              // platform lays the native control out by its own rules —
+              // the web control insets the thumb's travel by half the
+              // thumb, Android's SeekBar pads the track by an amount of
+              // its own — so a thumb or a track the platform places sits
+              // off the ticks by a platform-sized amount. On the Pixel 8
+              // the now line missed the track's start entirely. The drawn
+              // ones use the ticks' own arithmetic, so nothing on the
+              // scale can disagree with anything else on it.
+              minimumTrackTintColor="transparent"
+              maximumTrackTintColor="transparent"
+              thumbTintColor="transparent"
               accessibilityLabel={t('a11y.hourSlider')}
               // The control reports nothing by itself, so the hour is
               // stated here — unshifted, because this is the number that
@@ -231,6 +244,27 @@ export default function HourSlider(
               accessibilityValue={{ min: 0, max: 23, now: hour }}
               style={styles.slider}
             />
+            {
+              /* The scale's own track, fill and thumb, after the control
+                 so they paint over the marks and the now line the way the
+                 native thumb did. Touches fall through to the control
+                 underneath, which is still the whole gesture surface. */
+            }
+            <View pointerEvents="none" style={styles.thumbRail}>
+              <View style={[styles.track, { backgroundColor: ui.line2 }]} />
+              <View
+                style={[styles.track, {
+                  backgroundColor: ui.accent,
+                  width: tickStart(position),
+                }]}
+              />
+              <View
+                style={[
+                  styles.thumb,
+                  { start: tickStart(position), backgroundColor: ui.accent },
+                ]}
+              />
+            </View>
           </View>
           <View
             style={styles.tickRow}
@@ -316,6 +350,34 @@ const styles = StyleSheet.create({
   // Taller labelled marks grow away from the track, not towards it.
   markUp: { bottom: 0 },
   markDown: { top: 0 },
+  // The span the thumb's centre travels, which is the same span the
+  // ticks are measured in. The rail is the coordinate system; the thumb
+  // is placed along it by the same fraction as the tick it sits on.
+  thumbRail: {
+    position: 'absolute',
+    start: THUMB_INSET,
+    end: THUMB_INSET,
+    top: 0,
+    bottom: 0,
+  },
+  // Centred on the control's 44px height. The fill is the same bar cut
+  // at the thumb's own percentage, so the two cannot part.
+  track: {
+    position: 'absolute',
+    top: 20,
+    height: 4,
+    width: '100%',
+    borderRadius: 2,
+  },
+  // Centred in the 44px control, half its width back from its position.
+  thumb: {
+    position: 'absolute',
+    top: 12,
+    width: 20,
+    height: 20,
+    marginStart: -10,
+    borderRadius: 10,
+  },
   // 44px tall so the thumb is reachable with a thumb, not a fingertip.
   slider: { width: '100%', height: 44 },
 });
