@@ -74,12 +74,19 @@ const DEFAULT_NOISE_DBW = 145;
  * so the range has to reach down there, and it has to stop where the
  * model stops meaning anything.
  *
- * The ceiling is where an amateur station ends and the deck's ten-column
- * field would overflow. Clamped rather than refused: a control that stops
- * is friendlier than a request that fails.
+ * The ceiling is where an amateur station ends: 1500 W is the legal
+ * limit in the countries this is built for, and it is the top of the
+ * app's own control. Clamped rather than refused, because a control that
+ * stops is friendlier than a request that fails.
+ *
+ * These are the app's `LIMITS.watts` — see
+ * `mobile/src/store/useStationStore.ts`, whose comment says it repeats
+ * what the server clamps to. It did not: this was 10,000 while the app
+ * offered 1500, so the sentence the reader is shown named one number and
+ * the service enforced another.
  */
 const MIN_WATTS = 0.1;
-const MAX_WATTS = 10_000;
+const MAX_WATTS = 1500;
 
 /** Space weather updates on the order of an hour; geocoding barely changes. */
 const spaceWeatherCache = new TtlCache<SpaceWeather>(15 * 60 * 1000, 1);
