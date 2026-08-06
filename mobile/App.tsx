@@ -21,7 +21,6 @@ import {
   shouldPersistQuery,
 } from './src/api/persist';
 import ErrorBoundary from './src/components/ErrorBoundary';
-import LaunchOverlay from './src/components/LaunchOverlay';
 import i18n from './src/i18n';
 import ForecastScreen from './src/screens/ForecastScreen';
 import { useSettingsStore } from './src/store/useSettingsStore';
@@ -73,12 +72,14 @@ export default function App() {
   // font is worse-looking, not unreadable, and an operator in the field
   // needs the forecast more than the typeface.
   //
-  // While they are loading the frame is filled with the launch screen's own
-  // background rather than left empty. The fonts are bundled, so this lasts a
+  // While they are loading the frame is filled with the theme's own page
+  // colour rather than left empty. The fonts are bundled, so this lasts a
   // frame or two — but an empty frame is white, and white between a dark
-  // system splash and a dark photograph is a flash.
+  // system splash and a dark screen is a flash.
   if (!fontsLoaded && !fontError) {
-    return <View style={styles.launching} />;
+    return (
+      <View style={[styles.root, { backgroundColor: theme.colors.ui.page }]} />
+    );
   }
 
   return (
@@ -124,12 +125,6 @@ export default function App() {
               >
                 <ForecastScreen />
               </ErrorBoundary>
-              {
-                /* Over the screen rather than in place of it, so the screen
-                   mounts and does its work underneath while this is still up.
-                   It removes itself once there is a forecast to show. */
-              }
-              <LaunchOverlay />
             </View>
           </SafeAreaProvider>
         </PaperProvider>
@@ -140,6 +135,4 @@ export default function App() {
 
 const styles = StyleSheet.create({
   root: { flex: 1 },
-  // The launch screen's own background, so the two cannot differ.
-  launching: { flex: 1, backgroundColor: '#0B0D14' },
 });

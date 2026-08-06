@@ -10,7 +10,14 @@
  * reader finds the same control, so a test that cannot find something is
  * also telling us a reader could not. Nothing is found by test id.
  */
-import { allClosed, expect, prediction, stubApi, test } from './fixtures.ts';
+import {
+  allClosed,
+  expect,
+  openApp,
+  prediction,
+  stubApi,
+  test,
+} from './fixtures.ts';
 
 test.describe('the forecast screen', () => {
   test('draws a forecast for the default location', async ({ page, open }) => {
@@ -22,7 +29,7 @@ test.describe('the forecast screen', () => {
     ).toBeVisible();
 
     // The loading state is replaced rather than left behind it.
-    await expect(page.getByText('Working out the forecast')).toBeHidden();
+    await expect(page.getByLabel('Working out the forecast')).toBeHidden();
     await expect(page.getByText('No forecast available')).toBeHidden();
   });
 
@@ -47,6 +54,53 @@ test.describe('the forecast screen', () => {
     await open();
 
     await expect(page.getByText(/No band reaches/i)).toBeVisible();
+  });
+});
+
+test.describe('while the forecast is worked out', () => {
+  test('holds the screen with skeletons, header still live', async ({ page }) => {
+    // The answer is held until this test has read the loading state —
+    // gated on the test's own progress rather than a delay, which a
+    // slow machine can outlast. The trailing `*` is load-bearing: the
+    // request carries query parameters, and a glob without it matches
+    // nothing, which quietly hands the request to the instant stubs.
+    let held = false;
+    let release!: () => void;
+    const released = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    await page.route('**/api/survey*', async (route) => {
+      held = true;
+      await released;
+      return route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify(prediction(null)),
+      });
+    });
+    // `openApp`, not `open`: `open` waits the skeletons out, and here
+    // they are the subject.
+    await openApp(page);
+
+    // The loading state is one named element, the way a screen reader
+    // meets it.
+    await expect(page.getByLabel('Working out the forecast')).toBeVisible();
+    // The header above it is real, not a picture of one: the place can
+    // be changed while the forecast is still coming.
+    await expect(
+      page.getByRole('button', { name: /Transmitting from Greenwich/i }),
+    ).toBeVisible();
+    // The request really is parked in the gate above. Without this, a
+    // route that quietly stopped matching would let the stubs answer
+    // at once, and the reads above would be racing the first paint.
+    await expect.poll(() => held).toBe(true);
+
+    // Let the answer land: the skeletons leave and the forecast
+    // stands where they stood.
+    release();
+    await expect(page.getByLabel('Working out the forecast'))
+      .toBeHidden({ timeout: 20_000 });
+    await expect(page.getByLabel('Hour of day, UTC')).toBeVisible();
   });
 });
 

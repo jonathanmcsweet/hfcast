@@ -7,7 +7,7 @@ import {
   StyleSheet,
   View,
 } from 'react-native';
-import { ActivityIndicator, Button, Text, useTheme } from 'react-native-paper';
+import { Button, Text, useTheme } from 'react-native-paper';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import AppHeader from '../components/AppHeader';
@@ -19,6 +19,7 @@ import LocationPicker from '../components/LocationPicker';
 import ReachCard from '../components/ReachCard';
 import ReachGrid from '../components/ReachGrid';
 import SectionHeading from '../components/SectionHeading';
+import SkeletonForecast from '../components/SkeletonForecast';
 import SpaceWeatherCard from '../components/SpaceWeatherCard';
 import StationModal from '../components/StationModal';
 
@@ -153,13 +154,42 @@ export default function ForecastScreen() {
   // after it is answered is already a now-cast.
   if (!ready) return <FirstRunLocation onDone={finishFirstRun} />;
 
+  // Skeleton blocks where the forecast is about to be, under a real
+  // header. The header needs nothing from the forecast — the place is
+  // in the store — and a slow load is exactly when somebody notices
+  // the location is wrong, so changing it must not wait. The band
+  // chips do need the forecast's own numbers, so they arrive with it.
   if (isPending) {
     return (
-      <View style={[styles.centre, safe, { backgroundColor: ui.page }]}>
-        <ActivityIndicator size="large" />
-        <Text style={[typography.body, styles.centreText, { color: ui.text2 }]}>
-          {t('status.loading')}
-        </Text>
+      <View style={[styles.root, { backgroundColor: ui.page }]}>
+        <View
+          style={[styles.fixed, {
+            paddingTop: insets.top,
+            backgroundColor: ui.headerBg,
+            borderBottomColor: ui.line2,
+          }]}
+        >
+          <AppHeader
+            place={from.label}
+            destination={null}
+            offline={offline}
+            onPressPlace={() => setPickerOpen(true)}
+            onRefresh={refresh}
+            refreshing={weather.isFetching}
+            onOpenStation={() => setStationOpen(true)}
+          />
+        </View>
+
+        <SkeletonForecast />
+
+        <LocationPicker
+          visible={pickerOpen}
+          onDismiss={() => setPickerOpen(false)}
+        />
+        <StationModal
+          visible={stationOpen}
+          onDismiss={() => setStationOpen(false)}
+        />
       </View>
     );
   }
