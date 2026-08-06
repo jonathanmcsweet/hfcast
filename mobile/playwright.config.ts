@@ -38,6 +38,13 @@ export default defineConfig({
   fullyParallel: true,
   forbidOnly: Boolean(process.env.CI),
   retries: process.env.CI ? 1 : 0,
+
+  // The app paints to canvases, and a full parallel run is a dozen
+  // browsers sharing one machine. A first paint that takes a second
+  // alone takes several together, so every expectation gets twice the
+  // default rather than tests growing private extensions one flake at
+  // a time.
+  expect: { timeout: 10_000 },
   reporter: process.env.CI ? [['github'], ['list']] : [['list']],
 
   use: {
