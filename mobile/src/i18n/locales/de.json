@@ -7,6 +7,7 @@
     "mapLoading": "Reichweite dieses Bandes wird berechnet",
     "mapUnavailable": "Die Reichweitenkarte konnte nicht geladen werden.",
     "reachLine": "{{band}} erreicht zu dieser Stunde etwa {{percent}} der Erde.",
+    "reachAndNvis": "{{band}} erreicht zu dieser Stunde etwa {{percent}} der Erde und reicht ohne tote Zone bis etwa {{distance}}.",
     "legendReach": "Reichweite",
     "legendNight": "Nacht",
     "panHint": "Mit zwei Fingern die Karte bewegen",

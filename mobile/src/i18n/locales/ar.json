@@ -7,6 +7,7 @@
     "mapLoading": "يجري حساب مدى وصول هذا النطاق",
     "mapUnavailable": "تعذّر تحميل خريطة التغطية.",
     "reachLine": "يصل {{band}} في هذه الساعة إلى نحو {{percent}} من العالم.",
+    "reachAndNvis": "يصل {{band}} في هذه الساعة إلى نحو {{percent}} من العالم، ويصل إلى نحو {{distance}} بلا منطقة صامتة.",
     "legendReach": "المدى",
     "legendNight": "الليل",
     "panHint": "حرّك الخريطة بإصبعين",

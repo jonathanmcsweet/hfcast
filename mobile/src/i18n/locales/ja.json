@@ -7,6 +7,7 @@
     "mapLoading": "この周波数の到達範囲を計算しています",
     "mapUnavailable": "到達範囲の地図を読み込めませんでした。",
     "reachLine": "{{band}} はこの時間、世界の約 {{percent}} に届きます。",
+    "reachAndNvis": "{{band}} はこの時間、世界の約 {{percent}} に届き、スキップゾーンなしで約 {{distance}} まで届きます。",
     "legendReach": "到達範囲",
     "legendNight": "夜",
     "panHint": "地図は2本指で動かします",
