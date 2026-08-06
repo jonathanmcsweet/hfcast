@@ -135,26 +135,6 @@ export function fetchSurvey(
 }
 
 /**
- * Several days in one request, for filling the cache before going
- * offline. The server never now-casts here and always answers with
- * `spaceWeather: null`, so this covers the days after today only —
- * today's own request stays separate because only it can be a now-cast.
- */
-export function fetchForecast(
-  p: Omit<PredictionParams, 'nowcast'> & { days: number; },
-): Promise<PredictionResponse[]> {
-  return getJson<PredictionResponse[]>('/api/forecast', {
-    from: p.from,
-    to: p.to,
-    fromLabel: p.fromLabel,
-    toLabel: p.toLabel,
-    date: p.date,
-    days: String(p.days),
-    ...p.station,
-  });
-}
-
-/**
  * Measured foF2 near a point, or null where no live sounder is close
  * enough. Fetched through the server rather than directly: GIRO restricts
  * its CORS header to its own origin, so a browser blocks a direct call.
