@@ -122,6 +122,11 @@ test.describe('when the server does not answer', () => {
     await open();
 
     await expect(page.getByText('No forecast available')).toBeHidden();
-    await expect(page.getByLabel('Saved forecast')).toBeVisible();
+    // `open` returns when the forecast settles, but the chip waits for
+    // the readings query to give up, and that retries first. On a busy
+    // machine — every spec runs at once — the retry outlives the
+    // default expectation, so wait the way the app actually behaves.
+    await expect(page.getByLabel('Saved forecast'))
+      .toBeVisible({ timeout: 20_000 });
   });
 });
