@@ -299,6 +299,7 @@ export default function ForecastScreen() {
           // The exact moment behind the now-cast: the live readings when
           // they have arrived, the clock when they have not.
           liveAt={weather.dataUpdatedAt || now.getTime()}
+          nowMs={now.getTime()}
           onHourChange={setHour}
         />
 

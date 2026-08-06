@@ -84,9 +84,9 @@
     "closed": "この周波数は今は使えません"
   },
   "time": {
+    "utc": "UTC",
     "now": "今",
-    "localAt": "{{place}} の現地時刻",
-    "bothZones": "現地 {{local}} · UTC {{utc}}"
+    "localAt": "{{place}} の現地時刻"
   },
   "location": {
     "title": "経路を選ぶ",
