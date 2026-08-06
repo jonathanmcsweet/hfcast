@@ -21,6 +21,7 @@ import { execFile } from 'node:child_process';
 import { cpus, homedir } from 'node:os';
 import path from 'node:path';
 import type { AntennaCard } from '../antenna.ts';
+import { withEngineSlot } from '../limit.ts';
 import {
   BAND_MHZ,
   type BandKey,
@@ -54,12 +55,15 @@ const RUN_TIMEOUT_MS = 30_000;
  * Eight is where it stops paying: twelve is two percent better and
  * sixteen is worse, because each process re-reads the coefficient tables
  * and they start to contend. Capped at the core count as well, so a
- * small host does not oversubscribe itself. On a host with more than
- * eight cores the cap also leaves cores free for other requests; on
- * eight or fewer it does not, and nothing here limits how many requests
- * split at once. That is accepted while the only grids large enough to
- * split are ones no caller sends — a global limit belongs with whoever
- * adds such a caller.
+ * small host does not oversubscribe itself.
+ *
+ * This is how one request is split, and it is not a limit on how many
+ * requests split at once. It used to say that no caller sends a grid big
+ * enough to split, which stopped being true when `/api/coverage/fine`
+ * arrived: that route is public, it sends a 34,560-point grid, and ten
+ * callers together forked eighty processes. The count of live processes
+ * is bounded in `limit.ts` instead, which is where a host-wide limit
+ * belongs.
  *
  * `HFCAST_COVERAGE_SHARDS=1` turns splitting off.
  */
@@ -104,23 +108,28 @@ export interface EngineRequest {
 async function callPredict<T extends { error?: string; }>(
   payload: string,
 ): Promise<T> {
-  const stdout = await new Promise<string>((resolve, reject) => {
-    const child = execFile(
-      PREDICT_BIN,
-      [],
-      { timeout: RUN_TIMEOUT_MS, maxBuffer: 8 * 1024 * 1024 },
-      (error, out, stderr) => {
-        if (error && !out) {
-          reject(
-            new Error(`predict failed: ${stderr.trim() || error.message}`),
-          );
-          return;
-        }
-        resolve(out);
-      },
-    );
-    child.stdin?.end(payload);
-  });
+  // Behind the host's gate, so the number of live processes is bounded
+  // whatever arrives. Every path into the engine comes through here, and
+  // a strip of a split grid is one call like any other — see `limit.ts`.
+  const stdout = await withEngineSlot(() =>
+    new Promise<string>((resolve, reject) => {
+      const child = execFile(
+        PREDICT_BIN,
+        [],
+        { timeout: RUN_TIMEOUT_MS, maxBuffer: 8 * 1024 * 1024 },
+        (error, out, stderr) => {
+          if (error && !out) {
+            reject(
+              new Error(`predict failed: ${stderr.trim() || error.message}`),
+            );
+            return;
+          }
+          resolve(out);
+        },
+      );
+      child.stdin?.end(payload);
+    })
+  );
 
   const parsed = readJson<T>(stdout);
   if (parsed.error !== undefined) {

@@ -32,6 +32,7 @@ import {
   type Sounding,
   usefulStation,
 } from './ionosonde.ts';
+import { engineLoad } from './limit.ts';
 import { endpointFromLatLon, isoDate, predict } from './predict.ts';
 import { fetchSpaceWeather } from './spaceweather.ts';
 import {
@@ -480,7 +481,12 @@ function send(res: ServerResponse, status: number, body: unknown): void {
 async function route(url: URL): Promise<unknown> {
   switch (url.pathname) {
     case '/health':
-      return { ok: true, now: isoDate(new Date()) };
+      // The engine gate is reported here because it is the one thing
+      // about this service that a caller cannot infer from a response
+      // time: a host with every slot busy and a queue behind it is
+      // healthy and slow, which looks exactly like a host that is
+      // failing.
+      return { ok: true, now: isoDate(new Date()), engine: engineLoad() };
     case '/api/spaceweather': {
       const sw = await trySpaceWeather();
       if (!sw) throw new Error('space weather upstream unavailable');

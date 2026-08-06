@@ -68,6 +68,22 @@ pnpm typecheck
 
 TypeScript runs through Node's type stripping, so there is no build step.
 
+### How much of the host it may use
+
+Every prediction, and every strip of a split coverage grid, is a separate
+process. `HFCAST_ENGINE_SLOTS` is how many of them may be alive at once;
+it defaults to the core count, to a maximum of eight. Callers past that
+wait in the order they arrived rather than being refused.
+
+`/api/coverage/fine` is the route this matters for: it runs a
+34,560-point grid split across up to `HFCAST_COVERAGE_SHARDS` processes,
+so without a cap a handful of simultaneous callers can take the whole
+machine. `GET /health` reports the slots, how many are free, and how many
+callers are queued.
+
+Identical requests that arrive together are collapsed into one run, so
+two readers looking at the same map cost what one does.
+
 ## Routes
 
 | Route                                    | Purpose                                               |
