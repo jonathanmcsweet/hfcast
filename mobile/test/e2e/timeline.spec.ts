@@ -3,15 +3,14 @@
  *
  * The track keeps the hours a session watches go by — up to six — and
  * lets the thumb scrub back over them. Time is moved with Playwright's
- * clock, which `openApp` installs, and the minute tick in
- * `ForecastScreen` is what notices the jump: the same path a real hour
- * takes. As everywhere in these tests, every read is by accessible name
- * or role, so what is asserted is what a screen reader is told.
+ * clock, which `open` installs, and the minute tick in `ForecastScreen`
+ * is what notices the jump: the same path a real hour takes. As
+ * everywhere in these tests, every read is by accessible name or role,
+ * so what is asserted is what a screen reader is told.
  */
-import { expect, test } from '@playwright/test';
 import type { Page } from '@playwright/test';
 
-import { openApp, stubApi } from './fixtures.ts';
+import { expect, test } from './fixtures.ts';
 
 const HOUR_MS = 3_600_000;
 
@@ -52,9 +51,8 @@ async function scrubTo(
 }
 
 test.describe('the rolling timeline', () => {
-  test('fills in behind "now" as hours pass, and scrubs back', async ({ page }) => {
-    await stubApi(page);
-    await openApp(page, { hour: 12 });
+  test('fills in behind "now" as hours pass, and scrubs back', async ({ page, open }) => {
+    await open({ hour: 12 });
 
     // At open nothing is past: the track starts at "now".
     await expect(page.getByText('Now · 12:00 · 40M')).toBeVisible();
@@ -69,9 +67,8 @@ test.describe('the rolling timeline', () => {
     await scrubTo(page, 'start', '40M at 12:00');
   });
 
-  test('stops the past window at six hours', async ({ page }) => {
-    await stubApi(page);
-    await openApp(page, { hour: 12 });
+  test('stops the past window at six hours', async ({ page, open }) => {
+    await open({ hour: 12 });
 
     // The screen has to be up before the clock jumps: the minute tick
     // that notices the jump is registered on mount.
@@ -85,9 +82,8 @@ test.describe('the rolling timeline', () => {
     await scrubTo(page, 'start', '40M at 18:00');
   });
 
-  test('keeps a moved selection while an hour passes', async ({ page }) => {
-    await stubApi(page);
-    await openApp(page, { hour: 12 });
+  test('keeps a moved selection while an hour passes', async ({ page, open }) => {
+    await open({ hour: 12 });
 
     // The reader scrubs to the track's far end: 11:00 tomorrow.
     await scrubTo(page, 'end', '40M at 11:00');
