@@ -26,7 +26,6 @@ import path from 'node:path';
 
 import {
   type Antenna,
-  ANTENNA_ORDER,
   type AntennaKey,
   DEFAULT_ANTENNA,
   effectiveHeightM,

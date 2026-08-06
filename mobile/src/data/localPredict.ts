@@ -112,7 +112,7 @@ export interface LocalRequest {
   date: Date;
   station: Station;
   /** Absent offline, and then the run is climatology. */
-  nowcast?: Nowcast;
+  nowcast?: Nowcast | undefined;
 }
 
 /**

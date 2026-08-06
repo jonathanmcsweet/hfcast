@@ -14,7 +14,7 @@ import type { AppTheme } from '../theme';
  * costs a rasterised layer on every card.
  */
 export function Card(
-  { children, style }: { children: ReactNode; style?: ViewStyle; },
+  { children, style }: { children: ReactNode; style?: ViewStyle | undefined; },
 ) {
   const theme = useTheme<AppTheme>();
   return (
@@ -41,7 +41,7 @@ export function Card(
  * card boundary.
  */
 export function Inset(
-  { children, style }: { children: ReactNode; style?: ViewStyle; },
+  { children, style }: { children: ReactNode; style?: ViewStyle | undefined; },
 ) {
   const theme = useTheme<AppTheme>();
   return (

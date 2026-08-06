@@ -84,7 +84,7 @@ export interface LocalCoverageRequest {
   date: Date;
   station: Station;
   /** Absent offline, and then the run is climatology. */
-  nowcast?: Nowcast;
+  nowcast?: Nowcast | undefined;
   /**
    * The part of the world the map is showing, for the fine grid only.
    *

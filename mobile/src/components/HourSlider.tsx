@@ -1,5 +1,4 @@
 import Slider from '@react-native-community/slider';
-import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { StyleSheet, View } from 'react-native';
 import { Text, useTheme } from 'react-native-paper';
@@ -27,7 +26,7 @@ interface Props {
    * reading and the reading is from then, not from now. Null when
    * nothing live has arrived.
    */
-  liveAt?: number | null;
+  liveAt?: number | null | undefined;
   /** The clock, epoch ms. Drives when "now" stops being the truth. */
   nowMs: number;
   onChange: (hour: number) => void;

@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { PanResponder, StyleSheet, View } from 'react-native';
 import {
@@ -40,7 +40,7 @@ import type {
 } from '../data/types';
 import { hasSkia } from '../render/available';
 import CellLayer from '../render/CellLayer';
-import { qualityMap, radius as radii, spacing, typography } from '../theme';
+import { radius as radii, spacing, typography } from '../theme';
 import type { AppTheme } from '../theme';
 
 interface Props {
@@ -53,7 +53,7 @@ interface Props {
    * when there cannot be one — a station near the antimeridian. All three
    * mean the same thing here: draw the coarse map alone.
    */
-  patch?: CoveragePatch | null;
+  patch?: CoveragePatch | null | undefined;
   /**
    * The whole-world fine grid, when this device runs one.
    *
@@ -63,7 +63,7 @@ interface Props {
    * while it runs and null where it is not run at all, and both mean
    * the coarse cells stay.
    */
-  fine?: FineGlobe | null;
+  fine?: FineGlobe | null | undefined;
   from: Endpoint;
   /** Drawn as a great circle from the centre. */
   to: Endpoint | null;
@@ -78,7 +78,7 @@ interface Props {
    * supplementary — the answer is stated in text above the map — so
    * nothing rides on it alone.
    */
-  toClosed?: boolean;
+  toClosed?: boolean | undefined;
   /** UTC hour the terminator is drawn for. */
   hour: number;
   size: number;
@@ -89,14 +89,14 @@ interface Props {
    * Null at a whole-globe view: there is nothing to follow, and the
    * patch belongs at the station.
    */
-  onRegion?: (region: MapRegion | null) => void;
+  onRegion?: ((region: MapRegion | null) => void) | undefined;
   /**
    * Called with true while a two-finger pan owns the gesture, false when
    * it ends. The page's scroller listens: on Android it competes for the
    * same touches at the native layer, and it has to be told to stand
    * down or it takes the gesture back mid-pan.
    */
-  onPanning?: (active: boolean) => void;
+  onPanning?: ((active: boolean) => void) | undefined;
 }
 
 /** Dashed rings, in kilometres. The spacing operators think in. */
