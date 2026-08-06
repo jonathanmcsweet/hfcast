@@ -21,8 +21,7 @@
   },
   "path": {
     "summary": "{{distance}} · 方位 {{bearing}} · {{hops}} ホップ",
-    "summaryOneHop": "{{distance}} · 方位 {{bearing}} · 1 ホップ",
-    "noDestinationHint": "地図は全方位を示します。上の名前をタップすると受信地を選べます。"
+    "summaryOneHop": "{{distance}} · 方位 {{bearing}} · 1 ホップ"
   },
   "window": {
     "label": "使用可能な範囲",
