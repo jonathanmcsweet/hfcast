@@ -113,6 +113,13 @@ export default function ForecastScreen() {
   // app ignoring it, and inside the floor there is nothing new to fetch
   // anyway — SWPC publishes the flux once a day.
   const [pulling, setPulling] = useState(false);
+
+  // True while the map owns a two-finger pan. The scroller is switched
+  // off for that moment: refusing termination stops it stealing a pan
+  // it has already lost, and this stops it competing for the next
+  // touches at all. Both are needed — the first protects a pan that
+  // won, the second lets a pan win when the fingers land staggered.
+  const [mapPanning, setMapPanning] = useState(false);
   const pullRefresh = useCallback(() => {
     setPulling(true);
     if (mayRefresh(weather.dataUpdatedAt, weather.errorUpdatedAt, Date.now())) {
@@ -272,6 +279,7 @@ export default function ForecastScreen() {
       </View>
 
       <ScrollView
+        scrollEnabled={!mapPanning}
         contentContainerStyle={{
           // No top inset: the fixed header above already clears the status
           // bar, and repeating it here would leave a gap the width of the
@@ -301,6 +309,7 @@ export default function ForecastScreen() {
           liveAt={weather.dataUpdatedAt || now.getTime()}
           nowMs={now.getTime()}
           onHourChange={setHour}
+          onMapPanning={setMapPanning}
         />
 
         {

@@ -90,6 +90,13 @@ interface Props {
    * patch belongs at the station.
    */
   onRegion?: (region: MapRegion | null) => void;
+  /**
+   * Called with true while a two-finger pan owns the gesture, false when
+   * it ends. The page's scroller listens: on Android it competes for the
+   * same touches at the native layer, and it has to be told to stand
+   * down or it takes the gesture back mid-pan.
+   */
+  onPanning?: (active: boolean) => void;
 }
 
 /** Dashed rings, in kilometres. The spacing operators think in. */
@@ -170,6 +177,7 @@ export default function CoverageGlobe({
   hour,
   size,
   onRegion,
+  onPanning,
 }: Props) {
   const theme = useTheme<AppTheme>();
   const { t } = useTranslation();
@@ -369,6 +377,10 @@ export default function CoverageGlobe({
   const viewRef = useRef(view);
   viewRef.current = view;
   const dragFrom = useRef<MapView | null>(null);
+  // Through a ref for the same reason as the view: the responder is made
+  // once, and it must always call the caller's current listener.
+  const onPanningRef = useRef(onPanning);
+  onPanningRef.current = onPanning;
 
   const zoom = (factor: number) =>
     setView((v) =>
@@ -388,8 +400,14 @@ export default function CoverageGlobe({
           && event.nativeEvent.touches.length >= PAN_FINGERS
           && (Math.abs(gesture.dx) > DRAG_SLOP
             || Math.abs(gesture.dy) > DRAG_SLOP),
+        // Never give the gesture up once it is owned. The default answer
+        // is yes, and on Android the page's scroller asks the moment a
+        // pan has any vertical part — so pans died mid-gesture, a little
+        // scroll happened instead, and two-finger panning felt hesitant.
+        onPanResponderTerminationRequest: () => false,
         onPanResponderGrant: () => {
           dragFrom.current = viewRef.current;
+          onPanningRef.current?.(true);
         },
         onPanResponderMove: (event, gesture) => {
           const start = dragFrom.current;
@@ -413,9 +431,11 @@ export default function CoverageGlobe({
         },
         onPanResponderRelease: () => {
           dragFrom.current = null;
+          onPanningRef.current?.(false);
         },
         onPanResponderTerminate: () => {
           dragFrom.current = null;
+          onPanningRef.current?.(false);
         },
       }),
     [size],
