@@ -12,7 +12,7 @@
     "typecheck": "tsc --noEmit",
     "test": "pnpm test:unit && pnpm test:render",
     "test:unit": "node --experimental-strip-types --experimental-test-module-mocks --test test/*.test.ts",
-    "test:render": "jest",
+    "test:render": "node tools/jest.js",
     "web:export": "bash tools/copy-canvaskit.sh && expo export --platform web",
     "test:e2e": "pnpm web:export && playwright test",
     "test:e2e:only": "playwright test",
