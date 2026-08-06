@@ -137,56 +137,61 @@ async function worldCoverage(
     request.basis,
   );
 
+  // Through `fetch` rather than get-run-set, so a second request for the
+  // same map that arrives while the first is still running waits on it
+  // instead of starting another. At the fine step one run is up to eight
+  // processes, and nothing upstream stops a caller asking twice.
+  //
+  // `basis` is per-request and the run behind it is not, so it is put
+  // back on afterwards rather than cached.
   const key = `${keyPrefix}${keyFor(request, ssn)}`;
-  const cached = store.get(key);
-  if (cached) return { ...cached, basis };
+  const result = await store.fetch(key, async () => {
+    // Written before the run: the card names a file the engine opens.
+    const txAntenna = request.antenna
+      ? await txCard(ITSHFBC_DIR, request.antenna)
+      : null;
 
-  // Written before the run: the card names a file the engine opens.
-  const txAntenna = request.antenna
-    ? await txCard(ITSHFBC_DIR, request.antenna)
-    : null;
+    const grid = await runCoverage({
+      fromLat: request.from.lat,
+      fromLon: request.from.lon,
+      month,
+      year,
+      ssn,
+      watts: request.watts,
+      requiredSnrDb: request.requiredSnrDb,
+      noiseDbw: request.noiseDbw,
+      hour: request.hour,
+      band: request.band,
+      latStep,
+      lonStep,
+      ...(txAntenna ? { txAntenna } : {}),
+    });
 
-  const grid = await runCoverage({
-    fromLat: request.from.lat,
-    fromLon: request.from.lon,
-    month,
-    year,
-    ssn,
-    watts: request.watts,
-    requiredSnrDb: request.requiredSnrDb,
-    noiseDbw: request.noiseDbw,
-    hour: request.hour,
-    band: request.band,
-    latStep,
-    lonStep,
-    ...(txAntenna ? { txAntenna } : {}),
+    // Weighted by the cosine of the latitude, because equal-angle cells
+    // are not equal areas: without it the polar rows, which are slivers
+    // of the sphere, would count as much as the equatorial ones and every
+    // band would look worse than it is.
+    const { hit, total } = grid.points
+      .map((point) => ({
+        weight: Math.cos((point.lat * Math.PI) / 180),
+        reached: point.reliability >= REACHABLE,
+      }))
+      .reduce(
+        (sum, cell) => ({
+          hit: sum.hit + (cell.reached ? cell.weight : 0),
+          total: sum.total + cell.weight,
+        }),
+        { hit: 0, total: 0 },
+      );
+
+    return {
+      ...grid,
+      from: request.from,
+      basis,
+      reach: total > 0 ? hit / total : 0,
+    };
   });
-
-  // Weighted by the cosine of the latitude, because equal-angle cells are
-  // not equal areas: without it the polar rows, which are slivers of the
-  // sphere, would count as much as the equatorial ones and every band
-  // would look worse than it is.
-  const { hit, total } = grid.points
-    .map((point) => ({
-      weight: Math.cos((point.lat * Math.PI) / 180),
-      reached: point.reliability >= REACHABLE,
-    }))
-    .reduce(
-      (sum, cell) => ({
-        hit: sum.hit + (cell.reached ? cell.weight : 0),
-        total: sum.total + cell.weight,
-      }),
-      { hit: 0, total: 0 },
-    );
-
-  const result: CoverageResult = {
-    ...grid,
-    from: request.from,
-    basis,
-    reach: total > 0 ? hit / total : 0,
-  };
-  store.set(key, result);
-  return result;
+  return { ...result, basis };
 }
 
 /**
@@ -281,41 +286,39 @@ export async function coveragePatch(
   // rectangles are different answers, and without this the first one
   // asked for would be served to every later one.
   const key = `patch|${keyFor(request, ssn)}|${patchKey(grid)}`;
-  const cached = patchCache.get(key);
-  if (cached) return { ...cached, basis };
+  const result = await patchCache.fetch(key, async () => {
+    const txAntenna = request.antenna
+      ? await txCard(ITSHFBC_DIR, request.antenna)
+      : null;
 
-  const txAntenna = request.antenna
-    ? await txCard(ITSHFBC_DIR, request.antenna)
-    : null;
+    const ran = await runCoverage({
+      fromLat: request.from.lat,
+      fromLon: request.from.lon,
+      month,
+      year,
+      ssn,
+      watts: request.watts,
+      requiredSnrDb: request.requiredSnrDb,
+      noiseDbw: request.noiseDbw,
+      hour: request.hour,
+      band: request.band,
+      latStep: grid.latStep,
+      lonStep: grid.lonStep,
+      bounds: box,
+      ...(txAntenna ? { txAntenna } : {}),
+    });
 
-  const ran = await runCoverage({
-    fromLat: request.from.lat,
-    fromLon: request.from.lon,
-    month,
-    year,
-    ssn,
-    watts: request.watts,
-    requiredSnrDb: request.requiredSnrDb,
-    noiseDbw: request.noiseDbw,
-    hour: request.hour,
-    band: request.band,
-    latStep: grid.latStep,
-    lonStep: grid.lonStep,
-    bounds: box,
-    ...(txAntenna ? { txAntenna } : {}),
+    return {
+      ...ran,
+      from: request.from,
+      basis,
+      // The engine echoes the grid it snapped to; the request's own
+      // rectangle is the fallback if an older build did not.
+      latMin: ran.latMin ?? grid.latMin,
+      latMax: ran.latMax ?? grid.latMax,
+      lonMin: ran.lonMin ?? grid.lonMin,
+      lonMax: ran.lonMax ?? grid.lonMax,
+    };
   });
-
-  const result: CoveragePatchResult = {
-    ...ran,
-    from: request.from,
-    basis,
-    // The engine echoes the grid it snapped to; the request's own
-    // rectangle is the fallback if an older build did not.
-    latMin: ran.latMin ?? grid.latMin,
-    latMax: ran.latMax ?? grid.latMax,
-    lonMin: ran.lonMin ?? grid.lonMin,
-    lonMax: ran.lonMax ?? grid.lonMax,
-  };
-  patchCache.set(key, result);
-  return result;
+  return { ...result, basis };
 }

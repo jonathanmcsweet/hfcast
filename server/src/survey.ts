@@ -128,42 +128,41 @@ function keyFor(request: SurveyRequest): string {
 export async function survey(
   request: SurveyRequest,
 ): Promise<PathPrediction> {
-  const key = keyFor(request);
-  const cached = cache.get(key);
-  if (cached) return cached;
+  // Through `fetch`, which matters more here than anywhere else: a
+  // survey is forty-eight engine runs, and two readers on one station
+  // arriving together used to start both sets rather than share one.
+  return await cache.fetch(keyFor(request), async () => {
+    // Sequential on purpose. Each run spawns the engine, and forty-eight
+    // at once would compete for the same cores and finish no sooner.
+    const runs: PathPrediction[] = [];
+    for (const point of samplePoints(request.from)) {
+      const to: Endpoint = {
+        lat: point.lat,
+        lon: point.lon,
+        grid: latLonToGrid(point.lat, point.lon),
+        label: `${point.bearing}/${point.distanceKm}`,
+      };
+      runs.push(await predict({ ...request, to }));
+    }
 
-  // Sequential on purpose. Each run spawns the engine, and forty-eight at
-  // once would compete for the same cores and finish no sooner.
-  const runs: PathPrediction[] = [];
-  for (const point of samplePoints(request.from)) {
-    const to: Endpoint = {
-      lat: point.lat,
-      lon: point.lon,
-      grid: latLonToGrid(point.lat, point.lon),
-      label: `${point.bearing}/${point.distanceKm}`,
+    const first = runs[0];
+    if (first === undefined) throw new Error('a survey needs at least one run');
+
+    return {
+      from: request.from,
+      to: null,
+      distanceKm: null,
+      bearingDeg: null,
+      ssn: first.ssn,
+      requiredSnrDb: first.requiredSnrDb,
+      basis: first.basis,
+      month: first.month,
+      year: first.year,
+      date: first.date,
+      mufByHour: midRangeMuf(runs),
+      // The rail draws one path's usable window, and there is no one path.
+      window: null,
+      cells: combine(runs),
     };
-    runs.push(await predict({ ...request, to }));
-  }
-
-  const first = runs[0];
-  if (first === undefined) throw new Error('a survey needs at least one run');
-
-  const result: PathPrediction = {
-    from: request.from,
-    to: null,
-    distanceKm: null,
-    bearingDeg: null,
-    ssn: first.ssn,
-    requiredSnrDb: first.requiredSnrDb,
-    basis: first.basis,
-    month: first.month,
-    year: first.year,
-    date: first.date,
-    mufByHour: midRangeMuf(runs),
-    // The rail draws one path's usable window, and there is no one path.
-    window: null,
-    cells: combine(runs),
-  };
-  cache.set(key, result);
-  return result;
+  });
 }
