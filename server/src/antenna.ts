@@ -24,14 +24,23 @@ import { createHash } from 'node:crypto';
 import { mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 
-/** Antenna families offered, by VOACAP type number. */
+/**
+ * Antenna families offered, in the order the app's picker lists them.
+ *
+ * The order is not the VOACAP type number — see `TYPE` below, where the
+ * dipole is 23 and the vertical 22 — and it is not arbitrary either. It
+ * is what a reader sees in the station dialog, and it is what the
+ * rejection message here prints, so the two have to be the same list.
+ * They were not: this ended `yagi, invertedL` while the app ended
+ * `invertedL, yagi`.
+ */
 export const ANTENNA_ORDER = [
   'isotropic',
   'dipole',
   'invertedV',
   'vertical',
-  'yagi',
   'invertedL',
+  'yagi',
 ] as const;
 
 export type AntennaKey = (typeof ANTENNA_ORDER)[number];
