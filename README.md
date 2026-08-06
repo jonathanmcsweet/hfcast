@@ -30,6 +30,10 @@ time in 15 minutes at most. It does not use an account or a key.
 
 Android 7.0 or later.
 
+[<img src="docs/badges/obtainium.png" alt="Get it on Obtainium" width="140">](https://apps.obtainium.imranr.dev/redirect?r=obtainium://add/https://github.com/jonathanmcsweet/hfcast)
+
+On a telephone, the badge opens Obtainium and adds HFcast in one step.
+
 | Method                                             | How                                                                             |
 | -------------------------------------------------- | ------------------------------------------------------------------------------- |
 | [Obtainium](https://github.com/ImranR98/Obtainium) | Add the URL `https://github.com/jonathanmcsweet/hfcast`                         |
