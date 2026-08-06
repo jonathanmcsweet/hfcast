@@ -360,33 +360,55 @@ export default function ReachCard({
            behind — and "160m reaches about 8% of the world" carrying
            40m's number is wrong in a way no reader can catch. */
       }
-      {coverage
+      {
+        /* One sentence when both figures are about the same band, two
+           when they are not. The grids arrive separately, so after a
+           band change one can still be the old band's for a moment —
+           and "40m reaches 4% and out to 247 mi" carrying two bands'
+           numbers is wrong in a way no reader can catch. */
+      }
+      {coverage && homePatch && nvisKm !== null
+          && coverage.band === homePatch.band
         ? (
           <Text style={[typography.caption, { color: ui.text3 }]}>
-            {t('reach.reachLine', {
+            {t('reach.reachAndNvis', {
               band: coverage.band,
               percent: f.percent(coverage.reach),
-            })}
-          </Text>
-        )
-        : null}
-
-      {
-        /* The map's other headline, and the one the stipple stands for.
-           Said in words because a distance is a quantity and a pattern of
-           dots is not, and because this is the sentence a reader with no
-           sight of the map still gets. */
-      }
-      {homePatch === null || nvisKm === null
-        ? null
-        : (
-          <Text style={[typography.caption, { color: ui.text3 }]}>
-            {/* The patch's own band, as for the reach line above. */}
-            {t('reach.nvisReach', {
-              band: homePatch.band,
               distance: f.distance(nvisKm),
             })}
           </Text>
+        )
+        : (
+          <>
+            {coverage
+              ? (
+                <Text style={[typography.caption, { color: ui.text3 }]}>
+                  {t('reach.reachLine', {
+                    band: coverage.band,
+                    percent: f.percent(coverage.reach),
+                  })}
+                </Text>
+              )
+              : null}
+
+            {
+              /* The map's other headline, and the one the stipple stands
+                 for. Said in words because a distance is a quantity and a
+                 pattern of dots is not, and because this is the sentence a
+                 reader with no sight of the map still gets. */
+            }
+            {homePatch === null || nvisKm === null
+              ? null
+              : (
+                <Text style={[typography.caption, { color: ui.text3 }]}>
+                  {/* The patch's own band, as for the reach line above. */}
+                  {t('reach.nvisReach', {
+                    band: homePatch.band,
+                    distance: f.distance(nvisKm),
+                  })}
+                </Text>
+              )}
+          </>
         )}
 
       <HourSlider

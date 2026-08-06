@@ -7,6 +7,7 @@
     "mapLoading": "Working out where this band reaches",
     "mapUnavailable": "The coverage map could not be loaded.",
     "reachLine": "{{band}} reaches about {{percent}} of the world at this hour.",
+    "reachAndNvis": "{{band}} reaches about {{percent}} of the world at this hour and reaches out to about {{distance}} with no skip zone.",
     "legendReach": "Reach",
     "legendNight": "Night",
     "panHint": "Two fingers move the map",
