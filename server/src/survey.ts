@@ -11,7 +11,7 @@
  * engine compiled in. This one is for the web build, which has no engine.
  */
 import { TtlCache } from './cache.ts';
-import { latLonToGrid } from './geo.ts';
+import { latLonToGrid, pointFrom } from './geo.ts';
 import { predict, type PredictRequest } from './predict.ts';
 import type { BandHourPrediction, Endpoint, PathPrediction } from './types.ts';
 
@@ -28,37 +28,6 @@ const REACHABLE = 0.4;
 const SURVEY_TTL_MS = 15 * 60 * 1000;
 
 const cache = new TtlCache<PathPrediction>(SURVEY_TTL_MS);
-
-const EARTH_RADIUS_KM = 6371;
-const toRadians = (degrees: number) => (degrees * Math.PI) / 180;
-const toDegrees = (radians: number) => (radians * 180) / Math.PI;
-
-/** The direct geodesic on a sphere: where you are after going that far. */
-function pointFrom(
-  from: { lat: number; lon: number; },
-  bearing: number,
-  distanceKm: number,
-): { lat: number; lon: number; } {
-  const angular = distanceKm / EARTH_RADIUS_KM;
-  const lat1 = toRadians(from.lat);
-  const lon1 = toRadians(from.lon);
-  const theta = toRadians(bearing);
-
-  const lat2 = Math.asin(
-    Math.sin(lat1) * Math.cos(angular)
-      + Math.cos(lat1) * Math.sin(angular) * Math.cos(theta),
-  );
-  const lon2 = lon1
-    + Math.atan2(
-      Math.sin(theta) * Math.sin(angular) * Math.cos(lat1),
-      Math.cos(angular) - Math.sin(lat1) * Math.sin(lat2),
-    );
-
-  return {
-    lat: toDegrees(lat2),
-    lon: ((toDegrees(lon2) + 540) % 360) - 180,
-  };
-}
 
 function samplePoints(from: { lat: number; lon: number; }) {
   return SAMPLE_BEARINGS.flatMap((bearing) =>

@@ -1,3 +1,4 @@
+import { bearingDeg, distanceKm } from '../../../shared/geo.ts';
 import * as Engine from '../../modules/engine-bridge';
 import { type Station, usesBeam } from '../store/useStationStore';
 import { antennaOnDisk } from './antennaFile';
@@ -74,34 +75,6 @@ const hours = (values: readonly (number | null)[] | undefined) =>
       ? value
       : null;
   });
-
-const distanceKm = (
-  fromLat: number,
-  fromLon: number,
-  toLat: number,
-  toLon: number,
-): number => {
-  const rad = Math.PI / 180;
-  const dLat = (toLat - fromLat) * rad;
-  const dLon = (toLon - fromLon) * rad;
-  const a = Math.sin(dLat / 2) ** 2
-    + Math.cos(fromLat * rad) * Math.cos(toLat * rad) * Math.sin(dLon / 2) ** 2;
-  return 6371 * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-};
-
-const bearingDeg = (
-  fromLat: number,
-  fromLon: number,
-  toLat: number,
-  toLon: number,
-): number => {
-  const rad = Math.PI / 180;
-  const y = Math.sin((toLon - fromLon) * rad) * Math.cos(toLat * rad);
-  const x = Math.cos(fromLat * rad) * Math.sin(toLat * rad)
-    - Math.sin(fromLat * rad) * Math.cos(toLat * rad)
-      * Math.cos((toLon - fromLon) * rad);
-  return (Math.atan2(y, x) / rad + 360) % 360;
-};
 
 export const canPredictLocally = (): boolean => Engine.isAvailable();
 

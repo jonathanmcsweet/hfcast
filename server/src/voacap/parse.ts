@@ -15,6 +15,7 @@
  * label is read from its column rather than as the line's last word, because
  * labels contain spaces and `SNR LW` and `SIG LW` share a last word.
  */
+import type { RawBandHour } from '../../../shared/bands.ts';
 import type { BandHourPrediction, BandKey, OperatingWindow } from '../types.ts';
 
 const FIRST_SLOT = 11;
@@ -28,18 +29,10 @@ const LABEL_START = 66;
  * The deciles describe the day-to-day spread of the SNR distribution: the
  * median minus `snrLowDecile` is exceeded on 90% of days, the median plus
  * `snrUpDecile` on 10%. They are what lets reliability be recomputed after
- * the correction moves the median.
+ * the correction moves the median — which the correction does on both
+ * sides, so the shape is in `shared/bands.ts`.
  */
-export interface RawBandHour extends BandHourPrediction {
-  snrLowDecile: number | null;
-  snrUpDecile: number | null;
-  /**
-   * Transmit take-off angle in degrees. Near-vertical incidence is a
-   * property of this angle: a steep departure returns without a skip
-   * zone, which is why a short path works on bands that look too low.
-   */
-  takeoffAngleDeg: number | null;
-}
+export type { RawBandHour };
 
 export interface ParsedPrediction {
   /** Median MUF in MHz per UTC hour, index 0-23. */
