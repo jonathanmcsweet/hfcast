@@ -27,6 +27,8 @@ interface Props {
   anchor: number;
   /** When the live readings were pulled, for the clock. See `HourSlider`. */
   liveAt?: number | null;
+  /** The clock, epoch ms. */
+  nowMs: number;
   onHourChange: (hour: number) => void;
 }
 
@@ -96,6 +98,7 @@ export default function ReachCard({
   hour,
   anchor,
   liveAt,
+  nowMs,
   onHourChange,
 }: Props) {
   const theme = useTheme<AppTheme>();
@@ -390,6 +393,7 @@ export default function ReachCard({
         hour={hour}
         anchor={anchor}
         liveAt={liveAt}
+        nowMs={nowMs}
         onChange={onHourChange}
         place={prediction.from.label}
         lon={prediction.from.lon}

@@ -84,9 +84,9 @@
     "closed": "Dieses Band trägt jetzt nicht"
   },
   "time": {
+    "utc": "UTC",
     "now": "Jetzt",
-    "localAt": "Ortszeit in {{place}}",
-    "bothZones": "{{local}} Ortszeit · {{utc}} UTC"
+    "localAt": "Ortszeit in {{place}}"
   },
   "location": {
     "title": "Strecke wählen",

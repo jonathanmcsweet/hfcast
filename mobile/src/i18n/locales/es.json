@@ -84,9 +84,9 @@
     "closed": "Esta banda no ahora"
   },
   "time": {
+    "utc": "UTC",
     "now": "Ahora",
-    "localAt": "Hora local en {{place}}",
-    "bothZones": "{{local}} local · {{utc}} UTC"
+    "localAt": "Hora local en {{place}}"
   },
   "location": {
     "title": "Elegir una ruta",
