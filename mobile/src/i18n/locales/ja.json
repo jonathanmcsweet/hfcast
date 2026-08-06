@@ -289,8 +289,7 @@
       "noaa": "黒点数と太陽指数",
       "giro": "実測のイオノゾンデ観測",
       "openMeteo": "オンライン時の地名検索",
-      "plex": "IBM Plex Sans、書体",
-      "aurora": "起動画面のオーロラ写真"
+      "plex": "IBM Plex Sans、書体"
     },
     "openSource": "{{who}} のサイトを開く",
     "openTerms": "{{terms}} ライセンスを読む"
@@ -307,18 +306,6 @@
     "skip": "今はスキップ",
     "continue": "続ける",
     "recognised": "認識した形式"
-  },
-  "launch": {
-    "kicker": "短波の伝搬",
-    "title": "どのバンドで届くか",
-    "credit": "ISS 第42次長期滞在 · NASA／S. クリストフォレッティ、パブリックドメイン",
-    "a11y": "起動中: {{step}}",
-    "step": {
-      "flux": "太陽電波フラックス",
-      "ionosonde": "最寄りのイオノゾンデ",
-      "model": "経路モデル",
-      "bands": "バンド一覧"
-    }
   },
   "help": {
     "title": "予報の作り方",

@@ -289,8 +289,7 @@
       "noaa": "Números de manchas solares e índices solares",
       "giro": "Sondeos ionosféricos medidos",
       "openMeteo": "Búsqueda de lugares, con conexión",
-      "plex": "IBM Plex Sans, la tipografía",
-      "aurora": "La aurora de la pantalla de inicio"
+      "plex": "IBM Plex Sans, la tipografía"
     },
     "openSource": "Abrir el sitio de {{who}}",
     "openTerms": "Leer la licencia {{terms}}"
@@ -307,18 +306,6 @@
     "skip": "Omitir por ahora",
     "continue": "Continuar",
     "recognised": "RECONOCIDO"
-  },
-  "launch": {
-    "kicker": "Propagación en HF",
-    "title": "Qué banda te lleva allí",
-    "credit": "ISS Expedición 42 · NASA/S. Cristoforetti, dominio público",
-    "a11y": "Iniciando: {{step}}",
-    "step": {
-      "flux": "Flujo solar",
-      "ionosonde": "Ionosonda más cercana",
-      "model": "Modelo de ruta",
-      "bands": "Tus bandas"
-    }
   },
   "help": {
     "title": "Cómo se hace la previsión",

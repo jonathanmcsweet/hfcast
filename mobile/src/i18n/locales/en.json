@@ -289,8 +289,7 @@
       "noaa": "Sunspot numbers and solar indices",
       "giro": "Measured ionosonde soundings",
       "openMeteo": "Place search, when online",
-      "plex": "IBM Plex Sans, the typeface",
-      "aurora": "The aurora on the launch screen"
+      "plex": "IBM Plex Sans, the typeface"
     },
     "openSource": "Open the site for {{who}}",
     "openTerms": "Read the {{terms}} licence"
@@ -307,18 +306,6 @@
     "skip": "Skip for now",
     "continue": "Continue",
     "recognised": "RECOGNISED"
-  },
-  "launch": {
-    "kicker": "HF propagation",
-    "title": "Which band gets you there",
-    "credit": "ISS Expedition 42 · NASA/S. Cristoforetti, public domain",
-    "a11y": "Starting up: {{step}}",
-    "step": {
-      "flux": "Solar flux",
-      "ionosonde": "Nearest ionosonde",
-      "model": "Path model",
-      "bands": "Your bands"
-    }
   },
   "help": {
     "title": "How the forecast is made",

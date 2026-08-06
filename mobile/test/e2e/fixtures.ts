@@ -226,14 +226,6 @@ export async function openApp(
   await page.clock.resume();
 
   await page.goto('/');
-
-  // The launch photograph covers the whole app until the first forecast
-  // settles. Nothing may be read off the screen before it leaves — an
-  // assertion that something is hidden passes vacuously under the cover,
-  // and a press lands on the photograph. Generous, because a failing
-  // query holds the cover through its retries.
-  await expect(page.getByText('Which band gets you there'))
-    .toBeHidden({ timeout: 20_000 });
 }
 
 /**
@@ -245,13 +237,25 @@ export async function openApp(
  * still calls `stubApi(page, overrides)` before opening: `page.route`
  * takes the last handler added, so the override sits over the stubs
  * this fixture already laid down.
+ *
+ * `open` returns a screen that is ready to read: skeleton blocks stand
+ * in for the forecast until the first answer settles, and nothing below
+ * the header may be read before they leave — an assertion that
+ * something is hidden passes vacuously while the real content is not
+ * there yet. The wait is generous because a failing query holds the
+ * skeletons through its retries. A test about the loading state itself
+ * calls `openApp` directly, which returns at the moment of arrival.
  */
 export const test = base.extend<{
   open: (options?: OpenOptions) => Promise<void>;
 }>({
   open: async ({ page }, use) => {
     await stubApi(page);
-    await use((options) => openApp(page, options));
+    await use(async (options) => {
+      await openApp(page, options);
+      await expect(page.getByLabel('Working out the forecast'))
+        .toBeHidden({ timeout: 20_000 });
+    });
   },
 });
 
