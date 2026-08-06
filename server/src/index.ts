@@ -15,6 +15,7 @@ import {
   type ServerResponse,
 } from 'node:http';
 
+import { MAX_WATTS, MIN_WATTS } from '../../shared/antenna.ts';
 import {
   ANTENNA_ORDER,
   type AntennaChoice,
@@ -60,33 +61,13 @@ const DEFAULT_WATTS = 100;
 const DEFAULT_NOISE_DBW = 145;
 
 /**
- * The power the deck can actually carry.
+ * The power range a request may ask for.
  *
- * VOACAP takes power in kilowatts in a fixed four-decimal field, so a
- * tenth of a watt is the smallest value that survives being written down.
- * Measured on Seattle to Tokyo, 2026-07-29: from 100 W down to 0.1 W
- * every step moves the signal-to-noise by exactly ten log of the ratio.
- * At 0.05 W the field rounds and nothing moves, and at 0.01 W it rounds
- * to zero and the run returns 38 dB — a better answer than 100 W.
- *
- * That last case is why this is a floor and not a suggestion: the wrong
- * answer looks entirely ordinary. QRP operators work at a watt and below,
- * so the range has to reach down there, and it has to stop where the
- * model stops meaning anything.
- *
- * The ceiling is where an amateur station ends: 1500 W is the legal
- * limit in the countries this is built for, and it is the top of the
- * app's own control. Clamped rather than refused, because a control that
- * stops is friendlier than a request that fails.
- *
- * These are the app's `LIMITS.watts` — see
- * `mobile/src/store/useStationStore.ts`, whose comment says it repeats
- * what the server clamps to. It did not: this was 10,000 while the app
- * offered 1500, so the sentence the reader is shown named one number and
- * the service enforced another.
+ * `shared/antenna.ts` holds the two numbers, because the app's control
+ * has to stop where this clamps. They had drifted — this accepted
+ * 10,000 W while the app offered 1500 — so the sentence under the power
+ * field named a ceiling that was not the one in force.
  */
-const MIN_WATTS = 0.1;
-const MAX_WATTS = 1500;
 
 /** Space weather updates on the order of an hour; geocoding barely changes. */
 const spaceWeatherCache = new TtlCache<SpaceWeather>(15 * 60 * 1000, 1);

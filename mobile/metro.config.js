@@ -1,7 +1,25 @@
 const os = require('node:os');
+const path = require('node:path');
 const { getDefaultConfig } = require('expo/metro-config');
 
 const config = getDefaultConfig(__dirname);
+
+/**
+ * The physics both projects agree on lives outside this directory.
+ *
+ * Metro refuses to resolve anything above the project root unless it is
+ * told about it, which is the reason the app and the server carried
+ * copies of the correction factors, the mode table and the grid maths.
+ * One entry here is the whole of what that needed. See `shared/README.md`.
+ *
+ * The legacy build works in a copy of this directory under `build/`, and
+ * `tools/build-android.sh` links `shared/` in beside that copy, so this
+ * relative path is right from either tree.
+ */
+config.watchFolders = [
+  ...(config.watchFolders ?? []),
+  path.resolve(__dirname, '../shared'),
+];
 
 /**
  * Metro sizes its transform pool from the CPU count alone. Each worker is a

@@ -2,6 +2,20 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 
+import {
+  type Antenna,
+  MAX_GAIN_DBD,
+  MAX_HEIGHT_M,
+  MAX_WATTS,
+  MIN_GAIN_DBD,
+  MIN_HEIGHT_M,
+  MIN_WATTS,
+  usesBeam,
+  usesGain,
+  usesHeight,
+} from '../../../shared/antenna.ts';
+import type { ModeKey } from '../../../shared/modes.ts';
+
 /**
  * The operator's own station, or stations.
  *
@@ -17,50 +31,18 @@ import { createJSONStorage, persist } from 'zustand/middleware';
  * one tap, not a re-entry of three settings.
  */
 
-/** Modes an amateur station picks between, hardest to easiest. */
-export const MODE_ORDER = [
-  'fm',
-  'am',
-  'ssb',
-  'rtty',
-  'cw',
-  'psk31',
-  'ft8',
-  'js8',
-  'wspr',
-] as const;
-
-export type ModeKey = (typeof MODE_ORDER)[number];
-
-/** Antenna families, in the order the picker lists them. */
-export const ANTENNA_ORDER = [
-  'isotropic',
-  'dipole',
-  'invertedV',
-  'vertical',
-  'invertedL',
-  'yagi',
-] as const;
-
-export type AntennaKey = (typeof ANTENNA_ORDER)[number];
-
-export interface Antenna {
-  type: AntennaKey;
-  /**
-   * Height above ground, metres. The feed point of a dipole or yagi, the
-   * element height of a vertical, the horizontal section of an inverted L,
-   * and the apex — the highest point, where the feed is — of an inverted V.
-   *
-   * Always metres, whatever the reader is shown: the server takes metres,
-   * and a preset saved in feet would become wrong the moment somebody
-   * switched units.
-   */
-  heightM: number;
-  /** Gain over a half-wave dipole, dB. Only the yagi uses it. */
-  gainDbd: number;
-  /** Where the beam points, degrees true. Only the yagi uses it. */
-  beamDeg: number;
-}
+// Re-exported rather than re-declared. Every component that draws the
+// station dialog reaches for these through the store, which is the shape
+// they were in before `shared/` existed; the definitions are there now.
+export type { Antenna, AntennaKey } from '../../../shared/antenna.ts';
+export {
+  ANTENNA_ORDER,
+  usesBeam,
+  usesGain,
+  usesHeight,
+} from '../../../shared/antenna.ts';
+export type { ModeKey } from '../../../shared/modes.ts';
+export { MODE_ORDER } from '../../../shared/modes.ts';
 
 /** What a run needs to know about the transmitting end. */
 export interface Station {
@@ -83,49 +65,22 @@ export interface StationPreset extends Station {
 }
 
 /**
- * What the server clamps to. Repeated here so the controls stop at the
- * same place the server would, rather than letting a value be set that
- * quietly becomes something else on the way through.
+ * What the controls stop at, which is what the server clamps to.
  *
- * `MIN_WATTS` and `MAX_WATTS` in `server/src/index.ts` are these two
- * numbers. They had drifted — the server took 10,000 W while this
- * offered 1500 — which made the sentence under the power field name a
- * ceiling that was not the one being enforced.
+ * Every number here comes from `shared/antenna.ts`, so a control cannot
+ * offer a value the service will quietly change on the way through. They
+ * had drifted before that: this offered 1500 W and the server accepted
+ * 10,000, while the comment here claimed the two agreed.
  */
 export const LIMITS = {
-  // A tenth of a watt is where VOACAP stops tracking power: below that
-  // the deck's kilowatt field rounds away, and at a hundredth of a watt
-  // it returns a better answer than a hundred watts. QRP work happens at
-  // and below one watt, so the range reaches there and stops where the
-  // model does.
-  //
-  // 1500 W is the legal ceiling for an amateur station in the countries
-  // this is built for.
-  watts: { min: 0.1, max: 1500 },
-  heightM: { min: 1, max: 100 },
-  gainDbd: { min: 0, max: 20 },
+  watts: { min: MIN_WATTS, max: MAX_WATTS },
+  heightM: { min: MIN_HEIGHT_M, max: MAX_HEIGHT_M },
+  gainDbd: { min: MIN_GAIN_DBD, max: MAX_GAIN_DBD },
 } as const;
 
 /** How long a preset name may be. Long enough to name a station, short
  * enough to sit beside three icons on a phone. */
 export const MAX_NAME_LENGTH = 24;
-
-/** Only a beam has a gain figure to state. */
-export const usesGain = (type: AntennaKey) => type === 'yagi';
-export const usesHeight = (type: AntennaKey) => type !== 'isotropic';
-
-/**
- * Which families have a direction at all.
- *
- * Measured against the engine rather than assumed: swept through the
- * compass on a 14 MHz path, a dipole moves 12 dB and an inverted L 12 dB,
- * and a vertical monopole moves by nothing. See `data/orientation.ts`.
- * Sending a bearing for the vertical would put it in the cache key and
- * refetch answers that cannot differ.
- */
-export const usesBeam = (type: AntennaKey) =>
-  type === 'dipole' || type === 'invertedV' || type === 'invertedL'
-  || type === 'yagi';
 
 /**
  * The station every earlier version of the app assumed without saying:

@@ -1,3 +1,4 @@
+import { pointFrom } from '../../../shared/geo.ts';
 import { REACHABLE } from './coverageGrid.ts';
 import type {
   BandHourPrediction,
@@ -46,51 +47,16 @@ export const SAMPLE_RANGES_KM = [1500, 4000, 8000] as const;
 /** How many engine runs a survey costs. */
 export const SAMPLE_COUNT = SAMPLE_BEARINGS.length * SAMPLE_RANGES_KM.length;
 
-const EARTH_RADIUS_KM = 6371;
-const toRadians = (degrees: number) => (degrees * Math.PI) / 180;
-const toDegrees = (radians: number) => (radians * 180) / Math.PI;
-
-/**
- * The point a given distance away on a given bearing, along a great circle.
- *
- * The standard direct geodesic on a sphere. A flat approximation would be
- * wrong by hundreds of kilometres at 8,000 km out, and wrong in a way that
- * bunches the samples towards the poles.
- */
-export function pointFrom(
-  from: { lat: number; lon: number; },
-  bearing: number,
-  distanceKm: number,
-): { lat: number; lon: number; } {
-  const angular = distanceKm / EARTH_RADIUS_KM;
-  const lat1 = toRadians(from.lat);
-  const lon1 = toRadians(from.lon);
-  const theta = toRadians(bearing);
-
-  const lat2 = Math.asin(
-    Math.sin(lat1) * Math.cos(angular)
-      + Math.cos(lat1) * Math.sin(angular) * Math.cos(theta),
-  );
-  const lon2 = lon1
-    + Math.atan2(
-      Math.sin(theta) * Math.sin(angular) * Math.cos(lat1),
-      Math.cos(angular) - Math.sin(lat1) * Math.sin(lat2),
-    );
-
-  return {
-    lat: toDegrees(lat2),
-    // Back into -180..180, which is where every other coordinate in the app
-    // lives and what the engine expects.
-    lon: ((toDegrees(lon2) + 540) % 360) - 180,
-  };
-}
-
 export interface SamplePoint {
   bearing: number;
   distanceKm: number;
   lat: number;
   lon: number;
 }
+
+// `pointFrom` is re-exported because the survey test measures the sampling
+// through this module, which is where the sampling is described.
+export { pointFrom };
 
 /** The directions a survey runs, in a fixed order so a result is repeatable. */
 export function samplePoints(from: { lat: number; lon: number; }) {
