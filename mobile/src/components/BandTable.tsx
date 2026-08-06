@@ -15,8 +15,8 @@ interface Props {
   prediction: PathPrediction;
   band: BandKey;
   hour: number;
-  /** The hour the first column shows: "now". Columns run 24 h forward. */
-  anchor: number;
+  /** The hour the first column shows. Columns run 24 h forward. */
+  start: number;
 }
 
 /**
@@ -30,14 +30,14 @@ interface Props {
  * The band column stays put while the hours scroll, because a row of numbers
  * with its label off-screen is a row of numbers about nothing.
  */
-export default function BandTable({ prediction, band, hour, anchor }: Props) {
+export default function BandTable({ prediction, band, hour, start }: Props) {
   const theme = useTheme<AppTheme>();
   const { t } = useTranslation();
   const f = useFormatters();
   const ui = theme.colors.ui;
 
   // The same track order as the heatmap, so the two tell one story.
-  const hours = hoursFrom(anchor);
+  const hours = hoursFrom(start);
 
   return (
     <View style={styles.wrap}>

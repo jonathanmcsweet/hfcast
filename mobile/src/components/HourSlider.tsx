@@ -12,8 +12,14 @@ import type { AppTheme } from '../theme';
 interface Props {
   /** The UTC hour every module is showing, 0..23. */
   hour: number;
-  /** The hour the track starts at: "now". The track runs 24 h forward. */
-  anchor: number;
+  /** The hour the track starts at. See `src/data/timeline.ts`. */
+  start: number;
+  /**
+   * How many of the track's first positions are already past: "now"
+   * sits at position `past`, and the hours before it are the ones the
+   * session has watched go by.
+   */
+  past: number;
   /**
    * When the live readings behind the now-cast were pulled, epoch ms.
    * The track's first label is "now" only while this is recent; after
@@ -94,7 +100,7 @@ const OFFSET = 1;
  * shows; the tag under the track names the bottom one.
  */
 export default function HourSlider(
-  { hour, anchor, liveAt, nowMs, onChange, place, lon }: Props,
+  { hour, start, past, liveAt, nowMs, onChange, place, lon }: Props,
 ) {
   const theme = useTheme<AppTheme>();
   const { t } = useTranslation();
@@ -102,7 +108,7 @@ export default function HourSlider(
   const ui = theme.colors.ui;
 
   // The position the thumb is drawn at, shared by the control's value.
-  const position = offsetOf(hour, anchor);
+  const position = offsetOf(hour, start);
 
   // The first label of the local scale: "now" while the reading behind
   // the now-cast is minutes old, and the reading's own local time once
@@ -118,10 +124,12 @@ export default function HourSlider(
         {t('time.localAt', { place })}
       </Text>
       {
-        /* The track is the next 24 hours: the left edge is now and the
-           right edge is this hour tomorrow, wrapping past midnight. The
-           control still moves over positions; the timeline arithmetic
-           turns a position into the UTC hour it means.
+        /* The track is 24 hours in track order: the now line starts at
+           the left edge and slides right as the session watches hours
+           go by, until `PAST_WINDOW` of them sit behind it and the
+           track rolls. The control still moves over positions; the
+           timeline arithmetic turns a position into the UTC hour it
+           means.
 
            The padding is what keeps the first and last labels, centred
            on the track's ends, from being cut by the card's edge.
@@ -145,7 +153,7 @@ export default function HourSlider(
              border — Android does not draw dashed borders on one side. */
           }
           <View
-            style={[styles.nowLine, { start: tickStart(0) }]}
+            style={[styles.nowLine, { start: tickStart(past) }]}
             pointerEvents="none"
             accessibilityElementsHidden
             importantForAccessibility="no-hide-descendants"
@@ -157,29 +165,33 @@ export default function HourSlider(
               />
             ))}
           </View>
+          {
+            /* The now label rides the now line, wherever the past has
+               pushed it. A scale label within two slots of it is
+               dropped rather than overlapped — the heatmap's rule is
+               one column, but its labels are two digits and these are
+               five characters, which graze at two slots on a phone. */
+          }
           <View
             style={[styles.tickRow, styles.topRow]}
             accessibilityElementsHidden
             importantForAccessibility="no-hide-descendants"
           >
-            {TICKS.map((position) => (
+            {TICKS.filter((tick) => Math.abs(tick - past) > 2).map((tick) => (
               <View
-                key={position}
-                style={[styles.tickSlot, { start: tickStart(position) }]}
+                key={tick}
+                style={[styles.tickSlot, { start: tickStart(tick) }]}
               >
-                <Text
-                  style={[
-                    typography.axis,
-                    numeric,
-                    { color: position === 0 ? ui.amberNum : ui.text4 },
-                  ]}
-                >
-                  {position === 0
-                    ? first
-                    : f.utcClock(localHour(hourAt(position, anchor), lon))}
+                <Text style={[typography.axis, numeric, { color: ui.text4 }]}>
+                  {f.utcClock(localHour(hourAt(tick, start), lon))}
                 </Text>
               </View>
             ))}
+            <View style={[styles.tickSlot, { start: tickStart(past) }]}>
+              <Text style={[typography.axis, numeric, { color: ui.amberNum }]}>
+                {first}
+              </Text>
+            </View>
           </View>
           {
             /* The marks hang from both sides of the track, one per hour
@@ -211,7 +223,7 @@ export default function HourSlider(
                         ? { height: 6, backgroundColor: ui.text4 }
                         : { height: 4, backgroundColor: ui.line2 },
                       // The now position's mark is the dotted line.
-                      position === 0 ? { opacity: 0 } : null,
+                      position === past ? { opacity: 0 } : null,
                     ]}
                   />
                 ))}
@@ -222,8 +234,7 @@ export default function HourSlider(
               minimumValue={0 + OFFSET}
               maximumValue={23 + OFFSET}
               step={1}
-              onValueChange={(value) =>
-                onChange(hourAt(value - OFFSET, anchor))}
+              onValueChange={(value) => onChange(hourAt(value - OFFSET, start))}
               // The control draws nothing: thumb and track are both
               // transparent, and the ones below are drawn instead. Each
               // platform lays the native control out by its own rules —
@@ -258,6 +269,19 @@ export default function HourSlider(
                   width: tickStart(position),
                 }]}
               />
+              {
+                /* The passed hours, filling in behind the now line as
+                   the session runs. Over the fill: with the thumb ahead
+                   of now the fill shows from the now line forward, and
+                   with the thumb scrubbed back into the past it rides
+                   the darker segment alone. */
+              }
+              <View
+                style={[styles.track, {
+                  backgroundColor: ui.pastTrack,
+                  width: tickStart(past),
+                }]}
+              />
               <View
                 style={[
                   styles.thumb,
@@ -271,13 +295,13 @@ export default function HourSlider(
             accessibilityElementsHidden
             importantForAccessibility="no-hide-descendants"
           >
-            {TICKS.filter((position) => position !== 0).map((position) => (
+            {TICKS.filter((tick) => Math.abs(tick - past) > 2).map((tick) => (
               <View
-                key={position}
-                style={[styles.tickSlot, { start: tickStart(position) }]}
+                key={tick}
+                style={[styles.tickSlot, { start: tickStart(tick) }]}
               >
                 <Text style={[typography.axis, numeric, { color: ui.text4 }]}>
-                  {f.utcClock(hourAt(position, anchor))}
+                  {f.utcClock(hourAt(tick, start))}
                 </Text>
               </View>
             ))}
