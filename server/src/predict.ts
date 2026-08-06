@@ -7,27 +7,10 @@ import { TtlCache } from './cache.ts';
 import { latLonToGrid } from './geo.ts';
 import { bearingDeg, distanceKm } from './geo.ts';
 import { resolveSsn } from './spaceweather.ts';
-import {
-  BANDS_BY_FREQ,
-  type Endpoint,
-  type PathPrediction,
-  type PredictionBasis,
-} from './types.ts';
+import type { Endpoint, PathPrediction, PredictionBasis } from './types.ts';
 import { correctCells, factorsFor, stormWidening } from './voacap/correct.ts';
-import { buildDeck } from './voacap/deck.ts';
-import { ITSHFBC_DIR, runEngine } from './voacap/engine.ts';
-import { parseVoacapOutput } from './voacap/parse.ts';
-import { runVoacap } from './voacap/run.ts';
-
-/**
- * Which engine serves predictions.
- *
- * The Rust port is byte-identical to the Fortran reference and
- * `hfcast-engine`'s `paritycheck` confirms it returns the same fields this server
- * reads. The Fortran path is kept so a deployment can fall back without a
- * code change, and so the two can be compared on a live host.
- */
-const USE_FORTRAN = process.env.HFCAST_ENGINE === 'fortran';
+import { ITSHFBC_DIR } from './voacap/engine.ts';
+import { runPath } from './voacap/pathEngine.ts';
 
 /** Climatology does not change quickly. A day is a conservative lifetime. */
 const PREDICTION_TTL_MS = 24 * 60 * 60 * 1000;
@@ -149,17 +132,7 @@ async function runOnce(
     ...(txAntenna ? { txAntenna } : {}),
   };
 
-  const parsed = USE_FORTRAN
-    ? parseVoacapOutput(
-      await runVoacap(buildDeck({
-        ...engineRequest,
-        ...(txAntenna
-          ? { txAntennaFile: txAntenna.file, txBeamDeg: txAntenna.beamDeg }
-          : {}),
-      })),
-      BANDS_BY_FREQ,
-    )
-    : await runEngine(engineRequest);
+  const parsed = await runPath(engineRequest, txAntenna);
 
   if (parsed.cells.length === 0) {
     throw new Error('the engine produced no usable rows');
