@@ -206,12 +206,16 @@ jobs:
       - name: End-to-end tests
         run: pnpm e2e:only
 
-      # The failure artefacts: page snapshots and error context, written
-      # only for failed tests. Nothing is uploaded from a green run.
+      # The failure artefacts: a screenshot, the page snapshot and the
+      # error context, written only for failed attempts. `always`, not
+      # `failure`: a test that fails once and passes on the retry leaves
+      # the job green, and the first attempt's picture is exactly the
+      # evidence a flake gets chased with. The glob matches only the
+      # per-test folders, so a clean run has nothing to upload.
       - name: Keep the failure evidence
-        if: failure()
+        if: always()
         uses: actions/upload-artifact@v7
         with:
           name: e2e-results
-          path: mobile/test-results
+          path: mobile/test-results/*/
           if-no-files-found: ignore
