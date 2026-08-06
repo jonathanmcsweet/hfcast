@@ -24,7 +24,9 @@ interface Props {
   band: BandKey;
   hour: number;
   /** The hour the slider's track starts at. See `src/data/timeline.ts`. */
-  anchor: number;
+  start: number;
+  /** How many of the track's first hours are past. See `HourSlider`. */
+  past: number;
   /** When the live readings were pulled, for the clock. See `HourSlider`. */
   liveAt?: number | null;
   /** The clock, epoch ms. */
@@ -98,7 +100,8 @@ export default function ReachCard({
   prediction,
   band,
   hour,
-  anchor,
+  start,
+  past,
   liveAt,
   nowMs,
   onHourChange,
@@ -417,7 +420,8 @@ export default function ReachCard({
 
       <HourSlider
         hour={hour}
-        anchor={anchor}
+        start={start}
+        past={past}
         liveAt={liveAt}
         nowMs={nowMs}
         onChange={onHourChange}

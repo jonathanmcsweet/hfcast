@@ -1,7 +1,13 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
-import { hourAt, hoursFrom, offsetOf } from '../src/data/timeline.ts';
+import {
+  hourAt,
+  hoursFrom,
+  offsetOf,
+  PAST_WINDOW,
+  trackStart,
+} from '../src/data/timeline.ts';
 
 /**
  * The timeline is a rotation, and a rotation has invariants worth
@@ -70,5 +76,36 @@ describe('the rolling timeline', () => {
   it('wraps past midnight rather than running out', () => {
     assert.equal(hourAt(3, 23), 2);
     assert.equal(offsetOf(2, 23), 3);
+  });
+});
+
+/**
+ * The past side: the track may start up to `PAST_WINDOW` hours behind
+ * the anchor, and the anchor's own position is then exactly the count
+ * of past hours. A mistake here would show as the now line and the
+ * darker past segment disagreeing about where "now" is.
+ */
+describe('the past side of the track', () => {
+  it('starts the track behind the anchor by the kept hours', () => {
+    assert.equal(trackStart(12, 0), 12);
+    assert.equal(trackStart(12, 6), 6);
+    assert.equal(trackStart(3, 6), 21);
+  });
+
+  it('puts the anchor at position `past`, for every anchor', () => {
+    for (let anchor = 0; anchor < 24; anchor++) {
+      for (let past = 0; past <= PAST_WINDOW; past++) {
+        assert.equal(offsetOf(anchor, trackStart(anchor, past)), past);
+      }
+    }
+  });
+
+  it('keeps every hour on the track whatever the past holds', () => {
+    for (let past = 0; past <= PAST_WINDOW; past++) {
+      assert.deepEqual(
+        [...hoursFrom(trackStart(15, past))].sort((a, b) => a - b),
+        Array.from({ length: 24 }, (_, h) => h),
+      );
+    }
   });
 });

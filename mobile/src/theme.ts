@@ -234,6 +234,15 @@ interface UiColors {
   accent: string;
   /** Text on `accent`. */
   accentInk: string;
+  /**
+   * The already-passed part of the timeline's track.
+   *
+   * Derived from the accent, not from a grey: the low-light theme is
+   * red, and a grey segment there would be the one grey thing on the
+   * screen. Darker than the accent, so the past reads as done next to
+   * the fill the thumb still commands.
+   */
+  pastTrack: string;
   /** The solar value, and the selected-hour column marker. */
   amberNum: string;
   amberBg: string;
@@ -275,6 +284,7 @@ export const uiLight: UiColors = {
   text4: slate[400],
   accent: cyan[700],
   accentInk: cyan[50],
+  pastTrack: cyan[900],
   amberNum: amber[700],
   amberBg: amber[100],
   amberFg: amber[800],
@@ -304,6 +314,7 @@ export const uiDark: UiColors = {
   text4: slate[400],
   accent: cyan[400],
   accentInk: cyan[900],
+  pastTrack: cyan[700],
   amberNum: amber[400],
   amberBg: amber[800],
   amberFg: amber[200],
@@ -379,6 +390,9 @@ export const uiLowLight: UiColors = {
   // that should pull the eye in a dark room.
   accent: nightAlert,
   accentInk: nightRed[1000],
+  // Muted, not vivid: `nightAlert` stays the one saturated red, and
+  // the passed track is history rather than something to act on.
+  pastTrack: nightRed[600],
   amberNum: nightRed[100],
   amberBg: nightRed[900],
   amberFg: nightRed[200],
