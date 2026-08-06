@@ -169,45 +169,56 @@ export default function HourSlider(
               </View>
             ))}
           </View>
-          <Slider
-            value={offsetOf(hour, anchor) + OFFSET}
-            minimumValue={0 + OFFSET}
-            maximumValue={23 + OFFSET}
-            step={1}
-            onValueChange={(value) => onChange(hourAt(value - OFFSET, anchor))}
-            minimumTrackTintColor={ui.accent}
-            maximumTrackTintColor={ui.line2}
-            thumbTintColor={ui.accent}
-            accessibilityLabel={t('a11y.hourSlider')}
-            // The control reports nothing by itself, so the hour is stated
-            // here — unshifted, because this is the number that gets
-            // announced.
-            accessibilityValue={{ min: 0, max: 23, now: hour }}
-            style={styles.slider}
-          />
           {
-            /* The marks sit just under the track, inside the slider's own
-             whitespace, one per hour with the labelled ones taller. */
+            /* The marks hang from both sides of the track, one per hour
+               with the labelled ones taller, anchored to the slider so
+               the two rows mirror each other around it. */
           }
-          <View
-            style={styles.marksRow}
-            accessibilityElementsHidden
-            importantForAccessibility="no-hide-descendants"
-            pointerEvents="none"
-          >
-            {MARKS.map((position) => (
+          <View>
+            <Slider
+              value={offsetOf(hour, anchor) + OFFSET}
+              minimumValue={0 + OFFSET}
+              maximumValue={23 + OFFSET}
+              step={1}
+              onValueChange={(value) =>
+                onChange(hourAt(value - OFFSET, anchor))}
+              minimumTrackTintColor={ui.accent}
+              maximumTrackTintColor={ui.line2}
+              thumbTintColor={ui.accent}
+              accessibilityLabel={t('a11y.hourSlider')}
+              // The control reports nothing by itself, so the hour is
+              // stated here — unshifted, because this is the number that
+              // gets announced.
+              accessibilityValue={{ min: 0, max: 23, now: hour }}
+              style={styles.slider}
+            />
+            {(['above', 'below'] as const).map((side) => (
               <View
-                key={position}
+                key={side}
                 style={[
-                  styles.mark,
-                  { start: tickStart(position) },
-                  position % 4 === 0
-                    ? { height: 6, backgroundColor: ui.text4 }
-                    : { height: 4, backgroundColor: ui.line2 },
-                  // The now position's mark is the dotted line above.
-                  position === 0 ? { opacity: 0 } : null,
+                  styles.marks,
+                  side === 'above' ? styles.marksAbove : styles.marksBelow,
                 ]}
-              />
+                accessibilityElementsHidden
+                importantForAccessibility="no-hide-descendants"
+                pointerEvents="none"
+              >
+                {MARKS.map((position) => (
+                  <View
+                    key={position}
+                    style={[
+                      styles.mark,
+                      side === 'above' ? styles.markUp : styles.markDown,
+                      { start: tickStart(position) },
+                      position % 4 === 0
+                        ? { height: 6, backgroundColor: ui.text4 }
+                        : { height: 4, backgroundColor: ui.line2 },
+                      // The now position's mark is the dotted line.
+                      position === 0 ? { opacity: 0 } : null,
+                    ]}
+                  />
+                ))}
+              </View>
             ))}
           </View>
           <View
@@ -215,15 +226,6 @@ export default function HourSlider(
             accessibilityElementsHidden
             importantForAccessibility="no-hide-descendants"
           >
-            {
-              /* The tag that names this scale, where the top one's header
-               names it local. Level with the row's own labels. */
-            }
-            <Text
-              style={[typography.label, styles.utcTag, { color: ui.text4 }]}
-            >
-              {t('time.utc')}
-            </Text>
             {TICKS.filter((position) => position !== 0).map((position) => (
               <View
                 key={position}
@@ -237,6 +239,13 @@ export default function HourSlider(
           </View>
         </View>
       </View>
+      {
+        /* The bottom scale's name, in the same form as the top one's:
+           the reader learns which row is which the same way twice. */
+      }
+      <Text style={[typography.label, { color: ui.text4 }]}>
+        {t('time.utcAt', { place })}
+      </Text>
     </View>
   );
 }
@@ -252,13 +261,13 @@ const styles = StyleSheet.create({
   // The label row leans into the slider's top whitespace, so "now" sits
   // close over the thumb rather than a full row above it.
   topRow: { marginBottom: -6 },
-  // From just under the word to the marks' baseline, through the track.
-  // The top is the label row's text bottom; the bottom clears the UTC
-  // row. Both are sums of the fixed heights around the slider.
+  // From just under the word to the lower marks' baseline, through the
+  // track. The top is the label row's text bottom; the bottom clears
+  // the UTC row. Both are sums of the fixed heights around the slider.
   nowLine: {
     position: 'absolute',
     top: 12,
-    bottom: 18,
+    bottom: 14,
     width: 2,
     marginStart: -1,
     justifyContent: 'space-between',
@@ -275,16 +284,21 @@ const styles = StyleSheet.create({
     marginStart: -24,
     alignItems: 'center',
   },
-  utcTag: { position: 'absolute', start: -(spacing.lg + spacing.xs) },
-  // Pulled up into the slider's lower whitespace so the marks read as
-  // part of the track rather than as a separate row.
-  marksRow: { height: 6, marginTop: -14, marginBottom: spacing.xs },
+  // Bands of the slider's own whitespace, either side of the track,
+  // that the marks are anchored inside. 30 from each edge of the 44px
+  // control leaves the marks growing away from the track's centre.
+  marks: { position: 'absolute', start: 0, end: 0, height: 6 },
+  marksAbove: { bottom: 30 },
+  marksBelow: { top: 30 },
   mark: {
     position: 'absolute',
     width: 2,
     marginStart: -1,
     borderRadius: 1,
   },
+  // Taller labelled marks grow away from the track, not towards it.
+  markUp: { bottom: 0 },
+  markDown: { top: 0 },
   // 44px tall so the thumb is reachable with a thumb, not a fingertip.
   slider: { width: '100%', height: 44 },
 });
