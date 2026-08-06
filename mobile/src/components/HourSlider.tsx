@@ -54,6 +54,15 @@ const TICKS = [0, 4, 8, 12, 16, 20];
 /** Every position, for the small marks under the track. */
 const MARKS = Array.from({ length: 24 }, (_, k) => k);
 
+/**
+ * Half the thumb, in px. The thumb's centre cannot reach the track's
+ * ends — it stops half a thumb short of each — so everything on the
+ * scale is measured inside this inset. Without it the now line missed
+ * the centre of the thumb at its leftmost, and every tick drifted a
+ * little more towards its nearer edge.
+ */
+const THUMB_INSET = 10;
+
 /** A position's distance along the track, as a percentage for `start`. */
 const tickStart = (position: number): `${number}%` =>
   `${(position / 23) * 100}%`;
@@ -256,8 +265,9 @@ const styles = StyleSheet.create({
   // inside the card.
   scale: { paddingHorizontal: spacing.lg + spacing.xs },
   // Just tall enough for one axis label; the slots are positioned along
-  // it absolutely, so the row needs its own height.
-  tickRow: { height: 14 },
+  // it absolutely, so the row needs its own height. Inset to the span
+  // the thumb's centre can actually travel.
+  tickRow: { height: 14, marginHorizontal: THUMB_INSET },
   // The label row leans into the slider's top whitespace, so "now" sits
   // close over the thumb rather than a full row above it.
   topRow: { marginBottom: -6 },
@@ -269,7 +279,7 @@ const styles = StyleSheet.create({
     top: 12,
     bottom: 14,
     width: 2,
-    marginStart: -1,
+    marginStart: THUMB_INSET - 1,
     justifyContent: 'space-between',
     alignItems: 'center',
   },
@@ -287,7 +297,12 @@ const styles = StyleSheet.create({
   // Bands of the slider's own whitespace, either side of the track,
   // that the marks are anchored inside. 30 from each edge of the 44px
   // control leaves the marks growing away from the track's centre.
-  marks: { position: 'absolute', start: 0, end: 0, height: 6 },
+  marks: {
+    position: 'absolute',
+    start: THUMB_INSET,
+    end: THUMB_INSET,
+    height: 6,
+  },
   marksAbove: { bottom: 30 },
   marksBelow: { top: 30 },
   mark: {
