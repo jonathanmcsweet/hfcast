@@ -33,10 +33,12 @@ import { spacing, typography } from '../theme';
 import type { AppTheme } from '../theme';
 
 /**
- * The shortest time the pull-down spinner stays on screen.
+ * How long the pull-down spinner stays on screen for the gesture alone.
  *
- * Long enough that the gesture is acknowledged even when the cooldown
- * refused the network, which is the common case for a second pull.
+ * Long enough that the pull is acknowledged even when the cooldown
+ * refused the network, which is the common case for a second pull. A
+ * fetch that does start keeps its own spinner for at least as long, so
+ * this is a floor rather than a limit.
  */
 const PULL_SPINNER_MS = 600;
 
@@ -126,7 +128,18 @@ export default function ForecastScreen() {
   // asked. A gesture that produced no visible response would read as the
   // app ignoring it, and inside the floor there is nothing new to fetch
   // anyway — SWPC publishes the flux once a day.
+  //
+  // True from the pull until the floor under it passes. It is cleared by
+  // the timer below rather than at the end of the handler: React batches
+  // the writes of one event, so setting it and clearing it there meant
+  // the value was never rendered as true — and a pull the cooldown
+  // refused, which is exactly the case this exists for, drew nothing.
   const [pulling, setPulling] = useState(false);
+  useEffect(() => {
+    if (!pulling) return;
+    const timer = setTimeout(() => setPulling(false), PULL_SPINNER_MS);
+    return () => clearTimeout(timer);
+  }, [pulling]);
 
   // True while the map owns a two-finger pan. The scroller is switched
   // off for that moment: refusing termination stops it stealing a pan
@@ -139,9 +152,12 @@ export default function ForecastScreen() {
     if (mayRefresh(weather.dataUpdatedAt, weather.errorUpdatedAt, Date.now())) {
       refresh();
     }
-    setPulling(false);
   }, [weather.dataUpdatedAt, weather.errorUpdatedAt, refresh]);
-  const showPull = useShownFor(pulling || weather.isFetching, PULL_SPINNER_MS);
+  // The two halves are separate because they start at different moments:
+  // the gesture is answered at once, and a fetch it did allow keeps the
+  // spinner for as long as it runs plus the same floor.
+  const fetching = useShownFor(weather.isFetching, PULL_SPINNER_MS);
+  const showPull = pulling || fetching;
 
   // The status bar overlaps these too, and the error screen is tall enough on a
   // small phone to reach it.
