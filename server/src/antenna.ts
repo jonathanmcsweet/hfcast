@@ -79,8 +79,8 @@ export const DEFAULT_ANTENNA: AntennaChoice = {
 export const MIN_HEIGHT_M = 1;
 export const MAX_HEIGHT_M = 100;
 /** A yagi below this is a dipole; above it is not an amateur antenna. */
-export const MIN_GAIN_DBD = 0;
-export const MAX_GAIN_DBD = 20;
+const MIN_GAIN_DBD = 0;
+const MAX_GAIN_DBD = 20;
 
 const clamp = (value: number, low: number, high: number) =>
   Math.min(high, Math.max(low, value));
