@@ -7,6 +7,7 @@
     "mapLoading": "Reichweite dieses Bandes wird berechnet",
     "mapUnavailable": "Die Reichweitenkarte konnte nicht geladen werden.",
     "reachLine": "{{band}} erreicht zu dieser Stunde etwa {{percent}} der Erde.",
+    "reachAndNvis": "{{band}} erreicht zu dieser Stunde etwa {{percent}} der Erde und reicht ohne tote Zone bis etwa {{distance}}.",
     "legendReach": "Reichweite",
     "legendNight": "Nacht",
     "panHint": "Mit zwei Fingern die Karte bewegen",
@@ -20,8 +21,7 @@
   },
   "path": {
     "summary": "{{distance}} · Peilung {{bearing}} · {{hops}} Sprünge",
-    "summaryOneHop": "{{distance}} · Peilung {{bearing}} · ein Sprung",
-    "noDestinationHint": "Die Karte zeigt alle Richtungen. Tippe oben auf den Namen, um ein Ziel zu wählen."
+    "summaryOneHop": "{{distance}} · Peilung {{bearing}} · ein Sprung"
   },
   "window": {
     "label": "Nutzbarer Bereich",
@@ -84,8 +84,9 @@
     "closed": "Dieses Band trägt jetzt nicht"
   },
   "time": {
-    "localAt": "Ortszeit in {{place}}",
-    "bothZones": "{{local}} Ortszeit · {{utc}} UTC"
+    "utcAt": "UTC-Zeit in {{place}}",
+    "now": "Jetzt",
+    "localAt": "Ortszeit in {{place}}"
   },
   "location": {
     "title": "Strecke wählen",
@@ -288,8 +289,7 @@
       "noaa": "Sonnenfleckenzahlen und Sonnenindizes",
       "giro": "Gemessene Ionosonden-Messungen",
       "openMeteo": "Ortssuche, wenn online",
-      "plex": "IBM Plex Sans, die Schriftart",
-      "aurora": "Das Polarlicht auf dem Startbildschirm"
+      "plex": "IBM Plex Sans, die Schriftart"
     },
     "openSource": "Website von {{who}} öffnen",
     "openTerms": "Lizenz {{terms}} lesen"
@@ -306,18 +306,6 @@
     "skip": "Vorerst überspringen",
     "continue": "Weiter",
     "recognised": "ERKANNT"
-  },
-  "launch": {
-    "kicker": "Kurzwellenausbreitung",
-    "title": "Welches Band bringt dich hin",
-    "credit": "ISS-Expedition 42 · NASA/S. Cristoforetti, gemeinfrei",
-    "a11y": "Startet: {{step}}",
-    "step": {
-      "flux": "Sonnenfluss",
-      "ionosonde": "Nächste Ionosonde",
-      "model": "Streckenmodell",
-      "bands": "Deine Bänder"
-    }
   },
   "help": {
     "title": "Wie die Vorhersage entsteht",

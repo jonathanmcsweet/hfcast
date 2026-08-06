@@ -1,7 +1,13 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
-import { ActivityIndicator, Button, Text, useTheme } from 'react-native-paper';
+import {
+  AppState,
+  RefreshControl,
+  ScrollView,
+  StyleSheet,
+  View,
+} from 'react-native';
+import { Button, Text, useTheme } from 'react-native-paper';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import AppHeader from '../components/AppHeader';
@@ -13,12 +19,14 @@ import LocationPicker from '../components/LocationPicker';
 import ReachCard from '../components/ReachCard';
 import ReachGrid from '../components/ReachGrid';
 import SectionHeading from '../components/SectionHeading';
+import SkeletonForecast from '../components/SkeletonForecast';
 import SpaceWeatherCard from '../components/SpaceWeatherCard';
 import StationModal from '../components/StationModal';
 
 import { usePrediction, useSounding, useSpaceWeather } from '../api/queries';
 import { qualityFor } from '../data/quality';
-import { lastAttempt, mayRefresh } from '../data/refreshPolicy';
+import { mayRefresh } from '../data/refreshPolicy';
+import { trackStart } from '../data/timeline';
 import { useShownFor } from '../hooks/useShownFor';
 import { usePathStore } from '../store/usePathStore';
 import { spacing, typography } from '../theme';
@@ -48,10 +56,30 @@ export default function ForecastScreen() {
   const setBand = usePathStore((s) => s.setBand);
   const hour = usePathStore((s) => s.hour);
   const setHour = usePathStore((s) => s.setHour);
+  const anchor = usePathStore((s) => s.anchor);
+  const past = usePathStore((s) => s.past);
 
+  // The minute tick also rolls "now". While the past window is filling
+  // the track's start does not move — a passed hour stays where it was,
+  // marked as past — so nothing shifts under a thumb the user has on
+  // the track. Once the window is full the whole track slides one
+  // position an hour, selection and hour together.
   useEffect(() => {
-    const id = setInterval(() => setNow(new Date()), 60_000);
+    const id = setInterval(() => {
+      setNow(new Date());
+      usePathStore.getState().reanchor();
+    }, 60_000);
     return () => clearInterval(id);
+  }, []);
+
+  // Returning to the foreground rolls "now" at once, rather than up to
+  // a minute late: the first thing a returning glance reads is the now
+  // line, and it must not name an hour that has ended.
+  useEffect(() => {
+    const sub = AppState.addEventListener('change', (state) => {
+      if (state === 'active') usePathStore.getState().reanchor();
+    });
+    return () => sub.remove();
   }, []);
 
   const { data, error, isPending, refetch } = usePrediction(from, to);
@@ -67,6 +95,10 @@ export default function ForecastScreen() {
 
   const ui = theme.colors.ui;
   const nowHour = now.getUTCHours();
+
+  // Where every module's track begins: up to `PAST_WINDOW` hours behind
+  // "now", once the session has watched hours go by.
+  const start = trackStart(anchor, past);
 
   // Offline is about the readings, not the forecast. On a device the engine
   // is compiled in, so a forecast is always available and only the live
@@ -87,17 +119,26 @@ export default function ForecastScreen() {
   // Pulling the screen down at the top asks for the same thing (user,
   // 2026-08-01), with a floor under how often it may reach the network —
   // the readings come from NOAA and GIRO, called without a key. See
-  // `refreshPolicy.ts` for why a minute costs the reader nothing.
+  // `refreshPolicy.ts` for the two floors: an answer holds for the poll
+  // interval, a failure may be retried after a minute.
   //
   // The spinner is shown for its minimum whether or not the network was
   // asked. A gesture that produced no visible response would read as the
-  // app ignoring it, and inside the cooldown there is nothing new to
-  // fetch anyway — SWPC publishes the flux once a day.
+  // app ignoring it, and inside the floor there is nothing new to fetch
+  // anyway — SWPC publishes the flux once a day.
   const [pulling, setPulling] = useState(false);
+
+  // True while the map owns a two-finger pan. The scroller is switched
+  // off for that moment: refusing termination stops it stealing a pan
+  // it has already lost, and this stops it competing for the next
+  // touches at all. Both are needed — the first protects a pan that
+  // won, the second lets a pan win when the fingers land staggered.
+  const [mapPanning, setMapPanning] = useState(false);
   const pullRefresh = useCallback(() => {
     setPulling(true);
-    const since = lastAttempt(weather.dataUpdatedAt, weather.errorUpdatedAt);
-    if (mayRefresh(since, Date.now())) refresh();
+    if (mayRefresh(weather.dataUpdatedAt, weather.errorUpdatedAt, Date.now())) {
+      refresh();
+    }
     setPulling(false);
   }, [weather.dataUpdatedAt, weather.errorUpdatedAt, refresh]);
   const showPull = useShownFor(pulling || weather.isFetching, PULL_SPINNER_MS);
@@ -113,13 +154,42 @@ export default function ForecastScreen() {
   // after it is answered is already a now-cast.
   if (!ready) return <FirstRunLocation onDone={finishFirstRun} />;
 
+  // Skeleton blocks where the forecast is about to be, under a real
+  // header. The header needs nothing from the forecast — the place is
+  // in the store — and a slow load is exactly when somebody notices
+  // the location is wrong, so changing it must not wait. The band
+  // chips do need the forecast's own numbers, so they arrive with it.
   if (isPending) {
     return (
-      <View style={[styles.centre, safe, { backgroundColor: ui.page }]}>
-        <ActivityIndicator size="large" />
-        <Text style={[typography.body, styles.centreText, { color: ui.text2 }]}>
-          {t('status.loading')}
-        </Text>
+      <View style={[styles.root, { backgroundColor: ui.page }]}>
+        <View
+          style={[styles.fixed, {
+            paddingTop: insets.top,
+            backgroundColor: ui.headerBg,
+            borderBottomColor: ui.line2,
+          }]}
+        >
+          <AppHeader
+            place={from.label}
+            destination={null}
+            offline={offline}
+            onPressPlace={() => setPickerOpen(true)}
+            onRefresh={refresh}
+            refreshing={weather.isFetching}
+            onOpenStation={() => setStationOpen(true)}
+          />
+        </View>
+
+        <SkeletonForecast />
+
+        <LocationPicker
+          visible={pickerOpen}
+          onDismiss={() => setPickerOpen(false)}
+        />
+        <StationModal
+          visible={stationOpen}
+          onDismiss={() => setStationOpen(false)}
+        />
       </View>
     );
   }
@@ -252,6 +322,7 @@ export default function ForecastScreen() {
       </View>
 
       <ScrollView
+        scrollEnabled={!mapPanning}
         contentContainerStyle={{
           // No top inset: the fixed header above already clears the status
           // bar, and repeating it here would leave a gap the width of the
@@ -275,7 +346,14 @@ export default function ForecastScreen() {
           prediction={prediction}
           band={band}
           hour={hour}
+          start={start}
+          past={past}
+          // The exact moment behind the now-cast: the live readings when
+          // they have arrived, the clock when they have not.
+          liveAt={weather.dataUpdatedAt || now.getTime()}
+          nowMs={now.getTime()}
           onHourChange={setHour}
+          onMapPanning={setMapPanning}
         />
 
         {
@@ -298,6 +376,7 @@ export default function ForecastScreen() {
           band={band}
           hour={hour}
           nowHour={nowHour}
+          start={start}
           offline={offline}
           onSelect={(nextBand, nextHour) => {
             setBand(nextBand);

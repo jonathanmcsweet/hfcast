@@ -7,6 +7,7 @@
     "mapLoading": "Calculando hasta dónde llega esta banda",
     "mapUnavailable": "No se pudo cargar el mapa de cobertura.",
     "reachLine": "{{band}} llega a cerca del {{percent}} del mundo a esta hora.",
+    "reachAndNvis": "{{band}} llega a cerca del {{percent}} del mundo a esta hora y llega hasta unos {{distance}} sin zona de silencio.",
     "legendReach": "Alcance",
     "legendNight": "Noche",
     "panHint": "Mueve el mapa con dos dedos",
@@ -20,8 +21,7 @@
   },
   "path": {
     "summary": "{{distance}} · rumbo {{bearing}} · {{hops}} saltos",
-    "summaryOneHop": "{{distance}} · rumbo {{bearing}} · un salto",
-    "noDestinationHint": "El mapa muestra todas las direcciones. Toca el nombre de arriba para elegir un destino."
+    "summaryOneHop": "{{distance}} · rumbo {{bearing}} · un salto"
   },
   "window": {
     "label": "Ventana utilizable",
@@ -84,8 +84,9 @@
     "closed": "Esta banda no ahora"
   },
   "time": {
-    "localAt": "Hora local en {{place}}",
-    "bothZones": "{{local}} local · {{utc}} UTC"
+    "utcAt": "Hora UTC en {{place}}",
+    "now": "Ahora",
+    "localAt": "Hora local en {{place}}"
   },
   "location": {
     "title": "Elegir una ruta",
@@ -288,8 +289,7 @@
       "noaa": "Números de manchas solares e índices solares",
       "giro": "Sondeos ionosféricos medidos",
       "openMeteo": "Búsqueda de lugares, con conexión",
-      "plex": "IBM Plex Sans, la tipografía",
-      "aurora": "La aurora de la pantalla de inicio"
+      "plex": "IBM Plex Sans, la tipografía"
     },
     "openSource": "Abrir el sitio de {{who}}",
     "openTerms": "Leer la licencia {{terms}}"
@@ -306,18 +306,6 @@
     "skip": "Omitir por ahora",
     "continue": "Continuar",
     "recognised": "RECONOCIDO"
-  },
-  "launch": {
-    "kicker": "Propagación en HF",
-    "title": "Qué banda te lleva allí",
-    "credit": "ISS Expedición 42 · NASA/S. Cristoforetti, dominio público",
-    "a11y": "Iniciando: {{step}}",
-    "step": {
-      "flux": "Flujo solar",
-      "ionosonde": "Ionosonda más cercana",
-      "model": "Modelo de ruta",
-      "bands": "Tus bandas"
-    }
   },
   "help": {
     "title": "Cómo se hace la previsión",

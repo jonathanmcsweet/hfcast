@@ -4,6 +4,7 @@ import { StyleSheet, View } from 'react-native';
 import { Text, TouchableRipple, useTheme } from 'react-native-paper';
 import { qualityFor } from '../data/quality';
 import { cellFor } from '../data/selectors';
+import { hoursFrom, offsetOf } from '../data/timeline';
 import { BAND_ORDER } from '../data/types';
 import type { BandKey, PathPrediction } from '../data/types';
 import { useFormatters } from '../hooks/useFormatters';
@@ -14,11 +15,12 @@ interface Props {
   prediction: PathPrediction;
   band: BandKey;
   hour: number;
+  /** The hour the first column shows. Columns run 24 h forward. */
+  start: number;
   onSelect: (band: BandKey, hour: number) => void;
 }
 
-const HOURS = Array.from({ length: 24 }, (_, h) => h);
-/** Every fourth hour is labelled. More than that and the axis stops being read. */
+/** Every fourth column is labelled. More than that and the axis stops being read. */
 const AXIS_STEP = 4;
 const CELL_HEIGHT = 22;
 const GAP = 1;
@@ -40,12 +42,18 @@ export default function BandHeatmap({
   prediction,
   band,
   hour,
+  start,
   onSelect,
 }: Props) {
   const theme = useTheme<AppTheme>();
   const { t } = useTranslation();
   const f = useFormatters();
   const ui = theme.colors.ui;
+
+  // The day in track order, wrapping past midnight. Each cell still
+  // asks the prediction for its absolute hour.
+  const hours = hoursFrom(start);
+  const selectedColumn = offsetOf(hour, start);
 
   return (
     <View>
@@ -56,7 +64,7 @@ export default function BandHeatmap({
       <View style={styles.tickRow}>
         <View style={styles.gutter} />
         <View style={styles.tickTrack}>
-          {HOURS.map((h) => (
+          {hours.map((h) => (
             <View key={h} style={styles.tickSlot}>
               {h === hour
                 ? (
@@ -86,7 +94,7 @@ export default function BandHeatmap({
         </View>
 
         <View style={styles.columns}>
-          {HOURS.map((h) => (
+          {hours.map((h) => (
             <View
               key={h}
               style={[
@@ -127,14 +135,17 @@ export default function BandHeatmap({
       <View style={styles.axisRow}>
         <View style={styles.gutter} />
         <View style={styles.tickTrack}>
-          {HOURS.map((h) => (
+          {hours.map((h, column) => (
             <View key={h} style={styles.tickSlot}>
               {
                 /* The selected hour is always labelled; a regular label is
-                   dropped when it would collide with it. */
+                   dropped when it would collide with it. Regular labels sit
+                   on every fourth column, not every fourth hour: the hours
+                   move with the track, the columns do not. */
               }
               {h === hour
-                  || (h % AXIS_STEP === 0 && Math.abs(h - hour) > 1)
+                  || (column % AXIS_STEP === 0
+                    && Math.abs(column - selectedColumn) > 1)
                 ? (
                   <Text
                     style={[typography.axis, numeric, {

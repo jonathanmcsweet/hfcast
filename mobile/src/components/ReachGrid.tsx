@@ -21,6 +21,8 @@ interface Props {
   hour: number;
   /** The current UTC hour, so "now" can be said rather than implied. */
   nowHour: number;
+  /** The hour the grid's first column shows. See `src/data/timeline.ts`. */
+  start: number;
   offline: boolean;
   onSelect: (band: BandKey, hour: number) => void;
 }
@@ -38,6 +40,7 @@ export default function ReachGrid({
   band,
   hour,
   nowHour,
+  start,
   offline,
   onSelect,
 }: Props) {
@@ -119,12 +122,20 @@ export default function ReachGrid({
       </View>
 
       {asTable
-        ? <BandTable prediction={prediction} band={band} hour={hour} />
+        ? (
+          <BandTable
+            prediction={prediction}
+            band={band}
+            hour={hour}
+            start={start}
+          />
+        )
         : (
           <BandHeatmap
             prediction={prediction}
             band={band}
             hour={hour}
+            start={start}
             onSelect={onSelect}
           />
         )}

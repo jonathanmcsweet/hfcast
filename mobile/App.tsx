@@ -13,14 +13,15 @@ import { StyleSheet, useColorScheme, View } from 'react-native';
 import { PaperProvider } from 'react-native-paper';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
+import { wireFocus } from './src/api/focus';
 import {
   CACHE_BUSTER,
   persister,
   queryClient,
   shouldPersistQuery,
 } from './src/api/persist';
+import BootFrame from './src/components/BootFrame';
 import ErrorBoundary from './src/components/ErrorBoundary';
-import LaunchOverlay from './src/components/LaunchOverlay';
 import i18n from './src/i18n';
 import ForecastScreen from './src/screens/ForecastScreen';
 import { useSettingsStore } from './src/store/useSettingsStore';
@@ -29,6 +30,10 @@ import { darkTheme, lightTheme, lowLightTheme } from './src/theme';
 export default function App() {
   const scheme = useColorScheme();
   const mode = useSettingsStore((s) => s.themeMode);
+
+  // Stale readings refetch once when the app comes back to the front.
+  // See `api/focus.ts` for why React Query cannot see that by itself.
+  React.useEffect(() => wireFocus(), []);
   // `system` follows the device; the others override it. Read here so one
   // value drives the theme, the status bar and every component below.
   //
@@ -68,13 +73,12 @@ export default function App() {
   // font is worse-looking, not unreadable, and an operator in the field
   // needs the forecast more than the typeface.
   //
-  // While they are loading the frame is filled with the launch screen's own
-  // background rather than left empty. The fonts are bundled, so this lasts a
-  // frame or two — but an empty frame is white, and white between a dark
-  // system splash and a dark photograph is a flash.
-  if (!fontsLoaded && !fontError) {
-    return <View style={styles.launching} />;
-  }
+  // While they are loading, the frame holds the screen's own skeletons
+  // rather than sitting empty — see `BootFrame` for why the shape does
+  // not have to wait for the type. The whole provider tree mounts
+  // either way, so the screen arrives by swapping one child, not by
+  // rebuilding the world around it.
+  const booted = fontsLoaded || fontError;
 
   return (
     // The children render before the cache has been read back, which is
@@ -117,14 +121,8 @@ export default function App() {
                   retry: i18n.t('status.retry'),
                 }}
               >
-                <ForecastScreen />
+                {booted ? <ForecastScreen /> : <BootFrame />}
               </ErrorBoundary>
-              {
-                /* Over the screen rather than in place of it, so the screen
-                   mounts and does its work underneath while this is still up.
-                   It removes itself once there is a forecast to show. */
-              }
-              <LaunchOverlay />
             </View>
           </SafeAreaProvider>
         </PaperProvider>
@@ -135,6 +133,4 @@ export default function App() {
 
 const styles = StyleSheet.create({
   root: { flex: 1 },
-  // The launch screen's own background, so the two cannot differ.
-  launching: { flex: 1, backgroundColor: '#0B0D14' },
 });

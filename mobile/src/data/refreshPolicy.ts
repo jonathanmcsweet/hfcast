@@ -6,47 +6,40 @@
  * GIRO. The app already polls them on a timer it controls. A pull-down
  * hands that rate to whoever is holding the phone, so it needs a floor.
  *
- * Its own module, and pure arithmetic over two timestamps, so the rule
- * can be tested by running it rather than by pulling on a screen.
+ * The floor depends on how the last attempt ended. An answered request
+ * holds for the full poll interval: the readings have a natural cadence
+ * — SWPC publishes the flux once a day and the K index every few hours,
+ * GIRO's sounders report every quarter of an hour at best — so inside
+ * it there is nothing new to fetch. A failed request may be retried
+ * after a minute: the operator who walked out of a dead zone should not
+ * wait a quarter of an hour to try again, and a minute still stops a
+ * service that is down from being asked ten times a minute.
+ *
+ * Its own module, and pure arithmetic over timestamps, so the rule can
+ * be tested by running it rather than by pulling on a screen.
  */
 
-/**
- * The floor between two manual refreshes.
- *
- * A minute, which cannot cost either service anything and cannot lose
- * the reader anything either: SWPC publishes the flux once a day and the
- * K index every three hours, and GIRO's sounders report every quarter of
- * an hour at best. Nothing new can exist a second time within a minute,
- * so this only refuses requests that had no answer to find.
- */
+/** The floor after an attempt that failed. */
 export const REFRESH_COOLDOWN_MS = 60 * 1000;
 
 /**
- * The last time the app asked, whether or not it got an answer.
+ * The floor after an attempt that was answered.
  *
- * Both halves matter. Counting only successes would let a device with no
- * network retry as fast as a reader can pull, which is the case where
- * restraint matters most — a service that is down is a service that
- * should not be asked ten times a minute.
+ * The same quarter hour as the app's own poll, so a pull-down can never
+ * ask more often than the timer the README promises.
  */
-export function lastAttempt(
-  dataUpdatedAt: number,
-  errorUpdatedAt: number,
-): number {
-  return Math.max(dataUpdatedAt, errorUpdatedAt);
-}
+export const REFRESH_SETTLED_MS = 15 * 60 * 1000;
 
-/** How long until another manual refresh will be allowed, in ms. */
-export function refreshWaitMs(
-  since: number,
-  now: number,
-  cooldown: number = REFRESH_COOLDOWN_MS,
-): number {
-  // Zero is React Query's "nothing has happened here yet", which is not
-  // a time and must not be treated as one — the epoch is a long time
-  // ago, and subtracting from it would allow a refresh either way, but
-  // saying so outright is what stops a future cooldown from reading it
-  // as "asked in 1970".
+/**
+ * How long one attempt holds the floor, in ms.
+ *
+ * Zero is React Query's "nothing has happened here yet", which is not a
+ * time and must not be treated as one — the epoch is a long time ago,
+ * and subtracting from it would allow a refresh either way, but saying
+ * so outright is what stops a future cooldown from reading it as
+ * "asked in 1970".
+ */
+function waitFrom(since: number, now: number, cooldown: number): number {
   if (since === 0) return 0;
   const left = cooldown - (now - since);
   // A clock moved backwards — a time zone change, or the user setting
@@ -55,9 +48,26 @@ export function refreshWaitMs(
   return left > 0 ? left : 0;
 }
 
+/**
+ * How long until another manual refresh will be allowed, in ms.
+ *
+ * The later attempt decides which rule applies: a failure after old
+ * data allows the quick retry, and an answer after an old failure holds
+ * the long floor.
+ */
+export function refreshWaitMs(
+  dataUpdatedAt: number,
+  errorUpdatedAt: number,
+  now: number,
+): number {
+  return errorUpdatedAt > dataUpdatedAt
+    ? waitFrom(errorUpdatedAt, now, REFRESH_COOLDOWN_MS)
+    : waitFrom(dataUpdatedAt, now, REFRESH_SETTLED_MS);
+}
+
 /** Whether a manual refresh may go to the network now. */
 export const mayRefresh = (
-  since: number,
+  dataUpdatedAt: number,
+  errorUpdatedAt: number,
   now: number,
-  cooldown: number = REFRESH_COOLDOWN_MS,
-): boolean => refreshWaitMs(since, now, cooldown) === 0;
+): boolean => refreshWaitMs(dataUpdatedAt, errorUpdatedAt, now) === 0;

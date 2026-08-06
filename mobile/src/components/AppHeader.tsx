@@ -164,11 +164,7 @@ export default function AppHeader({
             }
           </Text>
         )
-        : (
-          <Text style={[typography.caption, { color: ui.text3 }]}>
-            {t('path.noDestinationHint')}
-          </Text>
-        )}
+        : null}
     </View>
   );
 }

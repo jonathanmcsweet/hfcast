@@ -23,7 +23,17 @@ interface Props {
   prediction: PathPrediction;
   band: BandKey;
   hour: number;
+  /** The hour the slider's track starts at. See `src/data/timeline.ts`. */
+  start: number;
+  /** How many of the track's first hours are past. See `HourSlider`. */
+  past: number;
+  /** When the live readings were pulled, for the clock. See `HourSlider`. */
+  liveAt?: number | null;
+  /** The clock, epoch ms. */
+  nowMs: number;
   onHourChange: (hour: number) => void;
+  /** True while the map owns a two-finger pan. See `CoverageGlobe`. */
+  onMapPanning?: (active: boolean) => void;
 }
 
 /**
@@ -90,7 +100,12 @@ export default function ReachCard({
   prediction,
   band,
   hour,
+  start,
+  past,
+  liveAt,
+  nowMs,
   onHourChange,
+  onMapPanning,
 }: Props) {
   const theme = useTheme<AppTheme>();
   const { t } = useTranslation();
@@ -283,6 +298,7 @@ export default function ReachCard({
                 hour={hour}
                 size={mapSize}
                 onRegion={onRegion}
+                onPanning={onMapPanning}
               />
 
               {
@@ -351,37 +367,63 @@ export default function ReachCard({
            behind — and "160m reaches about 8% of the world" carrying
            40m's number is wrong in a way no reader can catch. */
       }
-      {coverage
+      {
+        /* One sentence when both figures are about the same band, two
+           when they are not. The grids arrive separately, so after a
+           band change one can still be the old band's for a moment —
+           and "40m reaches 4% and out to 247 mi" carrying two bands'
+           numbers is wrong in a way no reader can catch. */
+      }
+      {coverage && homePatch && nvisKm !== null
+          && coverage.band === homePatch.band
         ? (
           <Text style={[typography.caption, { color: ui.text3 }]}>
-            {t('reach.reachLine', {
+            {t('reach.reachAndNvis', {
               band: coverage.band,
               percent: f.percent(coverage.reach),
-            })}
-          </Text>
-        )
-        : null}
-
-      {
-        /* The map's other headline, and the one the stipple stands for.
-           Said in words because a distance is a quantity and a pattern of
-           dots is not, and because this is the sentence a reader with no
-           sight of the map still gets. */
-      }
-      {homePatch === null || nvisKm === null
-        ? null
-        : (
-          <Text style={[typography.caption, { color: ui.text3 }]}>
-            {/* The patch's own band, as for the reach line above. */}
-            {t('reach.nvisReach', {
-              band: homePatch.band,
               distance: f.distance(nvisKm),
             })}
           </Text>
+        )
+        : (
+          <>
+            {coverage
+              ? (
+                <Text style={[typography.caption, { color: ui.text3 }]}>
+                  {t('reach.reachLine', {
+                    band: coverage.band,
+                    percent: f.percent(coverage.reach),
+                  })}
+                </Text>
+              )
+              : null}
+
+            {
+              /* The map's other headline, and the one the stipple stands
+                 for. Said in words because a distance is a quantity and a
+                 pattern of dots is not, and because this is the sentence a
+                 reader with no sight of the map still gets. */
+            }
+            {homePatch === null || nvisKm === null
+              ? null
+              : (
+                <Text style={[typography.caption, { color: ui.text3 }]}>
+                  {/* The patch's own band, as for the reach line above. */}
+                  {t('reach.nvisReach', {
+                    band: homePatch.band,
+                    distance: f.distance(nvisKm),
+                  })}
+                </Text>
+              )}
+          </>
         )}
 
       <HourSlider
         hour={hour}
+        start={start}
+        past={past}
+        liveAt={liveAt}
+        nowMs={nowMs}
         onChange={onHourChange}
         place={prediction.from.label}
         lon={prediction.from.lon}
