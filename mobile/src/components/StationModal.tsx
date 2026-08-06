@@ -60,14 +60,16 @@ interface Props {
   destinationLabel?: string;
   /**
    * The threshold the current forecast was actually computed at, as the
-   * server reported it. Shown rather than derived, so the modal cannot
-   * name one number while the grid was worked out from another.
+   * run reported it. Shown rather than derived, so the dialog cannot name
+   * one number while the grid was worked out from another.
    *
-   * Undefined when there is no forecast — this modal opens from the error
-   * screen too, so that power, mode and the antenna can still be set. The
-   * threshold line is then left out rather than guessed: the app holds no
-   * copy of the mode table, and a number invented here could disagree with
-   * the one the server uses.
+   * Undefined when there is no forecast — this dialog opens from the
+   * error screen too, so that power, mode and the antenna can still be
+   * set. The threshold line is left out then rather than computed from
+   * `data/modes.ts`. The app does hold that table and could produce a
+   * number, and the number would describe a forecast that does not exist:
+   * the mode shown here is the one about to be used, not the one the
+   * absent answer was worked out from.
    */
   requiredSnrDb?: number;
 }
