@@ -1,4 +1,13 @@
 import { packGlobe } from '../data/fineGlobe';
+import { ApiError } from './error';
+import {
+  checkCoverage,
+  checkCoveragePatch,
+  checkPredictionResponse,
+  checkSpaceWeather,
+} from './shape';
+
+export { ApiError };
 import type {
   BandKey,
   Coverage,
@@ -23,16 +32,6 @@ import type {
 export const API_BASE = process.env.EXPO_PUBLIC_HFCAST_API
   ?? 'http://127.0.0.1:8787';
 
-export class ApiError extends Error {
-  /** 0 when the request never reached the server at all. */
-  readonly status: number;
-  constructor(message: string, status: number, options?: ErrorOptions) {
-    super(message, options);
-    this.name = 'ApiError';
-    this.status = status;
-  }
-}
-
 /**
  * A request must always finish, one way or the other. A refused connection
  * fails immediately, but a port that accepts and then never answers — a
@@ -41,9 +40,18 @@ export class ApiError extends Error {
  */
 const REQUEST_TIMEOUT_MS = 10_000;
 
+/**
+ * A request, and a look at what came back.
+ *
+ * `check` turns the parsed body into the shape it claims to be, or throws
+ * an `ApiError`. It is not optional and there is no cast without one: a
+ * response nobody looked at reaches the screen as missing fields rather
+ * than as a failure. See `shape.ts`.
+ */
 async function getJson<T>(
   path: string,
   params: Record<string, string>,
+  check: (body: unknown) => T,
 ): Promise<T> {
   const base = API_BASE;
   const url = new URL(`${base}${path}`);
@@ -82,7 +90,7 @@ async function getJson<T>(
     }
     throw new ApiError(message, response.status);
   }
-  return (await response.json()) as T;
+  return check(await response.json());
 }
 
 export interface PredictionParams {
@@ -105,7 +113,7 @@ export interface PredictionParams {
 export function fetchPrediction(
   p: PredictionParams,
 ): Promise<PredictionResponse> {
-  return getJson<PredictionResponse>('/api/prediction', {
+  return getJson('/api/prediction', {
     from: p.from,
     to: p.to,
     fromLabel: p.fromLabel,
@@ -113,7 +121,7 @@ export function fetchPrediction(
     date: p.date,
     nowcast: p.nowcast ? '1' : '',
     ...p.station,
-  });
+  }, checkPredictionResponse<PredictionResponse>);
 }
 
 /**
@@ -125,13 +133,13 @@ export function fetchPrediction(
 export function fetchSurvey(
   p: Omit<PredictionParams, 'to' | 'toLabel'>,
 ): Promise<PredictionResponse> {
-  return getJson<PredictionResponse>('/api/survey', {
+  return getJson('/api/survey', {
     from: p.from,
     fromLabel: p.fromLabel,
     date: p.date,
     nowcast: p.nowcast ? '1' : '',
     ...p.station,
-  });
+  }, checkPredictionResponse<PredictionResponse>);
 }
 
 /**
@@ -143,11 +151,18 @@ export function fetchSounding(
   lat: number,
   lon: number,
 ): Promise<Sounding | null> {
-  return getJson<Sounding | null>('/api/ionosonde', { at: `${lat},${lon}` });
+  // Not checked beyond being an object or null. Nothing on the screen
+  // depends on it — a missing field empties one line of one card — and
+  // null is the ordinary answer for most of the world.
+  return getJson(
+    '/api/ionosonde',
+    { at: `${lat},${lon}` },
+    (body) => body as Sounding | null,
+  );
 }
 
 export function fetchSpaceWeather(): Promise<SpaceWeather> {
-  return getJson<SpaceWeather>('/api/spaceweather', {});
+  return getJson('/api/spaceweather', {}, checkSpaceWeather<SpaceWeather>);
 }
 
 /**
@@ -165,7 +180,7 @@ export function fetchCoverage(p: {
   nowcast?: boolean;
   station: Record<string, string>;
 }): Promise<Coverage> {
-  return getJson<Coverage>('/api/coverage', {
+  return getJson('/api/coverage', {
     from: p.from,
     fromLabel: p.fromLabel,
     band: p.band,
@@ -173,7 +188,7 @@ export function fetchCoverage(p: {
     date: p.date,
     nowcast: p.nowcast ? '1' : '',
     ...p.station,
-  });
+  }, checkCoverage<Coverage>);
 }
 
 /**
@@ -196,7 +211,7 @@ export async function fetchFineGlobe(p: {
   nowcast?: boolean;
   station: Record<string, string>;
 }): Promise<FineGlobe> {
-  const answer = await getJson<Coverage>('/api/coverage/fine', {
+  const answer = await getJson('/api/coverage/fine', {
     from: p.from,
     fromLabel: p.fromLabel,
     band: p.band,
@@ -204,7 +219,7 @@ export async function fetchFineGlobe(p: {
     date: p.date,
     nowcast: p.nowcast ? '1' : '',
     ...p.station,
-  });
+  }, checkCoverage<Coverage>);
   return packGlobe(p.band, p.hour, answer);
 }
 
@@ -230,7 +245,7 @@ export function fetchCoveragePatch(p: {
    */
   region?: MapRegion | null;
 }): Promise<CoveragePatch | null> {
-  return getJson<CoveragePatch | null>('/api/coverage/patch', {
+  return getJson('/api/coverage/patch', {
     from: p.from,
     fromLabel: p.fromLabel,
     band: p.band,
@@ -245,5 +260,5 @@ export function fetchCoveragePatch(p: {
       }
       : {}),
     ...p.station,
-  });
+  }, checkCoveragePatch<CoveragePatch | null>);
 }
