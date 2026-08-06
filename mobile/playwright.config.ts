@@ -22,7 +22,7 @@ const DIST = path.join(__dirname, 'dist', 'index.html');
 if (!existsSync(DIST)) {
   // Louder than the server failing to start, which reads as a port problem.
   throw new Error(
-    'no web build in dist/. Run `pnpm web:export` first, or `pnpm e2e`, which does both.',
+    'no web build in dist/. Run `pnpm web:export` first, or `pnpm test:e2e`, which does both.',
   );
 }
 
