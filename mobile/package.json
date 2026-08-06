@@ -12,8 +12,8 @@
     "typecheck": "tsc --noEmit",
     "test": "node --experimental-strip-types --experimental-test-module-mocks --test test/*.test.ts",
     "web:export": "bash tools/copy-canvaskit.sh && expo export --platform web",
-    "e2e": "pnpm web:export && playwright test",
-    "e2e:only": "playwright test"
+    "test:e2e": "pnpm web:export && playwright test",
+    "test:e2e:only": "playwright test"
   },
   "dependencies": {
     "@babel/runtime": "^7.24.0",
