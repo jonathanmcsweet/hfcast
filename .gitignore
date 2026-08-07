@@ -36,3 +36,8 @@ target/
 # neither rule matched anything and 227 KB sat untracked and unignored.
 /docs/*roadmap*.md
 /docs/code-review-*.md
+
+# Page snapshots and screenshots the Playwright MCP server writes as it
+# browses. They are a record of one session looking at the app, not part
+# of the app.
+.playwright-mcp/

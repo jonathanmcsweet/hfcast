@@ -94,6 +94,39 @@ there, and copies the result back — so overrides added above cover
 its own between runs. Audit it by hand with the same steps whenever
 checking on dependency vulnerabilities in `mobile/`.
 
+## Looking at the app in a browser
+
+`.mcp.json` declares a Playwright MCP server. It lets an AI agent open
+the web build, read the page and press things, instead of only reading
+the test output. The agent asks to start it the first time.
+
+It needs a browser, which is a separate download from the one the e2e
+tests use. Once per clone:
+
+```bash
+npx playwright install chromium
+```
+
+Without this the server starts and every page fails to open.
+
+Use it against the web build, the same one the e2e tests read:
+
+```bash
+cd mobile && pnpm web:export && npx expo serve dist --port 8099
+```
+
+The version in `.mcp.json` is pinned. Dependabot does not read that
+file, so nothing will report a new one — check for a newer version by
+hand from time to time with `npm view @playwright/mcp version`. A new
+version can pin a new browser build, so run the install command above
+again after moving the pin.
+
+Two flags are set on purpose. `--browser chromium` uses the browser the
+command above installs; without it the server looks for Google Chrome in
+the system and fails where there is none. `--headless` draws nothing;
+remove it to watch the browser work. Page snapshots are written to
+`.playwright-mcp/`, which git ignores.
+
 ## Chores
 
 - Always bump the version number for any part of the product (ex: core and dashboard) based on semantic versioning when commiting your final work to a branch.
