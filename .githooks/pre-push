@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 #
-# Runs before every push: the typechecks and the tests of both packages.
-# The formatting and lint checks are in the pre-commit hook.
+# Runs before every push: a dependency audit of all three packages, then
+# the typechecks and the tests of both packages. The formatting and lint
+# checks are in the pre-commit hook.
 #
 # Turn the hooks on once per clone:
 #
@@ -32,6 +33,11 @@ pnpm_bin() {
 }
 
 pnpm="$(pnpm_bin)"
+
+echo "pre-push: dependency audit"
+"$pnpm" audit
+"$pnpm" --dir mobile audit
+"$pnpm" --dir server audit
 
 echo "pre-push: mobile typecheck"
 "$pnpm" --dir mobile typecheck
