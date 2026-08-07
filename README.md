@@ -1,57 +1,88 @@
-# HFcast
+<div align="center">
+  <img src="mobile/design/android-icon/svg/store_foreground.svg" height="120"/>
+</div>
+<h1 align="center">HFcast</h1>
+
+<h3 align="center">HFcast is a privacy-first offline-friendly HF propagation forecasting app for amateur radio operators. Absolutely free, no ads, no tracking of any kind.</h3>
+
+<p align="center">
+  <a href="https://apps.obtainium.imranr.dev/redirect?r=obtainium://add/https://github.com/jonathanmcsweet/hfcast"><img src="docs/badges/obtainium.png" alt="Get it on Obtainium" width="140"></a>
+  <a href="https://github.com/jonathanmcsweet/hfcast/releases"><img src="docs/badges/get-it-on-github.png" alt="Get it on GitHub" width="140"></a>
+</p>
+
+<p align="center"><strong>Pick a place, pick a band, enter your radio settings and get a custom forecast for HF propagation.</strong></p>
+
+<p align="center">
+  <img src="docs/screenshots/dark-mode-main-screen.png" width="200" alt="Home screen dark theme">
+  <img src="docs/screenshots/light-mode-main-screen.png" width="200" alt="Home screen light theme">
+  <img src="docs/screenshots/low-light-mode-main-screen.png" width="200" alt="Home screen low light theme">
+</p>
+<p align="center">
+  <img src="docs/screenshots/dark-mode-all-bands-screen.png" width="200" alt="All band propagation grid view">
+  <img src="docs/screenshots/dark-mode-station-settings.png" width="200" alt="Station power and mode settings">
+  <img src="docs/screenshots/dark-mode-more-station-settings.png" width="200" alt="Antenna height, type and orientation">
+</p>
+
+<p align="center">
+  <a href="LICENSE"><img src="https://img.shields.io/badge/licence-Apache--2.0-blue" alt="Licence"></a>
+  <a href="docs/quick-start.md"><img src="https://img.shields.io/badge/Android-7.0%2B-3ddc84" alt="Android 7.0+"></a>
+  <a href="https://grapheneos.org/"><img src="https://img.shields.io/badge/GrapheneOS-tested-4a4a4a" alt="GrapheneOS"></a>
+  <a href="https://github.com/jonathanmcsweet/jonathanmcsweet"><img src="https://img.shields.io/badge/built%20with-Isopod-6f42c1" alt="Built with Isopod"></a>
+</p>
+
+## Privacy
+
+When online, two features do reach out to the network with no identifying data of yours being sent out:
+
+- Today's space weather (from NOAA)
+- Recent ionosphere measurements (from GIRO)
+
+Everything else:
+
+- Runs on a de-Googled phone or your old tablet without any Google services
+- Developed and tested on GrapheneOS
+- Works fully offline by calculating conditions based on historical HF propagation records
+- Nothing about your station, your position, or the path you're checking leaves the device
+- No ads
+- No account
+- No sign-in
+- No tracking
+- No data collection
+- No phoning home
+- No annoying registration
+- No mandatory tutorials
+- No noisy email spam
+- No push notifications
+- No crapware
+- No spyware
+
+## What the forecast is, and isn't
+
+The forecast is based on the point-to-point propagation model NTIA/ITS has maintained for decades. [Faithfully translated to Rust and running directly on the phone](https://github.com/jonathanmcsweet/hfcast-engine).
+
+- When online, HFcast enters live ionospheric data into VOACAP's model to give you the most accurate up to date propagation map.
+- When offline or looking at future times, HFcast uses VOACAP's monthly climatology estimate.
+- Every day inside the same month gets the same base answer unless the
+  sunspot number changes; HFcast can pull today's space weather to adjust
+  that, but the underlying model is still telling you what's _typical_ for
+  a path like yours in a month like this one.
+
+The model's numbers are corrected against real measured signals, and
+the correction data — what was measured, and where the model is
+weakest — is documented in [docs/](docs/) and in the engine repository.
+
+## Build it
 
 [![CI](https://github.com/jonathanmcsweet/hfcast/actions/workflows/ci.yml/badge.svg)](https://github.com/jonathanmcsweet/hfcast/actions/workflows/ci.yml)
-[![Licence](https://img.shields.io/badge/licence-Apache--2.0-blue)](LICENSE)
-[![Android 7.0+](https://img.shields.io/badge/Android-7.0%2B-3ddc84)](docs/quick-start.md)
-[![GrapheneOS](https://img.shields.io/badge/GrapheneOS-tested-4a4a4a)](#grapheneos)
-[![Built with Isopod](https://img.shields.io/badge/built%20with-Isopod-6f42c1)](https://github.com/jonathanmcsweet/jonathanmcsweet)
 [![arm64-v8a](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/jonathanmcsweet/hfcast/badges/android-arm64-v8a.json)](https://github.com/jonathanmcsweet/hfcast/actions/workflows/arch.yml)
 [![armeabi-v7a](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/jonathanmcsweet/hfcast/badges/android-armeabi-v7a.json)](https://github.com/jonathanmcsweet/hfcast/actions/workflows/arch.yml)
 [![x86_64](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/jonathanmcsweet/hfcast/badges/android-x86-64.json)](https://github.com/jonathanmcsweet/hfcast/actions/workflows/arch.yml)
 [![x86](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/jonathanmcsweet/hfcast/badges/android-x86.json)](https://github.com/jonathanmcsweet/hfcast/actions/workflows/arch.yml)
 
-HF radio propagation forecasts, shown the way a weather application
-shows weather.
-
-A VOACAP prediction tells you how probable a radio path is. A weather
-forecast tells you how probable rain is. The two are the same kind of
-answer, so this application uses the same shapes: the conditions now, an
-hourly strip, a list of bands, and a grid of the next 24 hours.
-
-The application does the calculation on the telephone. It does not send
-your position to a server, and it gives a forecast with no network
-connection.
-
-When it has a connection, it reads the space weather of today from NOAA
-and the ionosphere measurements from GIRO. It asks for each of these one
-time in 15 minutes at most. It does not use an account or a key.
-
-## Install it
-
-Android 7.0 or later.
-
-[<img src="docs/badges/obtainium.png" alt="Get it on Obtainium" width="140">](https://apps.obtainium.imranr.dev/redirect?r=obtainium://add/https://github.com/jonathanmcsweet/hfcast)
-
-On a telephone, the badge opens Obtainium and adds HFcast in one step.
-
-| Method                                             | How                                                                             |
-| -------------------------------------------------- | ------------------------------------------------------------------------------- |
-| [Obtainium](https://github.com/ImranR98/Obtainium) | Add the URL `https://github.com/jonathanmcsweet/hfcast`                         |
-| Direct download                                    | Take an APK from [Releases](https://github.com/jonathanmcsweet/hfcast/releases) |
-
-A release has four APK files, one for each processor type. Obtainium
-selects the correct file. If you download the file yourself, use
-`arm64-v8a` unless your device is more than approximately ten years
-old.
-
-F-Droid and Accrescent are planned.
-
-## Build it
-
-See the [quick start](docs/quick-start.md). It takes approximately 15
-minutes on a machine that has the tools.
-
-To work on the code, read the [development guide](docs/development.md) after it.
+Start with the [quick start](docs/quick-start.md) — about 15 minutes on
+a machine that already has the toolchain — then the
+[development guide](docs/development.md) if you're going to work on the
+code.
 
 ## What is in this repository
 
@@ -61,35 +92,15 @@ To work on the code, read the [development guide](docs/development.md) after it.
 | [server/](server/) | The prediction API, for builds that have no engine |
 | [docs/](docs/)     | The guides                                         |
 
-The propagation engine is in a different repository:
-[hfcast-engine](https://github.com/jonathanmcsweet/hfcast-engine). It is a Rust
-translation of VOACAP. Tests compare it against the Fortran original,
-cell by cell.
-
-## GrapheneOS
-
-The application is developed and tested on a Pixel 8 with GrapheneOS.
-It reads the position from AOSP, not from Google Play Services, so it
-operates on a device that has no Google software.
-
-## What this application does not do
-
-The prediction is a monthly average. Each day of one month gives the
-same answer, unless the sunspot number changes. Today can be different,
-because the application can use the space weather of today.
-
-So the forecast tells you what a usual day of that month is like, with a
-probability. It does not tell you what will occur on Thursday.
-
-The numbers are corrected against measured radio signals. The
-[documents](docs/) and the engine repository record what was measured,
-what the corrections are, and where they are weakest.
+The propagation engine itself lives in a separate repository,
+[hfcast-engine](https://github.com/jonathanmcsweet/hfcast-engine) — a
+Rust translation of VOACAP, tested cell by cell against the original
+Fortran.
 
 ## Built on the work of
 
-Almost all the knowledge in this application comes from other people.
-The application shows the same list in its About screen, with links and
-the full licence texts.
+Almost everything HFcast knows comes from other people's work. The same
+list, with links and full licence text, is in the app's About screen.
 
 | What                                                                                                                            | Whose                                            | Terms                                                             |
 | ------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------ | ----------------------------------------------------------------- |
@@ -104,14 +115,13 @@ the full licence texts.
 | [The aurora on the launch screen](https://commons.wikimedia.org/wiki/File:ISS-42_Aurora_borealis_over_North_Atlantic_Ocean.jpg) | NASA / Samantha Cristoforetti, ESA               | public domain                                                     |
 | [IBM Plex Sans](https://github.com/IBM/plex), the typeface                                                                      | IBM                                              | SIL Open Font License 1.1                                         |
 
-Three of these are live services that the application calls directly,
-with no key. It asks NOAA and GIRO one time in 15 minutes at most. It
-asks Open-Meteo only when you type a place that the included list does
-not have.
+Three of those are live services the app calls directly, with no key:
+NOAA and GIRO, at most once every 15 minutes each, and Open-Meteo, only
+when a searched place isn't in the built-in list.
 
 The Institute for Telecommunication Sciences, NTIA, US Department of
-Commerce developed VOACAP. NTIA/ITS and NOAA do not endorse HFcast.
-They are not responsible for what it reports.
+Commerce, developed VOACAP. NTIA/ITS and NOAA do not endorse HFcast and
+are not responsible for what it reports.
 
 ## Licence
 
