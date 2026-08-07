@@ -48,3 +48,25 @@ minimumReleaseAgeExclude:
 # between directories inside node_modules.
 allowBuilds:
   '@shopify/react-native-skia': true
+
+# Dependabot-flagged transitive dependencies, pulled in only through Expo's
+# own tooling (none of these are declared directly here). Pinned to the
+# patched release within whatever major line the requester already pins.
+# This file is also what the legacy build installs against (build-android.sh
+# copies it unchanged into the legacy work tree), so entries here cover
+# both `mobile/pnpm-lock.yaml` and `mobile/legacy/pnpm-lock.yaml`.
+overrides:
+  fast-xml-parser: ^5.10.1
+  uuid: ^14.0.1
+  brace-expansion@5: 5.0.9
+  js-yaml@3: 3.15.1
+  js-yaml@4: 4.3.1
+  # legacy (Expo SDK 50) only, below this line
+  fast-uri@3.1.4: ^3.1.5
+  postcss@8.4.49: 8.5.25
+  semver@7.3.2: 7.5.3
+  send@0.18.0: 0.19.2
+  '@xmldom/xmldom@0.7.13': 0.9.10
+  brace-expansion@1.1.17: 1.1.18
+  # tar 6.x was never patched for these CVEs; the fix only ever shipped on 7.x.
+  tar@6.2.1: ^7.5.22

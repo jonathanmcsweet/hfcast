@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 #
 # Runs before every commit. Formatting and lint only, so that it stays
-# fast. The tests are in the pre-push hook.
+# fast, plus a dependency audit when a lockfile is staged. The tests are
+# in the pre-push hook.
 #
 # Turn the hooks on once per clone:
 #
@@ -44,3 +45,12 @@ echo "pre-commit: formatting"
 
 echo "pre-commit: lint"
 "$pnpm" lint
+
+# Only when a lockfile is actually staged, so most commits stay fast.
+changed_lockfiles="$(git diff --cached --name-only -- '*/pnpm-lock.yaml' 'pnpm-lock.yaml')"
+if [[ -n $changed_lockfiles ]]; then
+  echo "pre-commit: dependency audit"
+  for lockfile in $changed_lockfiles; do
+    "$pnpm" --dir "$(dirname "$lockfile")" audit
+  done
+fi
