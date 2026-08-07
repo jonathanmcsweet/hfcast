@@ -22,7 +22,7 @@
     "@babel/runtime": "^7.24.0",
     "@expo-google-fonts/ibm-plex-sans": "^0.4.1",
     "@expo/metro-runtime": "~57.0.8",
-    "@formatjs/intl-datetimeformat": "^6.12.5",
+    "@formatjs/intl-datetimeformat": "^7.6.0",
     "@formatjs/intl-getcanonicallocales": "^2.3.0",
     "@formatjs/intl-locale": "^4.0.0",
     "@formatjs/intl-numberformat": "^8.10.3",
