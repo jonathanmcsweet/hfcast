@@ -25,9 +25,9 @@
 
 <p align="center">
   <a href="LICENSE"><img src="https://img.shields.io/badge/licence-Apache--2.0-blue" alt="Licence"></a>
-  <a href="docs/quick-start.md"><img src="https://img.shields.io/badge/Android-7.0%2B-3ddc84" alt="Android 7.0+"></a>
+  <a href="docs/development.md#quick-start"><img src="https://img.shields.io/badge/Android-7.0%2B-3ddc84" alt="Android 7.0+"></a>
   <a href="https://grapheneos.org/"><img src="https://img.shields.io/badge/GrapheneOS-tested-4a4a4a" alt="GrapheneOS"></a>
-  <a href="https://github.com/jonathanmcsweet/jonathanmcsweet"><img src="https://img.shields.io/badge/built%20with-Isopod-6f42c1" alt="Built with Isopod"></a>
+  <a href="https://github.com/jonathanmcsweet/isopod"><img src="https://img.shields.io/badge/built%20with-Isopod-6f42c1" alt="Built with Isopod"></a>
 </p>
 
 ## Privacy
@@ -79,10 +79,10 @@ weakest — is documented in [docs/](docs/) and in the engine repository.
 [![x86_64](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/jonathanmcsweet/hfcast/badges/android-x86-64.json)](https://github.com/jonathanmcsweet/hfcast/actions/workflows/arch.yml)
 [![x86](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/jonathanmcsweet/hfcast/badges/android-x86.json)](https://github.com/jonathanmcsweet/hfcast/actions/workflows/arch.yml)
 
-Start with the [quick start](docs/quick-start.md) — about 15 minutes on
-a machine that already has the toolchain — then the
-[development guide](docs/development.md) if you're going to work on the
-code.
+Start with the [quick start](docs/development.md#quick-start) — about
+15 minutes on a machine that already has the toolchain — then the rest
+of the [development guide](docs/development.md) if you're going to work
+on the code.
 
 ## What is in this repository
 
