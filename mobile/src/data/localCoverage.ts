@@ -2,6 +2,7 @@ import * as Engine from '../../modules/engine-bridge';
 import type { Station } from '../store/useStationStore';
 import { LAT_STEP, LON_STEP, reachOf } from './coverageGrid';
 import { patchGrid, patchRequestBounds } from './coveragePatch';
+import { timing } from './diagnostics';
 import { stripsFor, threadsFor } from './engineBudget';
 import { FINE_LAT_STEP, FINE_LON_STEP, packGlobe } from './fineGlobe';
 import { engineStation, type Nowcast, ssnFor } from './localPredict';
@@ -83,7 +84,7 @@ export interface LocalCoverageRequest {
   date: Date;
   station: Station;
   /** Absent offline, and then the run is climatology. */
-  nowcast?: Nowcast;
+  nowcast?: Nowcast | undefined;
   /**
    * The part of the world the map is showing, for the fine grid only.
    *
@@ -312,11 +313,11 @@ export async function coverAllBandsLocally(
     }] as const;
   });
 
-  console.log(
-    `[hfcast] coarse grid ${covered.length} bands`
-      + ` | ${(answer.points ?? []).length} points each`
-      + ` | ${Math.round(elapsedMs)} ms`,
-  );
+  timing('coarse grid', {
+    bands: `${covered.length} bands`,
+    points: `${(answer.points ?? []).length} points each`,
+    ms: elapsedMs,
+  });
 
   // Every band of `BANDS_BY_FREQ` is present, which is every `BandKey`,
   // but `fromEntries` cannot say so.
@@ -403,14 +404,14 @@ export async function coverFineLocally(
   // phone measuring roughly what one core would manage, while claiming
   // eight threads, is a phone whose batch is not running in parallel —
   // a different fault again, and not visible in a total.
-  console.log(
-    `[hfcast] fine grid ${points.length} points`
-      + ` | ${run.strips} strips on ${run.threads} threads`
-      + ` | engine ${Math.round(run.nativeMs)} ms`
-      + ` | parse ${Math.round(run.parseMs)} ms`
-      + ` | unpack ${Math.round(Date.now() - packingAt)} ms`
-      + ` | total ${Math.round(elapsedMs)} ms`,
-  );
+  timing('fine grid', {
+    points: `${points.length} points`,
+    cut: `${run.strips} strips on ${run.threads} threads`,
+    engine: run.nativeMs,
+    parse: run.parseMs,
+    unpack: Date.now() - packingAt,
+    total: elapsedMs,
+  });
 
   return globe;
 }
@@ -487,11 +488,11 @@ export async function coverPatchAllBandsLocally(
     }] as const;
   });
 
-  console.log(
-    `[hfcast] patch ${patched.length} bands`
-      + ` | ${(answer.points ?? []).length} points each`
-      + ` | ${Math.round(elapsedMs)} ms`,
-  );
+  timing('patch', {
+    bands: `${patched.length} bands`,
+    points: `${(answer.points ?? []).length} points each`,
+    ms: elapsedMs,
+  });
 
   return Object.fromEntries(patched) as unknown as Record<
     BandKey,

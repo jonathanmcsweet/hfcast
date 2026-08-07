@@ -18,7 +18,7 @@
  * `CoverageGlobe` draws the same buckets as SVG paths instead — from the
  * same strings, so the two renderers cannot disagree about geometry.
  */
-import React, { useMemo } from 'react';
+import { useMemo } from 'react';
 
 import { Canvas, Circle, Group, Path, Skia } from '@shopify/react-native-skia';
 import type { CellBucket, CellLayerProps } from '../data/cellField.ts';

@@ -1,69 +1,26 @@
 /**
  * The wire contract between the server and the app. The app's `PathPrediction`
  * mirrors this shape, so any change here is a change to the app's data layer.
+ *
+ * The bands, the cell shape and the grid point come from `shared/`, which
+ * is where anything both projects have to agree on lives.
  */
 
-export type BandKey =
-  | '160m'
-  | '80m'
-  | '40m'
-  | '30m'
-  | '20m'
-  | '17m'
-  | '15m'
-  | '12m'
-  | '10m';
+import type { BandHourPrediction } from '../../shared/bands.ts';
 
-export const BAND_ORDER: readonly BandKey[] = [
-  '10m',
-  '12m',
-  '15m',
-  '17m',
-  '20m',
-  '30m',
-  '40m',
-  '80m',
-  '160m',
-];
+export type {
+  BandHourPrediction,
+  BandKey,
+  RawBandHour,
+} from '../../shared/bands.ts';
+export {
+  BAND_MHZ,
+  BAND_ORDER,
+  BANDS_BY_FREQ,
+  isBandKey,
+} from '../../shared/bands.ts';
 
-/** Nominal centre frequency in MHz, used for the deck and the MUF comparison. */
-export const BAND_MHZ: Readonly<Record<BandKey, number>> = {
-  '160m': 1.84,
-  '80m': 3.75,
-  '40m': 7.1,
-  '30m': 10.12,
-  '20m': 14.2,
-  '17m': 18.1,
-  '15m': 21.2,
-  '12m': 24.94,
-  '10m': 28.4,
-};
-
-/** Ascending frequency order, which is the order the deck must list them in. */
-export const BANDS_BY_FREQ: readonly BandKey[] = [...BAND_ORDER].sort(
-  (a, b) => BAND_MHZ[a] - BAND_MHZ[b],
-);
-
-export interface BandHourPrediction {
-  /** UTC hour, 0-23. */
-  hour: number;
-  band: BandKey;
-  /** Circuit reliability, 0..1. The "chance of rain" analogue. */
-  reliability: number;
-  /** Median signal-to-noise ratio in dB. */
-  snr: number;
-  /**
-   * Transmit take-off angle in degrees, or null where the engine printed
-   * no angle for this band and hour.
-   *
-   * Carried through so a client can say when a path works by
-   * near-vertical incidence: a steep departure comes back down without a
-   * skip zone, which is why a short path works on bands that look too
-   * low for it. The empirical correction does not touch this — it moves
-   * the signal median, not the geometry.
-   */
-  takeoffAngleDeg: number | null;
-}
+export type { CoveragePoint } from '../../shared/points.ts';
 
 /** Where the sunspot number driving a run came from. */
 export type PredictionBasis =

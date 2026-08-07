@@ -187,6 +187,13 @@ build_legacy() {
   # real one.
   ln -sfn "$root/hfcast-engine" "$root/build/hfcast-engine"
 
+  # The same arrangement for the shared physics. `src/` reaches it as
+  # `../../../shared`, which from the copy is `build/shared`, and
+  # `metro.config.js` names the same relative path in `watchFolders`. A
+  # link rather than a copy, so the legacy build cannot be built against a
+  # stale set of correction factors.
+  ln -sfn "$root/shared" "$root/build/shared"
+
   ANDROID_API=21 bash "$work/modules/engine-bridge/build-rust.sh"
   (cd "$work" && npx expo prebuild --clean --platform android --no-install)
   run_gradle "$work"

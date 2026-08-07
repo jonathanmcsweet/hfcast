@@ -1,4 +1,3 @@
-import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { StyleSheet, View } from 'react-native';
 import { Icon, Text, useTheme } from 'react-native-paper';
@@ -7,7 +6,6 @@ import type { Sounding, SpaceWeather } from '../data/types';
 import { useFormatters } from '../hooks/useFormatters';
 import { face, numeric, radius, spacing, typography } from '../theme';
 import type { AppTheme } from '../theme';
-import { Inset } from './Card';
 
 interface Props {
   /** Null when the upstream was unreachable. */
@@ -17,7 +15,7 @@ interface Props {
    * reporting. Undefined while loading, null when there is none — and null
    * is the ordinary case, since live stations are almost all in Europe.
    */
-  sounding?: Sounding | null;
+  sounding?: Sounding | null | undefined;
   /** The readings came from the cache, so they are no longer current. */
   offline?: boolean;
 }

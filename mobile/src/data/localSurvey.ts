@@ -18,7 +18,7 @@ export interface LocalSurveyRequest {
   from: Endpoint;
   date: Date;
   station: Station;
-  nowcast?: Nowcast;
+  nowcast?: Nowcast | undefined;
 }
 
 export async function surveyLocally(

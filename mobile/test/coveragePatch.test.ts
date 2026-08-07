@@ -187,12 +187,11 @@ describe('how far the near-vertical region reaches', () => {
     assert.equal(nvisReachKm(from, []), null);
   });
 
-  it('is asked of the drawn patch and the station patch separately', () => {
-    // The map's patch follows the view; the sentence's does not. A patch
-    // panned to the far side of the world holds points that are NVIS in
-    // no direction from the station, so the sentence's function answers
-    // null there — and the legend's function must still answer from
-    // what is actually drawn, not from the sentence.
+  it('answers about the grid it is given, whichever that is', () => {
+    // The map's patch follows the view; the station's grid does not, and
+    // the sentence and the legend are both about the station. A grid
+    // panned to the far side of the world holds no point that is steep
+    // from here, so both functions answer nothing for it.
     const farAway = [point(35, 139, 80)];
     // From Denver, a steep *local* angle 9,000 km away is not
     // near-vertical coverage of anywhere the station reaches... but the
@@ -204,6 +203,28 @@ describe('how far the near-vertical region reaches', () => {
     // And a patch at home with steep points feeds both.
     assert.equal(anyNvis(farAway), true);
     assert.ok(nvisReachKm(from, farAway) !== null);
+  });
+
+  it('reads a generator, which is how the fine globe offers itself', () => {
+    // `gridPoints` walks the packed typed arrays and yields rather than
+    // building 34,560 objects, so the card reads the whole-world grid
+    // through it instead of running the patch a second time. Both
+    // functions have to take that, and neither may spread it into an
+    // argument list.
+    const steep = [point(41, -105, 80), point(44, -105, 75)];
+    const asGenerator = function*() {
+      yield* steep;
+    };
+    assert.equal(
+      nvisReachKm(from, asGenerator()),
+      nvisReachKm(from, steep),
+    );
+    assert.equal(anyNvis(asGenerator()), true);
+    // An exhausted iterator is empty, not an error, which is why the
+    // card takes a fresh one for each reading.
+    const once = asGenerator();
+    assert.equal(anyNvis(once), true);
+    assert.equal(anyNvis(once), false);
   });
 
   it('ignores a point the engine gave no angle for', () => {

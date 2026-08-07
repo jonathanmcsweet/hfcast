@@ -16,10 +16,10 @@ interface Props {
    * data is. Hiding it behind the caret would let a stale reading pass for
    * a current one, which is the failure this app most has to avoid.
    */
-  tag?: string;
+  tag?: string | undefined;
   /** Draws the tag in amber, for a reading that is no longer current. */
   tagStale?: boolean;
-  style?: ViewStyle;
+  style?: ViewStyle | undefined;
 }
 
 /**

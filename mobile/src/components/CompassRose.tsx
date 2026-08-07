@@ -1,4 +1,3 @@
-import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { StyleSheet, View } from 'react-native';
 import { useTheme } from 'react-native-paper';
@@ -37,7 +36,7 @@ interface Props {
   beamDeg: number;
   type: AntennaKey;
   /** Bearing to the other end, when a prediction is loaded. */
-  pathDeg?: number;
+  pathDeg?: number | undefined;
   size?: number;
 }
 

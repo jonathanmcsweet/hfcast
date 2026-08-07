@@ -11,7 +11,7 @@
  * engine compiled in. This one is for the web build, which has no engine.
  */
 import { TtlCache } from './cache.ts';
-import { latLonToGrid } from './geo.ts';
+import { latLonToGrid, pointFrom } from './geo.ts';
 import { predict, type PredictRequest } from './predict.ts';
 import type { BandHourPrediction, Endpoint, PathPrediction } from './types.ts';
 
@@ -28,37 +28,6 @@ const REACHABLE = 0.4;
 const SURVEY_TTL_MS = 15 * 60 * 1000;
 
 const cache = new TtlCache<PathPrediction>(SURVEY_TTL_MS);
-
-const EARTH_RADIUS_KM = 6371;
-const toRadians = (degrees: number) => (degrees * Math.PI) / 180;
-const toDegrees = (radians: number) => (radians * 180) / Math.PI;
-
-/** The direct geodesic on a sphere: where you are after going that far. */
-function pointFrom(
-  from: { lat: number; lon: number; },
-  bearing: number,
-  distanceKm: number,
-): { lat: number; lon: number; } {
-  const angular = distanceKm / EARTH_RADIUS_KM;
-  const lat1 = toRadians(from.lat);
-  const lon1 = toRadians(from.lon);
-  const theta = toRadians(bearing);
-
-  const lat2 = Math.asin(
-    Math.sin(lat1) * Math.cos(angular)
-      + Math.cos(lat1) * Math.sin(angular) * Math.cos(theta),
-  );
-  const lon2 = lon1
-    + Math.atan2(
-      Math.sin(theta) * Math.sin(angular) * Math.cos(lat1),
-      Math.cos(angular) - Math.sin(lat1) * Math.sin(lat2),
-    );
-
-  return {
-    lat: toDegrees(lat2),
-    lon: ((toDegrees(lon2) + 540) % 360) - 180,
-  };
-}
 
 function samplePoints(from: { lat: number; lon: number; }) {
   return SAMPLE_BEARINGS.flatMap((bearing) =>
@@ -128,42 +97,41 @@ function keyFor(request: SurveyRequest): string {
 export async function survey(
   request: SurveyRequest,
 ): Promise<PathPrediction> {
-  const key = keyFor(request);
-  const cached = cache.get(key);
-  if (cached) return cached;
+  // Through `fetch`, which matters more here than anywhere else: a
+  // survey is forty-eight engine runs, and two readers on one station
+  // arriving together used to start both sets rather than share one.
+  return await cache.fetch(keyFor(request), async () => {
+    // Sequential on purpose. Each run spawns the engine, and forty-eight
+    // at once would compete for the same cores and finish no sooner.
+    const runs: PathPrediction[] = [];
+    for (const point of samplePoints(request.from)) {
+      const to: Endpoint = {
+        lat: point.lat,
+        lon: point.lon,
+        grid: latLonToGrid(point.lat, point.lon),
+        label: `${point.bearing}/${point.distanceKm}`,
+      };
+      runs.push(await predict({ ...request, to }));
+    }
 
-  // Sequential on purpose. Each run spawns the engine, and forty-eight at
-  // once would compete for the same cores and finish no sooner.
-  const runs: PathPrediction[] = [];
-  for (const point of samplePoints(request.from)) {
-    const to: Endpoint = {
-      lat: point.lat,
-      lon: point.lon,
-      grid: latLonToGrid(point.lat, point.lon),
-      label: `${point.bearing}/${point.distanceKm}`,
+    const first = runs[0];
+    if (first === undefined) throw new Error('a survey needs at least one run');
+
+    return {
+      from: request.from,
+      to: null,
+      distanceKm: null,
+      bearingDeg: null,
+      ssn: first.ssn,
+      requiredSnrDb: first.requiredSnrDb,
+      basis: first.basis,
+      month: first.month,
+      year: first.year,
+      date: first.date,
+      mufByHour: midRangeMuf(runs),
+      // The rail draws one path's usable window, and there is no one path.
+      window: null,
+      cells: combine(runs),
     };
-    runs.push(await predict({ ...request, to }));
-  }
-
-  const first = runs[0];
-  if (first === undefined) throw new Error('a survey needs at least one run');
-
-  const result: PathPrediction = {
-    from: request.from,
-    to: null,
-    distanceKm: null,
-    bearingDeg: null,
-    ssn: first.ssn,
-    requiredSnrDb: first.requiredSnrDb,
-    basis: first.basis,
-    month: first.month,
-    year: first.year,
-    date: first.date,
-    mufByHour: midRangeMuf(runs),
-    // The rail draws one path's usable window, and there is no one path.
-    window: null,
-    cells: combine(runs),
-  };
-  cache.set(key, result);
-  return result;
+  });
 }

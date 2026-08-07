@@ -1,3 +1,4 @@
+import { distanceKm } from '../../../shared/geo.ts';
 import type { Sounding } from './types.ts';
 
 /**
@@ -73,20 +74,6 @@ export const STATIONS: readonly Station[] = [
 ];
 
 /** Great-circle distance in km. */
-function distanceKm(
-  aLat: number,
-  aLon: number,
-  bLat: number,
-  bLon: number,
-): number {
-  const toRad = Math.PI / 180;
-  const dLat = (bLat - aLat) * toRad;
-  const dLon = (bLon - aLon) * toRad;
-  const h = Math.sin(dLat / 2) ** 2
-    + Math.cos(aLat * toRad) * Math.cos(bLat * toRad) * Math.sin(dLon / 2) ** 2;
-  return 2 * 6371 * Math.asin(Math.min(1, Math.sqrt(h)));
-}
-
 /** The closest station, however far away it is. */
 export function nearestStation(
   lat: number,

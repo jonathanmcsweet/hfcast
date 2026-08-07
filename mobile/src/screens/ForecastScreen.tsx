@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   AppState,
@@ -15,6 +15,7 @@ import BandSelector from '../components/BandSelector';
 import Collapsible from '../components/Collapsible';
 import DisclaimerCard from '../components/DisclaimerCard';
 import FirstRunLocation from '../components/FirstRunLocation';
+import FixedHeader from '../components/FixedHeader';
 import LocationPicker from '../components/LocationPicker';
 import ReachCard from '../components/ReachCard';
 import ReachGrid from '../components/ReachGrid';
@@ -33,10 +34,12 @@ import { spacing, typography } from '../theme';
 import type { AppTheme } from '../theme';
 
 /**
- * The shortest time the pull-down spinner stays on screen.
+ * How long the pull-down spinner stays on screen for the gesture alone.
  *
- * Long enough that the gesture is acknowledged even when the cooldown
- * refused the network, which is the common case for a second pull.
+ * Long enough that the pull is acknowledged even when the cooldown
+ * refused the network, which is the common case for a second pull. A
+ * fetch that does start keeps its own spinner for at least as long, so
+ * this is a floor rather than a limit.
  */
 const PULL_SPINNER_MS = 600;
 
@@ -126,7 +129,18 @@ export default function ForecastScreen() {
   // asked. A gesture that produced no visible response would read as the
   // app ignoring it, and inside the floor there is nothing new to fetch
   // anyway — SWPC publishes the flux once a day.
+  //
+  // True from the pull until the floor under it passes. It is cleared by
+  // the timer below rather than at the end of the handler: React batches
+  // the writes of one event, so setting it and clearing it there meant
+  // the value was never rendered as true — and a pull the cooldown
+  // refused, which is exactly the case this exists for, drew nothing.
   const [pulling, setPulling] = useState(false);
+  useEffect(() => {
+    if (!pulling) return;
+    const timer = setTimeout(() => setPulling(false), PULL_SPINNER_MS);
+    return () => clearTimeout(timer);
+  }, [pulling]);
 
   // True while the map owns a two-finger pan. The scroller is switched
   // off for that moment: refusing termination stops it stealing a pan
@@ -139,9 +153,12 @@ export default function ForecastScreen() {
     if (mayRefresh(weather.dataUpdatedAt, weather.errorUpdatedAt, Date.now())) {
       refresh();
     }
-    setPulling(false);
   }, [weather.dataUpdatedAt, weather.errorUpdatedAt, refresh]);
-  const showPull = useShownFor(pulling || weather.isFetching, PULL_SPINNER_MS);
+  // The two halves are separate because they start at different moments:
+  // the gesture is answered at once, and a fetch it did allow keeps the
+  // spinner for as long as it runs plus the same floor.
+  const fetching = useShownFor(weather.isFetching, PULL_SPINNER_MS);
+  const showPull = pulling || fetching;
 
   // The status bar overlaps these too, and the error screen is tall enough on a
   // small phone to reach it.
@@ -162,13 +179,7 @@ export default function ForecastScreen() {
   if (isPending) {
     return (
       <View style={[styles.root, { backgroundColor: ui.page }]}>
-        <View
-          style={[styles.fixed, {
-            paddingTop: insets.top,
-            backgroundColor: ui.headerBg,
-            borderBottomColor: ui.line2,
-          }]}
-        >
+        <FixedHeader>
           <AppHeader
             place={from.label}
             destination={null}
@@ -178,10 +189,8 @@ export default function ForecastScreen() {
             refreshing={weather.isFetching}
             onOpenStation={() => setStationOpen(true)}
           />
-        </View>
-
+        </FixedHeader>
         <SkeletonForecast />
-
         <LocationPicker
           visible={pickerOpen}
           onDismiss={() => setPickerOpen(false)}
@@ -261,40 +270,7 @@ export default function ForecastScreen() {
 
   return (
     <View style={[styles.root, { backgroundColor: ui.page }]}>
-      {
-        /* Fixed, outside the scroller (user, 2026-08-01).
-
-           These are the controls that say what is being forecast — where,
-           which station, which band — and everything below them is the
-           answer. Scrolled with the content they slid under the status
-           bar, so the place name ended up behind the clock and the signal
-           icons: unreadable, and still the only way to change location.
-           Padding alone could not fix that, because padding sets where
-           content starts and the complaint was about where it goes.
-
-           It also means the band can be changed while reading the grid
-           further down, which is the comparison the grid is for. */
-      }
-      {
-        /* The band chips used to end flush against the map, so a fixed
-           header and a scrolling page met with nothing between them and
-           the join read as one block. A hairline and a small gap under
-           it say where the controls stop and the answer starts (user,
-           2026-08-01).
-
-           `line2` rather than `line`. The quieter one was the first
-           choice, and it stopped working when the header took a
-           background of its own: `line` and the light header are
-           neighbouring steps of the same ramp, so the rule vanished into
-           it. `contrast.test.ts` holds that. */
-      }
-      <View
-        style={[styles.fixed, {
-          paddingTop: insets.top,
-          backgroundColor: ui.headerBg,
-          borderBottomColor: ui.line2,
-        }]}
-      >
+      <FixedHeader>
         <AppHeader
           place={prediction.from.label}
           destination={prediction.to === null
@@ -319,7 +295,7 @@ export default function ForecastScreen() {
           onEditStation={() => setStationOpen(true)}
           requiredSnrDb={prediction.requiredSnrDb}
         />
-      </View>
+      </FixedHeader>
 
       <ScrollView
         scrollEnabled={!mapPanning}
@@ -448,13 +424,6 @@ export default function ForecastScreen() {
 
 const styles = StyleSheet.create({
   root: { flex: 1 },
-  // The gap goes above the rule, not below it. Below, it would read as
-  // space belonging to the map; above, it is the header's own bottom
-  // margin, which is what it is.
-  fixed: {
-    paddingBottom: spacing.sm,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-  },
   centre: {
     flex: 1,
     alignItems: 'center',

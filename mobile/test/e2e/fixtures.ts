@@ -145,7 +145,6 @@ export async function stubApi(
   const answers: Record<string, unknown> = {
     '/api/prediction': prediction(LONDON),
     '/api/survey': prediction(null),
-    '/api/forecast': [],
     '/api/spaceweather': SPACE_WEATHER,
     '/api/ionosonde': null,
     '/api/coverage': COVERAGE,

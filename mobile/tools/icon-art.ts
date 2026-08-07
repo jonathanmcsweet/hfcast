@@ -81,7 +81,9 @@ export const CELLS: readonly Cell[] = ROWS.flatMap((row) =>
       h: CELL,
       r: CELL_RADIUS,
     },
-    colour: RAMP[row + col] ?? RAMP[RAMP.length - 1],
+    // The fallback is the last rung, which exists: `RAMP` is a fixed
+    // non-empty tuple, so this is a string however far the index reaches.
+    colour: RAMP[row + col] ?? (RAMP[RAMP.length - 1] as string),
     alpha: MONOCHROME[row + col] ?? 0,
   }))
 );
