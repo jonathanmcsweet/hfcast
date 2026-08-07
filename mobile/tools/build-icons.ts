@@ -18,8 +18,22 @@
  */
 import { writeFileSync } from 'node:fs';
 
-import { BACKGROUND, CANVAS, CELLS, VIEWPORT } from './icon-art.ts';
 import {
+  BACKGROUND,
+  CANVAS,
+  type Cell,
+  CELLS,
+  GLYPH,
+  type Glyph,
+  LAUNCHER_GLYPH,
+  mastRect,
+  MONOCHROME_GLYPH,
+  STORE_CELLS,
+  STORE_GLYPH,
+  VIEWPORT,
+} from './icon-art.ts';
+import {
+  convexPolygon,
   encodePng,
   fill,
   flatten,
@@ -27,6 +41,7 @@ import {
   paste,
   render,
   rgb,
+  roundedRect,
   type Shape,
 } from './icon-raster.ts';
 
@@ -35,18 +50,47 @@ const ASSETS = 'src/assets';
 
 const WHITE = rgb('#FFFFFF');
 const INDIGO = rgb(BACKGROUND);
+const INK = rgb(GLYPH);
 
-/** The full-colour layer: the ramp, and nothing over it. */
-const FOREGROUND: readonly Shape[] = CELLS.map((cell) => ({
-  rect: cell.rect,
-  fill: { colour: rgb(cell.colour), alpha: 1 },
-}));
+/** The field in full colour, and the same field carried by alpha alone. */
+const colourField = (cells: readonly Cell[]): readonly Shape[] =>
+  cells.map((cell) => ({
+    form: roundedRect(cell.rect),
+    fill: { colour: rgb(cell.colour), alpha: 1 },
+  }));
 
-/** The themed-icon layer: white throughout, the ramp carried by alpha. */
-const MONOCHROME: readonly Shape[] = CELLS.map((cell) => ({
-  rect: cell.rect,
-  fill: { colour: WHITE, alpha: cell.alpha },
-}));
+const alphaField = (cells: readonly Cell[]): readonly Shape[] =>
+  cells.map((cell) => ({
+    form: roundedRect(cell.rect),
+    fill: { colour: WHITE, alpha: cell.alpha },
+  }));
+
+/**
+ * The symbol: a filled bar for the mast, because a butt-capped line is a
+ * rectangle, and a stroked triangle over it.
+ */
+const symbol = (glyph: Glyph, colour = INK): readonly Shape[] => [
+  { form: roundedRect(mastRect(glyph)), fill: { colour, alpha: 1 } },
+  {
+    form: convexPolygon(glyph.triangle),
+    stroke: { colour, alpha: 1, width: glyph.width },
+  },
+];
+
+/** The launcher cut, in colour and as the themed layer draws it. */
+const FOREGROUND: readonly Shape[] = [
+  ...colourField(CELLS),
+  ...symbol(LAUNCHER_GLYPH),
+];
+const MONOCHROME: readonly Shape[] = [
+  ...alphaField(CELLS),
+  ...symbol(MONOCHROME_GLYPH, WHITE),
+];
+/** The full-bleed cut, which runs off every edge of the canvas. */
+const STORE: readonly Shape[] = [
+  ...colourField(STORE_CELLS),
+  ...symbol(STORE_GLYPH),
+];
 
 const write = (
   path: string,
@@ -76,6 +120,20 @@ const launcher = (size: number, mask: Frame['mask']): Uint8Array =>
     mask,
   });
 
+/**
+ * The store cut: the whole canvas, opaque, unmasked. The field is drawn past
+ * every edge, so nothing here is framed — it is cropped, which is the point.
+ */
+const store = (size: number): Uint8Array =>
+  flatten(
+    render(STORE, {
+      size,
+      viewport: CANVAS,
+      background: { colour: INDIGO, alpha: 1 },
+    }),
+    INDIGO,
+  );
+
 console.log('adaptive icon layers, 108 dp at 4x');
 square(`${DESIGN}/icon-foreground.png`, 432, layer(432, FOREGROUND));
 square(`${DESIGN}/icon-monochrome.png`, 432, layer(432, MONOCHROME));
@@ -84,26 +142,8 @@ square(`${DESIGN}/icon-background.png`, 432, fill(432, 432, INDIGO));
 console.log('store and platform icons');
 // Opaque and unrounded, both of them: Google rounds the Play listing itself,
 // and iOS applies its own corner. Pre-rounding either gets rounded twice.
-square(
-  `${DESIGN}/play-store-512.png`,
-  512,
-  flatten(launcher(512, 'none'), INDIGO),
-);
-// iOS crops nothing, so mapping the whole 108 dp canvas would leave the art at
-// 61% of the icon where Android shows it at 92%. Framing 90 dp instead puts it
-// at 73%, which is the usual weight for a home screen icon there.
-square(
-  `${DESIGN}/ios-1024.png`,
-  1024,
-  flatten(
-    render(FOREGROUND, {
-      size: 1024,
-      viewport: 90,
-      background: { colour: INDIGO, alpha: 1 },
-    }),
-    INDIGO,
-  ),
-);
+square(`${DESIGN}/play-store-512.png`, 512, store(512));
+square(`${DESIGN}/ios-1024.png`, 1024, store(1024));
 
 console.log('legacy rasters for API 25 and below');
 const DENSITIES = [
@@ -128,19 +168,9 @@ for (const { dir, size } of DENSITIES) {
 console.log('what app.json points at');
 square(`${ASSETS}/icon-foreground.png`, 432, layer(432, FOREGROUND));
 square(`${ASSETS}/icon-monochrome.png`, 432, layer(432, MONOCHROME));
-// `icon` is the square one, used for iOS and the web favicon.
-square(
-  `${ASSETS}/icon.png`,
-  1024,
-  flatten(
-    render(FOREGROUND, {
-      size: 1024,
-      viewport: 90,
-      background: { colour: INDIGO, alpha: 1 },
-    }),
-    INDIGO,
-  ),
-);
+// `icon` is the square one, used for iOS and the web favicon. The store cut,
+// because neither of those crops to a launcher's mask.
+square(`${ASSETS}/icon.png`, 1024, store(1024));
 
 /**
  * A sheet for checking small-size legibility by eye: every size a launcher asks

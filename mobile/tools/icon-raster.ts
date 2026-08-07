@@ -1,10 +1,10 @@
 /**
- * Draws rounded rectangles into an RGBA buffer, and writes PNGs.
+ * Draws the icon's shapes into an RGBA buffer, and writes PNGs.
  *
  * Written here rather than taken from a package because there is no image
- * library in this project and the icon is nine rounded rectangles and one
- * rounded-rectangle outline — a shape with a closed-form distance function, so
- * the edges come out exact rather than approximated by a general renderer.
+ * library in this project and the icon is two shapes: a rounded rectangle and a
+ * convex polygon. Both have a closed-form distance function, so the edges come
+ * out exact rather than approximated by a general renderer.
  *
  * Antialiasing is analytic, not sampled: the distance from a pixel's centre to
  * the shape's edge gives its coverage directly, which is both sharper than
@@ -27,8 +27,25 @@ export interface Fill {
   readonly alpha: number;
 }
 
+/** The area a shape can reach, in canvas units, before any stroke widens it. */
+export interface Box {
+  readonly x: number;
+  readonly y: number;
+  readonly w: number;
+  readonly h: number;
+}
+
+/**
+ * What the renderer needs of a shape: where it is, and how far any point is
+ * from its edge. Negative inside, positive outside, in canvas units.
+ */
+export interface Form {
+  readonly box: Box;
+  readonly distance: (x: number, y: number) => number;
+}
+
 export interface Shape {
-  readonly rect: Rect;
+  readonly form: Form;
   /** Filled when set. */
   readonly fill?: Fill;
   /** Outlined when set, with the width centred on the edge. */
@@ -62,6 +79,66 @@ function distance(px: number, py: number, rect: Rect): number {
   return Math.min(Math.max(qx, qy), 0)
     + Math.hypot(Math.max(qx, 0), Math.max(qy, 0))
     - rect.r;
+}
+
+/** A rounded rectangle, as a form the renderer can draw. */
+export const roundedRect = (rect: Rect): Form => ({
+  box: rect,
+  distance: (x, y) => distance(x, y, rect),
+});
+
+/**
+ * A convex polygon, as the largest of its edges' half-plane distances.
+ *
+ * Exact inside, and exact outside an edge. Outside a corner it gives the
+ * distance to whichever edge line is furthest rather than the distance to the
+ * corner itself — which is what a mitre join is. Stroking this form therefore
+ * produces the pointed corners the drawables ask for, where the usual
+ * distance-to-the-outline would round them off.
+ *
+ * The points have to run one way round; either way is accepted, and the
+ * winding is taken from the polygon's own signed area.
+ */
+export function convexPolygon(
+  points: readonly (readonly [number, number])[],
+): Form {
+  const xs = points.map(([x]) => x);
+  const ys = points.map(([, y]) => y);
+  const twiceArea = points.reduce((total, [x, y], at) => {
+    const [nx, ny] = points[(at + 1) % points.length] as readonly [
+      number,
+      number,
+    ];
+    return total + (x * ny - nx * y);
+  }, 0);
+  const sign = twiceArea >= 0 ? 1 : -1;
+
+  // The outward normal of each edge, with the edge's own start point.
+  const edges = points.map(([x, y], at) => {
+    const [nx, ny] = points[(at + 1) % points.length] as readonly [
+      number,
+      number,
+    ];
+    const dx = nx - x;
+    const dy = ny - y;
+    const length = Math.hypot(dx, dy);
+    return { x, y, nx: (sign * dy) / length, ny: (-sign * dx) / length };
+  });
+
+  return {
+    box: {
+      x: Math.min(...xs),
+      y: Math.min(...ys),
+      w: Math.max(...xs) - Math.min(...xs),
+      h: Math.max(...ys) - Math.min(...ys),
+    },
+    distance: (x, y) =>
+      edges.reduce(
+        (furthest, edge) =>
+          Math.max(furthest, (x - edge.x) * edge.nx + (y - edge.y) * edge.ny),
+        Number.NEGATIVE_INFINITY,
+      ),
+  };
 }
 
 /**
@@ -132,9 +209,12 @@ export function render(
 
   for (const shape of shapes) {
     // Only the pixels the shape can reach: the whole canvas per shape would be
-    // ten times the work for the same picture.
-    const pad = (shape.stroke?.width ?? 0) / 2 + 2 / scale;
-    const box = shape.rect;
+    // ten times the work for the same picture. A mitre join runs past the
+    // corner it turns, so the padding carries the whole stroke width rather
+    // than half of it.
+    const stroke = shape.stroke;
+    const pad = (stroke?.width ?? 0) + 2 / scale;
+    const box = shape.form.box;
     const clamp = (v: number): number =>
       Math.min(Math.max(Math.floor(v), 0), size);
     const x0 = clamp((box.x - pad - origin) * scale);
@@ -143,8 +223,7 @@ export function render(
     const y1 = clamp((box.y + box.h + pad - origin) * scale + 1);
 
     paint(x0, y0, x1, y1, (ux, uy) => {
-      const d = distance(ux, uy, box);
-      const stroke = shape.stroke;
+      const d = shape.form.distance(ux, uy);
       if (stroke !== undefined) {
         const edge = (Math.abs(d) - stroke.width / 2) * scale;
         return { colour: stroke.colour, alpha: stroke.alpha * coverage(edge) };
