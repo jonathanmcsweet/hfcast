@@ -8,14 +8,9 @@
 [<img src="docs/badges/obtainium.png" alt="Get it on Obtainium" width="140">](https://apps.obtainium.imranr.dev/redirect?r=obtainium://add/https://github.com/jonathanmcsweet/hfcast)
 [<img src="docs/badges/get-it-on-github.png" alt="Get it on GitHub" width="140">](https://github.com/jonathanmcsweet/hfcast/releases)
 
+Pick a place, pick a band, enter your radio settings and get a custom forecast for HF propagation.
 
-Pick a place, pick a band, enter your radio settings and get a custom forecast for HF propagation. 
-
-If you're online it shows the estimated conditions based on live data and a 24 hour prediction for every HF band. 
-
-If you're offline, it estimates conditions based on historical data through a real, faithful reproduction of the VOACAP engine, the point-to-point propagation model NTIA/ITS has maintained for decades. [Faithfully translated to Rust and running directly on the phone](https://github.com/jonathanmcsweet/hfcast-engine). 
-
-
+Estimated conditions based on historical data through a real, faithful reproduction of the VOACAP engine, the point-to-point propagation model NTIA/ITS has maintained for decades. [Faithfully translated to Rust and running directly on the phone](https://github.com/jonathanmcsweet/hfcast-engine).
 
 <!--
   TODO(screenshots): add real captures here once the app has been run —
@@ -24,29 +19,20 @@ If you're offline, it estimates conditions based on historical data through a re
   listings to size for this row; HFcast doesn't have those listings yet.
 -->
 
-
-## Features
-
-- A **reach map** for the selected band: how far it gets, in every direction based on your station setup
-- **Every band, every hour** shown on a propagation map
-- The **operating window** for the day — the lowest and highest frequency that's usable, hour by hour
-- Your **own station** — power, mode, and an antenna with its height, bearing, and gain necessary for the propagation model
-- A **compass** showing which way the antenna favours, relative to the path you picked
-
-
-
 ## Privacy
 
-HFcast doesn't need to know where you are, doesn't need an account, and
-doesn't send the forecast anywhere to compute it. See the list of things that it does *not* have above.
-
-When online, two features do reach out to the network with no identifying data of yours being sent out:
-- Today's space weather (from NOAA)
-- Recent ionosphere measurements (from GIRO)
 - Runs on a de-Googled phone or your old tablet without any Google services
 - Developed and tested on GrapheneOS
 - Works fully offline by calculating conditions based on historical HF propgation records
 - Nothing about your station, your position, or the path you're checking leaves the device
+
+When online, two features do reach out to the network with no identifying data of yours being sent out:
+
+- Today's space weather (from NOAA)
+- Recent ionosphere measurements (from GIRO)
+
+Also...
+
 - No ads
 - No account
 - No sign-in
@@ -62,12 +48,12 @@ When online, two features do reach out to the network with no identifying data o
 
 ## What the forecast is — and isn't
 
-- When online, we enter live ionospheric data into VOACAP's model to give you the most accurate up to date propagation map. 
-- When offline or looking at future times, we use VOACAP's monthly climatology estimate.
+- When online, HFcast enters live ionospheric data into VOACAP's model to give you the most accurate up to date propagation map.
+- When offline or looking at future times, HFcast uses VOACAP's monthly climatology estimate.
 - Every day inside the same month gets the same base answer unless the
-sunspot number changes; HFcast can pull today's space weather to adjust
-that, but the underlying model is still telling you what's _typical_ for
-a path like yours in a month like this one.
+  sunspot number changes; HFcast can pull today's space weather to adjust
+  that, but the underlying model is still telling you what's _typical_ for
+  a path like yours in a month like this one.
 
 The model's numbers are corrected against real measured signals, and
 the correction data — what was measured, and where the model is
