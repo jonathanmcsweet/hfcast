@@ -38,6 +38,7 @@ When online, two features do reach out to the network with no identifying data o
 - Recent ionosphere measurements (from GIRO)
 
 Everything else:
+
 - Runs on a de-Googled phone or your old tablet without any Google services
 - Developed and tested on GrapheneOS
 - Works fully offline by calculating conditions based on historical HF propagation records
@@ -71,6 +72,7 @@ the correction data — what was measured, and where the model is
 weakest — is documented in [docs/](docs/) and in the engine repository.
 
 ## Build it
+
 [![CI](https://github.com/jonathanmcsweet/hfcast/actions/workflows/ci.yml/badge.svg)](https://github.com/jonathanmcsweet/hfcast/actions/workflows/ci.yml)
 [![arm64-v8a](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/jonathanmcsweet/hfcast/badges/android-arm64-v8a.json)](https://github.com/jonathanmcsweet/hfcast/actions/workflows/arch.yml)
 [![armeabi-v7a](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/jonathanmcsweet/hfcast/badges/android-armeabi-v7a.json)](https://github.com/jonathanmcsweet/hfcast/actions/workflows/arch.yml)
