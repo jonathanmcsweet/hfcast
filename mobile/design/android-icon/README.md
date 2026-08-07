@@ -1,164 +1,142 @@
-# HFCast app icon — drop-in assets
+# HFCast app icon — storm cells
 
-Everything here is generated from one 108 × 108 dp design. Pick **A** or **B** depending on
-whether your Expo project has a checked-in `android/` folder.
+The mark is a field of identical rounded cells coloured on the product's violet quality
+ramp, with a circular opening at the centre holding the schematic antenna symbol. Two cuts
+of the field exist because two contexts crop differently.
 
-**HFcast itself uses A.** `android/` is in `.gitignore` and `expo prebuild` rewrites it on
-every build, so anything copied into it is erased before it reaches an APK. B is kept here for
-a project that does check that folder in.
+| Cut        | Where                                              | Cells | Extent                                     |
+| ---------- | -------------------------------------------------- | ----- | ------------------------------------------ |
+| Compact    | Adaptive launcher icon, legacy mipmaps, monochrome | 28    | r 17.5 → 28, plus seven outliers at r 30.6 |
+| Full bleed | Play Store 512, iOS 1024                           | 70    | r 20 → the edge of the 108 canvas          |
 
-**The PNGs in this folder are generated, not exported.** `tools/build-icons.ts` draws them from
-the same geometry as the drawables, so the two routes cannot disagree. Rerun it after any
-change to the design, and do not edit the PNGs by hand — the next run overwrites them:
+## Dropping this into an APK build
 
-```
-node --experimental-strip-types tools/build-icons.ts
-```
-
-`test/icon.test.ts` rebuilds the drawables' path data and colours from that geometry and
-compares them with the XML, then decodes the PNGs and checks each still carries the ramp.
-
-Geometry, for reference: nine 12 dp cells (radius 3.2) on a 17 dp pitch, so the grid is 46 dp
-wide and centred, with columns at 31 / 48 / 65 and rows the same. Furthest art is 31.2 dp from
-centre, inside the 33 dp safe circle every launcher mask respects — it was 32.5 dp when the
-marker was still there, and the test computes it rather than trusting this line. One ramp, no
-line work —
-#C9B4F7 → #9B78E8 → #7C4BD0 → #4A2F7D, brightest corner top-left, on #2A1656.
-
----
-
-## A. Managed Expo (no `android/` folder)
-
-Three PNGs go where the app can reach them. In this project `tools/build-icons.ts` writes them
-straight into `src/assets/`, which is where bundled assets live; elsewhere, copy them:
-
-| From                      | To                               |
-| ------------------------- | -------------------------------- |
-| `png/icon-foreground.png` | `src/assets/icon-foreground.png` |
-| `png/icon-monochrome.png` | `src/assets/icon-monochrome.png` |
-| `png/ios-1024.png`        | `src/assets/icon.png`            |
-
-Then in `app.json`:
-
-```json
-{
-  "expo": {
-    "icon": "./src/assets/icon.png",
-    "android": {
-      "adaptiveIcon": {
-        "foregroundImage": "./src/assets/icon-foreground.png",
-        "monochromeImage": "./src/assets/icon-monochrome.png",
-        "backgroundColor": "#2A1656"
-      }
-    }
-  }
-}
-```
-
-Prebuild generates every mipmap density from these, including the legacy rasters, so route A
-covers API 21 upward on its own.
-
-`monochromeImage` needs Expo SDK 50 or newer — drop the line on older SDKs and Android 13
-themed icons simply fall back to the normal icon.
-
-Rebuild with `npx expo prebuild --clean` (or a new EAS build). A JS reload will not pick up an
-icon change.
-
----
-
-## B. Bare / prebuilt Android (`android/` folder exists)
-
-Vector drawables are sharper and smaller than PNGs, so use the XML for anything Android 26+.
-Copy the contents of `res/` over `android/app/src/main/res/`, preserving folder names:
+Copy `res/` over your module's `src/main/res/`. It contains only icon resources, so it
+merges cleanly:
 
 ```
-res/mipmap-anydpi-v26/ic_launcher.xml        → adaptive icon definition
-res/mipmap-anydpi-v26/ic_launcher_round.xml  → same definition, round alias
-res/drawable/ic_launcher_foreground.xml      → the nine ramp cells
-res/drawable/ic_launcher_monochrome.xml      → white + alpha, for Android 13 themed icons
-res/drawable/ic_stat_hfcast.xml              → 24 dp notification glyph
-res/values/ic_launcher_background.xml        → <color name="ic_launcher_background">#2A1656</color>
+app/src/main/res/drawable/ic_launcher_foreground.xml
+app/src/main/res/drawable/ic_launcher_monochrome.xml
+app/src/main/res/drawable/ic_launcher_background.xml   (not needed — background is a colour)
+app/src/main/res/drawable/ic_stat_hfcast.xml
+app/src/main/res/values/ic_launcher_background.xml
+app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml
+app/src/main/res/mipmap-anydpi-v26/ic_launcher_round.xml
+app/src/main/res/mipmap-{m,h,x,xx,xxx}dpi/ic_launcher.png   from png/mipmap-*/
 ```
 
-Then the legacy raster icons for API 25 and below — copy each `png/mipmap-*/` folder into the
-matching `android/app/src/main/res/mipmap-*/`:
-
-```
-mipmap-mdpi     48 px
-mipmap-hdpi     72 px
-mipmap-xhdpi    96 px
-mipmap-xxhdpi  144 px
-mipmap-xxxhdpi 192 px
-```
-
-Each density has `ic_launcher.png` (rounded square) and `ic_launcher_round.png` (circle).
-These are pre-masked on purpose — old launchers apply no mask of their own.
-
-`AndroidManifest.xml` should already reference both; confirm it reads:
+Then in `AndroidManifest.xml`:
 
 ```xml
 <application
     android:icon="@mipmap/ic_launcher"
-    android:roundIcon="@mipmap/ic_launcher_round"
-    ... >
+    android:roundIcon="@mipmap/ic_launcher_round">
 ```
 
-If you delete the old `res/values/ic_launcher_background.xml`, make sure nothing else still
-references `@color/ic_launcher_background`.
+If your `values/ic_launcher_background.xml` already exists, merge the colour rather than
+overwriting the file. The legacy PNGs are only used below API 26; the adaptive icon takes
+over above it.
 
-Do not use `res/values/ic_launcher_background.xml` together with route A. Prebuild writes that
-same colour name into `values/colors.xml` from `adaptiveIcon.backgroundColor`, and two
-resources with one name fail the build.
+`ic_store_foreground.xml` is **not** a launcher resource — it is the full-bleed cut used for
+`play-store-512.png` and `ios-1024.png`. Do not wire it into the manifest.
 
-### Notification icon
+## Geometry
 
-`ic_stat_hfcast.xml` is white-on-transparent with alpha steps, which is what Android expects —
-the system tints it. Reference it when you post a notification:
+- Canvas 108 × 108, centre 54 / 54
+- Cell 7 × 7, corner radius 1.8, lattice pitch 8.5 — identical for every cell
+- Circular opening: any cell whose centre falls inside the hole radius is dropped
+- The compact perimeter is deliberately uneven: five cells sit outside the main ring at
+  r 30.6 — offsets (2,-3) (3,-2) (3,2) (2,3) (-3,-2) (-2,-3) (-2,3) in lattice steps — and
+  three are removed at (-25.5, 0), (8.5, -25.5) and (-25.5, -8.5). The outliers reach 35.5 from centre, so a circle mask clips their
+  outer corners; that is intended, it reads as the field continuing past the edge
+- The compact field carries a second noise term so neighbouring cells differ more in shade;
+  the store field keeps the single, smoother term
+- Ramp `#C9B4F7` · `#9B78E8` · `#7C4BD0` · `#4A2F7D`; core sits up and left of centre,
+  with a directional bias that adds weight down and to the right. The compact field uses all
+  four steps (14 / 4 / 7 / 3); the store field, whose opening removes the core, lands on the
+  lower three only (0 / 8 / 39 / 23) and never reaches the brightest step
+- Background `#2A1656`, flat — no drawable needed, it is a colour resource
+- Glyph `#F3ECFF`: mast `54,64 → 54,53` under an inverted triangle `43,43 · 65,43 · 54,53`,
+  shifted down 3.5, and 5 on the 0.9 launcher cut — its opening is tighter, so it needs more — geometrically centred reads top-heavy because the
+  triangle's mass sits above the stem
 
-```js
-// expo-notifications
-await Notifications.setNotificationChannelAsync('forecast', {/* … */});
-// app.json plugin config
-['expo-notifications', {
-  'icon': './assets/notification-icon.png',
-  'color': '#2A1656',
-}];
+### Glyph cuts
+
+Butt caps, mitre joins — the symbol is drawn sharp, against the rounded cells.
+
+| Context          | Scale                    | Stroke |
+| ---------------- | ------------------------ | ------ |
+| Store, iOS       | 1.0                      | 2.2    |
+| Launcher, legacy | 0.9                      | 2.0    |
+| Monochrome       | 0.9                      | 2.3    |
+| Notification     | redrawn on a 24 viewport | 2.0    |
+
+## Contents
+
+```
+res/drawable/ic_launcher_foreground.xml    compact field + glyph
+res/drawable/ic_launcher_monochrome.xml    same, white with alpha
+res/drawable/ic_store_foreground.xml       full-bleed field + glyph
+res/drawable/ic_stat_hfcast.xml            24 dp notification, glyph only
+res/values/ic_launcher_background.xml      #2A1656
+res/mipmap-anydpi-v26/ic_launcher.xml      adaptive icon wiring
+res/mipmap-anydpi-v26/ic_launcher_round.xml
+
+png/icon-foreground.png                    432, transparent
+png/icon-monochrome.png                    432, white + alpha
+png/icon-background.png                    432, flat
+png/play-store-512.png                     512, opaque, unmasked
+png/ios-1024.png                           1024, opaque, no rounding
+png/mipmap-{m,h,x,xx,xxx}dpi/ic_launcher.png   48 · 72 · 96 · 144 · 192
+preview-sheet.png                          all of the above in one sheet
+
+svg/ic_launcher_foreground.svg             editable source, 108 viewBox
+svg/ic_launcher_monochrome.svg
+svg/store_foreground.svg                   includes the #2A1656 background
+svg/ic_stat_hfcast.svg                     24 viewBox
 ```
 
-Expo's notification plugin wants a PNG rather than a vector; export
-`res/drawable/ic_stat_hfcast.xml` to a 96 × 96 white-on-transparent PNG if you go that route,
-or reference the drawable directly in bare workflow.
+## Expo
 
----
+This application takes the raster route, because it has no checked-in
+`android/` folder for `res/` to be copied into: `expo prebuild` rewrites that
+folder on every build. `app.json` therefore points at three PNGs:
 
-## Play Store
+```json
+"icon": "./src/assets/icon.png",
+"android": {
+  "adaptiveIcon": {
+    "foregroundImage": "./src/assets/icon-foreground.png",
+    "monochromeImage": "./src/assets/icon-monochrome.png",
+    "backgroundColor": "#2A1656"
+  }
+}
+```
 
-`png/play-store-512.png` — 512 × 512, opaque, no rounding applied. Google rounds it for
-display, so do not pre-round it. It uses the same framing as the launcher icon so the store
-listing and the home screen match.
+`src/assets/icon.png` is the full-bleed cut at 1024, which is the same art as
+`png/ios-1024.png`. It serves iOS and the web favicon, neither of which applies
+a launcher mask.
 
-## iOS
+## The PNGs here are generated
 
-`png/ios-1024.png` — 1024 × 1024, opaque, square, no rounding. It is drawn at 1.2× the Android
-framing because iOS applies no mask crop, so the identical scale would leave the art looking
-undersized on the home screen.
+Every file under `png/`, and `preview-sheet.png`, is written by
+`tools/build-icons.ts` from the geometry in `tools/icon-art.ts`:
 
----
+```bash
+node --experimental-strip-types tools/build-icons.ts
+```
 
-## Editing later
+The drawables under `res/` stay the design of record. `test/icon.test.ts`
+rebuilds every path in them from that geometry and compares the result with the
+files, so a change to one side and not the other fails a test rather than
+shipping. It also decodes the PNGs, which is how a delivery of sixteen
+well-formed files holding noise was caught.
 
-`preview-sheet.png` is 1440 × 456 and shows the icon at 192 / 144 / 96 / 72 / 48 / 24 px under
-both a squircle and a circle mask, light on the left and dark on the right, so small-size
-legibility is checkable at a glance. It is generated too.
+Change the mark by editing the drawables and the geometry together, then run
+the generator. Do not hand-place PNGs here.
 
-The design of record is `HFCast App Icon.dc.html` in the project — option 7a. It carries the
-guides, the mask previews, the layer breakdown and the SVG source, and it is where a change of
-design starts. The geometry of record in this repository is `tools/icon-art.ts`, which holds
-the same grid and ramp as numbers. If you change the geometry
-there, regenerate these files rather than editing them by hand: the ramp colours
-(`#C9B4F7 → #9B78E8 → #7C4BD0 → #4A2F7D`) and the indigo background (`#2A1656`) come from the
-app's own palette and should stay in sync with it. Amber (`#FFC24B`) is deliberately absent, so
-it keeps a single meaning inside the product: the hour you are looking at.
+## Known limit
 
-Rules worth not breaking: no text in the icon, no gradients or shadows on the foreground layer,
-all art inside the 66 dp safe circle, and the monochrome layer carries alpha only.
+At 24 dp the triangle outline is about half a pixel and closes up. The notification icon is
+therefore the glyph alone at a heavier stroke, not a shrunk copy of the mark. If a 24 dp
+launcher cut is ever needed, redraw it rather than scaling this one.
