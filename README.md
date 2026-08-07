@@ -3,36 +3,45 @@
 </div>
 <h1 align="center">HFcast</h1>
 
-**HFcast is a privacy-first offline-friendly HF propagation forecasting app for amateur radio operators. Absolutely free, no ads, no tracking of any kind.**
+<h3 align="center">HFcast is a privacy-first offline-friendly HF propagation forecasting app for amateur radio operators. Absolutely free, no ads, no tracking of any kind.</h3>
 
-[<img src="docs/badges/obtainium.png" alt="Get it on Obtainium" width="140">](https://apps.obtainium.imranr.dev/redirect?r=obtainium://add/https://github.com/jonathanmcsweet/hfcast)
-[<img src="docs/badges/get-it-on-github.png" alt="Get it on GitHub" width="140">](https://github.com/jonathanmcsweet/hfcast/releases)
+<p align="center">
+  <a href="https://apps.obtainium.imranr.dev/redirect?r=obtainium://add/https://github.com/jonathanmcsweet/hfcast"><img src="docs/badges/obtainium.png" alt="Get it on Obtainium" width="140"></a>
+  <a href="https://github.com/jonathanmcsweet/hfcast/releases"><img src="docs/badges/get-it-on-github.png" alt="Get it on GitHub" width="140"></a>
+</p>
 
-Pick a place, pick a band, enter your radio settings and get a custom forecast for HF propagation.
+<p align="center"><strong>Pick a place, pick a band, enter your radio settings and get a custom forecast for HF propagation.</strong></p>
 
-Estimated conditions based on historical data through a real, faithful reproduction of the VOACAP engine, the point-to-point propagation model NTIA/ITS has maintained for decades. [Faithfully translated to Rust and running directly on the phone](https://github.com/jonathanmcsweet/hfcast-engine).
+<p align="center">
+  <img src="docs/screenshots/dark-mode-main-screen.png" width="200" alt="Home screen dark theme">
+  <img src="docs/screenshots/light-mode-main-screen.png" width="200" alt="Home screen light theme">
+  <img src="docs/screenshots/low-light-mode-main-screen.png" width="200" alt="Home screen low light theme">
+</p>
+<p align="center">
+  <img src="docs/screenshots/dark-mode-all-bands-screen.png" width="200" alt="All band propagation grid view">
+  <img src="docs/screenshots/dark-mode-station-settings.png" width="200" alt="Station power and mode settings">
+  <img src="docs/screenshots/dark-mode-more-station-settings.png" width="200" alt="Antenna height, type and orientation">
+</p>
 
-<!--
-  TODO(screenshots): add real captures here once the app has been run —
-  a home screen, the band grid, and the station/antenna setup are the
-  three worth showing. Organic Maps crops its App Store/Play Store
-  listings to size for this row; HFcast doesn't have those listings yet.
--->
+<p align="center">
+  <a href="LICENSE"><img src="https://img.shields.io/badge/licence-Apache--2.0-blue" alt="Licence"></a>
+  <a href="docs/quick-start.md"><img src="https://img.shields.io/badge/Android-7.0%2B-3ddc84" alt="Android 7.0+"></a>
+  <a href="https://grapheneos.org/"><img src="https://img.shields.io/badge/GrapheneOS-tested-4a4a4a" alt="GrapheneOS"></a>
+  <a href="https://github.com/jonathanmcsweet/jonathanmcsweet"><img src="https://img.shields.io/badge/built%20with-Isopod-6f42c1" alt="Built with Isopod"></a>
+</p>
 
 ## Privacy
-
-- Runs on a de-Googled phone or your old tablet without any Google services
-- Developed and tested on GrapheneOS
-- Works fully offline by calculating conditions based on historical HF propgation records
-- Nothing about your station, your position, or the path you're checking leaves the device
 
 When online, two features do reach out to the network with no identifying data of yours being sent out:
 
 - Today's space weather (from NOAA)
 - Recent ionosphere measurements (from GIRO)
 
-Also...
-
+Everything else:
+- Runs on a de-Googled phone or your old tablet without any Google services
+- Developed and tested on GrapheneOS
+- Works fully offline by calculating conditions based on historical HF propagation records
+- Nothing about your station, your position, or the path you're checking leaves the device
 - No ads
 - No account
 - No sign-in
@@ -46,7 +55,9 @@ Also...
 - No crapware
 - No spyware
 
-## What the forecast is — and isn't
+## What the forecast is, and isn't
+
+The forecast is based on the point-to-point propagation model NTIA/ITS has maintained for decades. [Faithfully translated to Rust and running directly on the phone](https://github.com/jonathanmcsweet/hfcast-engine).
 
 - When online, HFcast enters live ionospheric data into VOACAP's model to give you the most accurate up to date propagation map.
 - When offline or looking at future times, HFcast uses VOACAP's monthly climatology estimate.
@@ -60,6 +71,11 @@ the correction data — what was measured, and where the model is
 weakest — is documented in [docs/](docs/) and in the engine repository.
 
 ## Build it
+[![CI](https://github.com/jonathanmcsweet/hfcast/actions/workflows/ci.yml/badge.svg)](https://github.com/jonathanmcsweet/hfcast/actions/workflows/ci.yml)
+[![arm64-v8a](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/jonathanmcsweet/hfcast/badges/android-arm64-v8a.json)](https://github.com/jonathanmcsweet/hfcast/actions/workflows/arch.yml)
+[![armeabi-v7a](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/jonathanmcsweet/hfcast/badges/android-armeabi-v7a.json)](https://github.com/jonathanmcsweet/hfcast/actions/workflows/arch.yml)
+[![x86_64](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/jonathanmcsweet/hfcast/badges/android-x86-64.json)](https://github.com/jonathanmcsweet/hfcast/actions/workflows/arch.yml)
+[![x86](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/jonathanmcsweet/hfcast/badges/android-x86.json)](https://github.com/jonathanmcsweet/hfcast/actions/workflows/arch.yml)
 
 Start with the [quick start](docs/quick-start.md) — about 15 minutes on
 a machine that already has the toolchain — then the
