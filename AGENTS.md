@@ -68,6 +68,17 @@ commit. Move the pin with
 `cargo update -p hfcast --precise <version>` in
 `mobile/modules/engine-bridge/rust/`.
 
+`mobile/pnpm-workspace.yaml` carries an `overrides:` block that pins a
+few of Expo's transitive dependencies past versions Dependabot flagged
+(fast-xml-parser, uuid, brace-expansion, js-yaml). `pnpm audit` runs in
+the pre-commit and pre-push hooks, so a newly vulnerable transitive
+dependency will fail a commit or push before it reaches CI. When working
+in `mobile/`, check whether the package that pulls in each pinned
+dependency (`@expo/metro-runtime`, `expo`, `expo-asset`, and so on) has
+since bumped its own requirement past the override. If it has, drop the
+override rather than leaving it in place — `pnpm --dir mobile why
+<package>` shows who still asks for the old version.
+
 ## Chores
 
 - Always bump the version number for any part of the product (ex: core and dashboard) based on semantic versioning when commiting your final work to a branch.
