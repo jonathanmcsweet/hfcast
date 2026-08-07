@@ -1,0 +1,8 @@
+{
+  "name": "hfcast-shared",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Physics and geometry the app and the server both have to agree on",
+  "license": "Apache-2.0",
+  "type": "module"
+}

@@ -283,12 +283,13 @@ describe('the build memory plugin', () => {
  */
 const abiCodes = (): Map<string, number> => {
   const line = /ext\.abiCodes = \[([^\]]+)\]/.exec(ABI_CODES);
-  assert.ok(line, 'the plugin no longer declares ext.abiCodes');
+  const list = line?.[1];
+  assert.ok(list, 'the plugin no longer declares ext.abiCodes');
   return new Map(
-    line?.[1]
+    list
       .split(',')
       .map((entry) => entry.split(':').map((part) => part.trim()))
-      .map(([name, code]) => [name.replaceAll('"', ''), Number(code)]),
+      .map(([name, code]) => [String(name).replaceAll('"', ''), Number(code)]),
   );
 };
 
@@ -342,9 +343,12 @@ describe('the version code each architecture gets', () => {
       );
     const rising = ['0.54.3', '0.54.4', '0.55.0', '0.99.99', '1.0.0'];
     for (const [i, version] of rising.slice(1).entries()) {
+      // `rising[i]` is the entry before `version`, so the index is always
+      // in range. `noUncheckedIndexedAccess` cannot see that.
+      const previous = rising[i] as string;
       assert.ok(
-        Math.min(...all(version)) > Math.max(...all(rising[i])),
-        `${version} does not clear ${rising[i]}`,
+        Math.min(...all(version)) > Math.max(...all(previous)),
+        `${version} does not clear ${previous}`,
       );
     }
   });

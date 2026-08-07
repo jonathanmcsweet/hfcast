@@ -1,34 +1,27 @@
 /**
- * The only shapes the UI knows about. These mirror `server/src/types.ts`;
- * changing one means changing the other.
+ * The only shapes the UI knows about.
+ *
+ * The bands, the cell and the grid point come from `shared/`, which both
+ * projects import, so those cannot drift. The rest mirrors
+ * `server/src/types.ts`: it is the wire contract, and the app's
+ * `PathPrediction` allows a survey's null far end where the server's
+ * always has both.
  */
 
-export type BandKey =
-  | '160m'
-  | '80m'
-  | '40m'
-  | '30m'
-  | '20m'
-  | '17m'
-  | '15m'
-  | '12m'
-  | '10m';
+import type { BandHourPrediction, BandKey } from '../../../shared/bands.ts';
+import type { CoveragePoint } from '../../../shared/points.ts';
 
-/** VOACAP emits one of these per band per hour. */
-export interface BandHourPrediction {
-  /** UTC hour, 0-23. */
-  hour: number;
-  band: BandKey;
-  /** Circuit reliability, 0..1. The "chance of rain" analogue. */
-  reliability: number;
-  /** Median signal-to-noise ratio in dB. */
-  snr: number;
-  /**
-   * Transmit take-off angle in degrees, or null where the engine printed
-   * none. Steep means near-vertical incidence: see `isNvis`.
-   */
-  takeoffAngleDeg: number | null;
-}
+export type {
+  BandHourPrediction,
+  BandKey,
+  RawBandHour,
+} from '../../../shared/bands.ts';
+export {
+  BAND_MHZ,
+  BAND_ORDER,
+  BANDS_BY_FREQ,
+  isBandKey,
+} from '../../../shared/bands.ts';
 
 /** Where the sunspot number driving a run came from. */
 export type PredictionBasis =
@@ -160,56 +153,8 @@ export interface Place {
   admin1: string | null;
 }
 
-export const BAND_ORDER: BandKey[] = [
-  '10m',
-  '12m',
-  '15m',
-  '17m',
-  '20m',
-  '30m',
-  '40m',
-  '80m',
-  '160m',
-];
+export type { CoveragePoint } from '../../../shared/points.ts';
 
-/** Nominal centre frequency, used for the MUF comparison and sorting. */
-export const BAND_MHZ: Record<BandKey, number> = {
-  '160m': 1.84,
-  '80m': 3.75,
-  '40m': 7.1,
-  '30m': 10.12,
-  '20m': 14.2,
-  '17m': 18.1,
-  '15m': 21.2,
-  '12m': 24.94,
-  '10m': 28.4,
-};
-
-/** One grid point of the coverage map. */
-export interface CoveragePoint {
-  lat: number;
-  lon: number;
-  reliability: number;
-  /**
-   * Transmit take-off angle in degrees, where the engine printed one.
-   *
-   * Optional because the coarse whole-world grid does not need it and
-   * older cached answers do not carry it. The fine patch does: near
-   * vertical incidence is a property of this angle and of nothing else,
-   * so it is what tells the region around the station that works without
-   * a skip zone from a long low-angle hop. See `isNvis`.
-   */
-  takeoffAngleDeg?: number | null;
-}
-
-/**
- * Where one band reaches, at one hour, in every direction.
- *
- * `reach` is the share of the globe above the "patchy" threshold, weighted
- * by area — the headline number the map is a picture of. The cell size is
- * the server's, not a request parameter, so the cells always tile without
- * gaps.
- */
 export interface Coverage {
   band: BandKey;
   hour: number;

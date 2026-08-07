@@ -22,7 +22,8 @@ pnpm install --frozen-lockfile
 pnpm fmt:check                 # dprint
 pnpm lint                      # biome
 pnpm --dir mobile typecheck    # tsc --noEmit
-pnpm --dir mobile test
+pnpm --dir mobile test         # both suites: node:test, then jest
+pnpm --dir mobile test:render  # jest alone; it mounts components
 pnpm --dir server typecheck
 pnpm --dir server test
 pnpm test:e2e                  # web export + Playwright, ~5 minutes

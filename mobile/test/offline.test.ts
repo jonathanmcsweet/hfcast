@@ -54,8 +54,9 @@ describe('the sunspot number without a network', () => {
   it('covers every month in between, with no gaps', () => {
     // A gap would be a month of the year in which the app could not predict
     // at all, which is not a failure a smoke test would find.
-    const [firstYear] = SSN_TABLE_RANGE.first.split('-').map(Number);
-    const [lastYear] = SSN_TABLE_RANGE.last.split('-').map(Number);
+    const year = (stamp: string) => Number(stamp.split('-')[0]);
+    const firstYear = year(SSN_TABLE_RANGE.first);
+    const lastYear = year(SSN_TABLE_RANGE.last);
     const months = Array.from(
       { length: (lastYear - firstYear + 1) * 12 },
       (_, i) => [firstYear + Math.floor(i / 12), (i % 12) + 1] as const,

@@ -1,4 +1,13 @@
-import type { Antenna, AntennaKey } from '../store/useStationStore';
+import {
+  type Antenna,
+  type AntennaKey,
+  effectiveHeightM,
+  INVERTED_V_HEIGHT_FRACTION,
+} from '../../../shared/antenna.ts';
+
+// Re-exported because the station dialog names the percentage in the
+// sentence it shows, and reaches for it here.
+export { effectiveHeightM, INVERTED_V_HEIGHT_FRACTION };
 
 /**
  * The antenna definition file the engine reads, built on the device.
@@ -51,45 +60,6 @@ const DESIGN_MHZ = 10;
  */
 const param = (value: string, index: number, name: string) =>
   `${value}  [${field(String(index), 2)}] ${name}`;
-
-/**
- * What fraction of its apex height an inverted V behaves like.
- *
- * VOACAP has no inverted V. IONCAP's ten patterns are the rhombics, the
- * monopole, the dipole, the Yagi, the log periodic, the curtain, the
- * sloping vee and the inverted L, and no later family adds one, so there
- * is nothing to select and nothing to fit.
- *
- * What there is instead is the reason the shape matters at all. A
- * horizontal antenna's gain straight up is set by its height in
- * wavelengths, through the ground reflection: at a quarter wave up it is
- * near its maximum overhead, and by a half wave the overhead lobe has
- * split. An inverted V is a dipole whose ends are pulled down, so its
- * current is spread between the apex and the lower legs and it behaves
- * like a horizontal dipole somewhere below the apex. Four fifths is the
- * usual figure for the shallow droop an amateur actually builds — legs at
- * roughly 30 to 45 degrees below horizontal — and it is a stated
- * approximation rather than a measurement.
- *
- * It is worth having because it moves the answer in the direction the
- * antenna really moves it. A wire at 12 m on 40m is 0.28 wavelengths up
- * and near its best overhead; the same wire as an inverted V behaves like
- * one at 9.6 m, which is 0.23 wavelengths, and near-vertical work is
- * where the difference shows. Telling somebody with an inverted V to
- * choose "dipole" would report the apex height as though the whole wire
- * were up there, which is the one thing that is certainly wrong.
- */
-export const INVERTED_V_HEIGHT_FRACTION = 0.8;
-
-/**
- * The height the engine is given, which is not always the height asked
- * for. Only the inverted V differs — see the constant above.
- */
-export function effectiveHeightM(antenna: Antenna): number {
-  return antenna.type === 'invertedV'
-    ? antenna.heightM * INVERTED_V_HEIGHT_FRACTION
-    : antenna.heightM;
-}
 
 /**
  * The parameters after the five every family shares.

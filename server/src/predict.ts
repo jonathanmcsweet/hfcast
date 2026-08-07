@@ -7,27 +7,10 @@ import { TtlCache } from './cache.ts';
 import { latLonToGrid } from './geo.ts';
 import { bearingDeg, distanceKm } from './geo.ts';
 import { resolveSsn } from './spaceweather.ts';
-import {
-  BANDS_BY_FREQ,
-  type Endpoint,
-  type PathPrediction,
-  type PredictionBasis,
-} from './types.ts';
+import type { Endpoint, PathPrediction, PredictionBasis } from './types.ts';
 import { correctCells, factorsFor, stormWidening } from './voacap/correct.ts';
-import { buildDeck } from './voacap/deck.ts';
-import { ITSHFBC_DIR, runEngine } from './voacap/engine.ts';
-import { parseVoacapOutput } from './voacap/parse.ts';
-import { runVoacap } from './voacap/run.ts';
-
-/**
- * Which engine serves predictions.
- *
- * The Rust port is byte-identical to the Fortran reference and
- * `hfcast-engine`'s `paritycheck` confirms it returns the same fields this server
- * reads. The Fortran path is kept so a deployment can fall back without a
- * code change, and so the two can be compared on a live host.
- */
-const USE_FORTRAN = process.env.HFCAST_ENGINE === 'fortran';
+import { ITSHFBC_DIR } from './voacap/engine.ts';
+import { runPath } from './voacap/pathEngine.ts';
 
 /** Climatology does not change quickly. A day is a conservative lifetime. */
 const PREDICTION_TTL_MS = 24 * 60 * 60 * 1000;
@@ -105,19 +88,34 @@ export async function predict(
     request.basis,
   );
 
+  // Date and basis are per-request; the VOACAP run behind them is not,
+  // so they are put back on the answer rather than cached with it.
+  //
+  // Through `fetch` so that two requests for the same path arriving
+  // together run the engine once. A survey is forty-eight of these in a
+  // row, and two readers on one path used to be ninety-six runs.
   const key = keyFor(request, ssn);
-  const cached = cache.get(key);
-  if (cached) {
-    // Date and basis are per-request; the VOACAP run behind them is not.
-    return { ...cached, date: isoDate(request.date), basis };
-  }
+  const prediction = await cache.fetch(key, async () => {
+    // Written before the run, because the card names a file the engine
+    // opens. Null for an isotropic station, which names no file at all.
+    const txAntenna = request.antenna
+      ? await txCard(ITSHFBC_DIR, request.antenna)
+      : null;
 
-  // Written before the run, because the card names a file the engine
-  // opens. Null for an isotropic station, which names no file at all.
-  const txAntenna = request.antenna
-    ? await txCard(ITSHFBC_DIR, request.antenna)
-    : null;
+    return await runOnce(request, ssn, basis, month, year, txAntenna);
+  });
+  return { ...prediction, date: isoDate(request.date), basis };
+}
 
+/** One run of whichever engine is configured, corrected and assembled. */
+async function runOnce(
+  request: PredictRequest,
+  ssn: number,
+  basis: PredictionBasis,
+  month: number,
+  year: number,
+  txAntenna: Awaited<ReturnType<typeof txCard>> | null,
+): Promise<PathPrediction> {
   const engineRequest = {
     fromLat: request.from.lat,
     fromLon: request.from.lon,
@@ -134,17 +132,7 @@ export async function predict(
     ...(txAntenna ? { txAntenna } : {}),
   };
 
-  const parsed = USE_FORTRAN
-    ? parseVoacapOutput(
-      await runVoacap(buildDeck({
-        ...engineRequest,
-        ...(txAntenna
-          ? { txAntennaFile: txAntenna.file, txBeamDeg: txAntenna.beamDeg }
-          : {}),
-      })),
-      BANDS_BY_FREQ,
-    )
-    : await runEngine(engineRequest);
+  const parsed = await runPath(engineRequest, txAntenna);
 
   if (parsed.cells.length === 0) {
     throw new Error('the engine produced no usable rows');
@@ -161,7 +149,7 @@ export async function predict(
   );
   const mufByHour = parsed.mufByHour;
 
-  const prediction: PathPrediction = {
+  return {
     from: request.from,
     to: request.to,
     distanceKm: distanceKm(
@@ -188,9 +176,6 @@ export async function predict(
     window: parsed.window,
     cells,
   };
-
-  cache.set(key, prediction);
-  return prediction;
 }
 
 export function isoDate(date: Date): string {
@@ -206,5 +191,3 @@ export function endpointFromLatLon(
   const grid = latLonToGrid(lat, lon);
   return { grid, label: label ?? grid, lat, lon };
 }
-
-export const predictionCacheSize = () => cache.size;

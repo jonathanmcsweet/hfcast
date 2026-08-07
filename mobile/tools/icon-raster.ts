@@ -49,7 +49,7 @@ export interface Frame {
   readonly viewport: number;
   /** Painted first. Left out, the output is transparent where nothing draws. */
   readonly background?: Fill;
-  readonly mask?: Mask;
+  readonly mask?: Mask | undefined;
 }
 
 /**

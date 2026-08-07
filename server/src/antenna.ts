@@ -24,54 +24,36 @@ import { createHash } from 'node:crypto';
 import { mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 
-/** Antenna families offered, by VOACAP type number. */
-export const ANTENNA_ORDER = [
-  'isotropic',
-  'dipole',
-  'invertedV',
-  'vertical',
-  'yagi',
-  'invertedL',
-] as const;
+import {
+  type Antenna,
+  type AntennaKey,
+  DEFAULT_ANTENNA,
+  effectiveHeightM,
+  MAX_GAIN_DBD,
+  MAX_HEIGHT_M,
+  MIN_GAIN_DBD,
+  MIN_HEIGHT_M,
+} from '../../shared/antenna.ts';
 
-export type AntennaKey = (typeof ANTENNA_ORDER)[number];
+export type { AntennaKey } from '../../shared/antenna.ts';
+export {
+  ANTENNA_ORDER,
+  DEFAULT_ANTENNA,
+  effectiveHeightM,
+  INVERTED_V_HEIGHT_FRACTION,
+  isAntennaKey,
+  MAX_HEIGHT_M,
+  MIN_HEIGHT_M,
+} from '../../shared/antenna.ts';
 
-export interface AntennaChoice {
-  type: AntennaKey;
-  /**
-   * Height above ground, metres. The feed point for a dipole or yagi, the
-   * element height for a vertical, the horizontal section for an
-   * inverted L, and the apex — the highest point, where the feed is — for
-   * an inverted V.
-   */
-  heightM: number;
-  /**
-   * Gain over a half-wave dipole, dB. Only the yagi reads it; VOACAP
-   * takes a directional array's gain as a number rather than deriving it
-   * from a boom and a count of elements.
-   */
-  gainDbd: number;
-  /**
-   * Where the main beam points, degrees true. Only the yagi reads it.
-   * The caller resolves "at the other station" into a bearing before
-   * getting here.
-   */
-  beamDeg: number;
-}
-
-export const DEFAULT_ANTENNA: AntennaChoice = {
-  type: 'isotropic',
-  heightM: 10,
-  gainDbd: 6,
-  beamDeg: 0,
-};
-
-/** Heights outside this are not a station, they are a typing mistake. */
-export const MIN_HEIGHT_M = 1;
-export const MAX_HEIGHT_M = 100;
-/** A yagi below this is a dipole; above it is not an amateur antenna. */
-export const MIN_GAIN_DBD = 0;
-export const MAX_GAIN_DBD = 20;
+/**
+ * What the server calls an antenna.
+ *
+ * The same shape `shared/antenna.ts` describes. Named here because every
+ * route and every cache key in this project reaches for `AntennaChoice`,
+ * and because the shared name is the app's word for it.
+ */
+export type AntennaChoice = Antenna;
 
 const clamp = (value: number, low: number, high: number) =>
   Math.min(high, Math.max(low, value));
@@ -127,41 +109,6 @@ const DESIGN_MHZ = 10;
  */
 const param = (value: string, index: number, name: string) =>
   `${value}  [${field(String(index), 2)}] ${name}`;
-
-/**
- * What fraction of its apex height an inverted V behaves like.
- *
- * VOACAP has no inverted V. IONCAP's ten patterns are the rhombics, the
- * monopole, the dipole, the Yagi, the log periodic, the curtain, the
- * sloping vee and the inverted L, and no later family adds one, so there
- * is nothing to select and nothing to fit.
- *
- * What there is instead is the reason the shape matters at all. A
- * horizontal antenna's gain straight up is set by its height in
- * wavelengths, through the ground reflection: at a quarter wave up it is
- * near its maximum overhead, and by a half wave the overhead lobe has
- * split. An inverted V is a dipole whose ends are pulled down, so its
- * current is spread between the apex and the lower legs and it behaves
- * like a horizontal dipole somewhere below the apex. Four fifths is the
- * usual figure for the shallow droop an amateur actually builds — legs at
- * roughly 30 to 45 degrees below horizontal — and it is a stated
- * approximation rather than a measurement.
- *
- * Mirrors `mobile/src/data/antennaFile.ts`, and
- * `test/shared-with-app.test.ts` pins the two together: two fractions
- * would give one station two forecasts depending on which path answered.
- */
-export const INVERTED_V_HEIGHT_FRACTION = 0.8;
-
-/**
- * The height the engine is given, which is not always the height asked
- * for. Only the inverted V differs — see the constant above.
- */
-export function effectiveHeightM(antenna: AntennaChoice): number {
-  return antenna.type === 'invertedV'
-    ? antenna.heightM * INVERTED_V_HEIGHT_FRACTION
-    : antenna.heightM;
-}
 
 /**
  * The parameters after the five every family shares.
@@ -330,8 +277,4 @@ export async function txCard(
     // number the model never reads.
     beamDeg: DIRECTIONAL.includes(antenna.type) ? antenna.beamDeg : 0,
   };
-}
-
-export function isAntennaKey(value: string): value is AntennaKey {
-  return (ANTENNA_ORDER as readonly string[]).includes(value);
 }

@@ -54,7 +54,7 @@ import {
   fetchSpaceWeather,
   fetchSurvey,
 } from './client';
-import { FINE_GLOBE_CACHE, MAP_CACHE_MS, pruneFineGlobes } from './mapCache';
+import { MAP_CACHE_MS, pruneFineGlobes } from './mapCache';
 
 /**
  * All network state goes through React Query. Query keys carry every input the
@@ -94,46 +94,16 @@ export const queryKeys = {
   geocode: (query: string, lang: string) => ['geocode', query, lang] as const,
   sounding: (server: string, lat: number, lon: number) =>
     ['sounding', server, lat, lon] as const,
-  coverage: (
-    server: string,
-    from: string,
-    band: string,
-    hour: number,
-    date: string,
-    nowcast: string,
-    station: string,
-  ) => ['coverage', server, from, band, hour, date, nowcast, station] as const,
-  fineGlobe: (
-    server: string,
-    from: string,
-    band: string,
-    hour: number,
-    date: string,
-    nowcast: string,
-    station: string,
-  ) => ['fineGlobe', server, from, band, hour, date, nowcast, station] as const,
-  coveragePatch: (
-    server: string,
-    from: string,
-    band: string,
-    hour: number,
-    date: string,
-    nowcast: string,
-    station: string,
-    grid: string,
-  ) =>
-    [
-      'coveragePatch',
-      server,
-      from,
-      band,
-      hour,
-      date,
-      nowcast,
-      station,
-      grid,
-    ] as const,
 };
+
+/**
+ * The three queries that answer "where does this band reach": the coarse
+ * map, the fine grid over the world, and the patch under the view.
+ *
+ * Named here because the key each of them takes is the same key with a
+ * different first part, and `useMapRun` builds all three.
+ */
+type MapQuery = 'coverage' | 'fineGlobe' | 'coveragePatch';
 
 /**
  * Puts the bands a run answered where their own queries will find them.
@@ -246,6 +216,107 @@ function nowcastFrom(
  */
 const nowcastKey = (nowcast: Nowcast | undefined): string =>
   nowcast ? `${nowcast.effectiveSsn}/${nowcast.kpMax24h}` : 'none';
+
+/**
+ * What a map run is about: this origin, this band, this hour, this day,
+ * these readings, this station — and whether the engine in this build
+ * answers or the server does.
+ *
+ * The three map queries differ in the request they make and in nothing
+ * else. They took the same seven key parts in the same order, the same
+ * arguments to the engine, the same query string to the server and the
+ * same staleness rules, all written out three times. A part added to one
+ * copy and missed in another does not fail: it serves a cached answer
+ * computed for something else.
+ */
+function useMapRun(from: Endpoint, band: BandKey, reportedHour: number) {
+  const date = today();
+  const station = useStation();
+  const local = canMapLocally();
+  const nowcast = nowcastFrom(useSpaceWeather().data);
+  // Long enough to swallow a sweep, short enough that choosing one hour
+  // feels immediate. The engine's own run is of the same order on a slow
+  // device. The three queries share it, so the fine grid and the patch
+  // describe the same moment as the map under them.
+  const hour = useSettled(reportedHour, 350);
+
+  return {
+    local,
+    hour,
+    // Held while the station dialog is open, and run once when it closes.
+    // Every control in that dialog changes the answer, and an area run is
+    // the expensive one.
+    enabled: !station.editing,
+
+    /**
+     * The key for one of these queries.
+     *
+     * `forBand` is how a run that answered every band puts the others
+     * where their own queries will look: same builder, so a key that
+     * stopped matching stops the sharing rather than files one band's map
+     * under another band's name.
+     */
+    key: (
+      kind: MapQuery,
+      forBand: BandKey = band,
+      extra: readonly string[] = [],
+    ) =>
+      [
+        kind,
+        // Which engine answered is part of the identity. A cached answer
+        // from one must not be shown as the other's.
+        local ? 'device' : API_BASE,
+        from.grid,
+        forBand,
+        hour,
+        date,
+        nowcastKey(nowcast),
+        station.key,
+        ...extra,
+      ] as const,
+
+    /**
+     * What the engine in this build is asked. It takes the antenna's own
+     * numbers rather than the query string the server reads.
+     */
+    engine: {
+      from,
+      band,
+      hour,
+      date: new Date(`${date}T00:00:00Z`),
+      station: station.station,
+      nowcast,
+    },
+
+    /** What the server is asked. */
+    request: {
+      from: `${from.lat},${from.lon}`,
+      fromLabel: from.label,
+      band,
+      hour,
+      date,
+      nowcast: true,
+      station: station.params,
+    },
+
+    /**
+     * How long an answer lasts.
+     *
+     * On the device the readings this run was driven by are in the key, so
+     * a stale entry can only be one whose conditions have not moved: there
+     * is nothing to refetch, and the space weather poll is what brings a
+     * new answer. The server picks its own readings, which this key cannot
+     * see, so that path expires on the same interval instead.
+     */
+    keeping: {
+      // So the screen keeps the map it already had rather than falling
+      // back to the loading state on every adjustment.
+      placeholderData: keepPreviousData,
+      staleTime: local ? Number.POSITIVE_INFINITY : SPACE_WEATHER_POLL_MS,
+      gcTime: MAP_CACHE_MS,
+    },
+  };
+}
 
 /**
  * Today's prediction for the path, covering all 24 hours.
@@ -469,82 +540,28 @@ export function useCoverage(
   band: BandKey,
   reportedHour: number,
 ) {
-  const date = today();
-  const station = useStation();
-  const local = canMapLocally();
-  const nowcast = nowcastFrom(useSpaceWeather().data);
-  // Long enough to swallow a sweep, short enough that choosing one hour feels
-  // immediate. The engine's own run is of the same order on a slow device.
-  const hour = useSettled(reportedHour, 350);
+  const run = useMapRun(from, band, reportedHour);
   const client = useQueryClient();
 
   return useQuery({
-    queryKey: queryKeys.coverage(
-      // As for a prediction: which engine answered is part of the identity.
-      local ? 'device' : API_BASE,
-      from.grid,
-      band,
-      hour,
-      date,
-      nowcastKey(nowcast),
-      station.key,
-    ),
+    queryKey: run.key('coverage'),
     queryFn: async () => {
-      if (!local) {
-        return await fetchCoverage({
-          from: `${from.lat},${from.lon}`,
-          fromLabel: from.label,
-          band,
-          hour,
-          date,
-          nowcast: true,
-          station: station.params,
-        });
-      }
-      const all = await coverAllBandsLocally({
-        from,
-        band,
-        hour,
-        date: new Date(`${date}T00:00:00Z`),
-        station: station.station,
-        nowcast,
-      });
+      if (!run.local) return await fetchCoverage(run.request);
+      const all = await coverAllBandsLocally(run.engine);
       // The other bands came back from the same run, so they are put
       // where the query for each of them will look. A band change then
       // reads from memory instead of running the engine again.
-      //
-      // The keys are built by the same function this query is keyed
-      // with, so a key that stopped matching would stop the sharing
-      // rather than serve one band's map under another band's name.
-      seedBands(
-        client,
-        band,
-        all,
-        (other) =>
-          queryKeys.coverage(
-            'device',
-            from.grid,
-            other,
-            hour,
-            date,
-            nowcastKey(nowcast),
-            station.key,
-          ),
-      );
+      seedBands(client, band, all, (other) => run.key('coverage', other));
       return all[band];
     },
-    // As for the prediction: an area run is the more expensive of the two, so
-    // holding it while the station is being adjusted matters more here.
-    enabled: !station.editing,
-    placeholderData: keepPreviousData,
-    staleTime: local ? Number.POSITIVE_INFINITY : SPACE_WEATHER_POLL_MS,
-    gcTime: MAP_CACHE_MS,
+    enabled: run.enabled,
+    ...run.keeping,
     retry: 1,
   });
 }
 
 /**
- * The fine grid around the operator, for the same band and hour.
+ * The fine grid, over the whole world, for one band and hour.
  *
  * A query of its own, and that is the whole point of it. The coarse map is
  * the answer to the question the screen asks, and it has to be drawn as
@@ -552,13 +569,6 @@ export function useCoverage(
  * one cannot reach. Putting both in one request would hold the map back
  * for the sake of detail nobody has asked to wait for, on every hour the
  * slider stops at.
- *
- * It follows the same settled hour as the coarse map, so the two describe
- * the same moment and the fine cells never sit on top of a map drawn for
- * a different hour.
- */
-/**
- * The fine grid, over the whole world, for one band and hour.
  *
  * There is deliberately nothing about the view in the key. The viewport
  * patch has to refetch whenever the map is pointed somewhere else; this
@@ -592,49 +602,18 @@ export function useFineGlobe(
   reportedHour: number,
   enabled = true,
 ) {
-  const date = today();
-  const station = useStation();
-  const local = canMapLocally();
-  const nowcast = nowcastFrom(useSpaceWeather().data);
-  const hour = useSettled(reportedHour, 350);
+  const run = useMapRun(from, band, reportedHour);
 
   const query = useQuery({
-    queryKey: queryKeys.fineGlobe(
-      local ? 'device' : API_BASE,
-      from.grid,
-      band,
-      hour,
-      date,
-      nowcastKey(nowcast),
-      station.key,
-    ),
+    queryKey: run.key('fineGlobe'),
     queryFn: () =>
-      local
-        ? coverFineLocally({
-          from,
-          band,
-          hour,
-          date: new Date(`${date}T00:00:00Z`),
-          station: station.station,
-          nowcast,
-        })
-        : fetchFineGlobe({
-          from: `${from.lat},${from.lon}`,
-          fromLabel: from.label,
-          band,
-          hour,
-          date,
-          nowcast: true,
-          station: station.params,
-        }),
+      run.local ? coverFineLocally(run.engine) : fetchFineGlobe(run.request),
     // `hasSkia` is a renderer limit, not a speed one: the legacy SVG
     // cell field cannot hold 34,560 shapes, so on that build the run
     // would cost seconds and change nothing on screen. Every device that
     // can draw the grid runs it (user, 2026-08-01).
-    enabled: enabled && hasSkia && !station.editing,
-    placeholderData: keepPreviousData,
-    staleTime: local ? Number.POSITIVE_INFINITY : SPACE_WEATHER_POLL_MS,
-    gcTime: MAP_CACHE_MS,
+    enabled: enabled && hasSkia && run.enabled,
+    ...run.keeping,
     // No retry, for the same reason the patch does not: the coarse map
     // is the answer and this is detail on top of it. A second attempt
     // spends seconds of engine time on something whose absence changes
@@ -689,11 +668,7 @@ export function useCoveragePatch(
    */
   enabled = true,
 ) {
-  const date = today();
-  const station = useStation();
-  const local = canMapLocally();
-  const nowcast = nowcastFrom(useSpaceWeather().data);
-  const hour = useSettled(reportedHour, 350);
+  const run = useMapRun(from, band, reportedHour);
   const client = useQueryClient();
   // The same delay the hour gets, for the same reason: a pinch or a drag
   // is a stream of values, and running the engine on each one would
@@ -707,28 +682,16 @@ export function useCoveragePatch(
     ? patchGrid(region.lat, region.lon, region.halfLatDeg)
     : patchGrid(from.lat, from.lon);
 
+  // The rectangle is part of the identity here and of no other map query:
+  // the globe answers every view it holds, and this one is asked about the
+  // view itself.
+  const here = [patchKey(grid)];
+
   return useQuery({
-    queryKey: queryKeys.coveragePatch(
-      local ? 'device' : API_BASE,
-      from.grid,
-      band,
-      hour,
-      date,
-      nowcastKey(nowcast),
-      station.key,
-      patchKey(grid),
-    ),
+    queryKey: run.key('coveragePatch', band, here),
     queryFn: async () => {
-      if (local) {
-        const all = await coverPatchAllBandsLocally({
-          from,
-          band,
-          hour,
-          date: new Date(`${date}T00:00:00Z`),
-          station: station.station,
-          nowcast,
-          region,
-        });
+      if (run.local) {
+        const all = await coverPatchAllBandsLocally({ ...run.engine, region });
         // Null near the antimeridian, where there is no rectangle to
         // run. Nothing to share then, and every band is equally absent.
         if (all === null) return null;
@@ -736,35 +699,14 @@ export function useCoveragePatch(
           client,
           band,
           all,
-          (other) =>
-            queryKeys.coveragePatch(
-              'device',
-              from.grid,
-              other,
-              hour,
-              date,
-              nowcastKey(nowcast),
-              station.key,
-              patchKey(grid),
-            ),
+          (other) => run.key('coveragePatch', other, here),
         );
         return all[band];
       }
-      return await fetchCoveragePatch({
-        from: `${from.lat},${from.lon}`,
-        fromLabel: from.label,
-        band,
-        hour,
-        date,
-        nowcast: true,
-        station: station.params,
-        region,
-      });
+      return await fetchCoveragePatch({ ...run.request, region });
     },
-    enabled: enabled && !station.editing,
-    placeholderData: keepPreviousData,
-    staleTime: local ? Number.POSITIVE_INFINITY : SPACE_WEATHER_POLL_MS,
-    gcTime: MAP_CACHE_MS,
+    enabled: enabled && run.enabled,
+    ...run.keeping,
     // No retry. The coarse map is the answer and this is detail on top of
     // it, so a second attempt spends an engine run, or a request, on
     // something whose absence nothing depends on.

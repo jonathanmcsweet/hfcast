@@ -58,6 +58,3 @@ export function roundPower(watts: number): number {
  * same behaviour while a value is half typed.
  */
 export const parsePower = parseTypedNumber;
-
-/** Power as text for the entry field: no trailing zeroes, no separators. */
-export const powerText = (watts: number): string => String(watts);

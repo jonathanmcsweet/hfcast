@@ -2,6 +2,26 @@
   "extends": "expo/tsconfig.base",
   "compilerOptions": {
     "strict": true,
+    // The same set the server is checked with. They were on there and off
+    // here, which is the wrong way round: this is the project that ships
+    // to a device, and it is where every `as unknown as` escape hatch had
+    // collected.
+    //
+    // `noUncheckedIndexedAccess` is the one that earns its place. Almost
+    // everything here indexes a grid — a cell by band and hour, a point by
+    // row and column — and an index that is one past the end reads as
+    // `undefined` rather than failing, which draws a map with a hole in it.
+    "noUncheckedIndexedAccess": true,
+    "exactOptionalPropertyTypes": true,
+    "verbatimModuleSyntax": true,
+    "isolatedModules": true,
+    "noImplicitOverride": true,
+    "noFallthroughCasesInSwitch": true,
+    // An import nothing uses is how a module that was replaced stays in
+    // the bundle. One survived the shared-module extraction and neither
+    // the compiler nor the linter said so.
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
     "resolveJsonModule": true,
     // Node's type stripping runs the TypeScript sources directly, so an
     // import has to name the extension it is actually loading. Metro
@@ -19,7 +39,12 @@
     // @types package into the program on its own, so the one that is needed has
     // to be named. Without this the imports resolve to nothing and every test
     // file fails to check.
-    "types": ["node"],
+    // `jest` for the same reason: the render tests under `test/render/`
+    // run on jest, and its `describe`, `it` and `expect` are globals. The
+    // rest of the suite imports `describe` and `it` from `node:test`
+    // outright, and a local import beats a global, so the two runners do
+    // not read each other's tests.
+    "types": ["node", "jest"],
     // No `baseUrl`: TypeScript 6 deprecates it, and without one `paths` is
     // read relative to this file, which is where it pointed anyway.
     "paths": { "@/*": ["./src/*"] }

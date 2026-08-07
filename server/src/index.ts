@@ -7,7 +7,6 @@
  *   GET /api/geocode?q=            place name search, or a Maidenhead locator
  *   GET /api/prediction?from&to    one day, optionally as a now-cast
  *   GET /api/survey?from           one day with no destination, every direction
- *   GET /api/forecast?from&to&days several days, one prediction each
  *   GET /api/ionosonde?at=lat,lon  measured foF2 from the nearest sounder
  */
 import {
@@ -16,6 +15,7 @@ import {
   type ServerResponse,
 } from 'node:http';
 
+import { MAX_WATTS, MIN_WATTS } from '../../shared/antenna.ts';
 import {
   ANTENNA_ORDER,
   type AntennaChoice,
@@ -33,6 +33,7 @@ import {
   type Sounding,
   usefulStation,
 } from './ionosonde.ts';
+import { engineLoad } from './limit.ts';
 import { endpointFromLatLon, isoDate, predict } from './predict.ts';
 import { fetchSpaceWeather } from './spaceweather.ts';
 import {
@@ -60,26 +61,13 @@ const DEFAULT_WATTS = 100;
 const DEFAULT_NOISE_DBW = 145;
 
 /**
- * The power the deck can actually carry.
+ * The power range a request may ask for.
  *
- * VOACAP takes power in kilowatts in a fixed four-decimal field, so a
- * tenth of a watt is the smallest value that survives being written down.
- * Measured on Seattle to Tokyo, 2026-07-29: from 100 W down to 0.1 W
- * every step moves the signal-to-noise by exactly ten log of the ratio.
- * At 0.05 W the field rounds and nothing moves, and at 0.01 W it rounds
- * to zero and the run returns 38 dB — a better answer than 100 W.
- *
- * That last case is why this is a floor and not a suggestion: the wrong
- * answer looks entirely ordinary. QRP operators work at a watt and below,
- * so the range has to reach down there, and it has to stop where the
- * model stops meaning anything.
- *
- * The ceiling is where an amateur station ends and the deck's ten-column
- * field would overflow. Clamped rather than refused: a control that stops
- * is friendlier than a request that fails.
+ * `shared/antenna.ts` holds the two numbers, because the app's control
+ * has to stop where this clamps. They had drifted — this accepted
+ * 10,000 W while the app offered 1500 — so the sentence under the power
+ * field named a ceiling that was not the one in force.
  */
-const MIN_WATTS = 0.1;
-const MAX_WATTS = 10_000;
 
 /** Space weather updates on the order of an hour; geocoding barely changes. */
 const spaceWeatherCache = new TtlCache<SpaceWeather>(15 * 60 * 1000, 1);
@@ -385,48 +373,6 @@ function parseRegion(url: URL): MapRegion | null {
   };
 }
 
-async function handleForecast(
-  url: URL,
-): Promise<readonly PredictionResponse[]> {
-  const days = Math.min(14, Math.max(1, num(url.searchParams.get('days'), 5)));
-  const start = parseDate(url.searchParams.get('date'));
-  const from = parseEndpoint(
-    url.searchParams.get('from'),
-    url.searchParams.get('fromLabel'),
-    'from',
-  );
-  const to = parseEndpoint(
-    url.searchParams.get('to'),
-    url.searchParams.get('toLabel'),
-    'to',
-  );
-
-  // Parsed once rather than per day: it is the same station on all of
-  // them, and a rejected value should be reported before any run starts.
-  const station = parseStation(url);
-
-  const dates = Array.from(
-    { length: days },
-    (_, day) => new Date(start.getTime() + day * 86_400_000),
-  );
-
-  // A reduce rather than `Promise.all`, because these must run one at a
-  // time: each prediction is a separate process, and this box has far
-  // less memory than it has cores. Awaiting the accumulator before
-  // calling `predict` is what holds them in order — `map` and `Promise.all`
-  // would start all fourteen at once.
-  return await dates.reduce<Promise<readonly PredictionResponse[]>>(
-    async (soFar, date) => [
-      ...(await soFar),
-      {
-        prediction: await predict({ from, to, date, ...station }),
-        spaceWeather: null,
-      },
-    ],
-    Promise.resolve([]),
-  );
-}
-
 /**
  * Measured foF2 near a point. `null` when there is no live station in
  * range or the service did not answer, which is the ordinary case outside
@@ -516,7 +462,12 @@ function send(res: ServerResponse, status: number, body: unknown): void {
 async function route(url: URL): Promise<unknown> {
   switch (url.pathname) {
     case '/health':
-      return { ok: true, now: isoDate(new Date()) };
+      // The engine gate is reported here because it is the one thing
+      // about this service that a caller cannot infer from a response
+      // time: a host with every slot busy and a queue behind it is
+      // healthy and slow, which looks exactly like a host that is
+      // failing.
+      return { ok: true, now: isoDate(new Date()), engine: engineLoad() };
     case '/api/spaceweather': {
       const sw = await trySpaceWeather();
       if (!sw) throw new Error('space weather upstream unavailable');
@@ -534,8 +485,6 @@ async function route(url: URL): Promise<unknown> {
       return await handleCoveragePatch(url);
     case '/api/coverage/fine':
       return await handleCoverageFine(url);
-    case '/api/forecast':
-      return await handleForecast(url);
     case '/api/ionosonde':
       return await handleIonosonde(url);
     default:

@@ -25,8 +25,14 @@ target/
 # committed into this one.
 /hfcast-engine/
 
-# The roadmap and the completions ledger are kept outside this
-# repository. They stay in the working tree so a session can read and
-# update them, and must never be committed here.
-/docs/roadmap.md
-/docs/roadmap-progress.md
+# The roadmap, the completions ledger and any review written for one
+# branch are kept outside this repository. They stay in the working tree
+# so a session can read and update them, and must never be committed
+# here.
+#
+# Matched by prefix rather than by exact name. The two rules here were
+# `/docs/roadmap.md` and `/docs/roadmap-progress.md`, and the files are
+# called `hfcast-roadmap.md` and `hfcast-roadmap-progress.md`, so
+# neither rule matched anything and 227 KB sat untracked and unignored.
+/docs/*roadmap*.md
+/docs/code-review-*.md
