@@ -109,6 +109,17 @@ npx playwright install chromium
 
 Without this the server starts and every page fails to open.
 
+To find out whether a clone is ready, and what is wrong when it is not:
+
+```bash
+node tools/check-mcp.mjs                        # server and browser
+node tools/check-mcp.mjs http://127.0.0.1:8099  # and a running build
+```
+
+The editor says only that the server did not connect, which is the same
+message for every cause. This says which one it is: the command was not
+found, the browser is missing, or the page did not open.
+
 Use it against the web build, the same one the e2e tests read:
 
 ```bash
@@ -121,11 +132,26 @@ hand from time to time with `npm view @playwright/mcp version`. A new
 version can pin a new browser build, so run the install command above
 again after moving the pin.
 
+`.mcp.json` names `npx` and expects to find it. Some machines keep node
+somewhere that is not on the PATH the editor starts programs with, and
+the server then fails to start at all. The check above reports this as
+`ENOENT`. Do not put a machine path in this shared file: give the server
+the full path to `npx` and a PATH of its own in your own settings
+instead, which the editor reads for you alone.
+
 Two flags are set on purpose. `--browser chromium` uses the browser the
 command above installs; without it the server looks for Google Chrome in
 the system and fails where there is none. `--headless` draws nothing;
 remove it to watch the browser work. Page snapshots are written to
 `.playwright-mcp/`, which git ignores.
+
+Ask for a screenshot without giving it a name. The two cases are filed
+differently on purpose. A screenshot with no name is the server's own
+working material, so it goes to the output directory. A screenshot with
+a name is a file you asked for, so it goes to the top of the workspace
+the editor reports — the top of this repository — and `--output-dir`
+does not move it. Images at the top are ignored as well, so a named one
+does no harm, but an unnamed one is filed with the rest.
 
 ## Chores
 
