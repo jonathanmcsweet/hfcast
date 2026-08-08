@@ -100,6 +100,10 @@ checking on dependency vulnerabilities in `mobile/`.
 the web build, read the page and press things, instead of only reading
 the test output. The agent asks to start it the first time.
 
+Nothing has to be added to your settings for this. `.mcp.json` names
+`tools/mcp-playwright.sh`, which finds node itself, so the server starts
+whether or not the editor was given a PATH with node on it.
+
 It needs a browser, which is a separate download from the one the e2e
 tests use. Once per clone:
 
@@ -126,23 +130,19 @@ Use it against the web build, the same one the e2e tests read:
 cd mobile && pnpm web:export && npx expo serve dist --port 8099
 ```
 
-The version in `.mcp.json` is pinned. Dependabot does not read that
-file, so nothing will report a new one — check for a newer version by
-hand from time to time with `npm view @playwright/mcp version`. A new
-version can pin a new browser build, so run the install command above
-again after moving the pin.
+The version is pinned, in `tools/mcp-playwright.sh`. Dependabot does not
+read that file, so nothing will report a new one — check for a newer
+version by hand from time to time with `npm view @playwright/mcp
+version`. A new version can ask for a browser build that is not on the
+machine yet, so run the install command above again after moving the
+pin, and then `node tools/check-mcp.mjs`.
 
-`.mcp.json` names `npx` and expects to find it. Some machines keep node
-somewhere that is not on the PATH the editor starts programs with, and
-the server then fails to start at all. The check above reports this as
-`ENOENT`. Do not put a machine path in this shared file: give the server
-the full path to `npx` and a PATH of its own in your own settings
-instead, which the editor reads for you alone.
-
-Two flags are set on purpose. `--browser chromium` uses the browser the
-command above installs; without it the server looks for Google Chrome in
-the system and fails where there is none. `--headless` draws nothing;
-remove it to watch the browser work. Page snapshots are written to
+Three options in that script are set on purpose. `--browser chromium`
+uses the browser the install command downloads; without it the server
+looks for Google Chrome in the system and fails where there is none.
+`--headless` draws nothing; remove it to watch the browser work.
+`--isolated` keeps the browser profile in memory, so no profile
+directory is left behind. Page snapshots are written to
 `.playwright-mcp/`, which git ignores.
 
 Ask for a screenshot without giving it a name. The two cases are filed
