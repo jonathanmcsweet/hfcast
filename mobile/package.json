@@ -1,6 +1,6 @@
 {
   "name": "hfcast",
-  "version": "0.57.3",
+  "version": "0.58.1",
   "license": "Apache-2.0",
   "packageManager": "pnpm@11.17.0",
   "main": "index.js",
@@ -67,7 +67,7 @@
     "jest-expo": "^57.0.3",
     "react-test-renderer": "^19.2.3",
     "topojson-client": "^3.1.0",
-    "typescript": "~6.0.3",
+    "typescript": "~7.0.2",
     "world-atlas": "^2.0.2"
   },
   "private": true
