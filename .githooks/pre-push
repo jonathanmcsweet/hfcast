@@ -34,9 +34,15 @@ pnpm_bin() {
 
 pnpm="$(pnpm_bin)"
 
-echo "pre-push: dependency audit"
+# Each audit is named. The three run one after the other, and without a
+# name before each one it is not possible to tell which package reported
+# a finding: the output of one package sits directly under the result of
+# the one before it.
+echo "pre-push: dependency audit (tooling)"
 "$pnpm" audit
+echo "pre-push: dependency audit (mobile)"
 "$pnpm" --dir mobile audit
+echo "pre-push: dependency audit (server)"
 "$pnpm" --dir server audit
 
 echo "pre-push: mobile typecheck"
