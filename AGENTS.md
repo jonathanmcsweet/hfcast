@@ -2,15 +2,34 @@
 
 ## Your behavior
 
-- Speak to me in ASD-STE100 Simplified Technical English when explaining technical information
-- Write documentation in a very simple jargon-free english style that all english speakers internationally can understand
-- Be concise, articulate with your language in interactions and avoid idioms that may confuse people who don't know what they mean. Use simple language
+- Never modify this document without consulting the user first
+- Explain things in concise, plain english free of technical jargon.
+- Use technical terms accurate to the domain terms in the codebase
+- When making technical decisions, do not give weight to development cost or development hours. Instead prefer readability, quality, simplicity, robustness, scalability, testability, and long term maintainability
 
-## Open work and progress
+## Roadmap and progress — read and update it, don't rely on memory
 
-Open work is tracked by the maintainer outside this repository. Do not
-create tracker or progress documents. If you defer work or find a gap,
-describe it in the pull request and the maintainer will record it.
+**`docs/roadmap.md` is the SINGLE SOURCE of open work** — deferred features and known gaps, each with the constraint that motivated deferral. It must survive a compacted or cleared session, so keep it current instead of holding state in your head:
+
+- At the start of a task, read the roadmap to see current status; at the end,update it so the next agent (or the next session) picks up an accurate picture.
+- When you finish a roadmap item, record it in **`docs/roadmap-progress.md`**
+  (the completions ledger: date, section title, version, branch, short
+  as-built note) and DELETE the finished section from roadmap.md
+- NO completion notes, RESOLVED markers, or progress pointers
+  in roadmap.md, ever
+- it holds only open work. A partially finished item keeps a section describing only what is still open, with the
+  shipped half recorded in the ledger.
+- When you defer new work, add a roadmap section describing it and why. **Check the ledger before assuming an item is open**
+- Do not create new progress-tracker docs for multi-stage builds without the user asking
+
+## Core coding principles
+
+- Always use a function-first immutability-first coding style unless the developer approves of you not doing so
+- Use pure functional programming style unless the developer approves of you not doing so. A function is pure when:
+  1. the function return values are identical for identical arguments (no variation with local static variables, non-local variables, mutable reference arguments or input streams, i.e., referential transparency), and
+  2. the function has no side effects (no mutation of non-local variables, mutable reference arguments or input/output streams).
+- Effects that cannot be avoided belong at the edges of the code
+- Use the DRY principle (reducing redundancy by ensuring that every piece of knowledge has a single, authoritative representation in a system) unless the excess abstraction complicates the code by creating unnecessary layers that make it harder to understand, modify, test.
 
 ## Build and verify
 
@@ -214,12 +233,6 @@ does no harm, but an unnamed one is filed with the rest.
   - `chore: adopt test/ and lib/ layout`
 - End messages with the `Co-Authored-By:` trailer naming the AI model used.
 
-## Before committing
-
-- Run all unit tests
-- Run all linting
-- Never commit items in `.gitignore`.
-
 ## No inline foreign-language code — extract to its own file
 
 - NEVER embed another language (Python, etc.) inline in any other file
@@ -242,14 +255,10 @@ does no harm, but an unnamed one is filed with the rest.
 - All network state management needs to be in React Query
 - All non-network app state management needs to be managed by Zustand
 
-## Backend code
-
-- Follow the Typescript rules above
-
 ## UX
 
 - Use the Material UI/UX framework
 - WCAG compliance is required
   - If a feature can't be WCAG compliant, propose an alternative for users that need it. I.e. a table for those who can't see a graph
 - i18n compatability is a must
-- **Everything must work on both mobile and tablet.**
+- **Everything must work on both mobile and tablet. And for the web version in all sizes**
