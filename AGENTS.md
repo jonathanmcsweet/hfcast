@@ -100,18 +100,43 @@ checking on dependency vulnerabilities in `mobile/`.
 the web build, read the page and press things, instead of only reading
 the test output. The agent asks to start it the first time.
 
-Nothing has to be added to your settings for this. `.mcp.json` names
-`tools/mcp-playwright.sh`, which finds node itself, so the server starts
-whether or not the editor was given a PATH with node on it.
-
-It needs a browser, which is a separate download from the one the e2e
-tests use. Once per clone:
+Once per machine, download the browser the server needs:
 
 ```bash
-npx playwright install chromium
+node tools/setup-mcp.mjs
 ```
 
-Without this the server starts and every page fails to open.
+Do not use `npx playwright install chromium` for this. Run in this
+repository, that resolves the e2e suite's Playwright and downloads that
+suite's browser build, which is a different build than the server asks
+for. The server then starts and every page fails to open. The script
+installs through the server's own pinned package, so the two always
+agree.
+
+That is the whole setup when the folder your editor has open is this
+repository: `.mcp.json` here names `tools/mcp-playwright.sh`, which
+finds node itself, so the server starts whether or not the editor was
+given a PATH with node on it.
+
+Two other situations need one more step.
+
+The editor has a parent folder open — a workspace that holds this
+repository next to others, as the development container does. The
+editor then looks for `.mcp.json` at that root and never sees the one
+committed here. Declare the server there:
+
+```bash
+node tools/setup-mcp.mjs <folder the editor has open>
+```
+
+This writes `.mcp.json` in that folder, pointing at the launcher by its
+full path. The file may hold servers for other projects, so only the
+`playwright` entry is written and everything else is kept.
+
+The agent is not Claude Code. Any MCP client that can start a stdio
+server can use `tools/mcp-playwright.sh` as the command, with no
+arguments and no environment. Put that in whatever file your client
+reads; the server side needs nothing more.
 
 To find out whether a clone is ready, and what is wrong when it is not:
 
@@ -134,8 +159,8 @@ The version is pinned, in `tools/mcp-playwright.sh`. Dependabot does not
 read that file, so nothing will report a new one — check for a newer
 version by hand from time to time with `npm view @playwright/mcp
 version`. A new version can ask for a browser build that is not on the
-machine yet, so run the install command above again after moving the
-pin, and then `node tools/check-mcp.mjs`.
+machine yet, so after moving the pin run `node tools/setup-mcp.mjs`
+again, and then `node tools/check-mcp.mjs`.
 
 Three options in that script are set on purpose. `--browser chromium`
 uses the browser the install command downloads; without it the server

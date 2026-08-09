@@ -218,6 +218,11 @@ const main = async () => {
 
   say(true, `a page opened: ${target}`);
   console.log('\nthis clone can use the Playwright MCP server');
+  console.log(
+    'if the editor still reports no server, the folder it has open is\n'
+      + 'probably not this repository. Declare the server at that root:\n'
+      + '  node tools/setup-mcp.mjs <folder the editor has open>',
+  );
   return 0;
 };
 
