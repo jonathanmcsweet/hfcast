@@ -1,98 +1,18 @@
-# Settings only: no `packages:` key. This file exists so that pnpm, run from
-# this directory, treats the app as its own root project with its own
-# pnpm-lock.yaml, rather than walking up to the repository root and installing
-# that project instead.
+# Settings only: no `packages:` key, so mobile/ and server/ stay independent
+# projects rather than becoming workspace members.
 #
-# `nodeLinker: hoisted` is what keeps the app buildable. Metro and @expo/cli
-# both reach into packages they never declared as dependencies — @expo/cli
-# deep-imports `metro/src/lib/TerminalReporter`, and Metro's file map ignores
-# anything outside the project directory, which is where pnpm's symlinks point.
-# Neither works under pnpm's default isolated layout. Expo's own guidance for
-# pnpm is a flat tree.
+# pnpm 11 no longer reads pnpm-specific settings from .npmrc or from the "pnpm"
+# field in package.json. This file is the only place it looks, and it is also
+# what makes pnpm treat a directory as a root project. mobile/ carries its own
+# copy for that reason: without one, `pnpm install` run from there walks up to
+# this file and installs this project instead of the app.
 #
-# This lived in .npmrc until pnpm 11 stopped reading pnpm settings from there,
-# which broke the web build silently: the next install relinked the tree
-# isolated and nothing reported it, because nothing in this project builds the
-# app. Putting it back in .npmrc would look correct and do nothing.
-nodeLinker: hoisted
-
-# Expo's dependencies run build scripts to fetch or compile platform binaries.
-# pnpm 11 fails the install rather than running unreviewed ones; the gate is
-# turned off here for the same reason as at the repository root.
+# pnpm 11 also fails an install when a dependency's build script has not been
+# reviewed. dprint and biome resolve their prebuilt platform binary that way.
+# `onlyBuiltDependencies` is read by `pnpm config` but does not clear the check
+# in 11.10.0, so the gate is turned off for this tooling-only project. Both
+# binaries are verified to run without their build script.
 strictDepBuilds: false
-
-# pnpm 11 holds back releases younger than its minimum age, which would pin this
-# project to whatever Expo shipped some weeks ago rather than to the SDK it was
-# upgraded to. Each entry names a version that was chosen deliberately. pnpm
-# writes this list itself on install; it is kept rather than removed, because
-# without it the next install quietly resolves different versions.
-minimumReleaseAgeExclude:
-  - '@expo/cli@57.0.11'
-  - '@expo/inline-modules@0.1.4'
-  - '@expo/local-build-cache-provider@57.0.5'
-  - '@expo/log-box@57.0.2'
-  - '@expo/metro-runtime@57.0.8'
-  - '@expo/prebuild-config@57.0.10'
-  - babel-preset-expo@57.0.5
-  - expo-asset@57.0.8
-  - expo-build-properties@57.0.8
-  - expo-constants@57.0.8
-  - expo-modules-core@57.0.8
-  - expo-updates@57.0.11
-  - expo@57.0.9
-
-# Skia ships its Android and Apple binaries as separate packages and its
-# postinstall copies them into the place its Gradle script reads,
-# `libs/android`. Without it the Android build has no Skia to link and
-# fails at the native step. Reviewed: the script only copies files
-# between directories inside node_modules.
 allowBuilds:
   '@biomejs/biome': set this to true or false
-  '@shopify/react-native-skia': true
   dprint: set this to true or false
-
-# Dependabot-flagged transitive dependencies, pulled in only through Expo's
-# own tooling (none of these are declared directly here). Pinned to the
-# patched release within whatever major line the requester already pins.
-# This file is also what the legacy build installs against (build-android.sh
-# copies it unchanged into the legacy work tree), so entries here cover
-# both `mobile/pnpm-lock.yaml` and `mobile/legacy/pnpm-lock.yaml`.
-overrides:
-  fast-xml-parser: ^5.10.1
-  uuid: ^14.0.1
-  brace-expansion@5: 5.0.9
-  js-yaml@3: 3.15.1
-  js-yaml@4: 4.3.1
-  nanoid@3: ^3.3.17
-  # legacy (Expo SDK 50) only, below this line
-  fast-uri@3.1.4: ^3.1.5
-  postcss@8.4.49: 8.5.25
-  semver@7.3.2: 7.5.3
-  send@0.18.0: 0.19.2
-  '@xmldom/xmldom@0.7.13': 0.9.10
-  brace-expansion@1.1.17: 1.1.18
-  # tar 6.x was never patched for these CVEs; the fix only ever shipped on 7.x.
-  tar@6.2.1: ^7.5.22
-
-# Two advisories against `image-size` that no released version fixes yet. Both
-# name 2.0.3 as the patched version, but the newest release is 2.0.2 (checked
-# 2026-08-09), so there is nothing to move to: not on the 1.x line Metro asks
-# for (`image-size: ^1.0.2`), and not on 2.x either.
-#
-# Both are an infinite loop in an image parser (ICNS, and JXL/HEIF). The only
-# thing here that reads `image-size` is Metro, in `metro/src/Assets.js`, which
-# measures image files while it builds a bundle. It does not run in the app.
-# Reaching it needs a prepared image file inside the project, so the risk is to
-# a machine doing a build, not to a person using the app.
-#
-# These two entries stop the audit failing every commit and every push while no
-# fix exists. Remove them as soon as `image-size` publishes 2.0.3 or a 1.x fix,
-# and add the version to `overrides:` above instead. Check with:
-#
-#     npm view image-size versions
-#
-# Keep this list to named advisories. A wider rule would hide the next one.
-auditConfig:
-  ignoreGhsas:
-    - GHSA-w3rx-r6r6-pgpr # image-size: ICNS parser infinite loop
-    - GHSA-5p2g-fcmc-qvqq # image-size: JXL and HEIF parser infinite loops
