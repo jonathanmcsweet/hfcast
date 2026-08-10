@@ -182,16 +182,28 @@ class HfcastEngineModule : Module() {
         val inFlight = AtomicInteger(0)
         val widest = AtomicInteger(0)
         var computeNs = 0L
+        var cpuMs = 0L
         try {
           val running = requests.map { request ->
             pool.submit<String?> {
               val here = inFlight.incrementAndGet()
               widest.updateAndGet { most -> if (here > most) here else most }
               val began = System.nanoTime()
+              // This thread's processor time, as opposed to the clock on the
+              // wall. A thread stalled on memory is still on its core, so
+              // stalls count here; a thread parked by the scheduler is not,
+              // so parking does not. The difference between the two totals
+              // is the difference between "the cores are busy and slow" and
+              // "the threads are waiting for a core".
+              val cpuBegan = android.os.SystemClock.currentThreadTimeMillis()
               try {
                 predictNative(request)
               } finally {
-                synchronized(this) { computeNs += System.nanoTime() - began }
+                val cpuHere = android.os.SystemClock.currentThreadTimeMillis() - cpuBegan
+                synchronized(this) {
+                  computeNs += System.nanoTime() - began
+                  cpuMs += cpuHere
+                }
                 inFlight.decrementAndGet()
               }
             }
@@ -203,16 +215,26 @@ class HfcastEngineModule : Module() {
             val wallMs = (System.nanoTime() - startedAt) / 1_000_000
             val busyMs = computeNs / 1_000_000
             val characters = answers.sumOf { it?.length ?: 0 }
-            // `busy / wall` is how many cores the batch actually used. A
-            // number near one, from a pool of eight, is a pool that is not
-            // running in parallel — whatever `widest` claims about how many
-            // were admitted.
-            val used = if (wallMs > 0) busyMs.toDouble() / wallMs else 0.0
+            // Two ratios, and they answer different questions.
+            //
+            // `engine / wall` counts tasks in flight. It says eight even
+            // when all eight are only waiting, so on its own it cannot tell
+            // a busy pool from a stalled one — a Pixel 8 reported 7.8 here
+            // while each strip ran five times slower than it does alone.
+            //
+            // `cpu / wall` counts cores actually held. In flight high and
+            // busy low means the threads are waiting for cores — the
+            // scheduler, or thermal limits. Both high while each strip is
+            // slow means the cores are held but starved, which is memory.
+            val flight = if (wallMs > 0) busyMs.toDouble() / wallMs else 0.0
+            val busy = if (wallMs > 0) cpuMs.toDouble() / wallMs else 0.0
             Log.i(
               "hfcast",
               "batch | ${requests.size} strips | $width threads asked | " +
                 "${widest.get()} at once | wall $wallMs ms | " +
-                "engine $busyMs ms | ${"%.1f".format(used)} cores used | " +
+                "engine $busyMs ms | cpu $cpuMs ms | " +
+                "${"%.1f".format(flight)} in flight | " +
+                "${"%.1f".format(busy)} cores busy | " +
                 "$characters chars back",
             )
           }

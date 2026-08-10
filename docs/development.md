@@ -195,20 +195,33 @@ written until something asks for it, so an ordinary run measures nothing.
 
 ```
 native | in 412 B 0 ms | predict 214 ms | out 186234 B 41 ms | total 255 ms
-batch  | 16 strips | 8 threads asked | 8 at once | wall 980 ms | engine 4310 ms | 4.4 cores used | 2380114 chars back
-[hfcast] benchmark: fine grid, one hour | 34560 points | native 1020 | parse 460 | total 1480
+batch  | 16 strips | 8 threads asked | 8 at once | wall 980 ms | engine 4310 ms | cpu 3900 ms | 4.4 in flight | 4.0 cores busy | 2380114 chars back
+[hfcast] benchmark: fine grid, 4 threads | 34560 points | native 1020 | parse 460 | total 1480
 ```
 
 The first is one strip, from inside the Rust. `predict` is the
 arithmetic; `out` is the boundary, and its size is the answer it had to
 convert.
 
-The second is the whole batch, from Kotlin. **`cores used` is the
-number to look at first.** It is engine time divided by wall time, so it
-says how many cores the batch really got. A batch that asks for eight
-threads, admits eight at once and still reports about one core used is
-not a slow telephone — it is a pool that is not running in parallel, and
-no amount of work on the arithmetic would help it.
+The second is the whole batch, from Kotlin, and it carries two ratios
+that answer different questions. `in flight` is engine time divided by
+wall time: how many strips were running at the same moment. `cores
+busy` is processor time divided by wall time: how many cores the batch
+really held. Read them together:
+
+| in flight | cores busy | each strip       | it means                                                    |
+| --------- | ---------- | ---------------- | ----------------------------------------------------------- |
+| high      | high       | as fast as alone | healthy — the pool works                                    |
+| high      | low        | slow             | threads waiting for cores: the scheduler, or thermal limits |
+| high      | high       | slow             | cores held but starved — the strips fight over memory       |
+| about one | about one  | —                | the pool is not running in parallel at all                  |
+
+A Pixel 8 measured the third row: eight strips in flight, and each one
+five times slower than it runs alone. That is memory contention, and
+more threads cannot fix it — which is what the benchmark's thread sweep
+is for. It runs the same grid at 1, 2, 4 and the map's own thread
+count; where the total stops falling is the count this device is worth,
+and past that the extra threads are only heat.
 
 The third is the application's own line. `native` is everything up to
 the answers arriving as text; `parse` is turning them into objects, on

@@ -11,5 +11,24 @@
     "activityBar.background": "#7e2a07",
     "activityBar.foreground": "#ffffff"
   },
-  "window.title": "[hfcast] ${dirty}${activeEditorShort}${separator}${rootName}"
+  "window.title": "[hfcast] ${dirty}${activeEditorShort}${separator}${rootName}",
+  "files.watcherExclude": {
+    "**/.expo/**": true,
+    "**/.git/objects/**": true,
+    "**/.gradle/**": true,
+    "**/build/**": true,
+    "**/.cxx/**": true,
+    "**/dist/**": true,
+    "**/mobile/android/**": true,
+    "**/mobile/ios/**": true,
+    "**/node_modules/**": true,
+    "**/target/**": true
+  },
+  "search.exclude": {
+    "**/.gradle/**": true,
+    "**/build/**": true,
+    "**/.cxx/**": true,
+    "**/mobile/android/**": true,
+    "**/target/**": true
+  }
 }

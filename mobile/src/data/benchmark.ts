@@ -93,23 +93,36 @@ async function stage(
 }
 
 /**
+ * How many threads the sweep tries, smallest first.
+ *
+ * A Pixel 8 measured the answer this sweep exists to find: eight threads
+ * in flight, each strip five times slower than it runs alone. That is
+ * memory contention, and contended work often runs fastest well short of
+ * the core count. Where the sweep peaks is the number the map should ask
+ * for — measured on the device in hand, not assumed from the core count.
+ *
+ * Ascending order means the later, hotter runs fall on the higher counts.
+ * That understates them a little, and that is the safe direction: a real
+ * map run starts warm too.
+ */
+const SWEEP = [1, 2, 4] as const;
+
+/**
  * Runs the benchmark and returns what it measured.
  *
- * Four stages, each answering one question the others cannot.
+ * The stages, each answering one question the others cannot.
  *
  * The first is one strip on one thread. It is the honest per-core speed
  * of this device, with no pool and no sharing, and every other number is
  * read against it.
  *
- * The second is the same work cut into strips across the pool. Against
- * the first it says whether the threads are real. A phone whose pool of
- * eight gives no more than one core did is a phone with a scheduling
- * fault, not a slow phone, and nothing else on the screen would show it.
+ * Then the whole-world fine grid — the run that was measured at 3.9
+ * seconds — once at each thread count in the sweep and once at the count
+ * the map uses today. Together they draw the curve: where it stops
+ * rising is the thread count this device is actually worth, and past the
+ * peak the extra threads are only heat.
  *
- * The third is the whole-world fine grid, which is the run that was
- * measured at 3.9 seconds. It is the one that matters.
- *
- * The fourth is the same grid asked for as a whole day rather than one
+ * The last is the same grid asked for as a whole day rather than one
  * hour — the run the corrected map added. It costs about fifteen times
  * one hour at the same places rather than twenty-four, and this is where
  * that is checked on real hardware rather than assumed from a desktop.
@@ -127,6 +140,7 @@ export async function runBenchmark(): Promise<BenchmarkResult> {
   };
   const strips = latShards(undefined, FINE_LAT_STEP, FINE_LON_STEP, 16) ?? [];
   const first = strips[0];
+  const grid = strips.map((bounds) => ({ ...world, ...bounds }));
 
   const stages: Stage[] = [];
   // Sequential on purpose: these share one engine, and stages running
@@ -135,21 +149,14 @@ export async function runBenchmark(): Promise<BenchmarkResult> {
     stages.push(
       await stage('one strip, one thread', [{ ...world, ...first }], 1),
     );
-    stages.push(
-      await stage(
-        'one strip, whole pool',
-        [{ ...world, ...first }],
-        threads,
-      ),
-    );
   }
-  stages.push(
-    await stage(
-      'fine grid, one hour',
-      strips.map((bounds) => ({ ...world, ...bounds })),
-      threads,
-    ),
-  );
+  // A loop rather than `map`, because each run must finish before the
+  // next starts: the sweep exists to measure thread counts one at a
+  // time, and overlapped runs would measure each other.
+  for (const count of SWEEP.filter((each) => each < threads)) {
+    stages.push(await stage(`fine grid, ${count} threads`, grid, count));
+  }
+  stages.push(await stage(`fine grid, ${threads} threads`, grid, threads));
 
   // The whole-day lattice, at the step the correction uses. Far fewer
   // places, far more hours at each.
