@@ -96,6 +96,15 @@ const LOCAL_ENOUGH = 5;
  */
 export const SPACE_WEATHER_POLL_MS = 15 * 60 * 1000;
 
+/**
+ * How old a space weather reading may be and still describe now.
+ *
+ * Twenty-four hours, because the number it carries is the highest K
+ * index of the last twenty-four. See `nowcastFrom`, which is where it is
+ * applied and why it matters.
+ */
+export const NOWCAST_GOOD_FOR_MS = 24 * 60 * 60 * 1000;
+
 export const queryKeys = {
   spaceWeather: (source: string) => ['spaceWeather', source] as const,
   prediction: (
@@ -216,6 +225,27 @@ function nowcastFrom(
   spaceWeather: SpaceWeather | undefined,
 ): Nowcast | undefined {
   if (!spaceWeather) return undefined;
+  // A reading older than the window it describes is not a now-cast.
+  //
+  // The readings are kept on disk for a week so a forecast survives
+  // losing the network — see `persist.ts`. That is right for the
+  // forecast and wrong for this: without an age test, a device on a hill
+  // with no signal would drive today's map from Tuesday's storm and
+  // present it as current. The number the reading carries is the highest
+  // K index of the last 24 hours, so past 24 hours it describes a window
+  // that has entirely gone.
+  //
+  // Falling back to climatology is not a loss of information. It is the
+  // monthly figure the reading was refining, which is what the app used
+  // before there was a now-cast at all, and the basis shown beside the
+  // map says which one produced it.
+  const observedAt = Date.parse(spaceWeather.observedAt);
+  if (
+    Number.isFinite(observedAt)
+    && Date.now() - observedAt > NOWCAST_GOOD_FOR_MS
+  ) {
+    return undefined;
+  }
   return {
     effectiveSsn: spaceWeather.effectiveSsn,
     kpMax24h: spaceWeather.kpMax24h,
