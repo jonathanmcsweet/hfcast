@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { StyleSheet, View } from 'react-native';
 import { Divider, IconButton, Menu, Text, useTheme } from 'react-native-paper';
@@ -80,6 +80,12 @@ export default function SettingsMenu(
   const setKeepMaps = useSettingsStore((s) => s.setKeepMaps);
   const mapsOnCard = useSettingsStore((s) => s.mapsOnCard);
   const setMapsOnCard = useSettingsStore((s) => s.setMapsOnCard);
+  // Asked once a mount, not once a render. It reaches the file system to
+  // find the card, and this menu is rendered by a screen that redraws
+  // whenever the clock moves — so calling it in the body below would put
+  // a file system call on that path for an answer that does not change
+  // while the app is open. A card put in now is seen at the next start.
+  const hasCard = useMemo(() => Engine.mapCardAvailable(), []);
   const resolved = useUnits();
   const [measuring, setMeasuring] = useState(false);
   const [measurement, setMeasurement] = useState<string | null>(null);
@@ -268,7 +274,7 @@ export default function SettingsMenu(
                    tablets this app is for are often short of internal
                    storage and take one. */
               }
-              {Engine.mapCardAvailable()
+              {hasCard
                 ? (
                   <Menu.Item
                     title={t('settings.mapsOnCard')}
