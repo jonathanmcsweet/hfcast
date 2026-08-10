@@ -95,17 +95,17 @@ async function stage(
 /**
  * How many threads the sweep tries, smallest first.
  *
- * A Pixel 8 measured the answer this sweep exists to find: eight threads
- * in flight, each strip five times slower than it runs alone. That is
- * memory contention, and contended work often runs fastest well short of
- * the core count. Where the sweep peaks is the number the map should ask
- * for — measured on the device in hand, not assumed from the core count.
+ * A Pixel 8 measured the answer this sweep exists to find: the curve
+ * turned at four threads, and eight was slower than two. The map asks
+ * for the count where the curve turns (`MAX_THREADS`), and the sweep
+ * keeps measuring past it on purpose — a device the cap does not suit
+ * can only show that if the higher counts keep being run.
  *
  * Ascending order means the later, hotter runs fall on the higher counts.
  * That understates them a little, and that is the safe direction: a real
  * map run starts warm too.
  */
-const SWEEP = [1, 2, 4] as const;
+const SWEEP = [1, 2, 4, 8] as const;
 
 /**
  * Runs the benchmark and returns what it measured.
@@ -150,13 +150,15 @@ export async function runBenchmark(): Promise<BenchmarkResult> {
       await stage('one strip, one thread', [{ ...world, ...first }], 1),
     );
   }
+  // The map's own count joins the fixed sweep, deduplicated, so the
+  // count actually in use is always one of the measured points.
+  const counts = [...new Set([...SWEEP, threads])].sort((a, b) => a - b);
   // A loop rather than `map`, because each run must finish before the
   // next starts: the sweep exists to measure thread counts one at a
   // time, and overlapped runs would measure each other.
-  for (const count of SWEEP.filter((each) => each < threads)) {
+  for (const count of counts) {
     stages.push(await stage(`fine grid, ${count} threads`, grid, count));
   }
-  stages.push(await stage(`fine grid, ${threads} threads`, grid, threads));
 
   // The whole-day lattice, at the step the correction uses. Far fewer
   // places, far more hours at each.

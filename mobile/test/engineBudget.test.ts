@@ -28,10 +28,13 @@ import { latShards, MIN_SHARD_POINTS, pointCount } from '../src/data/shard.ts';
  */
 
 describe('sizing the batch to the device that runs it', () => {
-  it('uses every core it is told about, up to a limit', () => {
-    assert.equal(threadsFor(8), 8);
-    assert.equal(threadsFor(6), 6);
+  it('uses the cores it is told about, up to the measured best', () => {
+    // The cap is four because a Pixel 8's sweep put the fastest run
+    // there, with eight slower than two — see MAX_THREADS.
+    assert.equal(threadsFor(8), MAX_THREADS);
+    assert.equal(threadsFor(6), MAX_THREADS);
     assert.equal(threadsFor(16), MAX_THREADS);
+    assert.equal(threadsFor(3), 3);
   });
 
   it('never asks for fewer than two', () => {
@@ -49,7 +52,7 @@ describe('sizing the batch to the device that runs it', () => {
     // queue instead of waiting for a slow one. On a big.LITTLE phone the
     // slow cores take two to three times as long over the same strip,
     // and one strip per thread would end the run at their pace.
-    assert.equal(stripsFor(8), 8 * STRIPS_PER_THREAD);
+    assert.equal(stripsFor(8), threadsFor(8) * STRIPS_PER_THREAD);
     assert.ok(stripsFor(8) > threadsFor(8));
     assert.ok(STRIPS_PER_THREAD >= 2);
   });
