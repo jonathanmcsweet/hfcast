@@ -33,6 +33,8 @@ dependencies = [
 [[package]]
 name = "hfcast"
 version = "0.68.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4a4193110d8934758eb59562abbf67008619750f10d3e714f0fc09da16b5f659"
 
 [[package]]
 name = "hfcast-jni"

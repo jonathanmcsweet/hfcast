@@ -98,6 +98,32 @@ targets=(
 wanted=("$@")
 built=0
 
+# Keep the committed `Cargo.lock` describing the published crate.
+#
+# The patch below replaces where the engine comes from, and cargo records
+# that in the lock file: the `hfcast` entry loses its `source` and its
+# `checksum`, because a patched crate has neither. That leaves the
+# repository holding a lock file which pins nothing — the version in it
+# means "whatever is in the checkout beside this repository", and CI
+# installs the crate from crates.io on the strength of a checksum that is
+# no longer there.
+#
+# It also breaks the one command `rust/Cargo.toml` tells a maintainer to
+# use: `cargo update -p hfcast --precise <version>` answers "package ID
+# specification `hfcast` did not match any packages", because the package
+# in the lock is no longer a registry one (user, 2026-08-10).
+#
+# So the lock is put back the way it was found. The build still resolves
+# through the patch; what does not survive it is the edit to a file under
+# version control that nobody asked for.
+lock="$here/rust/Cargo.lock"
+if [[ -f $lock ]]; then
+  held="$(mktemp)"
+  cp "$lock" "$held"
+  # On every exit, including a failed build and an interrupted one.
+  trap 'cp "$held" "$lock"; rm -f "$held"' EXIT
+fi
+
 for entry in "${targets[@]}"; do
   read -r triple abi linker_prefix <<<"$entry"
 
