@@ -338,7 +338,7 @@
   },
   "maps": {
     "title": "Compute maps ahead",
-    "what": "A map is the same for a whole month. Maps computed here are read back with no network and no waiting, which is what a day in the field needs.",
+    "what": "Pre-computing propagation maps now, helps preserve battery life in the field, else we calculate subsequent hours on-demand. Apart from being online when we can access current conditions, future predictions can be made here offline ahead of time.",
     "monthsSection": "How far ahead",
     "months": {
       "1": "This month",

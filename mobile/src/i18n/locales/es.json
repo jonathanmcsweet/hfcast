@@ -338,7 +338,7 @@
   },
   "maps": {
     "title": "Calcular mapas por adelantado",
-    "what": "Un mapa es igual durante todo un mes. Los mapas calculados aquí se leen sin conexión y sin esperas, que es lo que hace falta en un día de campo.",
+    "what": "Calcular los mapas ahora, por adelantado, ahorra batería en el campo. Si no, las horas siguientes se calculan al abrirlas. Con conexión, la previsión usa las condiciones actuales. Los mapas de fechas futuras se pueden calcular aquí por adelantado y sin conexión.",
     "monthsSection": "Cuánto por adelantado",
     "months": {
       "1": "Este mes",

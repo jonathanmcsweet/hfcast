@@ -338,7 +338,7 @@
   },
   "maps": {
     "title": "Karten im Voraus berechnen",
-    "what": "Eine Karte gilt für einen ganzen Monat. Hier berechnete Karten werden ohne Netz und ohne Warten gelesen. Genau das braucht ein Tag im Feld.",
+    "what": "Karten jetzt im Voraus zu berechnen spart Akku im Feld. Sonst werden spätere Stunden erst beim Öffnen berechnet. Mit Netz nutzt die Vorhersage die aktuellen Bedingungen. Karten für die Zukunft lassen sich hier auch ohne Netz im Voraus berechnen.",
     "monthsSection": "Wie weit im Voraus",
     "months": {
       "1": "Dieser Monat",
