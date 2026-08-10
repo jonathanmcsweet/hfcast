@@ -187,8 +187,10 @@ written until something asks for it, so an ordinary run measures nothing.
    `ReactNativeJS` is where the application's own lines come out.
 
 3. On the telephone: the menu at the top right, then **Diagnostics**,
-   then **Measure this device**. It takes about half a minute. A box
-   shows the result when it finishes.
+   then **Measure this device**. It takes under a minute. A box shows
+   the result when it finishes, and its copy icon puts the same text on
+   the clipboard — so with no cable at all, the summary can still be
+   pasted somewhere rather than photographed.
 4. Stop the log with Ctrl-C and send `hfcast.log`.
 
 ### What the lines mean

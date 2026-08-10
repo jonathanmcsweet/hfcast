@@ -151,7 +151,10 @@
     "diagnosticsSection": "Diagnóstico",
     "measure": "Medir este dispositivo",
     "measuring": "Midiendo. Tarda alrededor de medio minuto.",
-    "measureFailed": "La medición no pudo terminar."
+    "measureFailed": "La medición no pudo terminar.",
+    "copyMeasurement": "Copiar los números",
+    "copied": "Copiado",
+    "measureClose": "Cerrar"
   },
   "a11y": {
     "changeLocation": "Transmitiendo desde {{place}}. Toca para cambiarlo.",

@@ -151,7 +151,10 @@
     "diagnosticsSection": "診断",
     "measure": "この端末を測定する",
     "measuring": "測定しています。30 秒ほどかかります。",
-    "measureFailed": "測定を完了できませんでした。"
+    "measureFailed": "測定を完了できませんでした。",
+    "copyMeasurement": "数値をコピー",
+    "copied": "コピーしました",
+    "measureClose": "閉じる"
   },
   "a11y": {
     "changeLocation": "送信地は {{place}} です。タップして変更します。",

@@ -151,7 +151,10 @@
     "diagnosticsSection": "Diagnose",
     "measure": "Dieses Gerät messen",
     "measuring": "Messung läuft. Das dauert etwa eine halbe Minute.",
-    "measureFailed": "Die Messung konnte nicht abgeschlossen werden."
+    "measureFailed": "Die Messung konnte nicht abgeschlossen werden.",
+    "copyMeasurement": "Zahlen kopieren",
+    "copied": "Kopiert",
+    "measureClose": "Schließen"
   },
   "a11y": {
     "changeLocation": "Sendestandort {{place}}. Zum Ändern tippen.",

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Alert, StyleSheet, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import { Divider, IconButton, Menu, Text, useTheme } from 'react-native-paper';
 import * as Engine from '../../modules/engine-bridge';
 import { type BenchmarkResult, runBenchmark } from '../data/benchmark';
@@ -17,6 +17,7 @@ import { spacing, typography } from '../theme';
 import type { AppTheme } from '../theme';
 import AboutModal from './AboutModal';
 import HelpModal from './HelpModal';
+import MeasureModal from './MeasureModal';
 
 /** The icon each mode shows, so a glance says which one is in force. */
 const THEME_ICONS: Record<ThemeMode, string> = {
@@ -74,6 +75,7 @@ export default function SettingsMenu(
   const setUnits = useSettingsStore((s) => s.setUnits);
   const resolved = useUnits();
   const [measuring, setMeasuring] = useState(false);
+  const [measurement, setMeasurement] = useState<string | null>(null);
   const ui = theme.colors.ui;
 
   /**
@@ -83,21 +85,18 @@ export default function SettingsMenu(
    * gets the whole path under the `hfcast` tag, including the two stages
    * JavaScript cannot see — what the Rust spent computing, and what the
    * boundary spent turning a 2.9 MB answer into a Java string. The
-   * dialog gets a summary, so somebody holding the phone can read the
-   * result without a cable.
+   * dialog gets a summary, so somebody holding the phone can read it —
+   * and copy it — without a cable.
    */
   const measure = async () => {
     setMeasuring(true);
+    setMeasurement('');
     setDiagnostics(true);
     try {
-      Alert.alert(t('settings.measure'), t('settings.measuring'));
       const result = await runBenchmark();
-      Alert.alert(t('settings.measure'), summarise(result));
+      setMeasurement(summarise(result));
     } catch (e) {
-      Alert.alert(
-        t('settings.measure'),
-        `${t('settings.measureFailed')}\n\n${String(e)}`,
-      );
+      setMeasurement(`${t('settings.measureFailed')}\n\n${String(e)}`);
     } finally {
       setDiagnostics(null);
       setMeasuring(false);
@@ -267,6 +266,12 @@ export default function SettingsMenu(
       </Menu>
       <HelpModal visible={helpOpen} onDismiss={() => setHelpOpen(false)} />
       <AboutModal visible={aboutOpen} onDismiss={() => setAboutOpen(false)} />
+      <MeasureModal
+        visible={measurement !== null}
+        measuring={measuring}
+        text={measurement ?? ''}
+        onDismiss={() => setMeasurement(null)}
+      />
     </>
   );
 }

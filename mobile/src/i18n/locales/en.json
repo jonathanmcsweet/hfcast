@@ -151,7 +151,10 @@
     "diagnosticsSection": "Diagnostics",
     "measure": "Measure this device",
     "measuring": "Measuring. This takes about half a minute.",
-    "measureFailed": "The measurement could not finish."
+    "measureFailed": "The measurement could not finish.",
+    "copyMeasurement": "Copy the numbers",
+    "copied": "Copied",
+    "measureClose": "Close"
   },
   "a11y": {
     "changeLocation": "Transmitting from {{place}}. Tap to change.",

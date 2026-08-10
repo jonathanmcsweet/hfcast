@@ -151,7 +151,10 @@
     "diagnosticsSection": "التشخيص",
     "measure": "قياس هذا الجهاز",
     "measuring": "جارٍ القياس. يستغرق نحو نصف دقيقة.",
-    "measureFailed": "تعذّر إكمال القياس."
+    "measureFailed": "تعذّر إكمال القياس.",
+    "copyMeasurement": "نسخ الأرقام",
+    "copied": "تم النسخ",
+    "measureClose": "إغلاق"
   },
   "a11y": {
     "changeLocation": "الإرسال من {{place}}. انقر للتغيير.",
