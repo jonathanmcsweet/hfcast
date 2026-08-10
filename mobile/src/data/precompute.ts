@@ -153,11 +153,22 @@ export async function precompute(ask: PrecomputeAsk): Promise<void> {
           centres.set(tag, centre);
         }
 
-        const grid = await coverFineLocally(
-          base,
-          centre[job.band],
-          PRECOMPUTE_GROUP,
-        );
+        // No lattice for this band means the correction cannot be
+        // applied, and an uncorrected grid must not be stored: it would
+        // be read back for the rest of the month in place of a grid the
+        // app could have corrected, and it would look exactly like one
+        // that had been. Counted as a failure and passed over, which is
+        // the same thing the query path does by not writing at all.
+        const centreHere = centre[job.band];
+        if (centreHere === null) {
+          usePrecomputeStore.getState().fail();
+          timing('no daily middles to correct a map computed ahead', {
+            at: `${tag} ${job.run.hour} ${job.band}`,
+          });
+          continue;
+        }
+
+        const grid = await coverFineLocally(base, centreHere, PRECOMPUTE_GROUP);
         if (await keepGlobe(job.id, grid)) {
           await makeRoom(ask.budgetBytes);
         }
