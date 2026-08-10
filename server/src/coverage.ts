@@ -20,7 +20,20 @@ import {
 } from './coveragePatch.ts';
 import { resolveSsn } from './spaceweather.ts';
 import type { BandKey, Endpoint, MapRegion, PredictionBasis } from './types.ts';
-import { type Coverage, ITSHFBC_DIR, runCoverage } from './voacap/engine.ts';
+import { factorsFor, stormWidening } from './voacap/correct.ts';
+import {
+  type CentreField,
+  centreField,
+  correctCoverage,
+  FINE_CENTRE_LAT_STEP,
+  FINE_CENTRE_LON_STEP,
+} from './voacap/correctMap.ts';
+import {
+  type Coverage,
+  ITSHFBC_DIR,
+  runCoverage,
+  runDailyMedians,
+} from './voacap/engine.ts';
 
 // The grid, the threshold and the reach calculation come from the shared
 // lattice modules. They were written out again here, comments and all,
@@ -47,6 +60,14 @@ export interface CoverageRequest {
   noiseDbw: number;
   /** Effective sunspot number from live readings, when there are any. */
   ssnOverride?: number;
+  /**
+   * Highest K index of the last 24 hours, when it is known.
+   *
+   * A storm widens the spread below the median, so it changes what a
+   * corrected map is painted with. It does not change the middle of the
+   * day, which is why the lattice of middles is cached without it.
+   */
+  kpMax24h?: number;
   basis?: PredictionBasis;
   /**
    * The operator's own antenna. A beam makes the map lopsided, which is
@@ -100,6 +121,13 @@ function keyFor(request: CoverageRequest, ssn: number): string {
     requiredSnrDb,
     noiseDbw,
     antennaKey(request.antenna),
+    // The correction is applied before an answer is held, so two
+    // requests under different storm conditions are different answers.
+    // Rounded, because the widening is a smooth function of the K index
+    // and a third decimal would make every poll a fresh entry.
+    request.kpMax24h === undefined
+      ? 'quiet'
+      : stormWidening(request.kpMax24h).toFixed(2),
   ].join('|');
 }
 
@@ -127,6 +155,62 @@ interface GridRequest {
    * other.
    */
   keyPrefix: string;
+}
+
+/**
+ * The lattice of daily middles, one entry per band and place.
+ *
+ * Small — 1,728 numbers a band — and reused by every hour and every grid
+ * step, so it is held longer than a map and there is room for many. It
+ * does not depend on the hour and it does not depend on the K index: a
+ * storm widens the spread below the median and leaves the median alone.
+ */
+const centreCache = new TtlCache<CentreField | null>(COVERAGE_TTL_MS, 200);
+
+/**
+ * The middle of the day at every lattice point, for this request's band.
+ *
+ * Always the fine lattice. The server has no reason to use the coarser
+ * one the app starts with: it caches this across every request for the
+ * place, so only the first caller waits and the rest read it.
+ */
+async function dailyCentres(
+  request: CoverageRequest,
+  ssn: number,
+  month: number,
+  year: number,
+  txAntenna: Awaited<ReturnType<typeof txCard>> | null,
+): Promise<CentreField | null> {
+  const key = [
+    'centres',
+    request.from.lat.toFixed(3),
+    request.from.lon.toFixed(3),
+    year,
+    month,
+    ssn.toFixed(1),
+    request.band,
+    request.watts,
+    request.noiseDbw,
+    antennaKey(request.antenna),
+  ].join('|');
+
+  return await centreCache.fetch(key, async () => {
+    const ran = await runDailyMedians({
+      fromLat: request.from.lat,
+      fromLon: request.from.lon,
+      month,
+      year,
+      ssn,
+      watts: request.watts,
+      requiredSnrDb: request.requiredSnrDb,
+      noiseDbw: request.noiseDbw,
+      band: request.band,
+      latStep: FINE_CENTRE_LAT_STEP,
+      lonStep: FINE_CENTRE_LON_STEP,
+      ...(txAntenna ? { txAntenna } : {}),
+    });
+    return centreField(ran.points, ran.latStep, ran.lonStep);
+  });
 }
 
 /**
@@ -185,7 +269,22 @@ async function cachedRun<T>(
       ...(txAntenna ? { txAntenna } : {}),
     });
 
-    return assemble(ran);
+    // Corrected before it is held, so every reader of an entry gets the
+    // same map and the app has nothing left to do. The app corrects when
+    // it reads instead, because it computes the lattice on the device
+    // and has to draw something before that finishes; here the lattice
+    // is cached and shared across every request for the place, so
+    // waiting for it costs the first caller and nobody else.
+    const centre = await dailyCentres(request, ssn, month, year, txAntenna);
+    return assemble({
+      ...ran,
+      points: correctCoverage(
+        ran.points,
+        centre,
+        request.requiredSnrDb,
+        factorsFor(request.kpMax24h ?? null),
+      ),
+    });
   });
   // See `PerRequest`: these two are the caller's, so they are put on
   // here rather than read from an entry another caller wrote.

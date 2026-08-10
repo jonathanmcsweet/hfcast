@@ -1,10 +1,23 @@
-import type { WireCoverage } from '../../../shared/wire.ts';
+import type {
+  WireCoverage,
+  WireCoveragePoint,
+  WireMedians,
+} from '../../../shared/wire.ts';
 import * as Engine from '../../modules/engine-bridge';
 import type { Station } from '../store/useStationStore';
+import { factorsFor } from './correct';
+import {
+  type CentreField,
+  centreField,
+  type CentrePoint,
+  correctCoverage,
+  type RawCoveragePoint,
+} from './correctMap';
 import { LAT_STEP, LON_STEP, reachOf } from './coverageGrid';
 import { patchGrid, patchRequestBounds } from './coveragePatch';
 import { timing } from './diagnostics';
 import { stripsFor, threadsFor } from './engineBudget';
+import { BACKGROUND_PIECE_POINTS, runLater, runNow } from './engineQueue';
 import { FINE_LAT_STEP, FINE_LON_STEP, packGlobe } from './fineGlobe';
 import { engineStation, type Nowcast, ssnFor } from './localPredict';
 import { requiredSnrFor } from './modes';
@@ -40,12 +53,22 @@ import {
 /** Man-made noise at a residential site, dBW in 1 Hz. VOACAP's own default. */
 const NOISE_DBW = -145;
 
-/** Clamped here rather than trusted: the map colours by this number. */
-const asPoint = (p: CoveragePoint): CoveragePoint => ({
+/**
+ * One point as the map holds it, before the correction.
+ *
+ * Reliability is clamped here rather than trusted, because the map
+ * colours by it. The signal level and its deciles pass through as the
+ * engine reported them: `correctMap.ts` is the only thing that reads
+ * them and it decides for itself what an absent one means.
+ */
+const asPoint = (p: WireCoveragePoint): RawCoveragePoint => ({
   lat: p.lat,
   lon: p.lon,
   reliability: Math.min(1, Math.max(0, p.reliability)),
   takeoffAngleDeg: p.takeoffAngleDeg ?? null,
+  snr: p.snr,
+  snrLowDecile: p.snrLowDecile ?? null,
+  snrUpDecile: p.snrUpDecile ?? null,
 });
 
 export const canMapLocally = (): boolean => Engine.isAvailable();
@@ -137,19 +160,21 @@ async function shardedWholeWorld<T>(
 
   const threads = threadsFor(cores);
   const startedAt = Date.now();
-  const batch = strips === null
-    ? {
-      answers: [await Engine.predict<T>(request)],
-      // An unsharded run cannot separate the two: `predict` parses its
-      // one answer inside itself. Charged to the engine rather than
-      // split on a guess.
-      nativeMs: Date.now() - startedAt,
-      parseMs: 0,
-    }
-    : await Engine.predictMany<T>(
-      strips.map((bounds) => ({ ...request, ...bounds })),
-      threads,
-    );
+  const batch = await runNow(async () =>
+    strips === null
+      ? {
+        answers: [await Engine.predict<T>(request)],
+        // An unsharded run cannot separate the two: `predict` parses
+        // its one answer inside itself. Charged to the engine rather
+        // than split on a guess.
+        nativeMs: Date.now() - startedAt,
+        parseMs: 0,
+      }
+      : await Engine.predictMany<T>(
+        strips.map((bounds) => ({ ...request, ...bounds })),
+        threads,
+      )
+  );
   return {
     ...batch,
     elapsedMs: Date.now() - startedAt,
@@ -202,6 +227,14 @@ interface WireBandPoint {
   lon: number;
   reliability: readonly number[];
   takeoffAngleDeg: readonly (number | null)[];
+  /**
+   * What the correction reads, one entry a band. Optional because an
+   * answer cached before engine 0.68.0 does not carry them, and a point
+   * without them is left as the engine reported it.
+   */
+  snr?: readonly number[];
+  snrLowDecile?: readonly (number | null)[];
+  snrUpDecile?: readonly (number | null)[];
 }
 
 interface WireBands {
@@ -226,8 +259,29 @@ interface WireBands {
 function bandPoints(
   answer: WireBands,
   index: number,
-): CoveragePoint[] {
-  const echoed = answer.freqsMhz;
+): RawCoveragePoint[] {
+  checkEcho(answer.freqsMhz, index);
+  return (answer.points ?? []).map((p) =>
+    asPoint({
+      lat: p.lat,
+      lon: p.lon,
+      reliability: p.reliability[index] ?? 0,
+      takeoffAngleDeg: p.takeoffAngleDeg[index] ?? null,
+      snr: p.snr?.[index],
+      snrLowDecile: p.snrLowDecile?.[index] ?? null,
+      snrUpDecile: p.snrUpDecile?.[index] ?? null,
+    })
+  );
+}
+
+/**
+ * Holds the engine to the band it was asked about.
+ *
+ * Reading the arrays at the wrong index would draw one band's map under
+ * another band's name, which is the fault this app has already shipped
+ * once.
+ */
+function checkEcho(echoed: readonly number[] | undefined, index: number): void {
   if (echoed === undefined || echoed.length !== BANDS_BY_FREQ.length) {
     throw new Error('the engine did not say which bands it answered');
   }
@@ -236,15 +290,167 @@ function bandPoints(
   if (Math.abs(said - asked) > 1e-4) {
     throw new Error(`the engine answered ${said} MHz where ${asked} was asked`);
   }
-  return (answer.points ?? []).map((p) =>
-    asPoint({
+}
+
+/**
+ * The middle of the day at every point of a lattice, for one band or all.
+ *
+ * This is the one thing the correction needs from the other 23 hours,
+ * and the engine computes it in a single pass rather than 24 — see
+ * `dailyMedian` in `hfcast-engine/src/service.rs`. It does not depend on
+ * the hour, so one answer serves every hour the reader scrubs to, and it
+ * does not depend on the storm widening either, which only touches the
+ * spread.
+ *
+ * `bands` null asks for every band together, which is what the coarse
+ * lattice does: one pass over nine bands costs far less than nine
+ * passes, and it means changing band does not wait for anything.
+ *
+ * The whole lattice comes back in one call rather than one call an hour,
+ * so this goes through `predict` rather than a batch. The lattices are
+ * small — 192 points, or 1,728 for the fine one — and the saving from
+ * asking for the day at once is larger than the saving from spreading a
+ * small grid over cores.
+ */
+export async function centresLocally(
+  request: LocalCoverageRequest,
+  latStep: number,
+  lonStep: number,
+  band: BandKey | null,
+  /**
+   * Set to fill a band in behind the map instead of in front of it.
+   *
+   * Background work is cut into strips and each strip queued on its own,
+   * so the longest a reader can be held up by it is one strip rather
+   * than one lattice. See `engineQueue.ts`.
+   */
+  behind: { group: string; } | null = null,
+): Promise<Record<BandKey, CentreField | null>> {
+  const { ssn } = ssnFor(
+    request.date.getUTCFullYear(),
+    request.date.getUTCMonth() + 1,
+    request.nowcast,
+  );
+  const ask = await areaAsk(request, ssn);
+  const bands = band === null ? BANDS_BY_FREQ : [band];
+  const body = {
+    ...ask,
+    hour: undefined,
+    dailyMedian: true,
+    freqMhz: band === null ? undefined : BAND_MHZ[band],
+    freqsMhz: band === null ? ALL_FREQS_MHZ : undefined,
+    latStep,
+    lonStep,
+  };
+
+  const startedAt = Date.now();
+  const answer = behind === null
+    ? await runNow(() => Engine.predict<WireMedians>(body))
+    : await inStrips(body, latStep, lonStep, behind.group);
+  const elapsedMs = Date.now() - startedAt;
+
+  const rows = answer.points ?? [];
+  const fields = bands.map((each, index) => {
+    // A one-band answer carries a number where a several-band answer
+    // carries an array. Checked against the echo, as every other
+    // several-band read is, so one band's middles cannot be filed under
+    // another band's name.
+    if (band === null) checkEcho(answer.freqsMhz, index);
+    const centres: CentrePoint[] = rows.map((p) => ({
       lat: p.lat,
       lon: p.lon,
-      reliability: p.reliability[index] ?? 0,
-      takeoffAngleDeg: p.takeoffAngleDeg[index] ?? null,
-    })
-  );
+      medianSnr: typeof p.medianSnr === 'number'
+        ? p.medianSnr
+        : (p.medianSnr[index] ?? 0),
+    }));
+    return [
+      each,
+      centreField(
+        centres,
+        answer.latStep ?? latStep,
+        answer.lonStep ?? lonStep,
+      ),
+    ] as const;
+  });
+
+  timing('daily middles', {
+    lattice: `${latStep} by ${lonStep}`,
+    bands: `${bands.length} bands`,
+    points: `${rows.length} points`,
+    where: behind === null ? 'in front' : 'behind',
+    ms: elapsedMs,
+  });
+
+  return Object.fromEntries(fields) as Record<BandKey, CentreField | null>;
 }
+
+/**
+ * A whole-day lattice run one strip at a time, behind the map.
+ *
+ * The point is the gaps between the strips, not the strips. The engine
+ * module takes one request at a time and cannot be interrupted, so the
+ * delay a background run can impose on a reader is the length of one
+ * piece of it — see `engineQueue.ts`. Whole, a fine lattice is over a
+ * second of engine time; in strips it is a fraction of that.
+ *
+ * A whole day at one point costs about fifteen times an hour at one
+ * point, so the strips are cut against a budget in hours of work rather
+ * than in places. Sequential rather than concurrent on purpose: these
+ * run between the reader's own requests, and asking for them together
+ * would put the whole lattice in the queue at once and defeat the
+ * cutting.
+ */
+async function inStrips(
+  body: AreaAsk,
+  latStep: number,
+  lonStep: number,
+  group: string,
+): Promise<WireMedians> {
+  const rows = Math.round(180 / latStep);
+  const columns = Math.round(360 / lonStep);
+  const pieces = Math.max(
+    1,
+    Math.min(
+      Math.floor(rows / 2),
+      Math.ceil(
+        (rows * columns * HOURS_IN_A_DAY_RUN) / BACKGROUND_PIECE_POINTS,
+      ),
+    ),
+  );
+  const strips = latShards(undefined, latStep, lonStep, pieces);
+  if (strips === null) {
+    return await runLater(group, () => Engine.predict<WireMedians>(body));
+  }
+
+  // A loop rather than `Promise.all` over a map: the strips must not run
+  // together. Asking for them at once would put the whole lattice in the
+  // queue in one go, and cutting it up is the only thing that bounds how
+  // long a reader can wait behind it.
+  const parts: WireMedians[] = [];
+  for (const bounds of strips) {
+    parts.push(
+      await runLater(
+        group,
+        () => Engine.predict<WireMedians>({ ...body, ...bounds }),
+      ),
+    );
+  }
+  // Joined south to north, which is the order the strips were cut in and
+  // the order one whole run would have emitted.
+  return {
+    ...(parts[0] ?? {}),
+    points: parts.flatMap((part) => part.points ?? []),
+  };
+}
+
+/**
+ * How much dearer a whole day is than one hour at the same place.
+ *
+ * About two fifths of an area run is setting the place up and does not
+ * depend on the hour, so 24 hours in one pass costs about 15 times one
+ * hour rather than 24. Measured with `HFCAST_PERF=1` in the engine.
+ */
+const HOURS_IN_A_DAY_RUN = 15;
 
 /**
  * The coarse map, for every band at once.
@@ -277,13 +483,15 @@ export async function coverAllBandsLocally(
   const ask = await areaAsk(request, ssn);
 
   const startedAt = Date.now();
-  const answer = await Engine.predict<WireBands>({
-    ...ask,
-    freqMhz: undefined,
-    freqsMhz: ALL_FREQS_MHZ,
-    latStep: LAT_STEP,
-    lonStep: LON_STEP,
-  });
+  const answer = await runNow(() =>
+    Engine.predict<WireBands>({
+      ...ask,
+      freqMhz: undefined,
+      freqsMhz: ALL_FREQS_MHZ,
+      latStep: LAT_STEP,
+      lonStep: LON_STEP,
+    })
+  );
   const elapsedMs = Date.now() - startedAt;
 
   const covered = BANDS_BY_FREQ.map((band, index) => {
@@ -298,6 +506,11 @@ export async function coverAllBandsLocally(
       // asked for, so the drawn cells match the grid that ran.
       latStep: answer.latStep ?? LAT_STEP,
       lonStep: answer.lonStep ?? LON_STEP,
+      // The share of the world this reaches, from the numbers as the
+      // engine gave them. It is recomputed once the correction arrives
+      // — see `correctedCoverage` — because a corrected map reaches a
+      // different amount of the world from an uncorrected one, and the
+      // sentence beside the map must describe the map above it.
       reach: reachOf(points),
       basis,
       points,
@@ -331,9 +544,25 @@ export async function coverAllBandsLocally(
  *
  * The result is packed into typed arrays before returning, so the
  * objects the engine produced are released rather than cached.
+ *
+ * `centre` is the lattice of daily middles the correction needs, and it
+ * is applied here, before the packing, rather than when the map is
+ * drawn. The packed form holds reliability and the take-off angle and
+ * nothing else — 276 KB a grid, against about 690 KB if it kept the
+ * signal level and both deciles so the correction could be applied
+ * later. Twenty-four of those are held at once, so the difference is 6.6
+ * MB against 16.5.
+ *
+ * The consequence is that a grid is corrected by the lattice that
+ * existed when it ran, and a better lattice arriving afterwards does not
+ * improve it. That is why the fine grid waits for the fine lattice
+ * rather than starting on the coarse one: rebuilding 34,560 points to
+ * move a few colours is the most expensive thing this application can
+ * do and the least worth doing twice.
  */
 export async function coverFineLocally(
   request: LocalCoverageRequest,
+  centre: CentreField | null,
 ): Promise<FineGlobe> {
   const month = request.date.getUTCMonth() + 1;
   const year = request.date.getUTCFullYear();
@@ -358,10 +587,19 @@ export async function coverFineLocally(
   // instead of none. A loop rather than a fold because the sequencing is
   // the point — the yields have to fall between the strips, which is
   // what a fold over an array cannot express.
+  //
+  // The correction is applied strip by strip too, in the same pass, for
+  // the same reason: it is 34,560 more pieces of arithmetic on the
+  // thread that draws.
   const packingAt = Date.now();
+  const factors = factorsFor(request.nowcast?.kpMax24h ?? null);
+  const required = requiredSnrFor(request.station.mode);
   const points: CoveragePoint[] = [];
   for (const answer of answers) {
-    for (const point of answer.points ?? []) points.push(asPoint(point));
+    const raw = (answer.points ?? []).map(asPoint);
+    for (const point of correctCoverage(raw, centre, required, factors)) {
+      points.push(point);
+    }
     await breathe();
   }
   if (points.length === 0) {
@@ -448,14 +686,16 @@ export async function coverPatchAllBandsLocally(
   // rectangle's ionosphere does not depend on which band is drawn over
   // it, and the reader changes band far more often than they pan.
   const startedAt = Date.now();
-  const answer = await Engine.predict<WireBands>({
-    ...ask,
-    freqMhz: undefined,
-    freqsMhz: ALL_FREQS_MHZ,
-    latStep: grid.latStep,
-    lonStep: grid.lonStep,
-    ...box,
-  });
+  const answer = await runNow(() =>
+    Engine.predict<WireBands>({
+      ...ask,
+      freqMhz: undefined,
+      freqsMhz: ALL_FREQS_MHZ,
+      latStep: grid.latStep,
+      lonStep: grid.lonStep,
+      ...box,
+    })
+  );
   const elapsedMs = Date.now() - startedAt;
 
   const patched = BANDS_BY_FREQ.map((band, index) => {
@@ -489,4 +729,55 @@ export async function coverPatchAllBandsLocally(
     BandKey,
     CoveragePatch
   >;
+}
+
+/**
+ * The coarse map, corrected, with its reach percentage recomputed.
+ *
+ * Applied when the map is read rather than when it was run, which is
+ * what lets the map appear straight away and become correct a moment
+ * later without being computed twice. It is affordable here and nowhere
+ * else: 192 points, against 34,560 for the fine grid.
+ *
+ * The reach percentage is recomputed from the corrected cells because it
+ * is a sentence about the map — "40m reaches about 8% of the world" —
+ * and it would otherwise describe a map nobody is looking at.
+ *
+ * A null lattice returns the coverage unchanged. That is the state the
+ * map is in for the first fraction of a second, and it is what this
+ * application drew for its whole life until now.
+ */
+export function correctedCoverage(
+  coverage: Coverage,
+  centre: CentreField | null,
+  station: Station,
+  kpMax24h: number | null,
+): Coverage {
+  if (centre === null) return coverage;
+  const points = correctCoverage(
+    coverage.points,
+    centre,
+    requiredSnrFor(station.mode),
+    factorsFor(kpMax24h),
+  );
+  return { ...coverage, points, reach: reachOf(points) };
+}
+
+/** The same, for the fine rectangle near the station. */
+export function correctedPatch(
+  patch: CoveragePatch,
+  centre: CentreField | null,
+  station: Station,
+  kpMax24h: number | null,
+): CoveragePatch {
+  if (centre === null) return patch;
+  return {
+    ...patch,
+    points: correctCoverage(
+      patch.points,
+      centre,
+      requiredSnrFor(station.mode),
+      factorsFor(kpMax24h),
+    ),
+  };
 }

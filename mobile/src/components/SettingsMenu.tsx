@@ -1,7 +1,10 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { StyleSheet, View } from 'react-native';
+import { Alert, StyleSheet, View } from 'react-native';
 import { Divider, IconButton, Menu, Text, useTheme } from 'react-native-paper';
+import * as Engine from '../../modules/engine-bridge';
+import { type BenchmarkResult, runBenchmark } from '../data/benchmark';
+import { setDiagnostics } from '../data/diagnostics';
 import { UNIT_PREFERENCES } from '../data/units';
 import type { UnitPreference } from '../data/units';
 import { useDirection } from '../hooks/useDirection';
@@ -70,7 +73,36 @@ export default function SettingsMenu(
   const units = useSettingsStore((s) => s.units);
   const setUnits = useSettingsStore((s) => s.setUnits);
   const resolved = useUnits();
+  const [measuring, setMeasuring] = useState(false);
   const ui = theme.colors.ui;
+
+  /**
+   * Runs the benchmark and puts its numbers where they can be read.
+   *
+   * Two places, because they answer to different people. The Android log
+   * gets the whole path under the `hfcast` tag, including the two stages
+   * JavaScript cannot see — what the Rust spent computing, and what the
+   * boundary spent turning a 2.9 MB answer into a Java string. The
+   * dialog gets a summary, so somebody holding the phone can read the
+   * result without a cable.
+   */
+  const measure = async () => {
+    setMeasuring(true);
+    setDiagnostics(true);
+    try {
+      Alert.alert(t('settings.measure'), t('settings.measuring'));
+      const result = await runBenchmark();
+      Alert.alert(t('settings.measure'), summarise(result));
+    } catch (e) {
+      Alert.alert(
+        t('settings.measure'),
+        `${t('settings.measureFailed')}\n\n${String(e)}`,
+      );
+    } finally {
+      setDiagnostics(null);
+      setMeasuring(false);
+    }
+  };
 
   const heading = (text: string) => (
     <View style={styles.heading}>
@@ -209,11 +241,52 @@ export default function SettingsMenu(
             setAboutOpen(true);
           }}
         />
+
+        {
+          /* Only where there is an engine to measure. The web build
+             reaches the server for everything and has nothing here that
+             a browser's own tools would not show better. */
+        }
+        {Engine.isAvailable()
+          ? (
+            <>
+              <Divider />
+              {heading(t('settings.diagnosticsSection'))}
+              <Menu.Item
+                title={t('settings.measure')}
+                leadingIcon="timer-outline"
+                disabled={measuring}
+                onPress={() => {
+                  setOpen(false);
+                  void measure();
+                }}
+              />
+            </>
+          )
+          : null}
       </Menu>
       <HelpModal visible={helpOpen} onDismiss={() => setHelpOpen(false)} />
       <AboutModal visible={aboutOpen} onDismiss={() => setAboutOpen(false)} />
     </>
   );
+}
+
+/**
+ * The benchmark's numbers as a few lines somebody can read or photograph.
+ *
+ * Deliberately not translated. It is a measurement, not a message: the
+ * stage names match what the log writes, so a screenshot and a log can
+ * be lined up against each other.
+ */
+function summarise(result: BenchmarkResult): string {
+  const lines = result.stages.map((each) =>
+    `${each.what}\n  ${each.points} points, engine ${each.nativeMs} ms, `
+    + `parse ${each.parseMs} ms, total ${each.totalMs} ms`
+  );
+  return [
+    `${result.cores} cores, ${result.threads} threads`,
+    ...lines,
+  ].join('\n');
 }
 
 const styles = StyleSheet.create({

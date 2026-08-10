@@ -297,7 +297,13 @@ async function coverageRequest(url: URL) {
     hour,
     ...parseStation(url),
     ...(spaceWeather
-      ? { ssnOverride: spaceWeather.effectiveSsn, basis: 'nowcast' as const }
+      ? {
+        ssnOverride: spaceWeather.effectiveSsn,
+        // A storm widens the spread the corrected map is painted from,
+        // so the map follows one as the band table already did.
+        kpMax24h: spaceWeather.kpMax24h,
+        basis: 'nowcast' as const,
+      }
       : {}),
   };
 }

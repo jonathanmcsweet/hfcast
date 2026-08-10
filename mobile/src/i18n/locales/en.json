@@ -42,7 +42,8 @@
     "footnoteHours": "Hours are UTC. Local time at {{place}} is on the clock above.",
     "footnoteSaved": "This is saved data, so it cannot show anything that changed since it was fetched.",
     "unitDirections": "Directions reachable, %",
-    "chanceAnywhere": "reaches about {{percent}} of sampled directions"
+    "chanceAnywhere": "reaches about {{percent}} of sampled directions",
+    "mapFilling": "The map for {{band}} is still being worked out."
   },
   "sections": {
     "allBandsHint": "How far each band gets you, hour by hour.",
@@ -146,7 +147,11 @@
       "metric": "Metric",
       "imperial": "Imperial"
     },
-    "refresh": "Refresh now"
+    "refresh": "Refresh now",
+    "diagnosticsSection": "Diagnostics",
+    "measure": "Measure this device",
+    "measuring": "Measuring. This takes about half a minute.",
+    "measureFailed": "The measurement could not finish."
   },
   "a11y": {
     "changeLocation": "Transmitting from {{place}}. Tap to change.",

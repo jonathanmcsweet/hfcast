@@ -17,6 +17,11 @@ interface Native {
   scratchDirectory(): string;
   /** How many cores this device will schedule on. Absent from older builds. */
   cores?(): number;
+  /**
+   * Turns the timing lines on or off, on both sides of the boundary.
+   * Absent from older builds of the module.
+   */
+  setTracing?(on: boolean): boolean;
   /** Writes one file under that directory and returns its full path. */
   writeFile(name: string, contents: string): Promise<string>;
   /** One request object as JSON, one answer object as JSON. */
@@ -93,6 +98,24 @@ export const canBatch = (): boolean =>
  * than this says loses nothing: the strips still run, sharing what there is.
  */
 export const DEFAULT_CORES = 4;
+
+/**
+ * Asks the module to report where its time goes.
+ *
+ * The lines go to the Android log under the `hfcast` tag, from three
+ * places: the Rust, which separates computing from crossing the
+ * boundary; the Kotlin, which reports how many strips really ran at
+ * once; and the app, which reports parsing and packing. Together they
+ * account for the whole wait.
+ *
+ * Returns whether tracing is on, which is false where the module is too
+ * old to have the switch or there is no module at all.
+ */
+export function setTracing(on: boolean): boolean {
+  const switchIt = native?.setTracing;
+  if (switchIt === undefined) return false;
+  return switchIt.call(native, on);
+}
 
 export function cores(): number {
   const count = native?.cores?.();

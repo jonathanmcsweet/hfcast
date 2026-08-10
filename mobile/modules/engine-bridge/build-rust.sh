@@ -46,10 +46,15 @@ fi
 # that the engine does not redistribute. So an APK is built from a checkout
 # of the engine repository, which has the files.
 #
-# A Cargo path override does that. It replaces the source of the crate and
-# nothing else, so the version in `Cargo.toml` still says what the
-# application depends on, and `Cargo.lock` is not changed. It is also the
-# way to try an engine change here before it is published.
+# A `[patch.crates-io]` entry does that. It replaces where the crate comes
+# from and nothing else, so `Cargo.toml` still says which version the
+# application depends on.
+#
+# It used to be a `paths` override, which cannot do the other job this has
+# to do: trying an engine change here before it is published. A `paths`
+# override only replaces a crate with a local copy carrying the same
+# version, so the moment the checkout is a version ahead of the registry it
+# stops applying and the build fails to resolve. A patch has no such rule.
 engine="${HFCAST_ENGINE:-}"
 if [[ -z $engine ]]; then
   dir="$here"
@@ -116,7 +121,7 @@ for entry in "${targets[@]}"; do
     "CC_${triple//-/_}=$linker" \
     "AR_${triple//-/_}=$ndk/llvm-ar" \
     cargo build --release --manifest-path "$here/rust/Cargo.toml" \
-      --config "paths=[\"$engine\"]" \
+      --config "patch.crates-io.hfcast.path=\"$engine\"" \
       --target "$triple" --jobs "${CARGO_JOBS:-2}"
 
   out="$here/android/src/main/jniLibs/$abi"

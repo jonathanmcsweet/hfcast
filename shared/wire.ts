@@ -64,6 +64,18 @@ export interface WireCoveragePoint {
    * zone, which is the whole of what the fine grid is for.
    */
   takeoffAngleDeg?: number | null;
+  /**
+   * Median signal-to-noise ratio at this hour, dB, and the day-to-day
+   * spread below and above it.
+   *
+   * What `shared/correctMap.ts` corrects the cell from. Optional because
+   * answers cached before engine 0.68.0 do not carry them, and a cell
+   * without them keeps the engine's own reliability — which is the map
+   * this application drew for its whole life until now.
+   */
+  snr?: number | undefined;
+  snrLowDecile?: number | null | undefined;
+  snrUpDecile?: number | null | undefined;
 }
 
 /** One area run: the grid it landed on, and a point for each cell. */
@@ -75,5 +87,31 @@ export interface WireCoverage {
   lonMin?: number;
   lonMax?: number;
   points?: readonly WireCoveragePoint[];
+  error?: string;
+}
+
+/**
+ * One grid point of a whole-day area run: the middle of its day.
+ *
+ * `medianSnr` is one number where one band was asked for and one a band
+ * where several were. There is no hour for a reliability or an angle to
+ * be about, so the run reports neither.
+ */
+export interface WireMedianPoint {
+  lat: number;
+  lon: number;
+  medianSnr: number | readonly number[];
+}
+
+/** One whole-day area run. */
+export interface WireMedians {
+  latStep?: number;
+  lonStep?: number;
+  latMin?: number;
+  latMax?: number;
+  lonMin?: number;
+  lonMax?: number;
+  freqsMhz?: readonly number[];
+  points?: readonly WireMedianPoint[];
   error?: string;
 }

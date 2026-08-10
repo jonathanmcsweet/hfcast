@@ -153,6 +153,67 @@ server when you exit. Then press `w` for the browser.
 The server needs `voacapl` and an `itshfbc` data tree on the machine.
 See [server/README.md](../server/README.md).
 
+## Measuring a telephone
+
+The map is drawn from work that can be counted, and until 0.60.0 nobody
+could tell which part of it was slow. A Pixel 8 reported 3.9 seconds of
+engine time for the whole-world fine grid. The same engine, the same
+34,560 points, takes 1.24 seconds on one desktop core and 0.17 across
+eight. A telephone core is two or three times slower than a desktop one,
+not twenty, so most of that gap was somewhere other than the arithmetic.
+
+There are three places it can be, and they need opposite fixes:
+
+| where        | what it is                                                              |
+| ------------ | ----------------------------------------------------------------------- |
+| the engine   | the prediction, inside Rust                                             |
+| the crossing | turning a 2.9 MB answer into a Java string and handing it to JavaScript |
+| the parse    | `JSON.parse` and building 34,560 objects, on the thread that draws      |
+
+So each is timed on its own and written to the Android log. Nothing is
+written until something asks for it, so an ordinary run measures nothing.
+
+### Take a measurement
+
+1. Install the APK and open the application.
+2. Start the log, on the computer:
+
+   ```bash
+   adb logcat -c                    # clear what is already there
+   adb logcat -s hfcast:V ReactNativeJS:V > hfcast.log
+   ```
+
+   Two tags: `hfcast` is what the engine and the module write, and
+   `ReactNativeJS` is where the application's own lines come out.
+
+3. On the telephone: the menu at the top right, then **Diagnostics**,
+   then **Measure this device**. It takes about half a minute. A box
+   shows the result when it finishes.
+4. Stop the log with Ctrl-C and send `hfcast.log`.
+
+### What the lines mean
+
+```
+native | in 412 B 0 ms | predict 214 ms | out 186234 B 41 ms | total 255 ms
+batch  | 16 strips | 8 threads asked | 8 at once | wall 980 ms | engine 4310 ms | 4.4 cores used | 2380114 chars back
+[hfcast] benchmark: fine grid, one hour | 34560 points | native 1020 | parse 460 | total 1480
+```
+
+The first is one strip, from inside the Rust. `predict` is the
+arithmetic; `out` is the boundary, and its size is the answer it had to
+convert.
+
+The second is the whole batch, from Kotlin. **`cores used` is the
+number to look at first.** It is engine time divided by wall time, so it
+says how many cores the batch really got. A batch that asks for eight
+threads, admits eight at once and still reports about one core used is
+not a slow telephone — it is a pool that is not running in parallel, and
+no amount of work on the arithmetic would help it.
+
+The third is the application's own line. `native` is everything up to
+the answers arriving as text; `parse` is turning them into objects, on
+the thread that draws.
+
 ## The three parts
 
 | Directory        | What it is             | Language                       |
@@ -219,16 +280,24 @@ carry those files: part of that data is CCIR Report 322 and 340 material
 that the engine does not redistribute. Only the engine repository has
 them.
 
-So `build-rust.sh` finds the engine checkout and applies a Cargo path
-override, which changes where the crate comes from and nothing else. The
-version in `Cargo.toml` still says what the application depends on, and
-`Cargo.lock` does not change. The script looks in each parent directory
-for `hfcast-engine/`; `HFCAST_ENGINE` names it instead.
+So `build-rust.sh` finds the engine checkout and points Cargo at it with
+a `[patch.crates-io]` entry, which changes where the crate comes from and
+nothing else. The version in `Cargo.toml` still says what the application
+depends on. The script looks in each parent directory for
+`hfcast-engine/`; `HFCAST_ENGINE` names it instead.
 
 This is also how you try an engine change before it is published: build
-in the engine checkout, then build here. When the change is published,
-move the version with `cargo update -p hfcast --precise <version>`. That
-writes `Cargo.lock`, which is the pin the workflows read.
+in the engine checkout, then build here. It works even when the checkout
+is a version ahead of anything on crates.io, which is the usual state
+while a change is being made. When the change is published, move the
+version with `cargo update -p hfcast --precise <version>`. That writes
+`Cargo.lock`, which is the pin the workflows read.
+
+Until it is published, `Cargo.lock` holds the local copy rather than a
+registry entry with a checksum, and the workflows cannot build. That is
+deliberate: a lock that quietly named an older engine would build an
+application whose newer half does nothing, and nothing on screen would
+say so.
 
 The engine repository must have a tag for that version — `v0.66.6` —
 because an Android build in CI takes the coefficient files from the

@@ -20,10 +20,12 @@
 import { execFile } from 'node:child_process';
 import { cpus, homedir } from 'node:os';
 import path from 'node:path';
+import type { CentrePoint } from '../../../shared/correctMap.ts';
 import type {
   WireCell,
   WireCoverage,
   WireCoveragePoint,
+  WireMedians,
   WirePrediction,
 } from '../../../shared/wire.ts';
 import type { AntennaCard } from '../antenna.ts';
@@ -369,7 +371,66 @@ export async function runCoverage(
         lon: p.lon,
         reliability: Math.min(1, Math.max(0, p.reliability)),
         takeoffAngleDeg: p.takeoffAngleDeg ?? null,
+        // What the correction reads. Passed through as the engine gave
+        // them; `shared/correctMap.ts` decides what an absent one means.
+        snr: p.snr,
+        snrLowDecile: p.snrLowDecile ?? null,
+        snrUpDecile: p.snrUpDecile ?? null,
       }))
     ),
   };
+}
+
+/**
+ * The middle of the day at every point of a lattice.
+ *
+ * The one thing the swing correction needs from the other 23 hours. The
+ * engine walks all 24 in a single pass over the grid — see `dailyMedian`
+ * in `hfcast-engine/src/service.rs` — which costs about 15 times one
+ * hour rather than 24, because roughly two fifths of an area run does
+ * not depend on the hour.
+ *
+ * One band per call, as `runCoverage` is, and split into the same
+ * latitude strips so the processes are used the same way.
+ */
+export async function runDailyMedians(
+  request: Omit<CoverageRequest, 'hour'>,
+  shards: number = COVERAGE_SHARDS,
+): Promise<DailyMedians> {
+  const { band, bounds, ...rest } = request;
+  const ask = (over: AreaBounds | undefined) =>
+    callPredict<WireMedians>(JSON.stringify({
+      ...rest,
+      mode: 'area',
+      dailyMedian: true,
+      freqMhz: BAND_MHZ[band],
+      itshfbc: ITSHFBC_DIR,
+      ...(over ?? {}),
+    }));
+
+  const strips = latShards(bounds, request.latStep, request.lonStep, shards);
+  const parts = strips === null
+    ? [await ask(bounds)]
+    : await Promise.all(strips.map(ask));
+
+  const first = parts[0] as WireMedians;
+  return {
+    latStep: first.latStep ?? request.latStep,
+    lonStep: first.lonStep ?? request.lonStep,
+    points: parts.flatMap((part) =>
+      (part.points ?? []).map((p) => ({
+        lat: p.lat,
+        lon: p.lon,
+        // One band was asked for, so the engine answers with a number.
+        medianSnr: typeof p.medianSnr === 'number' ? p.medianSnr : 0,
+      }))
+    ),
+  };
+}
+
+/** A lattice of daily middles, as the correction reads it. */
+export interface DailyMedians {
+  latStep: number;
+  lonStep: number;
+  points: readonly CentrePoint[];
 }

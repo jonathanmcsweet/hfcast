@@ -42,7 +42,8 @@
     "footnoteHours": "Stunden in UTC. Die Ortszeit in {{place}} steht auf der Uhr darüber.",
     "footnoteSaved": "Dies sind gespeicherte Daten und können nichts zeigen, was sich seit dem Abruf geändert hat.",
     "unitDirections": "Erreichbare Richtungen, %",
-    "chanceAnywhere": "erreicht etwa {{percent}} der geprüften Richtungen"
+    "chanceAnywhere": "erreicht etwa {{percent}} der geprüften Richtungen",
+    "mapFilling": "Die Karte für {{band}} wird noch berechnet."
   },
   "sections": {
     "allBandsHint": "Wie weit jedes Band trägt, Stunde für Stunde.",
@@ -146,7 +147,11 @@
       "metric": "Metrisch",
       "imperial": "Angloamerikanisch"
     },
-    "refresh": "Jetzt aktualisieren"
+    "refresh": "Jetzt aktualisieren",
+    "diagnosticsSection": "Diagnose",
+    "measure": "Dieses Gerät messen",
+    "measuring": "Messung läuft. Das dauert etwa eine halbe Minute.",
+    "measureFailed": "Die Messung konnte nicht abgeschlossen werden."
   },
   "a11y": {
     "changeLocation": "Sendestandort {{place}}. Zum Ändern tippen.",

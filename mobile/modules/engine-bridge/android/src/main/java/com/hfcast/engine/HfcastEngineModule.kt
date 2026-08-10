@@ -1,11 +1,13 @@
 package com.hfcast.engine
 
+import android.util.Log
 import expo.modules.kotlin.Promise
 import expo.modules.kotlin.exception.CodedException
 import expo.modules.kotlin.modules.Module
 import expo.modules.kotlin.modules.ModuleDefinition
 import java.io.File
 import java.util.concurrent.Executors
+import java.util.concurrent.atomic.AtomicInteger
 
 /**
  * VOACAP, in the app.
@@ -36,8 +38,38 @@ class HfcastEngineModule : Module() {
    */
   private val worker = Executors.newSingleThreadExecutor()
 
+  /**
+   * Whether a batch reports where its time went.
+   *
+   * Off unless something turns it on, so an ordinary build measures nothing.
+   * See `setTracingNative` in the Rust: the same switch also makes each
+   * prediction report how long it spent reading the request, computing, and
+   * handing the answer back across the boundary.
+   */
+  @Volatile
+  private var tracing = false
+
   override fun definition() = ModuleDefinition {
     Name("HfcastEngine")
+
+    /**
+     * Turns the timing lines on or off.
+     *
+     * They go to the Android log under the `hfcast` tag, on both sides of the
+     * boundary, so one `logcat -s hfcast` shows the whole path: what the app
+     * asked for, what each thread spent computing, what the crossing cost, and
+     * what the batch took in total.
+     *
+     * A switch rather than a build flag because the measurement worth having
+     * is of the build that ships. A phone reported 3.9 seconds for a grid this
+     * engine computes in 0.17 on a desktop, and a debug build would not answer
+     * why.
+     */
+    Function("setTracing") { on: Boolean ->
+      tracing = on
+      setTracingNative(on)
+      return@Function on
+    }
 
     /**
      * Where the app may write files the engine should read — its own cache
@@ -140,13 +172,50 @@ class HfcastEngineModule : Module() {
         }
         val width = threads.coerceIn(1, requests.size)
         val pool = Executors.newFixedThreadPool(width)
+        val startedAt = System.nanoTime()
+        // How many predictions were ever running at the same moment.
+        //
+        // The one number that separates "this phone is slow" from "these
+        // strips are not running in parallel", and nothing else reports it: a
+        // pool of eight that schedules one at a time looks exactly like a pool
+        // of one in every total.
+        val inFlight = AtomicInteger(0)
+        val widest = AtomicInteger(0)
+        var computeNs = 0L
         try {
           val running = requests.map { request ->
-            pool.submit<String?> { predictNative(request) }
+            pool.submit<String?> {
+              val here = inFlight.incrementAndGet()
+              widest.updateAndGet { most -> if (here > most) here else most }
+              val began = System.nanoTime()
+              try {
+                predictNative(request)
+              } finally {
+                synchronized(this) { computeNs += System.nanoTime() - began }
+                inFlight.decrementAndGet()
+              }
+            }
           }
           // `get` in request order, so the results line up with what was
           // asked rather than with what finished first.
           val answers = running.map { it.get() }
+          if (tracing) {
+            val wallMs = (System.nanoTime() - startedAt) / 1_000_000
+            val busyMs = computeNs / 1_000_000
+            val characters = answers.sumOf { it?.length ?: 0 }
+            // `busy / wall` is how many cores the batch actually used. A
+            // number near one, from a pool of eight, is a pool that is not
+            // running in parallel — whatever `widest` claims about how many
+            // were admitted.
+            val used = if (wallMs > 0) busyMs.toDouble() / wallMs else 0.0
+            Log.i(
+              "hfcast",
+              "batch | ${requests.size} strips | $width threads asked | " +
+                "${widest.get()} at once | wall $wallMs ms | " +
+                "engine $busyMs ms | ${"%.1f".format(used)} cores used | " +
+                "$characters chars back",
+            )
+          }
           val missing = answers.indexOfFirst { it == null }
           if (missing >= 0) {
             promise.reject(EngineFailedException("no answer for part $missing"))
@@ -173,6 +242,9 @@ class HfcastEngineModule : Module() {
   }
 
   private external fun predictNative(request: String): String?
+
+  /** Turns the Rust side's own timing lines on or off. */
+  private external fun setTracingNative(on: Boolean)
 
   companion object {
     init {

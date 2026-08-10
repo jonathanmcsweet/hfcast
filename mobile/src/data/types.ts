@@ -9,7 +9,7 @@
  */
 
 import type { BandHourPrediction, BandKey } from '../../../shared/bands.ts';
-import type { CoveragePoint } from '../../../shared/points.ts';
+import type { RawCoveragePoint } from '../../../shared/correctMap.ts';
 
 export type {
   BandHourPrediction,
@@ -167,6 +167,7 @@ export const placeToEndpoint = (place: Place): Endpoint => ({
   lon: place.lon,
 });
 
+export type { RawCoveragePoint } from '../../../shared/correctMap.ts';
 export type { CoveragePoint } from '../../../shared/points.ts';
 
 export interface Coverage {
@@ -176,7 +177,15 @@ export interface Coverage {
   lonStep: number;
   reach: number;
   basis: PredictionBasis;
-  points: readonly CoveragePoint[];
+  /**
+   * Before the correction, where the engine reported enough to apply it.
+   *
+   * The map is drawn from these as soon as they exist and corrected when
+   * the lattice of daily middles arrives — see `correctedCoverage`. That
+   * is what lets the first paint be immediate and the second be right,
+   * without computing the grid twice.
+   */
+  points: readonly RawCoveragePoint[];
 }
 
 /**
@@ -202,7 +211,8 @@ export interface CoveragePatch {
   lonMin: number;
   lonMax: number;
   basis: PredictionBasis;
-  points: readonly CoveragePoint[];
+  /** Before the correction, as `Coverage.points` are. */
+  points: readonly RawCoveragePoint[];
 }
 
 /**

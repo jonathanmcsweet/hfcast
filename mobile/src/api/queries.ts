@@ -8,6 +8,12 @@ import { useEffect, useMemo } from 'react';
 
 import { searchCities } from '../data/cities';
 import { formatLatLon, parseCoordinates } from '../data/coords';
+import {
+  CENTRE_LAT_STEP,
+  CENTRE_LON_STEP,
+  FINE_CENTRE_LAT_STEP,
+  FINE_CENTRE_LON_STEP,
+} from '../data/correctMap';
 import { patchGrid, patchKey } from '../data/coveragePatch';
 import { fetchGeocode as fetchGeocodeDirect } from '../data/geocode';
 import { gridToLatLon, isGrid, latLonToGrid } from '../data/grid';
@@ -17,6 +23,9 @@ import {
 } from '../data/ionosonde';
 import {
   canMapLocally,
+  centresLocally,
+  correctedCoverage,
+  correctedPatch,
   coverAllBandsLocally,
   coverFineLocally,
   coverPatchAllBandsLocally,
@@ -56,6 +65,7 @@ import {
   fetchSurvey,
 } from './client';
 import { MAP_CACHE_MS, pruneFineGlobes, touchFineGlobe } from './mapCache';
+import { type BandFill, useBandFill } from './useBandFill';
 
 /**
  * All network state goes through React Query. Query keys carry every input the
@@ -219,6 +229,18 @@ const nowcastKey = (nowcast: Nowcast | undefined): string =>
   nowcast ? `${nowcast.effectiveSsn}/${nowcast.kpMax24h}` : 'none';
 
 /**
+ * The part of a now-cast a lattice of daily middles depends on.
+ *
+ * The sunspot number and nothing else. A storm widens the spread below
+ * the median and leaves the median where it is, so the K index cannot
+ * move these numbers — and the whole-day runs are the expensive ones, so
+ * recomputing every band's lattice each time a K index is polled would
+ * be a lot of engine time spent to arrive back at the same answer.
+ */
+const centreNowcastKey = (nowcast: Nowcast | undefined): string =>
+  nowcast ? `${nowcast.effectiveSsn}` : 'none';
+
+/**
  * What a map run is about: this origin, this band, this hour, this day,
  * these readings, this station — and whether the engine in this build
  * answers or the server does.
@@ -274,6 +296,26 @@ function useMapRun(from: Endpoint, band: BandKey, reportedHour: number) {
         nowcastKey(nowcast),
         station.key,
         ...extra,
+      ] as const,
+
+    /**
+     * The key for a lattice of daily middles.
+     *
+     * No hour in it, deliberately, and no K index. The middle of a day
+     * is the same number whatever hour is on screen, so one answer
+     * serves every hour the reader scrubs to — which is what keeps
+     * scrubbing as quick as it was before the correction existed.
+     */
+    centreKey: (lattice: 'coarse' | 'fine', forBand: BandKey | 'all') =>
+      [
+        'centres',
+        local ? 'device' : API_BASE,
+        from.grid,
+        forBand,
+        lattice,
+        date,
+        centreNowcastKey(nowcast),
+        station.key,
       ] as const,
 
     /**
@@ -536,6 +578,88 @@ export function useGeocode(query: string, lang: string) {
  * two dozen runs and leave the map trailing the finger by many seconds, most of
  * them computing an hour already passed.
  */
+/**
+ * The lattice of daily middles for every band, on the coarse grid.
+ *
+ * The first correction the map gets, and the cheapest: 192 places, one
+ * whole-day pass, every band together. It is asked for beside the coarse
+ * map rather than after it, so the map is corrected almost as soon as it
+ * is drawn.
+ *
+ * The server corrects its own answers before sending them, so this only
+ * runs where the engine is in the app.
+ */
+function useCoarseCentres(from: Endpoint, band: BandKey, hour: number) {
+  const run = useMapRun(from, band, hour);
+  return useQuery({
+    queryKey: run.centreKey('coarse', 'all'),
+    queryFn: () =>
+      centresLocally(run.engine, CENTRE_LAT_STEP, CENTRE_LON_STEP, null),
+    enabled: run.local && run.enabled,
+    ...run.keeping,
+    // A map without it is the map this application always drew, so a
+    // second attempt is not worth an engine run in front of the
+    // reader's next one.
+    retry: false,
+  });
+}
+
+/**
+ * The finer lattice, for one band, which the whole-world grid waits for.
+ *
+ * 1,728 places rather than 192. It costs about as much as the fine grid
+ * itself, and it has to land first: a fine grid is corrected when it is
+ * packed and cannot be improved afterwards without being computed again.
+ *
+ * It does not depend on the hour, so it is computed once a band and then
+ * every hour the reader scrubs to is as quick as it was before.
+ */
+function useFineCentres(
+  from: Endpoint,
+  band: BandKey,
+  hour: number,
+  enabled: boolean,
+) {
+  const run = useMapRun(from, band, hour);
+  return useQuery({
+    queryKey: run.centreKey('fine', band),
+    queryFn: async () => {
+      const one = await centresLocally(
+        run.engine,
+        FINE_CENTRE_LAT_STEP,
+        FINE_CENTRE_LON_STEP,
+        band,
+      );
+      return one[band];
+    },
+    enabled: enabled && run.local && run.enabled,
+    ...run.keeping,
+    retry: false,
+  });
+}
+
+/**
+ * Which bands are corrected yet, and which one is being worked out.
+ *
+ * The band on screen is asked for in front of the reader by
+ * `useFineCentres`; this fills the other eight in behind the map, and
+ * reports how far it has got so the band grid can say so.
+ */
+export function useBandProgress(
+  from: Endpoint,
+  band: BandKey,
+  reportedHour: number,
+): BandFill {
+  const run = useMapRun(from, band, reportedHour);
+  return useBandFill({
+    local: run.local,
+    enabled: run.enabled,
+    band,
+    engine: run.engine,
+    keyFor: (other) => run.centreKey('fine', other),
+  });
+}
+
 export function useCoverage(
   from: Endpoint,
   band: BandKey,
@@ -543,8 +667,11 @@ export function useCoverage(
 ) {
   const run = useMapRun(from, band, reportedHour);
   const client = useQueryClient();
+  const centres = useCoarseCentres(from, band, reportedHour);
+  const station = useStation();
+  const kp = nowcastFrom(useSpaceWeather().data)?.kpMax24h ?? null;
 
-  return useQuery({
+  const query = useQuery({
     queryKey: run.key('coverage'),
     queryFn: async () => {
       if (!run.local) return await fetchCoverage(run.request);
@@ -559,6 +686,23 @@ export function useCoverage(
     ...run.keeping,
     retry: 1,
   });
+
+  // Corrected when it is read rather than when it was run. That is what
+  // lets the map appear at once and become right a moment later without
+  // the grid being computed twice. Nothing announces the change: the map
+  // simply becomes more accurate (user, 2026-08-09).
+  const data = useMemo(() => {
+    const map = query.data;
+    if (map === undefined || !run.local) return map;
+    return correctedCoverage(
+      map,
+      centres.data?.[band] ?? null,
+      station.station,
+      kp,
+    );
+  }, [query.data, centres.data, band, run.local, station.station, kp]);
+
+  return { ...query, data };
 }
 
 /**
@@ -604,16 +748,33 @@ export function useFineGlobe(
   enabled = true,
 ) {
   const run = useMapRun(from, band, reportedHour);
+  // The finer lattice first, then the grid. Both are foreground work and
+  // the order between them matters: a grid is corrected as it is packed,
+  // so one built before its lattice arrived would have to be built again
+  // to improve — 34,560 points, twice, to move a few colours.
+  const centres = useFineCentres(
+    from,
+    band,
+    reportedHour,
+    enabled && hasSkia && run.enabled,
+  );
+  const centre = centres.data ?? null;
+  // Settled means the lattice either arrived or failed. A failed one
+  // still lets the grid run: an uncorrected fine grid is better than no
+  // fine grid, and it is what this application drew until now.
+  const centreSettled = !run.local || centres.isSuccess || centres.isError;
 
   const query = useQuery({
     queryKey: run.key('fineGlobe'),
     queryFn: () =>
-      run.local ? coverFineLocally(run.engine) : fetchFineGlobe(run.request),
+      run.local
+        ? coverFineLocally(run.engine, centre)
+        : fetchFineGlobe(run.request),
     // `hasSkia` is a renderer limit, not a speed one: the legacy SVG
     // cell field cannot hold 34,560 shapes, so on that build the run
     // would cost seconds and change nothing on screen. Every device that
     // can draw the grid runs it (user, 2026-08-01).
-    enabled: enabled && hasSkia && run.enabled,
+    enabled: enabled && hasSkia && run.enabled && centreSettled,
     ...run.keeping,
     // No retry, for the same reason the patch does not: the coarse map
     // is the answer and this is detail on top of it. A second attempt
@@ -676,6 +837,14 @@ export function useCoveragePatch(
 ) {
   const run = useMapRun(from, band, reportedHour);
   const client = useQueryClient();
+  // The finer lattice, not the coarse one the map under this uses. The
+  // patch is drawn on top of the whole-world fine grid at the deepest
+  // zoom, so the two are side by side on the screen — and two regions
+  // corrected from two different lattices meet at a seam the reader
+  // would see and could not account for.
+  const centres = useFineCentres(from, band, reportedHour, enabled);
+  const station = useStation();
+  const kp = nowcastFrom(useSpaceWeather().data)?.kpMax24h ?? null;
   // The same delay the hour gets, for the same reason: a pinch or a drag
   // is a stream of values, and running the engine on each one would
   // spend a run per frame to show the answer to a view already left.
@@ -693,7 +862,7 @@ export function useCoveragePatch(
   // view itself.
   const here = [patchKey(grid)];
 
-  return useQuery({
+  const query = useQuery({
     queryKey: run.key('coveragePatch', band, here),
     queryFn: async () => {
       if (run.local) {
@@ -718,4 +887,16 @@ export function useCoveragePatch(
     // something whose absence nothing depends on.
     retry: false,
   });
+
+  // Corrected on read, as the coarse map is, but from the finer lattice
+  // for the reason above. The patch is a few hundred points, so doing it
+  // here costs nothing worth measuring and saves the rectangle being run
+  // a second time when a better lattice arrives.
+  const data = useMemo(() => {
+    const patch = query.data;
+    if (patch === undefined || patch === null || !run.local) return patch;
+    return correctedPatch(patch, centres.data ?? null, station.station, kp);
+  }, [query.data, centres.data, run.local, station.station, kp]);
+
+  return { ...query, data };
 }

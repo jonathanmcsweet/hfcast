@@ -42,7 +42,8 @@
     "footnoteHours": "時刻は UTC です。{{place}} の現地時刻は上の時計にあります。",
     "footnoteSaved": "これは保存されたデータのため、取得後の変化は反映されません。",
     "unitDirections": "到達できる方位、%",
-    "chanceAnywhere": "調査方位の約 {{percent}} に到達"
+    "chanceAnywhere": "調査方位の約 {{percent}} に到達",
+    "mapFilling": "{{band}} の地図はまだ計算中です。"
   },
   "sections": {
     "allBandsHint": "各バンドがどこまで届くか、1時間ごとに示します。",
@@ -146,7 +147,11 @@
       "metric": "メートル法",
       "imperial": "ヤード・ポンド法"
     },
-    "refresh": "今すぐ更新"
+    "refresh": "今すぐ更新",
+    "diagnosticsSection": "診断",
+    "measure": "この端末を測定する",
+    "measuring": "測定しています。30 秒ほどかかります。",
+    "measureFailed": "測定を完了できませんでした。"
   },
   "a11y": {
     "changeLocation": "送信地は {{place}} です。タップして変更します。",
