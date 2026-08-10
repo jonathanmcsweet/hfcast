@@ -154,7 +154,11 @@
     "measureFailed": "La medición no pudo terminar.",
     "copyMeasurement": "Copiar los números",
     "copied": "Copiado",
-    "measureClose": "Cerrar"
+    "measureClose": "Cerrar",
+    "mapsSection": "Mapas guardados",
+    "keepMaps": "Guardar los mapas calculados",
+    "mapsOnCard": "Guardarlos en la tarjeta de memoria",
+    "computeAhead": "Calcular mapas por adelantado"
   },
   "a11y": {
     "changeLocation": "Transmitiendo desde {{place}}. Toca para cambiarlo.",
@@ -331,5 +335,39 @@
       "howWeKnow": "La aplicación no lo deduce de la distancia. El motor calcula el ángulo de salida de la señal, y la aplicación llama casi vertical a un trayecto cuando ese ángulo es de {{degrees}} grados o más y la banda funciona.",
       "onTheMap": "El mapa pone puntos sobre la zona que te alcanza así. Los puntos son distintos de los colores, porque los colores ya muestran la probabilidad de contacto. La línea bajo el mapa da la distancia en palabras."
     }
+  },
+  "maps": {
+    "title": "Calcular mapas por adelantado",
+    "what": "Un mapa es igual durante todo un mes. Los mapas calculados aquí se leen sin conexión y sin esperas, que es lo que hace falta en un día de campo.",
+    "monthsSection": "Cuánto por adelantado",
+    "months": {
+      "1": "Este mes",
+      "3": "Tres meses",
+      "12": "Todo un año"
+    },
+    "bandsSection": "Bandas",
+    "bandsAll": "Todas las bandas",
+    "bandsOne": "Solo {{band}}",
+    "roomSection": "Espacio permitido",
+    "room": "{{size}}",
+    "estimate": "{{files}} mapas, cerca de {{size}}, cerca de {{time}}",
+    "estimateNoTime": "{{files}} mapas, cerca de {{size}}",
+    "measureFirst": "Mide este dispositivo en Diagnóstico para estimar el tiempo.",
+    "willNotFit": "El espacio permitido admite cerca de {{files}} de ellos. El resto no se calculará.",
+    "nothingToDo": "Todos los mapas de esta opción ya están guardados.",
+    "charger": "Deja la aplicación abierta y el dispositivo en el cargador.",
+    "start": "Empezar",
+    "stop": "Parar",
+    "close": "Cerrar",
+    "running": "{{done}} de {{total}}",
+    "finished": "Terminado. {{done}} mapas guardados.",
+    "stoppedEarly": "Detenido. {{done}} mapas guardados.",
+    "someFailed": "No se pudieron calcular {{failed}}.",
+    "held": "Ahora hay {{size}} guardados.",
+    "forget": "Borrar los mapas guardados",
+    "forgotten": "Mapas guardados borrados.",
+    "onCardNow": "Guardados en la tarjeta de memoria.",
+    "onPhoneNow": "Guardados en el almacenamiento interno.",
+    "a11yProgress": "Calculando mapas por adelantado. {{done}} de {{total}} hechos."
   }
 }

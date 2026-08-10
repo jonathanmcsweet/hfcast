@@ -5,6 +5,7 @@ import { Divider, IconButton, Menu, Text, useTheme } from 'react-native-paper';
 import * as Engine from '../../modules/engine-bridge';
 import { type BenchmarkResult, runBenchmark } from '../data/benchmark';
 import { setDiagnostics } from '../data/diagnostics';
+import { canStore } from '../data/globeStore';
 import { UNIT_PREFERENCES } from '../data/units';
 import type { UnitPreference } from '../data/units';
 import { useDirection } from '../hooks/useDirection';
@@ -17,6 +18,7 @@ import { spacing, typography } from '../theme';
 import type { AppTheme } from '../theme';
 import AboutModal from './AboutModal';
 import HelpModal from './HelpModal';
+import MapsModal from './MapsModal';
 import MeasureModal from './MeasureModal';
 
 /** The icon each mode shows, so a glance says which one is in force. */
@@ -65,6 +67,7 @@ export default function SettingsMenu(
 ) {
   const [aboutOpen, setAboutOpen] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
+  const [mapsOpen, setMapsOpen] = useState(false);
   const [open, setOpen] = useState(false);
   const theme = useTheme<AppTheme>();
   const { i18n, t } = useTranslation();
@@ -73,6 +76,10 @@ export default function SettingsMenu(
   const setMode = useSettingsStore((s) => s.setThemeMode);
   const units = useSettingsStore((s) => s.units);
   const setUnits = useSettingsStore((s) => s.setUnits);
+  const keepMaps = useSettingsStore((s) => s.keepMaps);
+  const setKeepMaps = useSettingsStore((s) => s.setKeepMaps);
+  const mapsOnCard = useSettingsStore((s) => s.mapsOnCard);
+  const setMapsOnCard = useSettingsStore((s) => s.setMapsOnCard);
   const resolved = useUnits();
   const [measuring, setMeasuring] = useState(false);
   const [measurement, setMeasurement] = useState<string | null>(null);
@@ -242,6 +249,47 @@ export default function SettingsMenu(
         />
 
         {
+          /* Only where maps can be kept, which is where there is an
+             engine to compute them and a place to put them. The web
+             build has neither. */
+        }
+        {canStore()
+          ? (
+            <>
+              <Divider />
+              {heading(t('settings.mapsSection'))}
+              <Menu.Item
+                title={t('settings.keepMaps')}
+                leadingIcon={keepMaps ? 'check' : 'content-save-outline'}
+                onPress={() => setKeepMaps(!keepMaps)}
+              />
+              {
+                /* Offered only where a card is in the device. The old
+                   tablets this app is for are often short of internal
+                   storage and take one. */
+              }
+              {Engine.mapCardAvailable()
+                ? (
+                  <Menu.Item
+                    title={t('settings.mapsOnCard')}
+                    leadingIcon={mapsOnCard ? 'check' : 'sd'}
+                    onPress={() => setMapsOnCard(!mapsOnCard)}
+                  />
+                )
+                : null}
+              <Menu.Item
+                title={t('settings.computeAhead')}
+                leadingIcon="calendar-arrow-right"
+                onPress={() => {
+                  setOpen(false);
+                  setMapsOpen(true);
+                }}
+              />
+            </>
+          )
+          : null}
+
+        {
           /* Only where there is an engine to measure. The web build
              reaches the server for everything and has nothing here that
              a browser's own tools would not show better. */
@@ -272,6 +320,7 @@ export default function SettingsMenu(
         text={measurement ?? ''}
         onDismiss={() => setMeasurement(null)}
       />
+      <MapsModal visible={mapsOpen} onDismiss={() => setMapsOpen(false)} />
     </>
   );
 }

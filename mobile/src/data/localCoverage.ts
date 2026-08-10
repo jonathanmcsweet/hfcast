@@ -148,7 +148,27 @@ async function shardedWholeWorld<T>(
   ask: AreaAsk,
   latStep: number,
   lonStep: number,
+  /**
+   * Set to run behind the reader instead of in front of them.
+   *
+   * Computing ahead uses this — see `precompute.ts`. It changes the cut
+   * and it changes the lane. The pieces are sized against
+   * `BACKGROUND_PIECE_POINTS` rather than against the thread count, and
+   * each is queued on its own, because the whole delay a reader can
+   * suffer from background work is the length of one piece of it. A
+   * whole grid handed over as one piece would be over a second on a
+   * phone and several on a tablet.
+   *
+   * The cost is that the pieces run one at a time, so a grid computed
+   * this way takes about half as long again as one computed in front of
+   * the reader — 2,589 ms against 1,748 on the phone this was measured
+   * on. That is the right trade for work nobody is waiting for.
+   */
+  behind: string | null = null,
 ): Promise<ShardedRun<T>> {
+  if (behind !== null) {
+    return await inBackgroundStrips<T>(ask, latStep, lonStep, behind);
+  }
   const cores = Engine.cores();
   // The measured count where this device has one, the starting rule
   // where it does not — see `calibrate.ts`. The strips follow the
@@ -183,6 +203,72 @@ async function shardedWholeWorld<T>(
     elapsedMs: Date.now() - startedAt,
     strips: strips === null ? 1 : strips.length,
     threads: strips === null ? 1 : threads,
+  };
+}
+
+/**
+ * The same grid, cut small and run behind the reader.
+ *
+ * `inStrips` does this for the lattice of daily middles; this is the
+ * same idea for the whole-world grid, which is twenty times as many
+ * places at one hour instead of a few places at twenty-four.
+ *
+ * One piece at a time, never together: asking for them at once would put
+ * the whole grid in the queue in one go, and cutting it up is the only
+ * thing that bounds how long a reader can wait behind it.
+ */
+async function inBackgroundStrips<T>(
+  ask: AreaAsk,
+  latStep: number,
+  lonStep: number,
+  group: string,
+): Promise<ShardedRun<T>> {
+  const rows = Math.round(180 / latStep);
+  const columns = Math.round(360 / lonStep);
+  const pieces = Math.max(
+    1,
+    Math.min(
+      Math.floor(rows / 2),
+      Math.ceil((rows * columns) / BACKGROUND_PIECE_POINTS),
+    ),
+  );
+  const request = { ...ask, latStep, lonStep };
+  // The threshold is lowered to one strip's worth for the same reason
+  // `inStrips` lowers it: the cut here is about how long a reader waits,
+  // not about spreading work over cores.
+  const strips = latShards(undefined, latStep, lonStep, pieces, 1);
+  const startedAt = Date.now();
+  if (strips === null) {
+    const answer = await runLater(group, () => Engine.predict<T>(request));
+    return {
+      answers: [answer],
+      elapsedMs: Date.now() - startedAt,
+      nativeMs: Date.now() - startedAt,
+      parseMs: 0,
+      strips: 1,
+      threads: 1,
+    };
+  }
+
+  // A loop rather than `Promise.all` over a map: the pieces must not run
+  // together, which is the whole point of cutting them.
+  const answers: T[] = [];
+  for (const bounds of strips) {
+    answers.push(
+      await runLater(group, () => Engine.predict<T>({ ...request, ...bounds })),
+    );
+  }
+  const elapsedMs = Date.now() - startedAt;
+  return {
+    answers,
+    elapsedMs,
+    // `predict` parses its own answer inside itself, so the two cannot
+    // be separated here. Charged to the engine rather than split on a
+    // guess, as the unsharded path does.
+    nativeMs: elapsedMs,
+    parseMs: 0,
+    strips: strips.length,
+    threads: 1,
   };
 }
 
@@ -570,6 +656,8 @@ export async function coverAllBandsLocally(
 export async function coverFineLocally(
   request: LocalCoverageRequest,
   centre: CentreField | null,
+  /** Set to compute ahead, behind the reader. See `shardedWholeWorld`. */
+  behind: string | null = null,
 ): Promise<FineGlobe> {
   const month = request.date.getUTCMonth() + 1;
   const year = request.date.getUTCFullYear();
@@ -580,6 +668,7 @@ export async function coverFineLocally(
     ask,
     FINE_LAT_STEP,
     FINE_LON_STEP,
+    behind,
   );
   const { answers, elapsedMs } = run;
 

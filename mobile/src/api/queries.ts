@@ -16,6 +16,8 @@ import {
 } from '../data/correctMap';
 import { patchGrid, patchKey } from '../data/coveragePatch';
 import { fetchGeocode as fetchGeocodeDirect } from '../data/geocode';
+import type { MapIdentity } from '../data/globeName';
+import { keepGlobe, makeRoom, readGlobe } from '../data/globeStore';
 import { gridToLatLon, isGrid, latLonToGrid } from '../data/grid';
 import {
   fetchSounding as fetchSoundingDirect,
@@ -48,6 +50,7 @@ import {
 import { useSettled } from '../hooks/useSettled';
 import { hasSkia } from '../render/available';
 import { today } from '../store/usePathStore';
+import { useSettingsStore } from '../store/useSettingsStore';
 import {
   activePreset,
   stationKey,
@@ -254,7 +257,22 @@ const centreNowcastKey = (nowcast: Nowcast | undefined): string =>
  * computed for something else.
  */
 function useMapRun(from: Endpoint, band: BandKey, reportedHour: number) {
-  const date = today();
+  // A prediction is monthly climatology. The engine reads the month and
+  // the year out of this date and never the day — `areaAsk` in
+  // `localCoverage.ts` — and the server reduces it to the same two
+  // before it computes anything, which its own cache key already says.
+  // So the day never changes an answer, and keeping it here threw every
+  // computed map away at midnight and computed it again from nothing.
+  // On a device with no network that is the whole cost for no gain.
+  //
+  // The first of the month rather than today, so the date stays a
+  // function of the key: two runs that share a key ask the engine and
+  // the server for exactly the same thing. A bare `YYYY-MM` would be
+  // shorter, and is not a date that every JavaScript engine parses the
+  // same way — this one is read by Hermes on the device and by V8 on
+  // the server.
+  const month = today().slice(0, 7);
+  const date = `${month}-01`;
   const station = useStation();
   const local = canMapLocally();
   const nowcast = nowcastFrom(useSpaceWeather().data);
@@ -293,7 +311,7 @@ function useMapRun(from: Endpoint, band: BandKey, reportedHour: number) {
         from.grid,
         forBand,
         hour,
-        date,
+        month,
         nowcastKey(nowcast),
         station.key,
         ...extra,
@@ -314,10 +332,38 @@ function useMapRun(from: Endpoint, band: BandKey, reportedHour: number) {
         from.grid,
         forBand,
         lattice,
-        date,
+        month,
         centreNowcastKey(nowcast),
         station.key,
       ] as const,
+
+    /**
+     * What a stored map for this run is filed under, or null when this
+     * run is not one to store.
+     *
+     * Two conditions, and one rule behind both: a stored map is only
+     * worth the room if it can be read again.
+     *
+     * The device has to be the one answering. Where the server answers
+     * there is a network, and a device with a network can ask again.
+     *
+     * And there has to be no live space weather reading. A map computed
+     * from one is filed under it, the reading is polled every fifteen
+     * minutes, and the next one files the map somewhere nothing will
+     * look. Keeping those would spend a cheap device's flash on files
+     * that are dead on arrival. What is left is the offline case, which
+     * is the field case, which is the one this exists for.
+     */
+    stored: (forBand: BandKey = band): MapIdentity | null =>
+      local && nowcast === undefined
+        ? {
+          grid: from.grid,
+          station: station.key,
+          band: forBand,
+          month,
+          hour,
+        }
+        : null,
 
     /**
      * What the engine in this build is asked. It takes the antenna's own
@@ -769,12 +815,35 @@ export function useFineGlobe(
   // fine grid, and it is what this application drew until now.
   const centreSettled = !run.local || centres.isSuccess || centres.isError;
 
+  // Whether this grid is read back from disk instead of computed, and
+  // kept when it is computed. `stored` is null for every run that must
+  // not be kept — see `useMapRun`. The lattice of daily middles has to
+  // have arrived as well: a grid built without it is uncorrected, and
+  // storing one would serve the rougher answer for the rest of the
+  // month in place of the better one.
+  const keepMaps = useSettingsStore((state) => state.keepMaps);
+  const budgetMb = useSettingsStore((state) => state.mapBudgetMb);
+  const stored = keepMaps ? run.stored() : null;
+
   const query = useQuery({
     queryKey: run.key('fineGlobe'),
-    queryFn: () =>
-      run.local
-        ? coverFineLocally(run.engine, centre)
-        : fetchFineGlobe(run.request),
+    queryFn: async () => {
+      if (stored !== null) {
+        const held = await readGlobe(stored);
+        if (held !== null) return held;
+      }
+      const grid = run.local
+        ? await coverFineLocally(run.engine, centre)
+        : await fetchFineGlobe(run.request);
+      if (stored !== null && centre !== null) {
+        // Room is made after the write and not before, so a map is
+        // never dropped to make room for one that then fails to arrive.
+        if (await keepGlobe(stored, grid)) {
+          await makeRoom(budgetMb * 1024 * 1024);
+        }
+      }
+      return grid;
+    },
     // `hasSkia` is a renderer limit, not a speed one: the legacy SVG
     // cell field cannot hold 34,560 shapes, so on that build the run
     // would cost seconds and change nothing on screen. Every device that

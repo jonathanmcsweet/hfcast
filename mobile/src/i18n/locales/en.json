@@ -154,7 +154,11 @@
     "measureFailed": "The measurement could not finish.",
     "copyMeasurement": "Copy the numbers",
     "copied": "Copied",
-    "measureClose": "Close"
+    "measureClose": "Close",
+    "mapsSection": "Stored maps",
+    "keepMaps": "Keep computed maps",
+    "mapsOnCard": "Keep them on the memory card",
+    "computeAhead": "Compute maps ahead"
   },
   "a11y": {
     "changeLocation": "Transmitting from {{place}}. Tap to change.",
@@ -331,5 +335,39 @@
       "howWeKnow": "The app does not guess this from the distance. The engine calculates the angle the signal leaves at, and the app calls a path near-vertical when that angle is {{degrees}} degrees or more and the band works.",
       "onTheMap": "The map puts dots on the area that reaches you this way. The dots are separate from the colours, because the colours already show the chance of contact. The line below the map gives the distance in words."
     }
+  },
+  "maps": {
+    "title": "Compute maps ahead",
+    "what": "A map is the same for a whole month. Maps computed here are read back with no network and no waiting, which is what a day in the field needs.",
+    "monthsSection": "How far ahead",
+    "months": {
+      "1": "This month",
+      "3": "Three months",
+      "12": "A whole year"
+    },
+    "bandsSection": "Bands",
+    "bandsAll": "Every band",
+    "bandsOne": "Only {{band}}",
+    "roomSection": "Room allowed",
+    "room": "{{size}}",
+    "estimate": "{{files}} maps, about {{size}}, about {{time}}",
+    "estimateNoTime": "{{files}} maps, about {{size}}",
+    "measureFirst": "Measure this device in Diagnostics to estimate the time.",
+    "willNotFit": "The room allowed holds about {{files}} of them. The rest will not be computed.",
+    "nothingToDo": "Every map for this choice is already stored.",
+    "charger": "Leave the app open and the device on a charger.",
+    "start": "Start",
+    "stop": "Stop",
+    "close": "Close",
+    "running": "{{done}} of {{total}}",
+    "finished": "Finished. {{done}} maps stored.",
+    "stoppedEarly": "Stopped. {{done}} maps stored.",
+    "someFailed": "{{failed}} could not be computed.",
+    "held": "{{size}} stored now.",
+    "forget": "Delete stored maps",
+    "forgotten": "Stored maps deleted.",
+    "onCardNow": "Stored on the memory card.",
+    "onPhoneNow": "Stored in internal storage.",
+    "a11yProgress": "Computing maps ahead. {{done}} of {{total}} done."
   }
 }

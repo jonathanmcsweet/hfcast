@@ -154,7 +154,11 @@
     "measureFailed": "Die Messung konnte nicht abgeschlossen werden.",
     "copyMeasurement": "Zahlen kopieren",
     "copied": "Kopiert",
-    "measureClose": "Schließen"
+    "measureClose": "Schließen",
+    "mapsSection": "Gespeicherte Karten",
+    "keepMaps": "Berechnete Karten behalten",
+    "mapsOnCard": "Auf der Speicherkarte behalten",
+    "computeAhead": "Karten im Voraus berechnen"
   },
   "a11y": {
     "changeLocation": "Sendestandort {{place}}. Zum Ändern tippen.",
@@ -331,5 +335,39 @@
       "howWeKnow": "Die App schätzt das nicht aus der Entfernung. Die Rechenmaschine bestimmt den Abstrahlwinkel, und die App nennt einen Weg steil, wenn dieser Winkel mindestens {{degrees}} Grad beträgt und das Band funktioniert.",
       "onTheMap": "Die Karte setzt Punkte auf das Gebiet, das dich so erreicht. Die Punkte sind von den Farben getrennt, denn die Farben zeigen schon die Chance auf eine Verbindung. Die Zeile unter der Karte nennt die Entfernung in Worten."
     }
+  },
+  "maps": {
+    "title": "Karten im Voraus berechnen",
+    "what": "Eine Karte gilt für einen ganzen Monat. Hier berechnete Karten werden ohne Netz und ohne Warten gelesen. Genau das braucht ein Tag im Feld.",
+    "monthsSection": "Wie weit im Voraus",
+    "months": {
+      "1": "Dieser Monat",
+      "3": "Drei Monate",
+      "12": "Ein ganzes Jahr"
+    },
+    "bandsSection": "Bänder",
+    "bandsAll": "Alle Bänder",
+    "bandsOne": "Nur {{band}}",
+    "roomSection": "Erlaubter Platz",
+    "room": "{{size}}",
+    "estimate": "{{files}} Karten, etwa {{size}}, etwa {{time}}",
+    "estimateNoTime": "{{files}} Karten, etwa {{size}}",
+    "measureFirst": "Miss dieses Gerät in der Diagnose, um die Zeit zu schätzen.",
+    "willNotFit": "Der erlaubte Platz reicht für etwa {{files}} davon. Der Rest wird nicht berechnet.",
+    "nothingToDo": "Jede Karte für diese Auswahl ist schon gespeichert.",
+    "charger": "Lass die App offen und das Gerät am Ladegerät.",
+    "start": "Starten",
+    "stop": "Stoppen",
+    "close": "Schließen",
+    "running": "{{done}} von {{total}}",
+    "finished": "Fertig. {{done}} Karten gespeichert.",
+    "stoppedEarly": "Gestoppt. {{done}} Karten gespeichert.",
+    "someFailed": "{{failed}} konnten nicht berechnet werden.",
+    "held": "{{size}} jetzt gespeichert.",
+    "forget": "Gespeicherte Karten löschen",
+    "forgotten": "Gespeicherte Karten gelöscht.",
+    "onCardNow": "Auf der Speicherkarte gespeichert.",
+    "onPhoneNow": "Im internen Speicher gespeichert.",
+    "a11yProgress": "Karten werden im Voraus berechnet. {{done}} von {{total}} fertig."
   }
 }

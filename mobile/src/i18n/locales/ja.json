@@ -154,7 +154,11 @@
     "measureFailed": "測定を完了できませんでした。",
     "copyMeasurement": "数値をコピー",
     "copied": "コピーしました",
-    "measureClose": "閉じる"
+    "measureClose": "閉じる",
+    "mapsSection": "保存した地図",
+    "keepMaps": "計算した地図を保存する",
+    "mapsOnCard": "メモリーカードに保存する",
+    "computeAhead": "地図を前もって計算する"
   },
   "a11y": {
     "changeLocation": "送信地は {{place}} です。タップして変更します。",
@@ -331,5 +335,39 @@
       "howWeKnow": "アプリは距離から推測しません。エンジンが打ち上げ角を計算し、その角度が{{degrees}}度以上で、その帯が使えるときに、アプリはその経路を近距離の打ち上げと呼びます。",
       "onTheMap": "地図はこの方法で届く範囲に点を打ちます。色はすでに交信できる見込みを表しているので、点は色とは別にしています。地図の下の行が距離を文で示します。"
     }
+  },
+  "maps": {
+    "title": "地図を前もって計算する",
+    "what": "地図は1か月のあいだ同じです。ここで計算した地図は、通信も待ち時間もなしで読み出せます。野外で使う日にはこれが必要です。",
+    "monthsSection": "どこまで先を計算するか",
+    "months": {
+      "1": "今月",
+      "3": "3 か月",
+      "12": "1 年間"
+    },
+    "bandsSection": "バンド",
+    "bandsAll": "すべてのバンド",
+    "bandsOne": "{{band}} だけ",
+    "roomSection": "使える容量",
+    "room": "{{size}}",
+    "estimate": "地図 {{files}} 件、約 {{size}}、約 {{time}}",
+    "estimateNoTime": "地図 {{files}} 件、約 {{size}}",
+    "measureFirst": "時間を見積もるには、診断でこの端末を測定してください。",
+    "willNotFit": "使える容量に入るのは約 {{files}} 件です。残りは計算しません。",
+    "nothingToDo": "この選択の地図はすべて保存済みです。",
+    "charger": "アプリを開いたままにして、端末を充電器につないでください。",
+    "start": "開始",
+    "stop": "停止",
+    "close": "閉じる",
+    "running": "{{total}} 件中 {{done}} 件",
+    "finished": "完了しました。地図 {{done}} 件を保存しました。",
+    "stoppedEarly": "停止しました。地図 {{done}} 件を保存しました。",
+    "someFailed": "{{failed}} 件は計算できませんでした。",
+    "held": "現在 {{size}} を保存しています。",
+    "forget": "保存した地図を削除",
+    "forgotten": "保存した地図を削除しました。",
+    "onCardNow": "メモリーカードに保存しています。",
+    "onPhoneNow": "本体のストレージに保存しています。",
+    "a11yProgress": "地図を前もって計算しています。{{total}} 件中 {{done}} 件が完了しました。"
   }
 }

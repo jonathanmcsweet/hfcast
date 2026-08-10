@@ -1,5 +1,7 @@
 import { requireOptionalNativeModule } from 'expo-modules-core';
 
+import { fromBase64, toBase64 } from './base64.ts';
+
 /**
  * The prediction engine, in the app.
  *
@@ -31,6 +33,17 @@ interface Native {
    * order they were given. Absent from older builds of the module.
    */
   predictMany?(requests: string[], threads: number): Promise<string[]>;
+  /**
+   * The stored maps, all four absent from older builds of the module.
+   * Bytes cross as base64 — see `base64.ts` for why.
+   */
+  readMapCache?(name: string): Promise<string | null>;
+  writeMapCache?(name: string, contents: string): Promise<number>;
+  listMapCache?(): Promise<string>;
+  removeMapCache?(names: string[]): Promise<number>;
+  /** Whether a memory card is present, and where maps are kept. */
+  mapCardAvailable?(): boolean;
+  setMapCardUse?(on: boolean): string;
 }
 
 const native = requireOptionalNativeModule<Native>('HfcastEngine');
@@ -123,6 +136,94 @@ export function cores(): number {
     ? Math.floor(count)
     : DEFAULT_CORES;
 }
+
+/**
+ * Whether this build can keep computed maps on disk.
+ *
+ * False on web, which has no module, and on an older build of it. A
+ * caller that gets false computes every map it needs, which is what the
+ * app did before any of this existed.
+ */
+export const canStoreMaps = (): boolean =>
+  native !== null && typeof native.readMapCache === 'function';
+
+/** One stored map, as the listing reports it. */
+export interface StoredMap {
+  name: string;
+  bytes: number;
+  /** When it was last read, in milliseconds since the epoch. */
+  at: number;
+}
+
+/**
+ * Reads one stored map, or null where there is none.
+ *
+ * Null rather than a failure for a map that is not there: that is the
+ * ordinary answer for everything not computed yet, and the caller
+ * computes it.
+ */
+export async function readMapCache(name: string): Promise<Uint8Array | null> {
+  const read = native?.readMapCache;
+  if (read === undefined) return null;
+  const text = await read.call(native, name);
+  return text === null ? null : fromBase64(text);
+}
+
+/** Stores one map, and answers with the room it took. */
+export async function writeMapCache(
+  name: string,
+  bytes: Uint8Array,
+): Promise<number> {
+  const write = native?.writeMapCache;
+  if (write === undefined) {
+    throw new Error('This build cannot store a map');
+  }
+  return await write.call(native, name, toBase64(bytes));
+}
+
+/** Every stored map, with its size and when it was last read. */
+export async function listMapCache(): Promise<StoredMap[]> {
+  const list = native?.listMapCache;
+  if (list === undefined) return [];
+  const found = JSON.parse(await list.call(native)) as unknown;
+  if (!Array.isArray(found)) return [];
+  return found.filter((each): each is StoredMap =>
+    each !== null
+    && typeof each === 'object'
+    && typeof (each as StoredMap).name === 'string'
+    && typeof (each as StoredMap).bytes === 'number'
+    && typeof (each as StoredMap).at === 'number'
+  );
+}
+
+/** Drops stored maps by name, and answers with how many went. */
+export async function removeMapCache(
+  names: readonly string[],
+): Promise<number> {
+  const remove = native?.removeMapCache;
+  if (remove === undefined || names.length === 0) return 0;
+  return await remove.call(native, [...names]);
+}
+
+/**
+ * Whether this device has a memory card the app may keep maps on.
+ *
+ * The old tablets this app is for are often short of internal storage
+ * and take a card, and a year of maps is the largest thing the app ever
+ * asks to keep.
+ */
+export const mapCardAvailable = (): boolean =>
+  native?.mapCardAvailable?.() === true;
+
+/**
+ * Puts stored maps on the memory card, or back in internal storage.
+ *
+ * Answers with where they are now, which is not always what was asked: a
+ * card taken out since the choice was made falls back to internal
+ * storage rather than failing.
+ */
+export const useMapCard = (on: boolean): string =>
+  native?.setMapCardUse?.(on) ?? '';
 
 /** A batch's answers, and where its time went. */
 export interface Batch<T> {
