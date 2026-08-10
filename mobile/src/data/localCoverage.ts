@@ -5,6 +5,7 @@ import type {
 } from '../../../shared/wire.ts';
 import * as Engine from '../../modules/engine-bridge';
 import type { Station } from '../store/useStationStore';
+import { tunedThreadsFor } from './calibrate';
 import { factorsFor } from './correct';
 import {
   type CentreField,
@@ -16,7 +17,7 @@ import {
 import { LAT_STEP, LON_STEP, reachOf } from './coverageGrid';
 import { patchGrid, patchRequestBounds } from './coveragePatch';
 import { timing } from './diagnostics';
-import { stripsFor, threadsFor } from './engineBudget';
+import { STRIPS_PER_THREAD } from './engineBudget';
 import { BACKGROUND_PIECE_POINTS, runLater, runNow } from './engineQueue';
 import { FINE_LAT_STEP, FINE_LON_STEP, packGlobe } from './fineGlobe';
 import { engineStation, type Nowcast, ssnFor } from './localPredict';
@@ -149,16 +150,18 @@ async function shardedWholeWorld<T>(
   lonStep: number,
 ): Promise<ShardedRun<T>> {
   const cores = Engine.cores();
+  // The measured count where this device has one, the starting rule
+  // where it does not — see `calibrate.ts`. The strips follow the
+  // count, so a device tuned to two threads is not cut sixteen ways.
+  const threads = tunedThreadsFor(cores);
   // Cut into latitude strips so the batch can use more than one core.
   // The arithmetic is the server's, copied character for character, so
   // the two paths run the same lattice — see `shard.ts`. Null means the
   // grid should not be split, and then it runs whole.
   const strips = Engine.canBatch()
-    ? latShards(undefined, latStep, lonStep, stripsFor(cores))
+    ? latShards(undefined, latStep, lonStep, threads * STRIPS_PER_THREAD)
     : null;
   const request = { ...ask, latStep, lonStep };
-
-  const threads = threadsFor(cores);
   const startedAt = Date.now();
   const batch = await runNow(async () =>
     strips === null

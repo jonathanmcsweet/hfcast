@@ -24,32 +24,24 @@
  * including the parts JavaScript cannot see.
  */
 import * as Engine from '../../modules/engine-bridge';
+import { useDeviceStore } from '../store/useDeviceStore';
+import {
+  chooseThreads,
+  PROBE_REQUEST,
+  type Reading,
+  tunedThreadsFor,
+} from './calibrate';
 import { timing } from './diagnostics';
-import { threadsFor } from './engineBudget';
 import { FINE_LAT_STEP, FINE_LON_STEP } from './fineGlobe';
 import { latShards } from './shard';
+import { APP_VERSION } from './version';
 
 /**
- * A station and a moment chosen once and never changed.
- *
- * Atlanta, August, an ordinary sunspot number, 40m at 18:00 UTC. The
- * numbers do not matter; that they are the same numbers every time does.
- * A benchmark whose input follows the screen measures a different amount
- * of work on every run.
+ * The fixed station and moment come from `calibrate.ts`, so this
+ * benchmark and the background calibration measure the same work and
+ * their numbers can be read against each other.
  */
-const FIXED = {
-  itshfbc: '<embedded>',
-  mode: 'area' as const,
-  fromLat: 33.75,
-  fromLon: -84.39,
-  month: 8,
-  year: 2026,
-  ssn: 60,
-  watts: 100,
-  requiredSnrDb: -24,
-  noiseDbw: -145,
-  freqMhz: 7.1,
-};
+const FIXED = PROBE_REQUEST;
 
 /** What one stage of the benchmark measured. */
 export interface Stage {
@@ -129,7 +121,7 @@ const SWEEP = [1, 2, 4, 8] as const;
  */
 export async function runBenchmark(): Promise<BenchmarkResult> {
   const cores = Engine.cores();
-  const threads = threadsFor(cores);
+  const threads = tunedThreadsFor(cores);
   Engine.setTracing(true);
 
   const world = {
@@ -153,11 +145,33 @@ export async function runBenchmark(): Promise<BenchmarkResult> {
   // The map's own count joins the fixed sweep, deduplicated, so the
   // count actually in use is always one of the measured points.
   const counts = [...new Set([...SWEEP, threads])].sort((a, b) => a - b);
+  const sweep: Reading[] = [];
   // A loop rather than `map`, because each run must finish before the
   // next starts: the sweep exists to measure thread counts one at a
   // time, and overlapped runs would measure each other.
   for (const count of counts) {
-    stages.push(await stage(`fine grid, ${count} threads`, grid, count));
+    const run = await stage(`fine grid, ${count} threads`, grid, count);
+    stages.push(run);
+    sweep.push({ threads: count, nativeMs: run.nativeMs });
+  }
+
+  // The sweep is the most deliberate measurement this device will ever
+  // take — the full grid, every count, by somebody's own hand — so it
+  // writes the same store the background calibration does, and wins.
+  const solo = sweep.find((each) => each.threads === 1);
+  const gridPoints = stages.find((each) => each.what.startsWith('fine grid'))
+    ?.points ?? 0;
+  if (solo !== undefined && gridPoints > 0) {
+    useDeviceStore.getState().setMeasured({
+      threads: chooseThreads(
+        sweep.filter((each) => each.threads >= 2),
+        threads,
+      ),
+      pointMs: solo.nativeMs / gridPoints,
+      cores,
+      version: APP_VERSION,
+      at: Date.now(),
+    });
   }
 
   // The whole-day lattice, at the step the correction uses. Far fewer

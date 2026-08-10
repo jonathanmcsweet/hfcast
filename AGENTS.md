@@ -6,6 +6,27 @@
 - Write documentation in a very simple jargon-free english style that all english speakers internationally can understand
 - Be concise, articulate with your language in interactions and avoid idioms that may confuse people who don't know what they mean. Use simple language
 
+## Who the users are
+
+HFcast is for amateur radio operators who use old, cheap, low-power
+Android devices as assistants — phones and tablets they are not worried
+about losing or breaking. Many operate in the field: field days, hikes,
+portable stations. An old Fire HD 7 is a real target device, not an
+edge case. De-googled devices are normal here: the maintainer tests on
+a GrapheneOS phone, and that phone being modern says nothing about the
+devices users hold.
+
+What this means for every change:
+
+- Never assume a fast device. Performance work must hold on weak
+  hardware, and where a number depends on the device, measure it on the
+  device rather than fixing it from a fast one.
+- Battery and heat are features. A field device has no charger nearby,
+  so processor time spent for nothing is a cost the user feels.
+- The app must work with no network. A hilltop has none.
+- Both Android builds matter. The Android 5.0 build exists exactly for
+  these devices.
+
 ## Open work and progress
 
 Open work is tracked by the maintainer outside this repository. Do not

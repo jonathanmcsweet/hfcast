@@ -66,6 +66,7 @@ import {
 } from './client';
 import { MAP_CACHE_MS, pruneFineGlobes, touchFineGlobe } from './mapCache';
 import { type BandFill, useBandFill } from './useBandFill';
+import { useCalibration } from './useCalibration';
 
 /**
  * All network state goes through React Query. Query keys carry every input the
@@ -651,6 +652,10 @@ export function useBandProgress(
   reportedHour: number,
 ): BandFill {
   const run = useMapRun(from, band, reportedHour);
+  // The device measures its own best thread count from here too: this
+  // hook is mounted exactly when the map is, which is when the answer
+  // matters. See `calibrate.ts`.
+  useCalibration(run.local && run.enabled);
   return useBandFill({
     local: run.local,
     enabled: run.enabled,
