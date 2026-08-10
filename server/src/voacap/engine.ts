@@ -20,6 +20,12 @@
 import { execFile } from 'node:child_process';
 import { cpus, homedir } from 'node:os';
 import path from 'node:path';
+import type {
+  WireCell,
+  WireCoverage,
+  WireCoveragePoint,
+  WirePrediction,
+} from '../../../shared/wire.ts';
 import type { AntennaCard } from '../antenna.ts';
 import { withEngineSlot } from '../limit.ts';
 import {
@@ -156,26 +162,6 @@ function readJson<T>(text: string): T {
   }
 }
 
-/** One cell as the binary emits it, before it is labelled with its band. */
-interface WireCell {
-  hour: number;
-  freqMhz: number;
-  reliability: number;
-  snr: number;
-  snrLowDecile: number | null;
-  snrUpDecile: number | null;
-  takeoffAngleDeg: number | null;
-}
-
-interface WirePrediction {
-  mufByHour?: number[];
-  fotByHour?: (number | null)[];
-  hpfByHour?: (number | null)[];
-  lufByHour?: (number | null)[];
-  cells?: WireCell[];
-  error?: string;
-}
-
 /**
  * Runs one prediction.
  *
@@ -271,31 +257,6 @@ function hours(values: readonly (number | null)[] | undefined) {
     }
   });
   return out;
-}
-
-/** One grid point as the binary emits it. */
-interface WireCoveragePoint {
-  lat: number;
-  lon: number;
-  reliability: number;
-  /**
-   * Transmit take-off angle in degrees, or null where the engine printed
-   * no number. Steep means near-vertical incidence: the signal leaves
-   * steeply and comes back down close to where it started, with no skip
-   * zone, which is the whole of what the fine grid is for.
-   */
-  takeoffAngleDeg?: number | null;
-}
-
-interface WireCoverage {
-  latStep?: number;
-  lonStep?: number;
-  latMin?: number;
-  latMax?: number;
-  lonMin?: number;
-  lonMax?: number;
-  points?: WireCoveragePoint[];
-  error?: string;
 }
 
 /**

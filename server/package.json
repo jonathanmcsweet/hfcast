@@ -1,6 +1,6 @@
 {
   "name": "hfcast-server",
-  "version": "0.19.0",
+  "version": "0.20.0",
   "private": true,
   "type": "module",
   "description": "VOACAP prediction and space weather API for the HFcast app",

@@ -73,8 +73,14 @@ const DEFAULT_NOISE_DBW = 145;
 const spaceWeatherCache = new TtlCache<SpaceWeather>(15 * 60 * 1000, 1);
 const geocodeCache = new TtlCache<unknown>(24 * 60 * 60 * 1000, 200);
 // Keyed on the station rather than the request point, since every point
-// near one station wants the same reading.
-const ionosondeCache = new TtlCache<Sounding | null>(IONOSONDE_TTL_MS, 50);
+// near one station wants the same reading. `km` is left out of what is
+// held: it is measured from the point the caller asked about, so it is
+// the one field of a sounding that is not the same for every reader of
+// the entry. `handleIonosonde` puts it back.
+const ionosondeCache = new TtlCache<Omit<Sounding, 'km'> | null>(
+  IONOSONDE_TTL_MS,
+  50,
+);
 
 class BadRequest extends Error {}
 
@@ -382,11 +388,29 @@ async function handleIonosonde(url: URL): Promise<Sounding | null> {
   const at = parseEndpoint(url.searchParams.get('at'), null, 'at');
   const station = usefulStation(at.lat, at.lon);
   if (station === null) return null;
+
   const cached = ionosondeCache.get(station.ursi);
-  if (cached !== undefined) return cached;
-  const sounding = await fetchSounding(at.lat, at.lon);
-  ionosondeCache.set(station.ursi, sounding);
-  return sounding;
+  const reading = cached !== undefined
+    ? cached
+    : withoutDistance(await fetchSounding(at.lat, at.lon));
+  if (cached === undefined) ionosondeCache.set(station.ursi, reading);
+
+  // The entry is held by station, and the distance is measured from the
+  // point the caller asked about, so it is put on here rather than kept
+  // in the entry. Kept there, the first caller's distance is quoted to
+  // everyone else near the same station until the entry expires: a
+  // reader 90 km from Juliusruh is told the station is 220 km away.
+  return reading === null ? null : { ...reading, km: station.km };
+}
+
+/** The sounding without the part that belongs to the caller. */
+function withoutDistance(
+  sounding: Sounding | null,
+): Omit<Sounding, 'km'> | null {
+  if (sounding === null) return null;
+  const { km, ...rest } = sounding;
+  void km;
+  return rest;
 }
 
 interface GeocodeResult {
@@ -425,28 +449,39 @@ async function handleGeocode(url: URL): Promise<GeocodeResult[]> {
     ];
   }
 
-  return (await geocodeCache.fetch(query.toLowerCase(), async () => {
-    const upstream = new URL('https://geocoding-api.open-meteo.com/v1/search');
-    upstream.searchParams.set('name', query);
-    upstream.searchParams.set('count', '8');
-    upstream.searchParams.set('language', url.searchParams.get('lang') ?? 'en');
-    upstream.searchParams.set('format', 'json');
+  // The language is part of what the upstream is asked for, so it is part
+  // of what the entry holds: place names come back translated. Without it
+  // in the key, a search in German fills the entry a search in French then
+  // reads, for the whole day the entry lives.
+  const language = url.searchParams.get('lang') ?? 'en';
 
-    const response = await fetch(upstream, {
-      signal: AbortSignal.timeout(8000),
-    });
-    if (!response.ok) throw new Error(`geocoder returned ${response.status}`);
-    const body = (await response.json()) as { results?: OpenMeteoPlace[]; };
+  return (await geocodeCache.fetch(
+    `${language}|${query.toLowerCase()}`,
+    async () => {
+      const upstream = new URL(
+        'https://geocoding-api.open-meteo.com/v1/search',
+      );
+      upstream.searchParams.set('name', query);
+      upstream.searchParams.set('count', '8');
+      upstream.searchParams.set('language', language);
+      upstream.searchParams.set('format', 'json');
 
-    return (body.results ?? []).map((r) => ({
-      name: r.name,
-      lat: r.latitude,
-      lon: r.longitude,
-      grid: latLonToGrid(r.latitude, r.longitude),
-      country: r.country ?? null,
-      admin1: r.admin1 ?? null,
-    }));
-  })) as GeocodeResult[];
+      const response = await fetch(upstream, {
+        signal: AbortSignal.timeout(8000),
+      });
+      if (!response.ok) throw new Error(`geocoder returned ${response.status}`);
+      const body = (await response.json()) as { results?: OpenMeteoPlace[]; };
+
+      return (body.results ?? []).map((r) => ({
+        name: r.name,
+        lat: r.latitude,
+        lon: r.longitude,
+        grid: latLonToGrid(r.latitude, r.longitude),
+        country: r.country ?? null,
+        admin1: r.admin1 ?? null,
+      }));
+    },
+  )) as GeocodeResult[];
 }
 
 function send(res: ServerResponse, status: number, body: unknown): void {

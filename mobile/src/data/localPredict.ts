@@ -1,4 +1,5 @@
 import { bearingDeg, distanceKm } from '../../../shared/geo.ts';
+import type { WireCell, WirePrediction } from '../../../shared/wire.ts';
 import * as Engine from '../../modules/engine-bridge';
 import { type Station, usesBeam } from '../store/useStationStore';
 import { antennaOnDisk } from './antennaFile';
@@ -47,24 +48,6 @@ const NOISE_DBW = -145;
 export interface EngineAntenna {
   file: string;
   beamDeg: number;
-}
-
-interface WireCell {
-  freqMhz: number;
-  hour: number;
-  reliability: number;
-  snr: number;
-  snrLowDecile: number;
-  snrUpDecile: number;
-  takeoffAngleDeg: number;
-}
-
-interface WirePrediction {
-  cells?: readonly WireCell[];
-  mufByHour?: readonly number[];
-  fotByHour?: readonly (number | null)[];
-  hpfByHour?: readonly (number | null)[];
-  lufByHour?: readonly (number | null)[];
 }
 
 /** Exactly 24 entries, with anything unusable read as absent. */

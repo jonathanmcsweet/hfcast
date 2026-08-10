@@ -46,8 +46,11 @@ tools/build-android.sh legacy   # Android 5.0 and later, not published
 
 An APK takes about ten minutes. Offer the web build first.
 
-Four files hold the application version and have to agree. Move them
-with the script, never by hand:
+Three files hold the application version and have to agree
+(`mobile/package.json`, `mobile/legacy/package.json` and
+`mobile/app.json`). Move them with the script, never by hand. The server
+and the tooling project at the top hold their own versions, which the
+script does not touch:
 
 ```bash
 tools/bump-version.sh patch

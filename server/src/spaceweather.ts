@@ -10,6 +10,7 @@
  *
  * The effective SSN here is an approximation, and callers must label it as one.
  */
+import { TtlCache } from './cache.ts';
 import type { PredictionBasis, SpaceWeather } from './types.ts';
 
 const SWPC = 'https://services.swpc.noaa.gov';
@@ -114,6 +115,37 @@ export async function fetchSpaceWeather(): Promise<SpaceWeather> {
 }
 
 /**
+ * How long the two solar-cycle feeds are held.
+ *
+ * Both are monthly series that SWPC republishes about once a month, so a
+ * day is short against how often they change.
+ *
+ * They were fetched on every call, and the call sits in front of every
+ * cache read rather than behind it: `predict.ts` and `coverage.ts` both
+ * resolve the sunspot number before they look in their own cache, so
+ * even an answer that was already held cost two calls to SWPC first. An
+ * uncached survey is forty-eight predictions, which was ninety-six.
+ */
+const SOLAR_CYCLE_TTL_MS = 24 * 60 * 60 * 1000;
+
+/** Two feeds, and no more: the paths below are the only keys. */
+const solarCycleCache = new TtlCache<unknown>(SOLAR_CYCLE_TTL_MS, 2);
+
+/**
+ * One solar-cycle feed, from the day's copy where there is one.
+ *
+ * Through `fetch`, so that requests arriving together on a cold cache
+ * make one call rather than one each.
+ */
+async function solarCycleFeed<T>(path: string): Promise<T> {
+  const body = await solarCycleCache.fetch(
+    path,
+    async () => await getJson<T>(path),
+  );
+  return body as T;
+}
+
+/**
  * The smoothed sunspot number to assume for a given month. Observed smoothed
  * values lag by about six months, so recent and future months fall back to
  * SWPC's predicted cycle.
@@ -125,10 +157,12 @@ export async function ssnForMonth(
   const tag = `${year}-${String(month).padStart(2, '0')}`;
 
   const [observed, predicted] = await Promise.all([
-    getJson<ObservedRecord[]>(
+    solarCycleFeed<ObservedRecord[]>(
       'json/solar-cycle/observed-solar-cycle-indices.json',
     ),
-    getJson<PredictedRecord[]>('json/solar-cycle/predicted-solar-cycle.json'),
+    solarCycleFeed<PredictedRecord[]>(
+      'json/solar-cycle/predicted-solar-cycle.json',
+    ),
   ]);
 
   const seen = observed.find((r) => r['time-tag'] === tag);

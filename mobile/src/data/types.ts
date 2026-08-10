@@ -153,6 +153,20 @@ export interface Place {
   admin1: string | null;
 }
 
+/**
+ * A searched place as an endpoint.
+ *
+ * The one field that is not a rename: a place's `name` becomes the
+ * endpoint's `label`. Both screens that offer a search had a copy of
+ * this.
+ */
+export const placeToEndpoint = (place: Place): Endpoint => ({
+  grid: place.grid,
+  label: place.name,
+  lat: place.lat,
+  lon: place.lon,
+});
+
 export type { CoveragePoint } from '../../../shared/points.ts';
 
 export interface Coverage {

@@ -1,8 +1,9 @@
+import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { StyleSheet, View } from 'react-native';
 import { Text, TouchableRipple, useTheme } from 'react-native-paper';
 import { qualityFor } from '../data/quality';
-import { cellFor } from '../data/selectors';
+import { cellAt, cellsByBandHour } from '../data/selectors';
 import { hoursFrom, offsetOf } from '../data/timeline';
 import { BAND_ORDER } from '../data/types';
 import type { BandKey, PathPrediction } from '../data/types';
@@ -54,6 +55,37 @@ export default function BandHeatmap({
   const hours = hoursFrom(start);
   const selectedColumn = offsetOf(hour, start);
 
+  // Every cell's colour and its spoken label, worked out once.
+  //
+  // This grid is 9 bands by 24 hours, and it is rebuilt on every value
+  // the hour slider passes through: `onValueChange` reports each one, and
+  // the settle delay that holds the map queries back does not hold this
+  // back. Each cell used to scan a 216-row list to find itself, and then
+  // build its label from five formatter and translation calls — the
+  // labels being much the larger of the two. None of it depends on which
+  // hour is selected, only on the prediction and the language, so it is
+  // held until one of those changes.
+  const cells = useMemo(() => {
+    const byBandHour = cellsByBandHour(prediction);
+    return new Map(
+      hoursFrom(start).flatMap((h) =>
+        BAND_ORDER.map((key) => {
+          const reliability = cellAt(byBandHour, key, h)?.reliability ?? 0;
+          const quality = qualityFor(reliability);
+          return [`${key}:${h}`, {
+            quality,
+            label: t('a11y.gridCell', {
+              band: key,
+              hour: f.utcClock(h),
+              percent: f.percent(reliability),
+              quality: t(`quality.${quality}`),
+            }),
+          }] as const;
+        })
+      ),
+    );
+  }, [prediction, start, t, f]);
+
   return (
     <View>
       {
@@ -104,20 +136,14 @@ export default function BandHeatmap({
               ]}
             >
               {BAND_ORDER.map((key) => {
-                const cell = cellFor(prediction, key, h);
-                const reliability = cell?.reliability ?? 0;
-                const quality = qualityFor(reliability);
+                const cell = cells.get(`${key}:${h}`);
+                const quality = cell?.quality ?? 'closed';
                 return (
                   <TouchableRipple
                     key={key}
                     onPress={() => onSelect(key, h)}
                     accessibilityRole="button"
-                    accessibilityLabel={t('a11y.gridCell', {
-                      band: key,
-                      hour: f.utcClock(h),
-                      percent: f.percent(reliability),
-                      quality: t(`quality.${quality}`),
-                    })}
+                    accessibilityLabel={cell?.label}
                     style={[styles.cell, {
                       backgroundColor: theme.colors.quality[quality].base,
                     }]}

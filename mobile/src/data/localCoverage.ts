@@ -1,3 +1,4 @@
+import type { WireCoverage } from '../../../shared/wire.ts';
 import * as Engine from '../../modules/engine-bridge';
 import type { Station } from '../store/useStationStore';
 import { LAT_STEP, LON_STEP, reachOf } from './coverageGrid';
@@ -38,16 +39,6 @@ import {
 
 /** Man-made noise at a residential site, dBW in 1 Hz. VOACAP's own default. */
 const NOISE_DBW = -145;
-
-interface WireCoverage {
-  latStep?: number;
-  lonStep?: number;
-  latMin?: number;
-  latMax?: number;
-  lonMin?: number;
-  lonMax?: number;
-  points?: readonly CoveragePoint[];
-}
 
 /** Clamped here rather than trusted: the map colours by this number. */
 const asPoint = (p: CoveragePoint): CoveragePoint => ({

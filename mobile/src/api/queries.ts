@@ -1,4 +1,5 @@
 import {
+  hashKey,
   keepPreviousData,
   useQuery,
   useQueryClient,
@@ -54,7 +55,7 @@ import {
   fetchSpaceWeather,
   fetchSurvey,
 } from './client';
-import { MAP_CACHE_MS, pruneFineGlobes } from './mapCache';
+import { MAP_CACHE_MS, pruneFineGlobes, touchFineGlobe } from './mapCache';
 
 /**
  * All network state goes through React Query. Query keys carry every input the
@@ -632,24 +633,29 @@ export function useFineGlobe(
   // What to do instead is open work. It needs the cost of the run and
   // the cost of the fill-in split and measured first.
 
-  useFineGlobeCache(query.dataUpdatedAt);
+  useFineGlobeCache(hashKey(run.key('fineGlobe')), query.dataUpdatedAt);
   return query;
 }
 
 /**
  * Keeps the fine grids an hour, and no more of them than will fit.
  *
- * Split from `useFineGlobe` so the query stays a query. Runs after each
- * answer lands, which is the only moment the count can have grown.
+ * Split from `useFineGlobe` so the query stays a query. It does two
+ * things. It records that this grid is the one being read, which is what
+ * decides the order they are dropped in — the query key changes whenever
+ * the reader moves to another band or hour, so this runs on every move
+ * to a grid, whether it was computed now or is being read back. Then it
+ * counts what is held.
  */
-function useFineGlobeCache(landed: number) {
+function useFineGlobeCache(queryHash: string, landed: number) {
   const client = useQueryClient();
   useEffect(() => {
     // Zero is React Query's "nothing has arrived here yet". Nothing has
-    // been added to count, so there is nothing to count.
+    // been read and nothing has been added to count.
     if (landed === 0) return;
+    touchFineGlobe(client, queryHash);
     pruneFineGlobes(client);
-  }, [client, landed]);
+  }, [client, queryHash, landed]);
 }
 
 export function useCoveragePatch(

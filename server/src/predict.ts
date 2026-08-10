@@ -54,7 +54,14 @@ function antennaKey(antenna: AntennaChoice | undefined): string {
   return `${type}:${heightM}:${gainDbd}:${beamDeg}`;
 }
 
-function keyFor(request: PredictRequest, ssn: number): string {
+/**
+ * What makes two requests the same run.
+ *
+ * Exported so a test can pin it. Anything left out of this is either
+ * the same for every caller of the entry, or has to be put back on the
+ * answer after the read — see `endpointsOf`.
+ */
+export function keyFor(request: PredictRequest, ssn: number): string {
   const month = request.date.getUTCMonth() + 1;
   const year = request.date.getUTCFullYear();
   return [
@@ -75,6 +82,36 @@ function keyFor(request: PredictRequest, ssn: number): string {
   ].join('|');
 }
 
+/**
+ * The parts of the answer that describe the two ends rather than the
+ * prediction.
+ *
+ * These belong to the caller, not to the run. The cache key holds each
+ * end as a 6-character locator — a square about 4.6 km by 9.3 km — and
+ * holds no label at all, so two callers can share one entry and still
+ * have different coordinates and different names for their stations.
+ */
+function endpointsOf(
+  request: PredictRequest,
+): Pick<PathPrediction, 'from' | 'to' | 'distanceKm' | 'bearingDeg'> {
+  return {
+    from: request.from,
+    to: request.to,
+    distanceKm: distanceKm(
+      request.from.lat,
+      request.from.lon,
+      request.to.lat,
+      request.to.lon,
+    ),
+    bearingDeg: bearingDeg(
+      request.from.lat,
+      request.from.lon,
+      request.to.lat,
+      request.to.lon,
+    ),
+  };
+}
+
 export async function predict(
   request: PredictRequest,
 ): Promise<PathPrediction> {
@@ -88,8 +125,9 @@ export async function predict(
     request.basis,
   );
 
-  // Date and basis are per-request; the VOACAP run behind them is not,
-  // so they are put back on the answer rather than cached with it.
+  // The date, the basis and the two ends are per-request; the VOACAP run
+  // behind them is not, so they are put back on the answer rather than
+  // read from the entry the first caller wrote.
   //
   // Through `fetch` so that two requests for the same path arriving
   // together run the engine once. A survey is forty-eight of these in a
@@ -104,7 +142,12 @@ export async function predict(
 
     return await runOnce(request, ssn, basis, month, year, txAntenna);
   });
-  return { ...prediction, date: isoDate(request.date), basis };
+  return {
+    ...prediction,
+    ...endpointsOf(request),
+    date: isoDate(request.date),
+    basis,
+  };
 }
 
 /** One run of whichever engine is configured, corrected and assembled. */
@@ -150,20 +193,7 @@ async function runOnce(
   const mufByHour = parsed.mufByHour;
 
   return {
-    from: request.from,
-    to: request.to,
-    distanceKm: distanceKm(
-      request.from.lat,
-      request.from.lon,
-      request.to.lat,
-      request.to.lon,
-    ),
-    bearingDeg: bearingDeg(
-      request.from.lat,
-      request.from.lon,
-      request.to.lat,
-      request.to.lon,
-    ),
+    ...endpointsOf(request),
     ssn,
     requiredSnrDb: request.requiredSnrDb,
     basis,

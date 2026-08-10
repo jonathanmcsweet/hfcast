@@ -28,21 +28,14 @@ import type { BandKey, Coverage, CoveragePoint, FineGlobe } from './types.ts';
 const SAME_DEGREE = 1e-3;
 
 /**
- * The step of the whole-world fine grid.
+ * The step of the whole-world fine grid, and how many points that is.
  *
- * 1.25 by 1.5 degrees is 144 rows of 240, which is 34,560 points. It is
- * the same step the viewport patch's middle rung uses, so a reader
- * zooming in sees magnification rather than a changed answer.
- *
- * Both divide their span exactly, which the latitude-strip splitting
- * needs: the engine's whole-world grid and its rectangle grid only land
- * on the same lattice when they do.
+ * From the lattice module, not written out again. It is the same step
+ * the viewport patch uses, so a reader zooming in sees magnification
+ * rather than a changed answer — and the three copies of the pair that
+ * used to exist were held together only by comments saying so.
  */
-export const FINE_LAT_STEP = 1.25;
-export const FINE_LON_STEP = 1.5;
-
-/** What a whole-world run at that step comes to. */
-export const FINE_POINTS = (180 / FINE_LAT_STEP) * (360 / FINE_LON_STEP);
+export { FINE_LAT_STEP, FINE_LON_STEP, FINE_POINTS } from './coveragePatch.ts';
 
 /**
  * Pack a whole-world answer into columns.
