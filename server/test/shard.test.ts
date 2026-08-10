@@ -124,6 +124,25 @@ describe('when a grid is left whole', () => {
     assert.equal(latShards(undefined, PATCH_LAT_STEP, PATCH_LON_STEP, 1), null);
   });
 
+  it('splits below the threshold when the caller lowers it', () => {
+    // The default counts one hour at each place. A whole-day run is
+    // about fifteen times that at the same places, so the lattice the
+    // map correction uses — 1,728 places at 5 by 7.5 degrees — is more
+    // work than a one-hour grid of 25,000 and the default refuses it.
+    //
+    // The correction's background fill cuts that lattice small on
+    // purpose: the engine takes one request at a time and cannot be
+    // interrupted, so the size of a piece is the longest a reader can be
+    // held up by it. Without this the lattice ran whole, which is the
+    // one thing the cutting exists to prevent.
+    assert.ok(pointCount(undefined, 5, 7.5) < MIN_SHARD_POINTS);
+    assert.equal(latShards(undefined, 5, 7.5, 8), null);
+
+    const strips = latShards(undefined, 5, 7.5, 8, 1);
+    assert.ok(strips);
+    assert.equal(strips.length, 8);
+  });
+
   it('refuses a step that does not divide the world', () => {
     // The engine runs a whole-world grid down a different path from a
     // rectangle, and the two agree only where the step divides evenly.

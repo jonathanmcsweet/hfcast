@@ -160,7 +160,10 @@ export async function runBenchmark(): Promise<BenchmarkResult> {
     latStep: 5,
     lonStep: 7.5,
   };
-  const dayStrips = latShards(undefined, 5, 7.5, 8) ?? [];
+  // Split for the same reason `inStrips` does, and against the same
+  // lowered threshold: 1,728 places is under the count that makes a
+  // one-hour grid worth cutting and is fifteen times more work than it.
+  const dayStrips = latShards(undefined, 5, 7.5, 8, 1) ?? [];
   stages.push(
     await stage(
       'daily middles, 5 by 7.5',

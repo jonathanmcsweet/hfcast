@@ -417,7 +417,11 @@ async function inStrips(
       ),
     ),
   );
-  const strips = latShards(undefined, latStep, lonStep, pieces);
+  // The threshold is lowered to one strip's worth, because splitting
+  // here is not about speed. A lattice of 1,728 places is well under the
+  // count that makes a one-hour grid worth cutting, and is far more work
+  // than that count describes.
+  const strips = latShards(undefined, latStep, lonStep, pieces, 1);
   if (strips === null) {
     return await runLater(group, () => Engine.predict<WireMedians>(body));
   }
