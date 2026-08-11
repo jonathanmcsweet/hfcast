@@ -327,23 +327,23 @@
     "close": "Hilfe schließen",
     "engine": {
       "heading": "Woher die Zahlen kommen",
-      "body": "Jede Vorhersage wird auf diesem Gerät mit VOACAP berechnet, einem Ausbreitungsmodell, das seit Jahrzehnten benutzt wird. Nichts wird verschickt, und es wird kein Server gebraucht.\n\nVOACAP beschreibt einen typischen Monat, nicht einen bestimmten Tag. Es kennt dein örtliches Rauschen nicht, und es verspricht nie eine Verbindung. Es nennt nur die Chance darauf."
+      "body": "Jede Vorhersage wird auf diesem Gerät von VOACAP berechnet, einem Ausbreitungsmodell, das seit Jahrzehnten im Einsatz ist. VOACAP lässt sich offline nutzen, und das tun wir auch, es kann aber ebenso aktuelle Weltraumwetter-Vorhersagen verarbeiten, die wir im Online-Betrieb verwenden.\n\nDie VOACAP-Engine beschreibt einen typischen Tag für jeden Tag des Monats. Ohne laufende Weltraumwetterdaten kann sie die Bedingungen an einem bestimmten Tag an deinem Standort nicht kennen. Die VOACAP-Engine ist eine bestmögliche Schätzung deiner örtlichen Bedingungen."
     },
     "ssn": {
       "heading": "Die Sonnenfleckenzahl",
-      "body": "Eine Zahl bestimmt den größten Teil der Antwort: die geglättete Sonnenfleckenzahl des Monats. Die Bänder, die Stunden und die Wege folgen alle daraus.\n\nDie Werte für jeden Monat von {{first}} bis {{last}} sind in der App enthalten, eine Vorhersage braucht also kein Netz. Vergangene Monate nutzen den gemessenen Wert. Kommende Monate nutzen die veröffentlichte Vorhersage, die später noch geändert werden kann.\n\nIst eine Messung der Sonnen- und Magnetbedingungen weniger als {{hours}} Stunden alt, nutzt die App diese stattdessen. Danach kehrt sie zum Monatswert zurück. Die Zeile unter der Vorhersage nennt immer den benutzten Wert."
+      "body": "Die geglättete Sonnenfleckenzahl des Monats ist der größte Treiber des Vorhersagemodells. Die Bänder, die Stunden und die Wege folgen alle daraus.\n\nDie Werte für jeden Monat von {{first}} bis {{last}} sind in der App enthalten, eine Vorhersage braucht also kein Netz. Kommende Monate nutzen die veröffentlichte Vorhersage, die später noch geändert werden kann.\n\nIst eine Messung der Sonnen- und Magnetbedingungen weniger als {{hours}} Stunden alt, nutzt die App diese stattdessen. Danach kehrt sie zum Monatswert zurück."
     },
     "colours": {
       "heading": "Was die Farben bedeuten",
-      "body": "Eine Farbe zeigt die Chance auf eine Verbindung, nicht die Stärke des Signals. Zuverlässig bedeutet etwa {{reliable}} von 100 Versuchen oder besser, Wechselhaft mindestens {{patchy}} von 100 und Schwach mindestens {{weak}} von 100. Darunter ist das Band Geschlossen."
+      "body": "Eine Farbe zeigt die Chance auf eine Verbindung, nicht die Stärke des Signals. Zuverlässig bedeutet etwa {{reliable}} von 100 Versuchen oder besser, Wechselhaft mindestens {{patchy}} von 100 und Schwach mindestens {{weak}} von 100. Darunter gilt das Band als Geschlossen."
     },
     "map": {
       "heading": "Wie die Karte entsteht",
-      "body": "Zuerst wird eine grobe Weltkarte gezeichnet, damit sofort etwas zu sehen ist. Danach ersetzt eine feinere Karte aus {{points}} Punkten sie, und der Ausschnitt, den du gerade ansiehst, wird noch genauer berechnet.\n\nEine Karte ändert sich innerhalb eines Monats nicht. Deshalb behält die App die Karten, die sie berechnet hat, und kann sie schon vorher berechnen — siehe Karten im Voraus berechnen in diesem Menü."
+      "body": "Zuerst wird eine grobe Weltkarte gezeichnet, damit sofort etwas zu sehen ist; eine feinere Karte aus {{points}} Punkten erscheint nach und nach, sobald ihre Berechnungen fertig sind.\n\nEine Karte ändert sich innerhalb eines Monats nicht, deshalb behält die App die Karten, die sie bereits berechnet hat, und kann sie schon vorher berechnen — siehe Karten im Voraus berechnen in diesem Menü."
     },
     "invertedV": {
-      "heading": "Die Inverted V",
-      "body": "VOACAP kennt keine Inverted V. Es hat zehn Antennenmuster, und eine Inverted V ist keines davon, also kann die App sie nicht auswählen.\n\nDie App berechnet eine Inverted V als Dipol auf {{percent}} % der Scheitelhöhe. Liegt der Scheitel bei 10 Metern, rechnet das Modell mit 8 Metern.\n\nBei einem waagerechten Draht bestimmt die Höhe über Grund den Gewinn nach oben. Eine Inverted V hat ihre Enden tiefer als den Scheitel und verhält sich daher wie ein Dipol unterhalb des Scheitels. Steil nach oben strahlt ein waagerechter Draht fast in alle Richtungen gleich, die Ausrichtung ändert also wenig.\n\nDas ist eine Näherung, keine Messung. Eine V mit steilen Schenkeln verhält sich tiefer, eine flache V höher. Wähle den Dipol, wenn dein Draht waagerecht hängt."
+      "heading": "Hinweis zur Inverted V",
+      "body": "VOACAP kennt intern keine Inverted V. Stattdessen berechnet die App eine Inverted V als Dipol auf {{percent}} % der Scheitelhöhe. Liegt der Scheitel bei 10 Metern, rechnet das Modell mit 8 Metern.\n\nBei einem waagerechten Draht bestimmt die Höhe über Grund den Gewinn nach oben. Eine Inverted V hat ihre Enden tiefer als den Scheitel und verhält sich daher wie ein Dipol unterhalb des Scheitels. Steil nach oben strahlt ein waagerechter Draht fast in alle Richtungen gleich, die Ausrichtung ändert also wenig.\n\nDas ist eine Näherung, keine Messung. Eine V mit steilen Schenkeln verhält sich tiefer, eine flache V höher. Wähle den Dipol, wenn dein Draht waagerecht hängt."
     },
     "nvis": {
       "heading": "Steilstrahlung",

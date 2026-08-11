@@ -327,23 +327,23 @@
     "close": "Close help",
     "engine": {
       "heading": "Where the numbers come from",
-      "body": "Every forecast is worked out on this device by VOACAP, a propagation model that has been in use for decades. Nothing is sent away and no server is needed.\n\nVOACAP describes a typical month, not a particular day. It does not know your local noise, and it never promises a contact. It gives the chance of one."
+      "body": "Every forecast is worked out on this device by VOACAP, a propagation model that has been in use for decades. While we can use VOACAP offline, and do, it can also take up-to-date space weather forecasts, which we do use in online mode.\n\nVOACAP's engine describes a typical day for each day of the month, and without live space weather data being fed into it, cannot know your conditions on a particular day, in your location. VOACAP's engine is a best guess at your local conditions."
     },
     "ssn": {
       "heading": "The sunspot number",
-      "body": "One number drives most of the answer: the smoothed sunspot number for the month. The bands, the hours and the paths all follow from it.\n\nFigures for every month from {{first}} to {{last}} are built into the app, so a forecast needs no network. Months already gone use the measured figure. Months ahead use the published prediction, which can be revised later.\n\nWhen a reading of solar and magnetic conditions is less than {{hours}} hours old, the app uses that instead. After that it goes back to the monthly figure. The line under the forecast always says which one was used."
+      "body": "The smoothed sunspot number for the month is the largest driver of the prediction model. The bands, the hours and the paths all follow from it.\n\nFigures for every month from {{first}} to {{last}} are built into the app, so a forecast needs no network. Months ahead use the published prediction, which can be revised later.\n\nWhen a reading of solar and magnetic conditions is less than {{hours}} hours old, the app uses that instead. After that it goes back to the monthly figure."
     },
     "colours": {
       "heading": "What the colours mean",
-      "body": "A colour is the chance of making the contact, not how strong the signal will be. Reliable means about {{reliable}} times in 100 or better, patchy at least {{patchy}} in 100, and weak at least {{weak}} in 100. Below that the band is closed."
+      "body": "A colour is the chance of making the contact, not how strong the signal will be. Reliable means about {{reliable}} times in 100 or better, patchy at least {{patchy}} in 100, and weak at least {{weak}} in 100. Below that the band is considered closed."
     },
     "map": {
       "heading": "How the map is drawn",
-      "body": "A rough map of the world is drawn first, so there is something to read at once. A finer map of {{points}} places replaces it, and the part you are looking at is worked out again in more detail.\n\nA map does not change within a month. So the app keeps the maps it has made, and can make them before you need them — see Compute maps ahead in this menu."
+      "body": "A rough map of the world is drawn first, so there is something to read at once with a finer map of {{points}} places showing up as its calculations are completed.\n\nA map does not change within a month and so the app keeps the maps it has already computed, and can make them before you need them — see Compute maps ahead in this menu."
     },
     "invertedV": {
-      "heading": "The inverted V",
-      "body": "VOACAP has no inverted V. It has ten antenna patterns, and an inverted V is not one of them, so the app cannot select it.\n\nThe app calculates an inverted V as a dipole at {{percent}}% of the apex height. If the apex is 10 metres, the model uses 8 metres.\n\nFor a horizontal wire, the height above ground sets the gain straight up. An inverted V has its ends lower than its apex, so it behaves like a dipole below the apex. Near vertical, a horizontal wire radiates almost the same in all directions, so which way the wire runs changes little.\n\nThis is an approximation, not a measurement. A V with steep legs behaves lower than this, and a shallow V behaves higher. Select the dipole if your wire is level."
+      "heading": "A note on the inverted V",
+      "body": "VOACAP has no inverted V internally. Instead the app calculates an inverted V as a dipole at {{percent}}% of the apex height. If the apex is 10 metres, the model uses 8 metres.\n\nFor a horizontal wire, the height above ground sets the gain straight up. An inverted V has its ends lower than its apex, so it behaves like a dipole below the apex. Near vertical, a horizontal wire radiates almost the same in all directions, so which way the wire runs changes little.\n\nThis is an approximation, not a measurement. A V with steep legs behaves lower than this, and a shallow V behaves higher. Select the dipole if your wire is level."
     },
     "nvis": {
       "heading": "Near-vertical incidence",

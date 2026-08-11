@@ -327,23 +327,23 @@
     "close": "Cerrar la ayuda",
     "engine": {
       "heading": "De dónde salen los números",
-      "body": "Cada previsión se calcula en este dispositivo con VOACAP, un modelo de propagación que se usa desde hace décadas. No se envía nada fuera y no hace falta ningún servidor.\n\nVOACAP describe un mes típico, no un día concreto. No conoce el ruido de tu zona y nunca promete un contacto. Solo da la probabilidad de lograrlo."
+      "body": "Cada previsión se calcula en este dispositivo con VOACAP, un modelo de propagación que lleva décadas en uso. Podemos usar VOACAP sin conexión, y lo hacemos, pero también admite previsiones actualizadas del clima espacial, que sí usamos en el modo con conexión.\n\nEl motor de VOACAP describe un día típico para cada día del mes y, sin datos del clima espacial en vivo, no puede conocer tus condiciones en un día concreto ni en tu ubicación. El motor de VOACAP es la mejor estimación posible de tus condiciones locales."
     },
     "ssn": {
       "heading": "El número de manchas solares",
-      "body": "Un solo número decide casi toda la respuesta: el número de manchas solares suavizado del mes. Las bandas, las horas y los trayectos salen de él.\n\nLas cifras de cada mes desde {{first}} hasta {{last}} vienen dentro de la aplicación, así que una previsión no necesita red. Los meses ya pasados usan la cifra medida. Los meses futuros usan la predicción publicada, que puede cambiar más adelante.\n\nCuando una lectura de las condiciones solares y magnéticas tiene menos de {{hours}} horas, la aplicación usa esa lectura. Pasado ese tiempo vuelve a la cifra mensual. La línea bajo la previsión siempre dice cuál se ha usado."
+      "body": "El número de manchas solares suavizado del mes es lo que más influye en el modelo de predicción. Las bandas, las horas y los trayectos salen de él.\n\nLas cifras de cada mes desde {{first}} hasta {{last}} vienen dentro de la aplicación, así que una previsión no necesita red. Los meses futuros usan la predicción publicada, que puede cambiar más adelante.\n\nCuando una lectura de las condiciones solares y magnéticas tiene menos de {{hours}} horas, la aplicación usa esa lectura. Pasado ese tiempo vuelve a la cifra mensual."
     },
     "colours": {
       "heading": "Qué significan los colores",
-      "body": "Un color es la probabilidad de lograr el contacto, no la fuerza que tendrá la señal. Fiable significa unas {{reliable}} veces de cada 100 o mejor, Irregular al menos {{patchy}} de cada 100 y Débil al menos {{weak}} de cada 100. Por debajo de eso la banda está Cerrada."
+      "body": "Un color es la probabilidad de lograr el contacto, no la fuerza que tendrá la señal. Fiable significa unas {{reliable}} veces de cada 100 o mejor, Irregular al menos {{patchy}} de cada 100 y Débil al menos {{weak}} de cada 100. Por debajo de eso la banda se considera Cerrada."
     },
     "map": {
       "heading": "Cómo se dibuja el mapa",
-      "body": "Primero se dibuja un mapa aproximado del mundo, para que haya algo que leer enseguida. Luego lo sustituye un mapa más fino de {{points}} puntos, y la parte que estás mirando se calcula otra vez con más detalle.\n\nUn mapa no cambia dentro de un mes. Por eso la aplicación guarda los mapas que ha hecho, y puede hacerlos antes de que los necesites: mira Calcular mapas por adelantado en este menú."
+      "body": "Primero se dibuja un mapa aproximado del mundo, para que haya algo que leer enseguida, y un mapa más fino de {{points}} puntos va apareciendo a medida que se completan sus cálculos.\n\nUn mapa no cambia dentro de un mes, así que la aplicación guarda los mapas que ya ha calculado, y puede hacerlos antes de que los necesites: mira Calcular mapas por adelantado en este menú."
     },
     "invertedV": {
-      "heading": "La V invertida",
-      "body": "VOACAP no tiene una V invertida. Tiene diez patrones de antena, y la V invertida no es uno de ellos, así que la aplicación no puede seleccionarla.\n\nLa aplicación calcula una V invertida como un dipolo al {{percent}} % de la altura del vértice. Si el vértice está a 10 metros, el modelo usa 8 metros.\n\nEn un hilo horizontal, la altura sobre el suelo determina la ganancia hacia arriba. Una V invertida tiene los extremos más bajos que el vértice, así que se comporta como un dipolo por debajo del vértice. Hacia arriba, un hilo horizontal radia casi igual en todas las direcciones, así que la orientación del hilo cambia poco.\n\nEsto es una aproximación, no una medida. Una V con brazos muy inclinados se comporta como una más baja, y una V poco inclinada como una más alta. Selecciona el dipolo si tu hilo está horizontal."
+      "heading": "Nota sobre la V invertida",
+      "body": "VOACAP no tiene una V invertida internamente. En su lugar, la aplicación calcula una V invertida como un dipolo al {{percent}} % de la altura del vértice. Si el vértice está a 10 metros, el modelo usa 8 metros.\n\nEn un hilo horizontal, la altura sobre el suelo determina la ganancia hacia arriba. Una V invertida tiene los extremos más bajos que el vértice, así que se comporta como un dipolo por debajo del vértice. Hacia arriba, un hilo horizontal radia casi igual en todas las direcciones, así que la orientación del hilo cambia poco.\n\nEsto es una aproximación, no una medida. Una V con brazos muy inclinados se comporta como una más baja, y una V poco inclinada como una más alta. Selecciona el dipolo si tu hilo está horizontal."
     },
     "nvis": {
       "heading": "Incidencia casi vertical",
