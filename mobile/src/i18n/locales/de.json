@@ -383,5 +383,9 @@
     "onCardNow": "Auf der Speicherkarte gespeichert.",
     "onPhoneNow": "Im internen Speicher gespeichert.",
     "a11yProgress": "Karten werden im Voraus berechnet. {{done}} von {{total}} fertig."
+  },
+  "preferences": {
+    "title": "Voreinstellungen",
+    "close": "Voreinstellungen schließen"
   }
 }

@@ -6,12 +6,6 @@ import * as Engine from '../../modules/engine-bridge';
 import { type BenchmarkResult, runBenchmark } from '../data/benchmark';
 import { setDiagnostics } from '../data/diagnostics';
 import { canStore } from '../data/globeStore';
-import { UNIT_PREFERENCES } from '../data/units';
-import type { UnitPreference } from '../data/units';
-import { useDirection } from '../hooks/useDirection';
-import { useUnits } from '../hooks/useUnits';
-import { LANGUAGE_NAMES, SUPPORTED } from '../i18n';
-import type { SupportedLanguage } from '../i18n';
 import { THEME_MODES, useSettingsStore } from '../store/useSettingsStore';
 import type { ThemeMode } from '../store/useSettingsStore';
 import { spacing, typography } from '../theme';
@@ -20,6 +14,7 @@ import AboutModal from './AboutModal';
 import HowTheForecastIsMadeModal from './HowTheForecastIsMadeModal';
 import MapsModal from './MapsModal';
 import MeasureModal from './MeasureModal';
+import PreferencesModal from './PreferencesModal';
 
 /** The icon each mode shows, so a glance says which one is in force. */
 const THEME_ICONS: Record<ThemeMode, string> = {
@@ -33,12 +28,6 @@ const THEME_ICONS: Record<ThemeMode, string> = {
   lowLight: 'owl',
 };
 
-const UNIT_ICONS: Record<UnitPreference, string> = {
-  auto: 'cellphone-cog',
-  metric: 'ruler',
-  imperial: 'ruler-square',
-};
-
 /**
  * Everything about how the app is shown, behind one control.
  *
@@ -47,11 +36,15 @@ const UNIT_ICONS: Record<UnitPreference, string> = {
  * readable, and the one thing that can be arbitrarily long. Neither setting
  * is touched often enough to earn a permanent slot.
  *
- * One flat menu rather than nested ones: both lists are short, and a
- * submenu costs a second tap to see three words. The station is the
- * exception and opens a modal: it has three settings with ranges rather
- * than a list to pick from, and it is the one thing here that changes the
- * numbers rather than the presentation.
+ * What is a list here and what is behind a modal follows how often it is
+ * opened, not how it looks. The theme is four rows because it gets
+ * changed when the light changes, and a submenu would cost a second tap
+ * to see four words. Language and units are one row into a modal: they
+ * were ten rows for two choices somebody makes once (user, 2026-08-11).
+ *
+ * The station is a modal for its own reason — it has ranges rather than
+ * lists, and it is the one thing here that changes the numbers rather
+ * than the presentation.
  */
 interface Props {
   /** Opens the station settings, which live in a modal of their own. */
@@ -69,13 +62,11 @@ export default function SettingsMenu(
   const [helpOpen, setHelpOpen] = useState(false);
   const [mapsOpen, setMapsOpen] = useState(false);
   const [open, setOpen] = useState(false);
+  const [preferencesOpen, setPreferencesOpen] = useState(false);
   const theme = useTheme<AppTheme>();
-  const { i18n, t } = useTranslation();
-  const { setLanguage } = useDirection();
+  const { t } = useTranslation();
   const mode = useSettingsStore((s) => s.themeMode);
   const setMode = useSettingsStore((s) => s.setThemeMode);
-  const units = useSettingsStore((s) => s.units);
-  const setUnits = useSettingsStore((s) => s.setUnits);
   const keepMaps = useSettingsStore((s) => s.keepMaps);
   const setKeepMaps = useSettingsStore((s) => s.setKeepMaps);
   const mapsOnCard = useSettingsStore((s) => s.mapsOnCard);
@@ -87,7 +78,6 @@ export default function SettingsMenu(
   // a file system call on that path for an answer that does not change
   // while the app is open. A card put in now is seen at the next start.
   const hasCard = useMemo(() => Engine.mapCardAvailable(), []);
-  const resolved = useUnits();
   const [measuring, setMeasuring] = useState(false);
   const [measurement, setMeasurement] = useState<string | null>(null);
   const ui = theme.colors.ui;
@@ -186,45 +176,20 @@ export default function SettingsMenu(
         <Divider />
 
         {
-          /* "Follow the device" names what it resolved to, because a reader
-           checking this menu is usually checking whether it got it right. */
+          /* Language and units are a modal rather than two more lists here
+             (user, 2026-08-11). They were ten of this menu's items — a
+             third English took the languages to seven — and they are the
+             settings somebody picks once. The theme stays above because
+             it is the one that gets changed when the light does. */
         }
-        {heading(t('settings.unitsSection'))}
-        {UNIT_PREFERENCES.map((value) => (
-          <Menu.Item
-            key={value}
-            title={value === 'auto'
-              ? t('settings.units.autoNamed', {
-                system: t(`settings.units.${resolved.system}`),
-              })
-              : t(`settings.units.${value}`)}
-            leadingIcon={units === value ? 'check' : UNIT_ICONS[value]}
-            onPress={() => {
-              setOpen(false);
-              setUnits(value);
-            }}
-          />
-        ))}
-
-        <Divider />
-
-        {heading(t('settings.languageSection'))}
-        {SUPPORTED.map((lang) => (
-          <Menu.Item
-            key={lang}
-            title={LANGUAGE_NAMES[lang]}
-            {
-              // Spread rather than passed as undefined: Paper's own prop is
-              // optional and not nullable, and an unticked language has no
-              // icon rather than an absent one.
-              ...(i18n.language === lang ? { leadingIcon: 'check' } : {})
-            }
-            onPress={() => {
-              setOpen(false);
-              void setLanguage(lang as SupportedLanguage);
-            }}
-          />
-        ))}
+        <Menu.Item
+          title={t('preferences.title')}
+          leadingIcon="tune"
+          onPress={() => {
+            setOpen(false);
+            setPreferencesOpen(true);
+          }}
+        />
 
         <Divider />
 
@@ -335,6 +300,10 @@ export default function SettingsMenu(
         onDismiss={() => setMeasurement(null)}
       />
       <MapsModal visible={mapsOpen} onDismiss={() => setMapsOpen(false)} />
+      <PreferencesModal
+        visible={preferencesOpen}
+        onDismiss={() => setPreferencesOpen(false)}
+      />
     </>
   );
 }

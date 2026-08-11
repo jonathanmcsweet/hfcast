@@ -383,5 +383,9 @@
     "onCardNow": "Guardados en la tarjeta de memoria.",
     "onPhoneNow": "Guardados en el almacenamiento interno.",
     "a11yProgress": "Calculando mapas por adelantado. {{done}} de {{total}} hechos."
+  },
+  "preferences": {
+    "title": "Preferencias",
+    "close": "Cerrar preferencias"
   }
 }

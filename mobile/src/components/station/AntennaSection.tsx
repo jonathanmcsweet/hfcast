@@ -18,7 +18,7 @@ import {
   useStationStore,
 } from '../../store/useStationStore';
 import { spacing } from '../../theme';
-import ChipGroup from './ChipGroup';
+import ChipGroup from '../ChipGroup';
 import Dial from './Dial';
 import Note from './Note';
 import SectionHeading from './SectionHeading';

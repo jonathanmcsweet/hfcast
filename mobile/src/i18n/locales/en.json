@@ -383,5 +383,9 @@
     "onCardNow": "Stored on the memory card.",
     "onPhoneNow": "Stored in internal storage.",
     "a11yProgress": "Computing maps ahead. {{done}} of {{total}} done."
+  },
+  "preferences": {
+    "title": "Preferences",
+    "close": "Close preferences"
   }
 }
