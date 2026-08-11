@@ -1,6 +1,12 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Linking, ScrollView, StyleSheet, View } from 'react-native';
+import {
+  AccessibilityInfo,
+  Linking,
+  ScrollView,
+  StyleSheet,
+  View,
+} from 'react-native';
 import {
   Divider,
   IconButton,
@@ -13,6 +19,7 @@ import {
 
 import { CREDITS, DISCLAIMER, LICENCES } from '../data/credits';
 import { APP_VERSION, APP_VERSION_CODE } from '../data/version';
+import { useSettingsStore } from '../store/useSettingsStore';
 import { radius, spacing, typography } from '../theme';
 import type { AppTheme } from '../theme';
 
@@ -34,6 +41,17 @@ interface Props {
   visible: boolean;
   onDismiss: () => void;
 }
+
+/** How many taps on the version reveal the tools for measuring. */
+const TAPS_TO_REVEAL = 3;
+
+/**
+ * How long a tap counts towards the next one.
+ *
+ * Long enough to be an unhurried three taps, short enough that taps
+ * minutes apart while reading this screen never add up to them.
+ */
+const TAP_WINDOW_MS = 3000;
 
 /**
  * One address, shown and openable.
@@ -66,6 +84,37 @@ export default function AboutModal({ visible, onDismiss }: Props) {
   const ui = theme.colors.ui;
 
   const [openLicence, setOpenLicence] = useState<string | null>(null);
+
+  const developer = useSettingsStore((s) => s.developer);
+  const setDeveloper = useSettingsStore((s) => s.setDeveloper);
+  const taps = useRef(0);
+  const lastTap = useRef(0);
+
+  /**
+   * Shows or hides the tools for measuring this device.
+   *
+   * Three taps, and they have to be close together: taps spread over a
+   * minute of reading the licences are somebody scrolling, not somebody
+   * asking for this. The count starts again after a pause, so a stray
+   * tap now and another later never add up to the third.
+   *
+   * It toggles rather than only turning on, so anybody who finds it by
+   * accident can put it back the same way they got there. What happens
+   * is spoken as well as shown, because the thing that changed is a row
+   * in a menu on another screen.
+   */
+  const tapVersion = () => {
+    const now = Date.now();
+    taps.current = now - lastTap.current > TAP_WINDOW_MS ? 1 : taps.current + 1;
+    lastTap.current = now;
+    if (taps.current < TAPS_TO_REVEAL) return;
+    taps.current = 0;
+    const turningOn = !developer;
+    setDeveloper(turningOn);
+    AccessibilityInfo.announceForAccessibility(
+      t(turningOn ? 'about.developerOn' : 'about.developerOff'),
+    );
+  };
 
   const heading = (text: string) => (
     <Text style={[typography.label, styles.heading, { color: ui.text4 }]}>
@@ -107,11 +156,35 @@ export default function AboutModal({ visible, onDismiss }: Props) {
                install on. It is the one thing that tells them apart, and it is
                a number, so it needs no translation. */
           }
-          <Text style={[typography.caption, styles.para, { color: ui.text3 }]}>
-            {t('about.version', {
+          {
+            /* Three taps here show or hide the tools for measuring this
+               device (user, 2026-08-11). Hidden rather than removed
+               because the numbers are worth having from the build that
+               ships, and somebody sending them in needs a way to reach
+               them — but a benchmark that runs the engine flat out for
+               half a minute does not belong in front of a reader who
+               came to change the theme.
+
+               On the version line because that is where this idiom
+               lives on Android, and because it is already the line a
+               person is asked to read out when reporting anything. */
+          }
+          <TouchableRipple
+            onPress={tapVersion}
+            accessibilityRole="button"
+            accessibilityLabel={t('about.version', {
               version: `${APP_VERSION} (${APP_VERSION_CODE})`,
             })}
-          </Text>
+            accessibilityHint={t('about.developerHint')}
+          >
+            <Text
+              style={[typography.caption, styles.para, { color: ui.text3 }]}
+            >
+              {t('about.version', {
+                version: `${APP_VERSION} (${APP_VERSION_CODE})`,
+              })}
+            </Text>
+          </TouchableRipple>
 
           {heading(t('about.builtOn'))}
           {CREDITS.map((credit) => (

@@ -38,7 +38,10 @@ import {
   predictLocally,
 } from '../data/localPredict';
 import { surveyLocally } from '../data/localSurvey';
-import { fetchSpaceWeather as fetchSpaceWeatherDirect } from '../data/spaceWeather';
+import {
+  fetchSpaceWeather as fetchSpaceWeatherDirect,
+  NOWCAST_GOOD_FOR_MS,
+} from '../data/spaceWeather';
 import {
   BAND_ORDER,
   type BandKey,
@@ -95,15 +98,6 @@ const LOCAL_ENOUGH = 5;
  * should follow a storm arriving, not show the conditions it was opened on.
  */
 export const SPACE_WEATHER_POLL_MS = 15 * 60 * 1000;
-
-/**
- * How old a space weather reading may be and still describe now.
- *
- * Twenty-four hours, because the number it carries is the highest K
- * index of the last twenty-four. See `nowcastFrom`, which is where it is
- * applied and why it matters.
- */
-export const NOWCAST_GOOD_FOR_MS = 24 * 60 * 60 * 1000;
 
 export const queryKeys = {
   spaceWeather: (source: string) => ['spaceWeather', source] as const,

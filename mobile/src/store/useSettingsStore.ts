@@ -89,6 +89,22 @@ interface SettingsState {
    */
   precomputeBands: readonly BandKey[];
   setPrecomputeBands: (bands: readonly BandKey[]) => void;
+  /**
+   * Whether the tools for measuring this device are shown.
+   *
+   * Off, and reached by tapping the version in About three times (user,
+   * 2026-08-11). What it reveals is a benchmark that runs the engine
+   * flat out for half a minute — useful to whoever is working on the
+   * app, and to somebody sending numbers in, but not something to leave
+   * in front of a person who came here to change the theme.
+   *
+   * A stored choice rather than a development build flag, because the
+   * measurement worth having is of the build that ships. See
+   * `diagnostics.ts`, which makes the same argument about its own
+   * switch.
+   */
+  developer: boolean;
+  setDeveloper: (on: boolean) => void;
 }
 
 /** How much room the stored maps may take, unless somebody says otherwise. */
@@ -97,11 +113,10 @@ export const DEFAULT_MAP_BUDGET_MB = 128;
 /** The sizes offered. A whole year of nine bands is about 171 MB. */
 export const MAP_BUDGET_CHOICES = [64, 128, 256, 512] as const;
 
-// Raised for the stored maps. A saved version 2 has none of those
-// fields, so it is migrated forward rather than discarded: losing a
-// theme and a units choice to gain a storage default would be a poor
-// trade.
-const PERSIST_VERSION = 3;
+// Raised for the stored maps at 3, and for `developer` at 4. An older
+// saved shape is migrated forward rather than discarded: losing a theme
+// and a units choice to gain a storage default would be a poor trade.
+const PERSIST_VERSION = 4;
 
 export const useSettingsStore = create<SettingsState>()(
   persist(
@@ -120,6 +135,8 @@ export const useSettingsStore = create<SettingsState>()(
       setPrecomputeMonths: (precomputeMonths) => set({ precomputeMonths }),
       precomputeBands: BAND_ORDER,
       setPrecomputeBands: (precomputeBands) => set({ precomputeBands }),
+      developer: false,
+      setDeveloper: (developer) => set({ developer }),
     }),
     {
       name: 'hfcast.settings',
@@ -133,6 +150,7 @@ export const useSettingsStore = create<SettingsState>()(
         mapBudgetMb: state.mapBudgetMb,
         precomputeMonths: state.precomputeMonths,
         precomputeBands: state.precomputeBands,
+        developer: state.developer,
       }),
       migrate: (persisted, version) => {
         if (version === PERSIST_VERSION) {
@@ -146,15 +164,16 @@ export const useSettingsStore = create<SettingsState>()(
         // the rest fall to their defaults is what the reader would
         // expect: the defaults are what they would have chosen anyway.
         const held = persisted as Partial<SettingsState>;
-        if (version === 1 || version === 2) {
+        if (version === 1 || version === 2 || version === 3) {
           return {
             ...held,
             units: held.units ?? 'auto',
-            keepMaps: true,
-            mapsOnCard: false,
-            mapBudgetMb: DEFAULT_MAP_BUDGET_MB,
-            precomputeMonths: 1,
-            precomputeBands: BAND_ORDER,
+            keepMaps: held.keepMaps ?? true,
+            mapsOnCard: held.mapsOnCard ?? false,
+            mapBudgetMb: held.mapBudgetMb ?? DEFAULT_MAP_BUDGET_MB,
+            precomputeMonths: held.precomputeMonths ?? 1,
+            precomputeBands: held.precomputeBands ?? BAND_ORDER,
+            developer: false,
           };
         }
         // Anything else falls back to the defaults, which follow the

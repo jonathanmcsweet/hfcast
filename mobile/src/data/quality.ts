@@ -16,10 +16,21 @@ import type { CoveragePoint } from './types.ts';
  * least patchy", and with two numbers it would quietly stop meaning
  * that. It was written out here as 0.4 and agreed only by chance.
  */
+/**
+ * The two bounds that are only used here, named so the help screen can
+ * quote them rather than write them out again.
+ *
+ * `REACHABLE` is the third and is shared, for the reason above. Text
+ * that states a threshold has to read it from the same place the map
+ * colours it, or the two drift apart and only the reader notices.
+ */
+export const RELIABLE_AT = 0.7;
+export const WEAK_AT = 0.15;
+
 export function qualityFor(reliability: number): QualityKey {
-  if (reliability >= 0.7) return 'reliable';
+  if (reliability >= RELIABLE_AT) return 'reliable';
   if (reliability >= REACHABLE) return 'patchy';
-  if (reliability >= 0.15) return 'weak';
+  if (reliability >= WEAK_AT) return 'weak';
   return 'closed';
 }
 

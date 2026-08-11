@@ -80,6 +80,7 @@ export default function SettingsMenu(
   const setKeepMaps = useSettingsStore((s) => s.setKeepMaps);
   const mapsOnCard = useSettingsStore((s) => s.mapsOnCard);
   const setMapsOnCard = useSettingsStore((s) => s.setMapsOnCard);
+  const developer = useSettingsStore((s) => s.developer);
   // Asked once a mount, not once a render. It reaches the file system to
   // find the card, and this menu is rendered by a screen that redraws
   // whenever the clock moves — so calling it in the body below would put
@@ -296,11 +297,15 @@ export default function SettingsMenu(
           : null}
 
         {
-          /* Only where there is an engine to measure. The web build
-             reaches the server for everything and has nothing here that
-             a browser's own tools would not show better. */
+          /* Only where there is an engine to measure, and only once
+             somebody has asked to see it by tapping the version in
+             About three times (user, 2026-08-11). The benchmark runs
+             the engine flat out for about half a minute, which is not
+             something to offer a reader who came to change the theme —
+             but it stays reachable in the build that ships, because
+             that is the build whose numbers are worth having. */
         }
-        {Engine.isAvailable()
+        {developer && Engine.isAvailable()
           ? (
             <>
               <Divider />

@@ -304,7 +304,10 @@
       "plex": "IBM Plex Sans, die Schriftart"
     },
     "openSource": "Website von {{who}} öffnen",
-    "openTerms": "Lizenz {{terms}} lesen"
+    "openTerms": "Lizenz {{terms}} lesen",
+    "developerHint": "Dreimal tippen, um die Werkzeuge zum Messen dieses Geräts ein- oder auszublenden.",
+    "developerOn": "Die Messwerkzeuge werden jetzt in den Einstellungen angezeigt.",
+    "developerOff": "Die Messwerkzeuge sind jetzt ausgeblendet."
   },
   "firstRun": {
     "kicker": "DEIN STANDORT",
@@ -322,6 +325,26 @@
   "help": {
     "title": "Wie die Vorhersage entsteht",
     "close": "Hilfe schließen",
+    "engine": {
+      "heading": "Woher die Zahlen kommen",
+      "what": "Jede Vorhersage wird auf diesem Gerät mit VOACAP berechnet, einem Ausbreitungsmodell, das seit Jahrzehnten benutzt wird. Nichts wird verschickt, und es wird kein Server gebraucht.",
+      "limits": "VOACAP beschreibt einen typischen Monat, nicht einen bestimmten Tag. Es kennt dein örtliches Rauschen nicht, und es verspricht nie eine Verbindung. Es nennt nur die Chance darauf."
+    },
+    "ssn": {
+      "heading": "Die Sonnenfleckenzahl",
+      "why": "Eine Zahl bestimmt den größten Teil der Antwort: die geglättete Sonnenfleckenzahl des Monats. Die Bänder, die Stunden und die Wege folgen alle daraus.",
+      "offline": "Die Werte für jeden Monat von {{first}} bis {{last}} sind in der App enthalten, eine Vorhersage braucht also kein Netz. Vergangene Monate nutzen den gemessenen Wert. Kommende Monate nutzen die veröffentlichte Vorhersage, die später noch geändert werden kann.",
+      "live": "Ist eine Messung der Sonnen- und Magnetbedingungen weniger als {{hours}} Stunden alt, nutzt die App diese stattdessen. Danach kehrt sie zum Monatswert zurück. Die Zeile unter der Vorhersage nennt immer den benutzten Wert."
+    },
+    "colours": {
+      "heading": "Was die Farben bedeuten",
+      "what": "Eine Farbe zeigt die Chance auf eine Verbindung, nicht die Stärke des Signals. Zuverlässig bedeutet etwa {{reliable}} von 100 Versuchen oder besser, Wechselhaft mindestens {{patchy}} von 100 und Schwach mindestens {{weak}} von 100. Darunter ist das Band Geschlossen."
+    },
+    "map": {
+      "heading": "Wie die Karte entsteht",
+      "stages": "Zuerst wird eine grobe Weltkarte gezeichnet, damit sofort etwas zu sehen ist. Danach ersetzt eine feinere Karte aus {{points}} Punkten sie, und der Ausschnitt, den du gerade ansiehst, wird noch genauer berechnet.",
+      "month": "Eine Karte ändert sich innerhalb eines Monats nicht. Deshalb behält die App die Karten, die sie berechnet hat, und kann sie schon vorher berechnen — siehe Karten im Voraus berechnen in diesem Menü."
+    },
     "invertedV": {
       "heading": "Die Inverted V",
       "noModel": "VOACAP kennt keine Inverted V. Es hat zehn Antennenmuster, und eine Inverted V ist keines davon, also kann die App sie nicht auswählen.",
