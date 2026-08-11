@@ -327,36 +327,27 @@
     "close": "Cerrar la ayuda",
     "engine": {
       "heading": "De dónde salen los números",
-      "what": "Cada previsión se calcula en este dispositivo con VOACAP, un modelo de propagación que se usa desde hace décadas. No se envía nada fuera y no hace falta ningún servidor.",
-      "limits": "VOACAP describe un mes típico, no un día concreto. No conoce el ruido de tu zona y nunca promete un contacto. Solo da la probabilidad de lograrlo."
+      "body": "Cada previsión se calcula en este dispositivo con VOACAP, un modelo de propagación que se usa desde hace décadas. No se envía nada fuera y no hace falta ningún servidor.\n\nVOACAP describe un mes típico, no un día concreto. No conoce el ruido de tu zona y nunca promete un contacto. Solo da la probabilidad de lograrlo."
     },
     "ssn": {
       "heading": "El número de manchas solares",
-      "why": "Un solo número decide casi toda la respuesta: el número de manchas solares suavizado del mes. Las bandas, las horas y los trayectos salen de él.",
-      "offline": "Las cifras de cada mes desde {{first}} hasta {{last}} vienen dentro de la aplicación, así que una previsión no necesita red. Los meses ya pasados usan la cifra medida. Los meses futuros usan la predicción publicada, que puede cambiar más adelante.",
-      "live": "Cuando una lectura de las condiciones solares y magnéticas tiene menos de {{hours}} horas, la aplicación usa esa lectura. Pasado ese tiempo vuelve a la cifra mensual. La línea bajo la previsión siempre dice cuál se ha usado."
+      "body": "Un solo número decide casi toda la respuesta: el número de manchas solares suavizado del mes. Las bandas, las horas y los trayectos salen de él.\n\nLas cifras de cada mes desde {{first}} hasta {{last}} vienen dentro de la aplicación, así que una previsión no necesita red. Los meses ya pasados usan la cifra medida. Los meses futuros usan la predicción publicada, que puede cambiar más adelante.\n\nCuando una lectura de las condiciones solares y magnéticas tiene menos de {{hours}} horas, la aplicación usa esa lectura. Pasado ese tiempo vuelve a la cifra mensual. La línea bajo la previsión siempre dice cuál se ha usado."
     },
     "colours": {
       "heading": "Qué significan los colores",
-      "what": "Un color es la probabilidad de lograr el contacto, no la fuerza que tendrá la señal. Fiable significa unas {{reliable}} veces de cada 100 o mejor, Irregular al menos {{patchy}} de cada 100 y Débil al menos {{weak}} de cada 100. Por debajo de eso la banda está Cerrada."
+      "body": "Un color es la probabilidad de lograr el contacto, no la fuerza que tendrá la señal. Fiable significa unas {{reliable}} veces de cada 100 o mejor, Irregular al menos {{patchy}} de cada 100 y Débil al menos {{weak}} de cada 100. Por debajo de eso la banda está Cerrada."
     },
     "map": {
       "heading": "Cómo se dibuja el mapa",
-      "stages": "Primero se dibuja un mapa aproximado del mundo, para que haya algo que leer enseguida. Luego lo sustituye un mapa más fino de {{points}} puntos, y la parte que estás mirando se calcula otra vez con más detalle.",
-      "month": "Un mapa no cambia dentro de un mes. Por eso la aplicación guarda los mapas que ha hecho, y puede hacerlos antes de que los necesites: mira Calcular mapas por adelantado en este menú."
+      "body": "Primero se dibuja un mapa aproximado del mundo, para que haya algo que leer enseguida. Luego lo sustituye un mapa más fino de {{points}} puntos, y la parte que estás mirando se calcula otra vez con más detalle.\n\nUn mapa no cambia dentro de un mes. Por eso la aplicación guarda los mapas que ha hecho, y puede hacerlos antes de que los necesites: mira Calcular mapas por adelantado en este menú."
     },
     "invertedV": {
       "heading": "La V invertida",
-      "noModel": "VOACAP no tiene una V invertida. Tiene diez patrones de antena, y la V invertida no es uno de ellos, así que la aplicación no puede seleccionarla.",
-      "whatWeDo": "La aplicación calcula una V invertida como un dipolo al {{percent}} % de la altura del vértice. Si el vértice está a 10 metros, el modelo usa 8 metros.",
-      "whyItIsFair": "En un hilo horizontal, la altura sobre el suelo determina la ganancia hacia arriba. Una V invertida tiene los extremos más bajos que el vértice, así que se comporta como un dipolo por debajo del vértice. Hacia arriba, un hilo horizontal radia casi igual en todas las direcciones, así que la orientación del hilo cambia poco.",
-      "limits": "Esto es una aproximación, no una medida. Una V con brazos muy inclinados se comporta como una más baja, y una V poco inclinada como una más alta. Selecciona el dipolo si tu hilo está horizontal."
+      "body": "VOACAP no tiene una V invertida. Tiene diez patrones de antena, y la V invertida no es uno de ellos, así que la aplicación no puede seleccionarla.\n\nLa aplicación calcula una V invertida como un dipolo al {{percent}} % de la altura del vértice. Si el vértice está a 10 metros, el modelo usa 8 metros.\n\nEn un hilo horizontal, la altura sobre el suelo determina la ganancia hacia arriba. Una V invertida tiene los extremos más bajos que el vértice, así que se comporta como un dipolo por debajo del vértice. Hacia arriba, un hilo horizontal radia casi igual en todas las direcciones, así que la orientación del hilo cambia poco.\n\nEsto es una aproximación, no una medida. Una V con brazos muy inclinados se comporta como una más baja, y una V poco inclinada como una más alta. Selecciona el dipolo si tu hilo está horizontal."
     },
     "nvis": {
       "heading": "Incidencia casi vertical",
-      "what": "Por debajo de unos pocos cientos de kilómetros, las bandas bajas funcionan de otra manera. La señal sube casi vertical, vuelve a bajar cerca del punto de partida y no hay zona de silencio. Los operadores lo llaman NVIS.",
-      "howWeKnow": "La aplicación no lo deduce de la distancia. El motor calcula el ángulo de salida de la señal, y la aplicación llama casi vertical a un trayecto cuando ese ángulo es de {{degrees}} grados o más y la banda funciona.",
-      "onTheMap": "El mapa pone puntos sobre la zona que te alcanza así. Los puntos son distintos de los colores, porque los colores ya muestran la probabilidad de contacto. La línea bajo el mapa da la distancia en palabras."
+      "body": "Por debajo de unos pocos cientos de kilómetros, las bandas bajas funcionan de otra manera. La señal sube casi vertical, vuelve a bajar cerca del punto de partida y no hay zona de silencio. Los operadores lo llaman NVIS.\n\nLa aplicación no lo deduce de la distancia. El motor calcula el ángulo de salida de la señal, y la aplicación llama casi vertical a un trayecto cuando ese ángulo es de {{degrees}} grados o más y la banda funciona.\n\nEl mapa pone puntos sobre la zona que te alcanza así. Los puntos son distintos de los colores, porque los colores ya muestran la probabilidad de contacto. La línea bajo el mapa da la distancia en palabras."
     }
   },
   "maps": {

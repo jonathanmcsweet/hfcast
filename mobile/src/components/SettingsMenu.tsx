@@ -17,7 +17,7 @@ import type { ThemeMode } from '../store/useSettingsStore';
 import { spacing, typography } from '../theme';
 import type { AppTheme } from '../theme';
 import AboutModal from './AboutModal';
-import HelpModal from './HelpModal';
+import HowTheForecastIsMadeModal from './HowTheForecastIsMadeModal';
 import MapsModal from './MapsModal';
 import MeasureModal from './MeasureModal';
 
@@ -323,7 +323,10 @@ export default function SettingsMenu(
           )
           : null}
       </Menu>
-      <HelpModal visible={helpOpen} onDismiss={() => setHelpOpen(false)} />
+      <HowTheForecastIsMadeModal
+        visible={helpOpen}
+        onDismiss={() => setHelpOpen(false)}
+      />
       <AboutModal visible={aboutOpen} onDismiss={() => setAboutOpen(false)} />
       <MeasureModal
         visible={measurement !== null}

@@ -327,36 +327,27 @@
     "close": "Hilfe schließen",
     "engine": {
       "heading": "Woher die Zahlen kommen",
-      "what": "Jede Vorhersage wird auf diesem Gerät mit VOACAP berechnet, einem Ausbreitungsmodell, das seit Jahrzehnten benutzt wird. Nichts wird verschickt, und es wird kein Server gebraucht.",
-      "limits": "VOACAP beschreibt einen typischen Monat, nicht einen bestimmten Tag. Es kennt dein örtliches Rauschen nicht, und es verspricht nie eine Verbindung. Es nennt nur die Chance darauf."
+      "body": "Jede Vorhersage wird auf diesem Gerät mit VOACAP berechnet, einem Ausbreitungsmodell, das seit Jahrzehnten benutzt wird. Nichts wird verschickt, und es wird kein Server gebraucht.\n\nVOACAP beschreibt einen typischen Monat, nicht einen bestimmten Tag. Es kennt dein örtliches Rauschen nicht, und es verspricht nie eine Verbindung. Es nennt nur die Chance darauf."
     },
     "ssn": {
       "heading": "Die Sonnenfleckenzahl",
-      "why": "Eine Zahl bestimmt den größten Teil der Antwort: die geglättete Sonnenfleckenzahl des Monats. Die Bänder, die Stunden und die Wege folgen alle daraus.",
-      "offline": "Die Werte für jeden Monat von {{first}} bis {{last}} sind in der App enthalten, eine Vorhersage braucht also kein Netz. Vergangene Monate nutzen den gemessenen Wert. Kommende Monate nutzen die veröffentlichte Vorhersage, die später noch geändert werden kann.",
-      "live": "Ist eine Messung der Sonnen- und Magnetbedingungen weniger als {{hours}} Stunden alt, nutzt die App diese stattdessen. Danach kehrt sie zum Monatswert zurück. Die Zeile unter der Vorhersage nennt immer den benutzten Wert."
+      "body": "Eine Zahl bestimmt den größten Teil der Antwort: die geglättete Sonnenfleckenzahl des Monats. Die Bänder, die Stunden und die Wege folgen alle daraus.\n\nDie Werte für jeden Monat von {{first}} bis {{last}} sind in der App enthalten, eine Vorhersage braucht also kein Netz. Vergangene Monate nutzen den gemessenen Wert. Kommende Monate nutzen die veröffentlichte Vorhersage, die später noch geändert werden kann.\n\nIst eine Messung der Sonnen- und Magnetbedingungen weniger als {{hours}} Stunden alt, nutzt die App diese stattdessen. Danach kehrt sie zum Monatswert zurück. Die Zeile unter der Vorhersage nennt immer den benutzten Wert."
     },
     "colours": {
       "heading": "Was die Farben bedeuten",
-      "what": "Eine Farbe zeigt die Chance auf eine Verbindung, nicht die Stärke des Signals. Zuverlässig bedeutet etwa {{reliable}} von 100 Versuchen oder besser, Wechselhaft mindestens {{patchy}} von 100 und Schwach mindestens {{weak}} von 100. Darunter ist das Band Geschlossen."
+      "body": "Eine Farbe zeigt die Chance auf eine Verbindung, nicht die Stärke des Signals. Zuverlässig bedeutet etwa {{reliable}} von 100 Versuchen oder besser, Wechselhaft mindestens {{patchy}} von 100 und Schwach mindestens {{weak}} von 100. Darunter ist das Band Geschlossen."
     },
     "map": {
       "heading": "Wie die Karte entsteht",
-      "stages": "Zuerst wird eine grobe Weltkarte gezeichnet, damit sofort etwas zu sehen ist. Danach ersetzt eine feinere Karte aus {{points}} Punkten sie, und der Ausschnitt, den du gerade ansiehst, wird noch genauer berechnet.",
-      "month": "Eine Karte ändert sich innerhalb eines Monats nicht. Deshalb behält die App die Karten, die sie berechnet hat, und kann sie schon vorher berechnen — siehe Karten im Voraus berechnen in diesem Menü."
+      "body": "Zuerst wird eine grobe Weltkarte gezeichnet, damit sofort etwas zu sehen ist. Danach ersetzt eine feinere Karte aus {{points}} Punkten sie, und der Ausschnitt, den du gerade ansiehst, wird noch genauer berechnet.\n\nEine Karte ändert sich innerhalb eines Monats nicht. Deshalb behält die App die Karten, die sie berechnet hat, und kann sie schon vorher berechnen — siehe Karten im Voraus berechnen in diesem Menü."
     },
     "invertedV": {
       "heading": "Die Inverted V",
-      "noModel": "VOACAP kennt keine Inverted V. Es hat zehn Antennenmuster, und eine Inverted V ist keines davon, also kann die App sie nicht auswählen.",
-      "whatWeDo": "Die App berechnet eine Inverted V als Dipol auf {{percent}} % der Scheitelhöhe. Liegt der Scheitel bei 10 Metern, rechnet das Modell mit 8 Metern.",
-      "whyItIsFair": "Bei einem waagerechten Draht bestimmt die Höhe über Grund den Gewinn nach oben. Eine Inverted V hat ihre Enden tiefer als den Scheitel und verhält sich daher wie ein Dipol unterhalb des Scheitels. Steil nach oben strahlt ein waagerechter Draht fast in alle Richtungen gleich, die Ausrichtung ändert also wenig.",
-      "limits": "Das ist eine Näherung, keine Messung. Eine V mit steilen Schenkeln verhält sich tiefer, eine flache V höher. Wähle den Dipol, wenn dein Draht waagerecht hängt."
+      "body": "VOACAP kennt keine Inverted V. Es hat zehn Antennenmuster, und eine Inverted V ist keines davon, also kann die App sie nicht auswählen.\n\nDie App berechnet eine Inverted V als Dipol auf {{percent}} % der Scheitelhöhe. Liegt der Scheitel bei 10 Metern, rechnet das Modell mit 8 Metern.\n\nBei einem waagerechten Draht bestimmt die Höhe über Grund den Gewinn nach oben. Eine Inverted V hat ihre Enden tiefer als den Scheitel und verhält sich daher wie ein Dipol unterhalb des Scheitels. Steil nach oben strahlt ein waagerechter Draht fast in alle Richtungen gleich, die Ausrichtung ändert also wenig.\n\nDas ist eine Näherung, keine Messung. Eine V mit steilen Schenkeln verhält sich tiefer, eine flache V höher. Wähle den Dipol, wenn dein Draht waagerecht hängt."
     },
     "nvis": {
       "heading": "Steilstrahlung",
-      "what": "Unter einigen hundert Kilometern arbeiten die unteren Bänder anders. Das Signal geht steil nach oben, kommt nahe am Ausgangspunkt wieder herunter, und es gibt keine tote Zone. Funkamateure nennen das NVIS.",
-      "howWeKnow": "Die App schätzt das nicht aus der Entfernung. Die Rechenmaschine bestimmt den Abstrahlwinkel, und die App nennt einen Weg steil, wenn dieser Winkel mindestens {{degrees}} Grad beträgt und das Band funktioniert.",
-      "onTheMap": "Die Karte setzt Punkte auf das Gebiet, das dich so erreicht. Die Punkte sind von den Farben getrennt, denn die Farben zeigen schon die Chance auf eine Verbindung. Die Zeile unter der Karte nennt die Entfernung in Worten."
+      "body": "Unter einigen hundert Kilometern arbeiten die unteren Bänder anders. Das Signal geht steil nach oben, kommt nahe am Ausgangspunkt wieder herunter, und es gibt keine tote Zone. Funkamateure nennen das NVIS.\n\nDie App schätzt das nicht aus der Entfernung. Die Rechenmaschine bestimmt den Abstrahlwinkel, und die App nennt einen Weg steil, wenn dieser Winkel mindestens {{degrees}} Grad beträgt und das Band funktioniert.\n\nDie Karte setzt Punkte auf das Gebiet, das dich so erreicht. Die Punkte sind von den Farben getrennt, denn die Farben zeigen schon die Chance auf eine Verbindung. Die Zeile unter der Karte nennt die Entfernung in Worten."
     }
   },
   "maps": {

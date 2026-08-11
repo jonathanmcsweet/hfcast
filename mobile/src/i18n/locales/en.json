@@ -327,36 +327,27 @@
     "close": "Close help",
     "engine": {
       "heading": "Where the numbers come from",
-      "what": "Every forecast is worked out on this device by VOACAP, a propagation model that has been in use for decades. Nothing is sent away and no server is needed.",
-      "limits": "VOACAP describes a typical month, not a particular day. It does not know your local noise, and it never promises a contact. It gives the chance of one."
+      "body": "Every forecast is worked out on this device by VOACAP, a propagation model that has been in use for decades. Nothing is sent away and no server is needed.\n\nVOACAP describes a typical month, not a particular day. It does not know your local noise, and it never promises a contact. It gives the chance of one."
     },
     "ssn": {
       "heading": "The sunspot number",
-      "why": "One number drives most of the answer: the smoothed sunspot number for the month. The bands, the hours and the paths all follow from it.",
-      "offline": "Figures for every month from {{first}} to {{last}} are built into the app, so a forecast needs no network. Months already gone use the measured figure. Months ahead use the published prediction, which can be revised later.",
-      "live": "When a reading of solar and magnetic conditions is less than {{hours}} hours old, the app uses that instead. After that it goes back to the monthly figure. The line under the forecast always says which one was used."
+      "body": "One number drives most of the answer: the smoothed sunspot number for the month. The bands, the hours and the paths all follow from it.\n\nFigures for every month from {{first}} to {{last}} are built into the app, so a forecast needs no network. Months already gone use the measured figure. Months ahead use the published prediction, which can be revised later.\n\nWhen a reading of solar and magnetic conditions is less than {{hours}} hours old, the app uses that instead. After that it goes back to the monthly figure. The line under the forecast always says which one was used."
     },
     "colours": {
       "heading": "What the colours mean",
-      "what": "A colour is the chance of making the contact, not how strong the signal will be. Reliable means about {{reliable}} times in 100 or better, patchy at least {{patchy}} in 100, and weak at least {{weak}} in 100. Below that the band is closed."
+      "body": "A colour is the chance of making the contact, not how strong the signal will be. Reliable means about {{reliable}} times in 100 or better, patchy at least {{patchy}} in 100, and weak at least {{weak}} in 100. Below that the band is closed."
     },
     "map": {
       "heading": "How the map is drawn",
-      "stages": "A rough map of the world is drawn first, so there is something to read at once. A finer map of {{points}} places replaces it, and the part you are looking at is worked out again in more detail.",
-      "month": "A map does not change within a month. So the app keeps the maps it has made, and can make them before you need them — see Compute maps ahead in this menu."
+      "body": "A rough map of the world is drawn first, so there is something to read at once. A finer map of {{points}} places replaces it, and the part you are looking at is worked out again in more detail.\n\nA map does not change within a month. So the app keeps the maps it has made, and can make them before you need them — see Compute maps ahead in this menu."
     },
     "invertedV": {
       "heading": "The inverted V",
-      "noModel": "VOACAP has no inverted V. It has ten antenna patterns, and an inverted V is not one of them, so the app cannot select it.",
-      "whatWeDo": "The app calculates an inverted V as a dipole at {{percent}}% of the apex height. If the apex is 10 metres, the model uses 8 metres.",
-      "whyItIsFair": "For a horizontal wire, the height above ground sets the gain straight up. An inverted V has its ends lower than its apex, so it behaves like a dipole below the apex. Near vertical, a horizontal wire radiates almost the same in all directions, so which way the wire runs changes little.",
-      "limits": "This is an approximation, not a measurement. A V with steep legs behaves lower than this, and a shallow V behaves higher. Select the dipole if your wire is level."
+      "body": "VOACAP has no inverted V. It has ten antenna patterns, and an inverted V is not one of them, so the app cannot select it.\n\nThe app calculates an inverted V as a dipole at {{percent}}% of the apex height. If the apex is 10 metres, the model uses 8 metres.\n\nFor a horizontal wire, the height above ground sets the gain straight up. An inverted V has its ends lower than its apex, so it behaves like a dipole below the apex. Near vertical, a horizontal wire radiates almost the same in all directions, so which way the wire runs changes little.\n\nThis is an approximation, not a measurement. A V with steep legs behaves lower than this, and a shallow V behaves higher. Select the dipole if your wire is level."
     },
     "nvis": {
       "heading": "Near-vertical incidence",
-      "what": "Below a few hundred kilometres, the low bands work in a different way. The signal goes up steeply, comes back down near where it started, and there is no skip zone. Operators call this NVIS.",
-      "howWeKnow": "The app does not guess this from the distance. The engine calculates the angle the signal leaves at, and the app calls a path near-vertical when that angle is {{degrees}} degrees or more and the band works.",
-      "onTheMap": "The map puts dots on the area that reaches you this way. The dots are separate from the colours, because the colours already show the chance of contact. The line below the map gives the distance in words."
+      "body": "Below a few hundred kilometres, the low bands work in a different way. The signal goes up steeply, comes back down near where it started, and there is no skip zone. Operators call this NVIS.\n\nThe app does not guess this from the distance. The engine calculates the angle the signal leaves at, and the app calls a path near-vertical when that angle is {{degrees}} degrees or more and the band works.\n\nThe map puts dots on the area that reaches you this way. The dots are separate from the colours, because the colours already show the chance of contact. The line below the map gives the distance in words."
     }
   },
   "maps": {
