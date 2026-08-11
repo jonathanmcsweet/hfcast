@@ -1,10 +1,10 @@
 # Agents.md — guidance for AI agents working in this repo
 
 ## Your behavior
-
-- Write documentation in a very simple jargon-free english style that all english speakers internationally can understand
-
-- Be concise, articulate with your language in interactions and avoid idioms that may confuse people who don't know what they mean. Use simple language
+- Never modify this document without consulting the user first
+- Explain things in concise, plain english free of technical jargon.
+- Use technical terms accurate to the domain terms in the codebase
+- When making technical decisions, do not give weight to development cost or development hours. Instead prefer readability, quality, simplicity, robustness, scalability, testability, and long term maintainability
 
 ## Who the users are
 
