@@ -13,7 +13,19 @@ import { describe, it } from 'node:test';
  * the unlucky one.
  */
 
+/** The languages that carry a whole translation of their own. */
 const LANGUAGES = ['en', 'de', 'es', 'ja', 'ar'] as const;
+
+/**
+ * The Englishes that carry only what they spell differently.
+ *
+ * i18next resolves anything they do not hold against `en`, so they are
+ * partial on purpose and the parity check above would be wrong for them.
+ * What they need instead is that every key they do hold is a real one,
+ * that it says something different from American English, and that it
+ * keeps the placeholders — a variant is a spelling, not a rewrite.
+ */
+const VARIANTS = ['en-GB', 'en-CA'] as const;
 
 const locale = (lang: string): Record<string, unknown> =>
   JSON.parse(
@@ -104,4 +116,47 @@ describe('the five locales', () => {
       }
     }
   });
+
+  for (const lang of VARIANTS) {
+    it(`${lang} overrides real keys, and only where it differs`, () => {
+      const source = locale('en');
+      const target = locale(lang);
+      const theirs = keyPaths(target);
+      assert.ok(theirs.length > 0, `${lang} overrides nothing at all`);
+
+      const read = (doc: Record<string, unknown>, dotted: string): unknown =>
+        dotted.split('.').reduce<unknown>(
+          (node, key) =>
+            node !== null && typeof node === 'object'
+              ? (node as Record<string, unknown>)[key]
+              : undefined,
+          doc,
+        );
+
+      for (const key of theirs) {
+        const held = read(source, key);
+        // A key English does not have overrides nothing, so it would
+        // never be read — the string is simply gone from that language.
+        assert.equal(
+          typeof held,
+          'string',
+          `${lang} overrides ${key}, which English does not have`,
+        );
+        // Identical to English is a line that does nothing, and one more
+        // place to edit the next time the English changes.
+        assert.notEqual(
+          read(target, key),
+          held,
+          `${lang} ${key} is the same as English and should be dropped`,
+        );
+        assert.deepEqual(
+          [...String(read(target, key)).matchAll(/\{\{(\w+)\}\}/g)]
+            .map((m) => m[1] ?? '').sort(),
+          [...String(held).matchAll(/\{\{(\w+)\}\}/g)]
+            .map((m) => m[1] ?? '').sort(),
+          `${lang} ${key} does not carry the same placeholders`,
+        );
+      }
+    });
+  }
 });

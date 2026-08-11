@@ -174,7 +174,7 @@
     "zoomOut": "Zoom out",
     "fitReach": "Frame where this band reaches",
     "wholeGlobe": "Show the whole globe",
-    "mapLegend": "Map key. The purple shades are predicted reach, weakest to strongest. The grey wash is night.",
+    "mapLegend": "Map key. The purple shades are predicted reach, weakest to strongest. The gray wash is night.",
     "mapLegendNvis": "The dots mark the area the band reaches with no skip zone."
   },
   "crash": {
@@ -192,7 +192,7 @@
     "watts": "{{watts}} W",
     "antennaSection": "Antenna",
     "height": "Height above ground",
-    "heightNote": "Height decides most of the answer. On 20 metres, a dipole a wavelength up beats one a quarter wave up by about 9 dB on a long path.",
+    "heightNote": "Height decides most of the answer. On 20 meters, a dipole a wavelength up beats one a quarter wave up by about 9 dB on a long path.",
     "heightRange": "Anything from {{min}} to {{max}}.",
     "metresUnit": "m",
     "feetUnit": "ft",
@@ -240,7 +240,7 @@
       "pickMode": "Use {{mode}}",
       "pickAntenna": "Use a {{antenna}}",
       "power": "Transmit power in watts",
-      "height": "Antenna height in metres",
+      "height": "Antenna height in meters",
       "gain": "Antenna gain over a dipole, in decibels",
       "beam": "Beam heading in degrees",
       "name": "Name of this station",
@@ -291,7 +291,7 @@
     "version": "Version {{version}}",
     "builtOn": "Built on the work of",
     "disclaimerSection": "Disclaimer",
-    "licencesSection": "Licences",
+    "licencesSection": "Licenses",
     "credit": {
       "voacap": "VOACAP, the propagation model",
       "voacapl": "The Linux port this engine was translated from",
@@ -304,7 +304,7 @@
       "plex": "IBM Plex Sans, the typeface"
     },
     "openSource": "Open the site for {{who}}",
-    "openTerms": "Read the {{terms}} licence",
+    "openTerms": "Read the {{terms}} license",
     "developerHint": "Tap three times to show or hide the tools for measuring this device.",
     "developerOn": "Measuring tools are now shown in Settings.",
     "developerOff": "Measuring tools are now hidden."
@@ -320,7 +320,7 @@
     "footnote": "A 4-character grid square is precise enough for HF. Skip and HFCast works from Greenwich — the prime meridian, where UTC starts — until you set your own.",
     "skip": "Skip for now",
     "continue": "Continue",
-    "recognised": "RECOGNISED"
+    "recognised": "RECOGNIZED"
   },
   "help": {
     "title": "How the forecast is made",
@@ -343,11 +343,11 @@
     },
     "invertedV": {
       "heading": "A note on the inverted V",
-      "body": "VOACAP has no inverted V internally. Instead the app calculates an inverted V as a dipole at {{percent}}% of the apex height. If the apex is 10 metres, the model uses 8 metres.\n\nFor a horizontal wire, the height above ground sets the gain straight up. An inverted V has its ends lower than its apex, so it behaves like a dipole below the apex. Near vertical, a horizontal wire radiates almost the same in all directions, so which way the wire runs changes little.\n\nThis is an approximation, not a measurement. A V with steep legs behaves lower than this, and a shallow V behaves higher. Select the dipole if your wire is level."
+      "body": "VOACAP has no inverted V internally. Instead the app calculates an inverted V as a dipole at {{percent}}% of the apex height. If the apex is 10 meters, the model uses 8 meters.\n\nFor a horizontal wire, the height above ground sets the gain straight up. An inverted V has its ends lower than its apex, so it behaves like a dipole below the apex. Near vertical, a horizontal wire radiates almost the same in all directions, so which way the wire runs changes little.\n\nThis is an approximation, not a measurement. A V with steep legs behaves lower than this, and a shallow V behaves higher. Select the dipole if your wire is level."
     },
     "nvis": {
       "heading": "Near-vertical incidence",
-      "body": "Below a few hundred kilometres, the low bands work in a different way. The signal goes up steeply, comes back down near where it started, and there is no skip zone. Operators call this NVIS.\n\nThe app does not guess this from the distance. The engine calculates the angle the signal leaves at, and the app calls a path near-vertical when that angle is {{degrees}} degrees or more and the band works.\n\nThe map puts dots on the area that reaches you this way. The dots are separate from the colors, because the colors already show the chance of contact. The line below the map gives the distance in words."
+      "body": "Below a few hundred kilometers, the low bands work in a different way. The signal goes up steeply, comes back down near where it started, and there is no skip zone. Operators call this NVIS.\n\nThe app does not guess this from the distance. The engine calculates the angle the signal leaves at, and the app calls a path near-vertical when that angle is {{degrees}} degrees or more and the band works.\n\nThe map puts dots on the area that reaches you this way. The dots are separate from the colors, because the colors already show the chance of contact. The line below the map gives the distance in words."
     }
   },
   "maps": {

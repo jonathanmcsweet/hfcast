@@ -1,0 +1,27 @@
+{
+  "a11y": {
+    "mapLegend": "Map key. The purple shades are predicted reach, weakest to strongest. The grey wash is night."
+  },
+  "station": {
+    "heightNote": "Height decides most of the answer. On 20 metres, a dipole a wavelength up beats one a quarter wave up by about 9 dB on a long path.",
+    "a11y": {
+      "height": "Antenna height in metres"
+    }
+  },
+  "about": {
+    "licencesSection": "Licences",
+    "openTerms": "Read the {{terms}} licence"
+  },
+  "help": {
+    "colours": {
+      "heading": "What the colours mean",
+      "body": "A colour is the chance of making the contact, not how strong the signal will be. Reliable means about {{reliable}} times in 100 or better, patchy at least {{patchy}} in 100, and weak at least {{weak}} in 100. Below that the band is considered closed."
+    },
+    "invertedV": {
+      "body": "VOACAP has no inverted V internally. Instead the app calculates an inverted V as a dipole at {{percent}}% of the apex height. If the apex is 10 metres, the model uses 8 metres.\n\nFor a horizontal wire, the height above ground sets the gain straight up. An inverted V has its ends lower than its apex, so it behaves like a dipole below the apex. Near vertical, a horizontal wire radiates almost the same in all directions, so which way the wire runs changes little.\n\nThis is an approximation, not a measurement. A V with steep legs behaves lower than this, and a shallow V behaves higher. Select the dipole if your wire is level."
+    },
+    "nvis": {
+      "body": "Below a few hundred kilometres, the low bands work in a different way. The signal goes up steeply, comes back down near where it started, and there is no skip zone. Operators call this NVIS.\n\nThe app does not guess this from the distance. The engine calculates the angle the signal leaves at, and the app calls a path near-vertical when that angle is {{degrees}} degrees or more and the band works.\n\nThe map puts dots on the area that reaches you this way. The dots are separate from the colours, because the colours already show the chance of contact. The line below the map gives the distance in words."
+    }
+  }
+}

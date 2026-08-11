@@ -5,6 +5,8 @@ import { initReactI18next } from 'react-i18next';
 import { deviceLanguage } from './languages';
 import ar from './locales/ar.json';
 import de from './locales/de.json';
+import enCA from './locales/en-CA.json';
+import enGB from './locales/en-GB.json';
 import en from './locales/en.json';
 import es from './locales/es.json';
 import ja from './locales/ja.json';
@@ -23,13 +25,21 @@ export {
 } from './languages';
 export type { SupportedLanguage } from './languages';
 
+/**
+ * The two other Englishes carry only the strings they spell differently.
+ * i18next looks a key up in `en-GB` first and then in `en`, so the rest
+ * of the app is shared rather than copied three times — which is what
+ * keeps a new string from having to be written out once per English.
+ */
 i18n.use(initReactI18next).init({
   resources: {
-    en: { translation: en },
-    es: { translation: es },
-    de: { translation: de },
-    ja: { translation: ja },
-    ar: { translation: ar },
+    'en': { translation: en },
+    'en-GB': { translation: enGB },
+    'en-CA': { translation: enCA },
+    'es': { translation: es },
+    'de': { translation: de },
+    'ja': { translation: ja },
+    'ar': { translation: ar },
   },
   lng: deviceLanguage(),
   fallbackLng: 'en',
