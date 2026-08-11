@@ -1,43 +1,27 @@
 import './polyfills';
-import { getLocales } from 'expo-localization';
 import i18n from 'i18next';
 import { initReactI18next } from 'react-i18next';
 
+import { deviceLanguage } from './languages';
 import ar from './locales/ar.json';
 import de from './locales/de.json';
 import en from './locales/en.json';
 import es from './locales/es.json';
 import ja from './locales/ja.json';
 
-export const SUPPORTED = ['en', 'es', 'de', 'ja', 'ar'] as const;
-export type SupportedLanguage = (typeof SUPPORTED)[number];
-
-export const RTL_LANGUAGES: SupportedLanguage[] = ['ar'];
-
-/** Endonyms — a language picker should name each language in that language. */
-export const LANGUAGE_NAMES: Record<SupportedLanguage, string> = {
-  en: 'English',
-  es: 'Español',
-  de: 'Deutsch',
-  ja: '日本語',
-  ar: 'العربية',
-};
-
-/** BCP 47 tags for Intl. Kept separate: i18next keys and Intl locales differ. */
-export const INTL_LOCALES: Record<SupportedLanguage, string> = {
-  en: 'en-US',
-  es: 'es-ES',
-  de: 'de-DE',
-  ja: 'ja-JP',
-  ar: 'ar-EG',
-};
-
-function deviceLanguage(): SupportedLanguage {
-  const tag = getLocales()[0]?.languageCode ?? 'en';
-  return (SUPPORTED as readonly string[]).includes(tag)
-    ? (tag as SupportedLanguage)
-    : 'en';
-}
+/**
+ * The language facts live in `./languages.ts` and are re-exported here,
+ * so every existing import of them keeps working and anything that needs
+ * one without needing i18next can reach for the smaller module.
+ */
+export {
+  BUNDLED_FONT_LANGUAGES,
+  INTL_LOCALES,
+  LANGUAGE_NAMES,
+  RTL_LANGUAGES,
+  SUPPORTED,
+} from './languages';
+export type { SupportedLanguage } from './languages';
 
 i18n.use(initReactI18next).init({
   resources: {

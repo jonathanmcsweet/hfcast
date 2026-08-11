@@ -2,8 +2,8 @@
 
 ## Your behavior
 
-- Speak to me in ASD-STE100 Simplified Technical English when explaining technical information
-- Write documentation in a very simple jargon-free english style that all english speakers internationally can understand
+=- Write documentation in a very simple jargon-free english style that all english speakers internationally can understand
+
 - Be concise, articulate with your language in interactions and avoid idioms that may confuse people who don't know what they mean. Use simple language
 
 ## Who the users are

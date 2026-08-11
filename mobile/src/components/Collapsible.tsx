@@ -111,7 +111,7 @@ const styles = StyleSheet.create({
     marginStart: 'auto',
     fontSize: 13,
     lineHeight: 18,
-    fontFamily: face.bold,
+    ...face.bold,
   },
   body: {},
 });

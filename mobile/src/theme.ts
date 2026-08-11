@@ -1,5 +1,8 @@
 import { StyleSheet } from 'react-native';
+import type { TextStyle } from 'react-native';
 import { MD3DarkTheme, MD3LightTheme } from 'react-native-paper';
+
+import { BUNDLED_FONT_LANGUAGES, deviceLanguage } from './i18n/languages.ts';
 // The extension is explicit so this module can be imported by a test under
 // Node, which does not infer one. Metro resolves it either way.
 import {
@@ -566,28 +569,70 @@ const lowLightColors = {
  * The names are the keys `@expo-google-fonts/ibm-plex-sans` exports, and
  * `App.tsx` must load exactly these four before rendering.
  *
- * Declared here, above `plexFonts`, because that function reads it while this
+ * Declared here, above `appFonts`, because that function reads it while this
  * module is still evaluating. Below its first use it is in the temporal dead
  * zone, and every import of the theme throws before React mounts.
+ *
+ * A face is a style fragment rather than a family name, because the two
+ * ways of asking for a weight are not interchangeable. Plex carries the
+ * weight in the family name and must not also be given `fontWeight`.
+ * The device's own font is one family with real weights, and must be
+ * given `fontWeight` or every heading comes out regular. Spreading a
+ * fragment lets one scale describe both.
+ *
+ * Read once, from the device's language, which is the language the app
+ * starts in. A language chosen from the picker takes effect on the next
+ * start, which is the rule layout direction already follows — see
+ * `useDirection.ts`.
  */
-export const face = {
-  regular: 'IBMPlexSans_400Regular',
-  medium: 'IBMPlexSans_500Medium',
-  semibold: 'IBMPlexSans_600SemiBold',
-  bold: 'IBMPlexSans_700Bold',
-} as const;
+type Face = Pick<TextStyle, 'fontFamily' | 'fontWeight'>;
+
+const usesBundledFont = (BUNDLED_FONT_LANGUAGES as readonly string[])
+  .includes(deviceLanguage());
+
+export const face: Record<'regular' | 'medium' | 'semibold' | 'bold', Face> =
+  usesBundledFont
+    ? {
+      regular: { fontFamily: 'IBMPlexSans_400Regular' },
+      medium: { fontFamily: 'IBMPlexSans_500Medium' },
+      semibold: { fontFamily: 'IBMPlexSans_600SemiBold' },
+      bold: { fontFamily: 'IBMPlexSans_700Bold' },
+    }
+    : {
+      regular: { fontWeight: '400' },
+      medium: { fontWeight: '500' },
+      semibold: { fontWeight: '600' },
+      bold: { fontWeight: '700' },
+    };
+
+/**
+ * Tracking, for scripts that can take it.
+ *
+ * The numbers below were chosen against Plex, and both of the scripts
+ * that do not use Plex are damaged by them. Arabic joins its letters
+ * into a word, and space added between them breaks the joins apart.
+ * Japanese glyphs are drawn on a fixed body that is already tight, so
+ * negative tracking closes gaps the design did not put there.
+ *
+ * So the tracking goes with the font it was drawn for, and every other
+ * script gets none. None is what those scripts are set with anyway.
+ */
+export const track = (latin: number) => (usesBundledFont ? latin : 0);
 
 /**
  * The same faces for Paper's own components.
  *
  * Paper's variants carry a `fontWeight`, which is exactly what cannot select
- * a face here — so each variant is rewritten to name the face matching the
- * weight it asked for, and the weight is dropped. Without this the location
- * picker's buttons and list rows render in the system font while everything
- * around them is Plex.
+ * a Plex face — so each variant is rewritten as the face matching the weight
+ * it asked for. Without this the location picker's buttons and list rows
+ * render in the system font while everything around them is Plex.
+ *
+ * The weight it asked for is what the face gives back where the device's own
+ * font is in use, so this reads the same in both cases: ask by weight, get
+ * whichever of the two ways of saying it the font understands.
  */
-function plexFonts(base: typeof MD3LightTheme.fonts) {
-  const byWeight: Record<string, string> = {
+function appFonts(base: typeof MD3LightTheme.fonts) {
+  const byWeight: Record<string, Face> = {
     '400': face.regular,
     '500': face.medium,
     '600': face.semibold,
@@ -596,10 +641,17 @@ function plexFonts(base: typeof MD3LightTheme.fonts) {
   return Object.fromEntries(
     Object.entries(base).map(([variant, style]) => {
       if (typeof style !== 'object' || style === null) return [variant, style];
-      const { fontWeight, ...rest } = style as { fontWeight?: string; };
+      // `fontWeight` is read and dropped: it is the question, not the
+      // answer, and leaving it beside a Plex family name would ask the
+      // platform to synthesise a weight the family already has.
+      const { fontWeight, letterSpacing, ...rest } = style as {
+        fontWeight?: string;
+        letterSpacing?: number;
+      };
       return [variant, {
         ...rest,
-        fontFamily: byWeight[fontWeight ?? '400'] ?? face.regular,
+        ...(byWeight[fontWeight ?? '400'] ?? face.regular),
+        letterSpacing: track(letterSpacing ?? 0),
       }];
     }),
   ) as typeof base;
@@ -608,13 +660,13 @@ function plexFonts(base: typeof MD3LightTheme.fonts) {
 export const lightTheme = {
   ...MD3LightTheme,
   colors: { ...MD3LightTheme.colors, ...lightColors },
-  fonts: plexFonts(MD3LightTheme.fonts),
+  fonts: appFonts(MD3LightTheme.fonts),
 };
 
 export const darkTheme = {
   ...MD3DarkTheme,
   colors: { ...MD3DarkTheme.colors, ...darkColors },
-  fonts: plexFonts(MD3DarkTheme.fonts),
+  fonts: appFonts(MD3DarkTheme.fonts),
 };
 
 /**
@@ -624,7 +676,7 @@ export const darkTheme = {
 export const lowLightTheme = {
   ...MD3DarkTheme,
   colors: { ...MD3DarkTheme.colors, ...lowLightColors },
-  fonts: plexFonts(MD3DarkTheme.fonts),
+  fonts: appFonts(MD3DarkTheme.fonts),
 };
 export type AppTheme = typeof lightTheme;
 
@@ -700,113 +752,113 @@ export const typography = {
   screenTitle: {
     fontSize: 28,
     lineHeight: 34,
-    fontFamily: face.bold,
-    letterSpacing: -0.5,
+    ...face.bold,
+    letterSpacing: track(-0.5),
   },
   /** Location name in the header. Replaces titleLarge. */
   locationName: {
     fontSize: 20,
     lineHeight: 24,
-    fontFamily: face.bold,
-    letterSpacing: -0.3,
+    ...face.bold,
+    letterSpacing: track(-0.3),
   },
   /** The headline on a card. Replaces headlineSmall. */
   cardHeadline: {
     fontSize: 22,
     lineHeight: 28,
-    fontFamily: face.semibold,
-    letterSpacing: -0.3,
+    ...face.semibold,
+    letterSpacing: track(-0.3),
   },
   /** The plain-language answer. Lighter than a title on purpose — it reads
    * as a sentence, not a heading. Replaces titleMedium. */
   answer: {
     fontSize: 17,
     lineHeight: 24,
-    fontFamily: face.medium,
+    ...face.medium,
     letterSpacing: 0,
   },
   /** A card's own title. Replaces titleMedium. */
   cardTitle: {
     fontSize: 17,
     lineHeight: 24,
-    fontFamily: face.semibold,
+    ...face.semibold,
     letterSpacing: 0,
   },
   /** A large standalone figure, such as solar flux. Replaces headlineSmall. */
   statValue: {
     fontSize: 28,
     lineHeight: 32,
-    fontFamily: face.semibold,
-    letterSpacing: -0.5,
+    ...face.semibold,
+    letterSpacing: track(-0.5),
   },
   /** A figure inside a row or readout. Replaces titleLarge. */
   numberMedium: {
     fontSize: 20,
     lineHeight: 24,
-    fontFamily: face.semibold,
+    ...face.semibold,
     letterSpacing: 0,
   },
   /** Body text and input values. Replaces bodyLarge. */
   body: {
     fontSize: 15,
     lineHeight: 20,
-    fontFamily: face.regular,
+    ...face.regular,
     letterSpacing: 0,
   },
   /** Body weight for a value that has to hold its own beside a label. */
   bodyStrong: {
     fontSize: 15,
     lineHeight: 20,
-    fontFamily: face.semibold,
+    ...face.semibold,
     letterSpacing: 0,
   },
   /** Text fields, which need to stay comfortable to read while typing. */
   input: {
     fontSize: 17,
     lineHeight: 24,
-    fontFamily: face.regular,
+    ...face.regular,
     letterSpacing: 0,
   },
   /** Supporting text under a title. Replaces bodySmall. */
   caption: {
     fontSize: 13,
     lineHeight: 18,
-    fontFamily: face.regular,
+    ...face.regular,
     letterSpacing: 0,
   },
   /** A caption carrying a value rather than prose. */
   captionStrong: {
     fontSize: 13,
     lineHeight: 18,
-    fontFamily: face.semibold,
+    ...face.semibold,
     letterSpacing: 0,
   },
   /** The uppercase label above a value. Replaces labelSmall. */
   label: {
     fontSize: 11,
     lineHeight: 14,
-    fontFamily: face.semibold,
-    letterSpacing: 0.8,
+    ...face.semibold,
+    letterSpacing: track(0.8),
     textTransform: 'uppercase',
   },
   /** Axis ticks and footnotes. The floor: never smaller than this. */
   axis: {
     fontSize: 11,
     lineHeight: 14,
-    fontFamily: face.semibold,
+    ...face.semibold,
     letterSpacing: 0,
   },
   /** The title on a full-screen setup pane. Tablet steps up to 34/40. */
   setupTitle: {
     fontSize: 28,
     lineHeight: 34,
-    fontFamily: face.semibold,
-    letterSpacing: -0.6,
+    ...face.semibold,
+    letterSpacing: track(-0.6),
   },
   setupTitleTablet: {
     fontSize: 34,
     lineHeight: 40,
-    fontFamily: face.semibold,
-    letterSpacing: -0.6,
+    ...face.semibold,
+    letterSpacing: track(-0.6),
   },
 } as const;

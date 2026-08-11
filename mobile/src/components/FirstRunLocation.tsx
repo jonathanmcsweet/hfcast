@@ -17,7 +17,7 @@ import { useGeocode } from '../api/queries';
 import { type Endpoint, placeToEndpoint } from '../data/types';
 import { useDeviceFix } from '../hooks/useDeviceFix';
 import { GREENWICH } from '../store/usePathStore';
-import { face, radius, spacing, typography } from '../theme';
+import { face, radius, spacing, track, typography } from '../theme';
 import type { AppTheme } from '../theme';
 
 interface Props {
@@ -240,8 +240,8 @@ const styles = StyleSheet.create({
   kicker: {
     fontSize: 11,
     lineHeight: 14,
-    fontFamily: face.bold,
-    letterSpacing: 0.8,
+    ...face.bold,
+    letterSpacing: track(0.8),
     textTransform: 'uppercase',
   },
   subtitle: { marginBottom: spacing.sm },

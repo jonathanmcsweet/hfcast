@@ -49,6 +49,6 @@ const styles = StyleSheet.create({
   pillLarge: { paddingHorizontal: 12, paddingVertical: 6 },
   // Heavier than any other text at this size. The badge has to survive being
   // read at a glance in sunlight, which weight buys and size would cost.
-  textSmall: { fontSize: 12, lineHeight: 18, fontFamily: face.bold },
-  textLarge: { fontSize: 13, lineHeight: 18, fontFamily: face.bold },
+  textSmall: { fontSize: 12, lineHeight: 18, ...face.bold },
+  textLarge: { fontSize: 13, lineHeight: 18, ...face.bold },
 });
