@@ -37,6 +37,27 @@ export const PATCH_LAT_STEP = 1.25;
 export const PATCH_LON_STEP = 1.5;
 
 /**
+ * The step of the whole-world fine grid, which is the same step.
+ *
+ * 144 rows of 240 is 34,560 points. That it is the patch's own step is
+ * the point of it, not a coincidence: a reader zooming in past the
+ * globe gets magnification rather than a changed answer, and the patch
+ * stands down where the globe already covers the region. The two were
+ * written out separately in three files, held together by comments
+ * saying they were the same. Nothing checked it, and patch cells that
+ * straddle fine cells are the one thing this lattice exists to prevent.
+ *
+ * Named rather than left as `PATCH_LAT_STEP` at the call sites, because
+ * the two say different things: one is how fine a region is drawn, the
+ * other is how large a whole-world run is.
+ */
+export const FINE_LAT_STEP = PATCH_LAT_STEP;
+export const FINE_LON_STEP = PATCH_LON_STEP;
+
+/** What a whole-world run at that step comes to. */
+export const FINE_POINTS = (180 / FINE_LAT_STEP) * (360 / FINE_LON_STEP);
+
+/**
  * The cell sizes a patch may use, coarsest first.
  *
  * Every rung divides the world evenly *and* divides a coarse cell evenly,

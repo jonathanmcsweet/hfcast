@@ -36,6 +36,13 @@ mock.module('react-native-paper', {
     MD3DarkTheme: { colors: {}, fonts },
   },
 });
+// The theme asks the device what language it is in, to know whether the
+// bundled font has letters for it. English here, so the assertions below
+// describe the bundled-font case; the other case is checked as a rule in
+// `languages.test.ts`, which needs no theme at all.
+mock.module('expo-localization', {
+  namedExports: { getLocales: () => [{ languageCode: 'en' }] },
+});
 
 const stub = () => import('../src/theme.ts');
 
@@ -49,14 +56,20 @@ describe('the theme module', () => {
 
   it('names a font face for every weight it offers', async () => {
     const { face } = await stub();
-    for (const [weight, name] of Object.entries(face)) {
-      assert.match(name, /^IBMPlexSans_\d{3}/, `${weight} must name a face`);
+    for (const [weight, style] of Object.entries(face)) {
+      assert.match(
+        style.fontFamily ?? '',
+        /^IBMPlexSans_\d{3}/,
+        `${weight} must name a face`,
+      );
     }
   });
 
   it('gives every type scale entry a face rather than a weight', async () => {
     // React Native cannot synthesise a weight, so a `fontWeight` here would
-    // silently render as regular.
+    // silently render as regular. This holds for the bundled font only: the
+    // device's own font is one family with real weights, and asking it by
+    // weight is the only way to reach them.
     const { typography } = await stub();
     for (const [name, style] of Object.entries(typography)) {
       const s = style as { fontFamily?: string; fontWeight?: string; };
@@ -90,9 +103,9 @@ describe('the theme module', () => {
   it('maps each Paper weight to the matching face', async () => {
     const { lightTheme, face } = await stub();
     const f = lightTheme.fonts as Record<string, { fontFamily: string; }>;
-    assert.equal(f.bodyLarge?.fontFamily, face.regular);
-    assert.equal(f.titleMedium?.fontFamily, face.medium);
-    assert.equal(f.labelLarge?.fontFamily, face.semibold);
+    assert.equal(f.bodyLarge?.fontFamily, face.regular.fontFamily);
+    assert.equal(f.titleMedium?.fontFamily, face.medium.fontFamily);
+    assert.equal(f.labelLarge?.fontFamily, face.semibold.fontFamily);
   });
 
   it('carries the design surfaces both themes are read through', async () => {

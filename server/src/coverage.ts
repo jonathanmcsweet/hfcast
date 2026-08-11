@@ -9,21 +9,37 @@
  */
 import { type AntennaChoice, txCard } from './antenna.ts';
 import { TtlCache } from './cache.ts';
-import { patchGrid, patchKey, patchRequestBounds } from './coveragePatch.ts';
+import { LAT_STEP, LON_STEP, reachOf } from './coverageGrid.ts';
+import {
+  FINE_LAT_STEP,
+  FINE_LON_STEP,
+  type PatchBounds,
+  patchGrid,
+  patchKey,
+  patchRequestBounds,
+} from './coveragePatch.ts';
 import { resolveSsn } from './spaceweather.ts';
 import type { BandKey, Endpoint, MapRegion, PredictionBasis } from './types.ts';
-import { type Coverage, ITSHFBC_DIR, runCoverage } from './voacap/engine.ts';
+import { factorsFor, stormWidening } from './voacap/correct.ts';
+import {
+  type CentreField,
+  centreField,
+  correctCoverage,
+  FINE_CENTRE_LAT_STEP,
+  FINE_CENTRE_LON_STEP,
+} from './voacap/correctMap.ts';
+import {
+  type Coverage,
+  ITSHFBC_DIR,
+  runCoverage,
+  runDailyMedians,
+} from './voacap/engine.ts';
 
-/**
- * Cell size in degrees.
- *
- * 15 by 22.5 gives 12 rows of 16, which is 192 points: coarse enough to
- * run in well under a tenth of a second and fine enough that a continent
- * spans several cells. The longitude step is the wider one because
- * meridians converge — equal steps would make the polar cells slivers.
- */
-export const LAT_STEP = 15;
-export const LON_STEP = 22.5;
+// The grid, the threshold and the reach calculation come from the shared
+// lattice modules. They were written out again here, comments and all,
+// which is the arrangement `shared/` replaced.
+export { LAT_STEP, LON_STEP, REACHABLE } from './coverageGrid.ts';
+export { FINE_LAT_STEP, FINE_LON_STEP } from './coveragePatch.ts';
 
 /** As long as a prediction: the run behind both is the same climatology. */
 const COVERAGE_TTL_MS = 60 * 60 * 1000;
@@ -31,7 +47,7 @@ const COVERAGE_TTL_MS = 60 * 60 * 1000;
 // One entry per band, hour and place. A user moving the clock across a
 // day fills 24 of them for the band they are on, which is the access
 // pattern this is sized for.
-const cache = new TtlCache<CoverageResult>(COVERAGE_TTL_MS, 400);
+const cache = new TtlCache<Held<CoverageResult>>(COVERAGE_TTL_MS, 400);
 
 export interface CoverageRequest {
   from: Endpoint;
@@ -44,6 +60,14 @@ export interface CoverageRequest {
   noiseDbw: number;
   /** Effective sunspot number from live readings, when there are any. */
   ssnOverride?: number;
+  /**
+   * Highest K index of the last 24 hours, when it is known.
+   *
+   * A storm widens the spread below the median, so it changes what a
+   * corrected map is painted with. It does not change the middle of the
+   * day, which is why the lattice of middles is cached without it.
+   */
+  kpMax24h?: number;
   basis?: PredictionBasis;
   /**
    * The operator's own antenna. A beam makes the map lopsided, which is
@@ -61,21 +85,27 @@ export interface CoverageRequest {
   region?: MapRegion;
 }
 
+/**
+ * The parts of an answer that belong to the caller rather than to the
+ * run, and so are never held in an entry.
+ *
+ * `basis` says where the sunspot number came from, and it is per-request.
+ * `from` is the station: the key rounds its position to three decimals
+ * and holds no label at all, so two callers a few hundred metres apart,
+ * or the same place under two names, share one entry and must still each
+ * be answered with their own station.
+ */
+type PerRequest = 'from' | 'basis';
+
+/** An answer as the cache holds it, with the caller's own parts removed. */
+type Held<T> = Omit<T, PerRequest>;
+
 export interface CoverageResult extends Coverage {
   from: Endpoint;
   basis: PredictionBasis;
   /** The share of sampled directions where a contact is at least patchy. */
   reach: number;
 }
-
-/**
- * The threshold "reachable" means, matching the app's `patchy` band.
- *
- * The share of the map above it is a more useful summary than the best
- * cell, which saturates at "reliable" for almost every band and hour and
- * so says nothing about the difference between them.
- */
-export const REACHABLE = 0.4;
 
 function keyFor(request: CoverageRequest, ssn: number): string {
   const { from, band, hour, watts, requiredSnrDb, noiseDbw, date } = request;
@@ -91,6 +121,13 @@ function keyFor(request: CoverageRequest, ssn: number): string {
     requiredSnrDb,
     noiseDbw,
     antennaKey(request.antenna),
+    // The correction is applied before an answer is held, so two
+    // requests under different storm conditions are different answers.
+    // Rounded, because the widening is a smooth function of the K index
+    // and a third decimal would make every poll a fresh entry.
+    request.kpMax24h === undefined
+      ? 'quiet'
+      : stormWidening(request.kpMax24h).toFixed(2),
   ].join('|');
 }
 
@@ -106,27 +143,97 @@ function antennaKey(antenna: AntennaChoice | undefined): string {
   return `${type}:${heightM}:${gainDbd}:${beamDeg}`;
 }
 
-export async function coverage(
-  request: CoverageRequest,
-): Promise<CoverageResult> {
-  return await worldCoverage(request, LAT_STEP, LON_STEP, cache, '');
+/** Which grid to ask the engine for, and what keeps its answers apart. */
+interface GridRequest {
+  latStep: number;
+  lonStep: number;
+  /** The rectangle to cover. Absent means the whole world. */
+  bounds?: PatchBounds;
+  /**
+   * Put in front of the cache key. Two grids of the same band and hour
+   * are different answers, and a shared key would serve one for the
+   * other.
+   */
+  keyPrefix: string;
 }
 
 /**
- * A whole-world run at a given step.
+ * The lattice of daily middles, one entry per band and place.
  *
- * The coarse map and the fine one differ only in the step and in which
- * cache holds them, so they share this. The step is part of the cache
- * prefix rather than left implicit: two grids of the same band and hour
- * are different answers, and a shared key would serve one for the other.
+ * Small — 1,728 numbers a band — and reused by every hour and every grid
+ * step, so it is held longer than a map and there is room for many. It
+ * does not depend on the hour and it does not depend on the K index: a
+ * storm widens the spread below the median and leaves the median alone.
  */
-async function worldCoverage(
+const centreCache = new TtlCache<CentreField | null>(COVERAGE_TTL_MS, 200);
+
+/**
+ * The middle of the day at every lattice point, for this request's band.
+ *
+ * Always the fine lattice. The server has no reason to use the coarser
+ * one the app starts with: it caches this across every request for the
+ * place, so only the first caller waits and the rest read it.
+ */
+async function dailyCentres(
   request: CoverageRequest,
-  latStep: number,
-  lonStep: number,
-  store: TtlCache<CoverageResult>,
-  keyPrefix: string,
-): Promise<CoverageResult> {
+  ssn: number,
+  month: number,
+  year: number,
+  txAntenna: Awaited<ReturnType<typeof txCard>> | null,
+): Promise<CentreField | null> {
+  const key = [
+    'centres',
+    request.from.lat.toFixed(3),
+    request.from.lon.toFixed(3),
+    year,
+    month,
+    ssn.toFixed(1),
+    request.band,
+    request.watts,
+    request.noiseDbw,
+    antennaKey(request.antenna),
+  ].join('|');
+
+  return await centreCache.fetch(key, async () => {
+    const ran = await runDailyMedians({
+      fromLat: request.from.lat,
+      fromLon: request.from.lon,
+      month,
+      year,
+      ssn,
+      watts: request.watts,
+      requiredSnrDb: request.requiredSnrDb,
+      noiseDbw: request.noiseDbw,
+      band: request.band,
+      latStep: FINE_CENTRE_LAT_STEP,
+      lonStep: FINE_CENTRE_LON_STEP,
+      ...(txAntenna ? { txAntenna } : {}),
+    });
+    return centreField(ran.points, ran.latStep, ran.lonStep);
+  });
+}
+
+/**
+ * One coverage run, held against a key.
+ *
+ * The coarse map, the whole-world fine grid and the viewport patch are
+ * the same five steps: work out the month, resolve the sunspot number,
+ * write the antenna card, ask the engine, and hold what comes back. Only
+ * the grid asked for and the shape of the answer differ, so those are
+ * the two parameters. They were written out three times, and two of the
+ * three explanatory comments survived in only one copy.
+ *
+ * Through `fetch` rather than get-run-set, so a second request for the
+ * same map that arrives while the first is still running waits on it
+ * instead of starting another. At the fine step one run is up to eight
+ * processes, and nothing upstream stops a caller asking twice.
+ */
+async function cachedRun<T>(
+  request: CoverageRequest,
+  grid: GridRequest,
+  store: TtlCache<Held<T>>,
+  assemble: (ran: Coverage) => Held<T>,
+): Promise<Held<T> & { from: Endpoint; basis: PredictionBasis; }> {
   const month = request.date.getUTCMonth() + 1;
   const year = request.date.getUTCFullYear();
 
@@ -137,21 +244,15 @@ async function worldCoverage(
     request.basis,
   );
 
-  // Through `fetch` rather than get-run-set, so a second request for the
-  // same map that arrives while the first is still running waits on it
-  // instead of starting another. At the fine step one run is up to eight
-  // processes, and nothing upstream stops a caller asking twice.
-  //
-  // `basis` is per-request and the run behind it is not, so it is put
-  // back on afterwards rather than cached.
-  const key = `${keyPrefix}${keyFor(request, ssn)}`;
+  const key = `${grid.keyPrefix}${keyFor(request, ssn)}`;
   const result = await store.fetch(key, async () => {
     // Written before the run: the card names a file the engine opens.
+    // Null for an isotropic station, which names no file at all.
     const txAntenna = request.antenna
       ? await txCard(ITSHFBC_DIR, request.antenna)
       : null;
 
-    const grid = await runCoverage({
+    const ran = await runCoverage({
       fromLat: request.from.lat,
       fromLon: request.from.lon,
       month,
@@ -162,72 +263,69 @@ async function worldCoverage(
       noiseDbw: request.noiseDbw,
       hour: request.hour,
       band: request.band,
-      latStep,
-      lonStep,
+      latStep: grid.latStep,
+      lonStep: grid.lonStep,
+      ...(grid.bounds ? { bounds: grid.bounds } : {}),
       ...(txAntenna ? { txAntenna } : {}),
     });
 
-    // Weighted by the cosine of the latitude, because equal-angle cells
-    // are not equal areas: without it the polar rows, which are slivers
-    // of the sphere, would count as much as the equatorial ones and every
-    // band would look worse than it is.
-    const { hit, total } = grid.points
-      .map((point) => ({
-        weight: Math.cos((point.lat * Math.PI) / 180),
-        reached: point.reliability >= REACHABLE,
-      }))
-      .reduce(
-        (sum, cell) => ({
-          hit: sum.hit + (cell.reached ? cell.weight : 0),
-          total: sum.total + cell.weight,
-        }),
-        { hit: 0, total: 0 },
-      );
-
-    return {
-      ...grid,
-      from: request.from,
-      basis,
-      reach: total > 0 ? hit / total : 0,
-    };
+    // Corrected before it is held, so every reader of an entry gets the
+    // same map and the app has nothing left to do. The app corrects when
+    // it reads instead, because it computes the lattice on the device
+    // and has to draw something before that finishes; here the lattice
+    // is cached and shared across every request for the place, so
+    // waiting for it costs the first caller and nobody else.
+    const centre = await dailyCentres(request, ssn, month, year, txAntenna);
+    return assemble({
+      ...ran,
+      points: correctCoverage(
+        ran.points,
+        centre,
+        request.requiredSnrDb,
+        factorsFor(request.kpMax24h ?? null),
+      ),
+    });
   });
-  return { ...result, basis };
+  // See `PerRequest`: these two are the caller's, so they are put on
+  // here rather than read from an entry another caller wrote.
+  return { ...result, from: request.from, basis };
+}
+
+export async function coverage(
+  request: CoverageRequest,
+): Promise<CoverageResult> {
+  return await cachedRun<CoverageResult>(
+    request,
+    { latStep: LAT_STEP, lonStep: LON_STEP, keyPrefix: '' },
+    cache,
+    (ran) => ({ ...ran, reach: reachOf(ran.points) }),
+  );
 }
 
 /**
  * The fine grid, over the whole world.
  *
- * 1.25 by 1.5 degrees is 144 rows of 240, which is 34,560 points — a
- * hundred and eighty times the coarse map. It is the same step the
- * viewport patch uses, so zooming in stops changing the answer and only
- * changes the magnification.
+ * 34,560 points, a hundred and eighty times the coarse map, at the step
+ * `shared/coveragePatch.ts` holds. It is the viewport patch's own step,
+ * so zooming in stops changing the answer and only changes the
+ * magnification.
  *
- * Both steps divide their span exactly, which the latitude-strip
- * splitting in `voacap/shard.ts` requires: the engine's whole-world grid
- * and its rectangle grid only land on the same lattice when they do.
+ * Its own cache, and a small one: a fine result is about 2.2 MB against
+ * roughly 12 KB for a coarse one, so the coarse cache's 400 entries
+ * would be near a gigabyte. Twenty is about 44 MB and still holds a day
+ * of one band, which is the pattern a user moving the hour slider
+ * produces.
  */
-export const FINE_LAT_STEP = 1.25;
-export const FINE_LON_STEP = 1.5;
-
-/**
- * Its own cache, and a small one.
- *
- * A fine result is about 2.2 MB against roughly 12 KB for a coarse one,
- * so the coarse cache's 400 entries would be near a gigabyte here. Twenty
- * is about 44 MB and still holds a day of one band, which is the pattern
- * a user moving the hour slider produces.
- */
-const fineCache = new TtlCache<CoverageResult>(COVERAGE_TTL_MS, 20);
+const fineCache = new TtlCache<Held<CoverageResult>>(COVERAGE_TTL_MS, 20);
 
 export async function coverageFine(
   request: CoverageRequest,
 ): Promise<CoverageResult> {
-  return await worldCoverage(
+  return await cachedRun<CoverageResult>(
     request,
-    FINE_LAT_STEP,
-    FINE_LON_STEP,
+    { latStep: FINE_LAT_STEP, lonStep: FINE_LON_STEP, keyPrefix: 'fine|' },
     fineCache,
-    'fine|',
+    (ran) => ({ ...ran, reach: reachOf(ran.points) }),
   );
 }
 
@@ -255,7 +353,10 @@ export type CoveragePatchResult = Coverage & {
 // Its own cache, sized like the coarse one and keyed the same way. A
 // shared one would let a patch and a whole-world run collide on a key
 // that says nothing about which grid it holds.
-const patchCache = new TtlCache<CoveragePatchResult>(COVERAGE_TTL_MS, 400);
+const patchCache = new TtlCache<Held<CoveragePatchResult>>(
+  COVERAGE_TTL_MS,
+  400,
+);
 
 export async function coveragePatch(
   request: CoverageRequest,
@@ -270,55 +371,27 @@ export async function coveragePatch(
     )
     : patchGrid(request.from.lat, request.from.lon);
   if (grid === null) return null;
-  const box = patchRequestBounds(grid);
 
-  const month = request.date.getUTCMonth() + 1;
-  const year = request.date.getUTCFullYear();
-
-  const { ssn, basis } = await resolveSsn(
-    year,
-    month,
-    request.ssnOverride,
-    request.basis,
-  );
-
-  // The grid is part of the identity: two views that produce different
-  // rectangles are different answers, and without this the first one
-  // asked for would be served to every later one.
-  const key = `patch|${keyFor(request, ssn)}|${patchKey(grid)}`;
-  const result = await patchCache.fetch(key, async () => {
-    const txAntenna = request.antenna
-      ? await txCard(ITSHFBC_DIR, request.antenna)
-      : null;
-
-    const ran = await runCoverage({
-      fromLat: request.from.lat,
-      fromLon: request.from.lon,
-      month,
-      year,
-      ssn,
-      watts: request.watts,
-      requiredSnrDb: request.requiredSnrDb,
-      noiseDbw: request.noiseDbw,
-      hour: request.hour,
-      band: request.band,
+  return await cachedRun<CoveragePatchResult>(
+    request,
+    {
       latStep: grid.latStep,
       lonStep: grid.lonStep,
-      bounds: box,
-      ...(txAntenna ? { txAntenna } : {}),
-    });
-
-    return {
+      bounds: patchRequestBounds(grid),
+      // The rectangle is part of the identity: two views that produce
+      // different ones are different answers, and without this the
+      // first one asked for would be served to every later one.
+      keyPrefix: `patch|${patchKey(grid)}|`,
+    },
+    patchCache,
+    (ran) => ({
       ...ran,
-      from: request.from,
-      basis,
       // The engine echoes the grid it snapped to; the request's own
       // rectangle is the fallback if an older build did not.
       latMin: ran.latMin ?? grid.latMin,
       latMax: ran.latMax ?? grid.latMax,
       lonMin: ran.lonMin ?? grid.lonMin,
       lonMax: ran.lonMax ?? grid.lonMax,
-    };
-  });
-  return { ...result, basis };
+    }),
+  );
 }

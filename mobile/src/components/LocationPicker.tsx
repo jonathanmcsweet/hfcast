@@ -15,10 +15,9 @@ import {
   useTheme,
 } from 'react-native-paper';
 
-import * as DeviceLocation from '../../modules/aosp-location';
 import { useGeocode } from '../api/queries';
-import { latLonToGrid } from '../data/grid';
-import type { Endpoint, Place } from '../data/types';
+import { type Endpoint, placeToEndpoint } from '../data/types';
+import { useDeviceFix } from '../hooks/useDeviceFix';
 import { usePathStore } from '../store/usePathStore';
 import { radius, spacing, typography } from '../theme';
 import type { AppTheme } from '../theme';
@@ -29,13 +28,6 @@ interface Props {
   visible: boolean;
   onDismiss: () => void;
 }
-
-const placeToEndpoint = (place: Place): Endpoint => ({
-  grid: place.grid,
-  label: place.name,
-  lat: place.lat,
-  lon: place.lon,
-});
 
 /**
  * Chooses either end of the path.
@@ -56,8 +48,6 @@ export default function LocationPicker({ visible, onDismiss }: Props) {
 
   const [end, setEnd] = useState<End>('from');
   const [query, setQuery] = useState('');
-  const [locating, setLocating] = useState(false);
-  const [locationError, setLocationError] = useState<string | null>(null);
 
   const { data: results, isFetching, error } = useGeocode(query, i18n.language);
 
@@ -83,39 +73,18 @@ export default function LocationPicker({ visible, onDismiss }: Props) {
     [end, onDismiss, setFrom, setTo],
   );
 
-  /**
-   * Permission refusal is an ordinary outcome, not an error state: the search
-   * box below is a complete alternative, so the message says so and the user
-   * carries on.
-   */
-  const useDeviceLocation = useCallback(async () => {
-    setLocating(true);
-    setLocationError(null);
-    try {
-      if (!await DeviceLocation.requestPermission()) {
-        setLocationError(t('location.permissionDenied'));
-        return;
-      }
-      // Said before the wait rather than after it: with no Google services
-      // there is usually no network provider, so this is satellites only and
-      // a cold fix takes a while. A message that arrives 45 seconds later
-      // reads as a fault rather than as an explanation.
-      if (!await DeviceLocation.hasProvider()) {
-        setLocationError(t('location.noProvider'));
-        return;
-      }
-      const { latitude, longitude } = await DeviceLocation.currentFix();
-      const grid = latLonToGrid(latitude, longitude);
-      setFrom({ grid, label: grid, lat: latitude, lon: longitude });
-      // As with choosing one by name: having just said where they are, the
-      // next thing somebody usually wants is where they are calling.
-      setEnd('to');
-    } catch {
-      setLocationError(t('location.unavailable'));
-    } finally {
-      setLocating(false);
-    }
-  }, [setFrom, t]);
+  // As with choosing one by name: having just said where they are, the
+  // next thing somebody usually wants is where they are calling.
+  const fromDevice = useCallback((endpoint: Endpoint) => {
+    setFrom(endpoint);
+    setEnd('to');
+  }, [setFrom]);
+  const {
+    available: canUseDevice,
+    locating,
+    error: locationError,
+    locate: useDeviceLocation,
+  } = useDeviceFix(fromDevice);
 
   return (
     <Portal>
@@ -191,7 +160,7 @@ export default function LocationPicker({ visible, onDismiss }: Props) {
              yet. Typing a place name or a grid does the same job and is the
              path most operators use anyway. */
         }
-        {end === 'from' && DeviceLocation.isAvailable()
+        {end === 'from' && canUseDevice
           ? (
             <Button
               mode="contained-tonal"

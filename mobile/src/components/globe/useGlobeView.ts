@@ -73,56 +73,62 @@ export function useGlobeView(
       })
     );
 
-  const pan = useMemo(
-    () =>
-      PanResponder.create({
-        // False on start so a press still reaches the buttons above.
-        onStartShouldSetPanResponder: () => false,
-        onMoveShouldSetPanResponder: (event, gesture) =>
-          viewRef.current.scale > MIN_SCALE
-          && event.nativeEvent.touches.length >= PAN_FINGERS
-          && (Math.abs(gesture.dx) > DRAG_SLOP
-            || Math.abs(gesture.dy) > DRAG_SLOP),
-        // Never give the gesture up once it is owned. The default answer
-        // is yes, and on Android the page's scroller asks the moment a
-        // pan has any vertical part — so pans died mid-gesture, a little
-        // scroll happened instead, and two-finger panning felt hesitant.
-        onPanResponderTerminationRequest: () => false,
-        onPanResponderGrant: () => {
-          dragFrom.current = viewRef.current;
-          onPanningRef.current?.(true);
-        },
-        onPanResponderMove: (event, gesture) => {
-          const start = dragFrom.current;
-          if (start === null) return;
-          // A finger lifted mid-drag ends the pan rather than turning it into
-          // a one-finger one. Otherwise letting go of one finger would carry
-          // on moving the map, which is the behaviour this avoids.
-          if (event.nativeEvent.touches.length < PAN_FINGERS) {
-            dragFrom.current = null;
-            return;
-          }
-          // The map follows the finger, so the window moves the other way.
-          // Screen pixels become disc pixels by dividing by the scale.
-          setView(
-            containView({
-              scale: start.scale,
-              cxF: start.cxF - gesture.dx / (size * start.scale),
-              cyF: start.cyF - gesture.dy / (size * start.scale),
-            }),
-          );
-        },
-        onPanResponderRelease: () => {
-          dragFrom.current = null;
-          onPanningRef.current?.(false);
-        },
-        onPanResponderTerminate: () => {
-          dragFrom.current = null;
-          onPanningRef.current?.(false);
-        },
-      }),
-    [size],
-  );
+  const pan = useMemo(() => {
+    // Every way a pan can end goes through here, because the page's
+    // scroller is turned off while one is running and something has to
+    // turn it back on. A pan can end with touches still on the screen,
+    // which is the case the two handlers below do not cover.
+    const endPan = () => {
+      dragFrom.current = null;
+      onPanningRef.current?.(false);
+    };
+
+    return PanResponder.create({
+      // False on start so a press still reaches the buttons above.
+      onStartShouldSetPanResponder: () => false,
+      onMoveShouldSetPanResponder: (event, gesture) =>
+        viewRef.current.scale > MIN_SCALE
+        && event.nativeEvent.touches.length >= PAN_FINGERS
+        && (Math.abs(gesture.dx) > DRAG_SLOP
+          || Math.abs(gesture.dy) > DRAG_SLOP),
+      // Never give the gesture up while a pan is running. The default
+      // answer is yes, and on Android the page's scroller asks the moment
+      // a pan has any vertical part — so pans died mid-gesture, a little
+      // scroll happened instead, and two-finger panning felt hesitant.
+      //
+      // Once the pan has ended the hold goes with it. Held past that, a
+      // map that ignores every move still owned the gesture and the page
+      // could not scroll either, so nothing on the screen answered a
+      // touch until the last finger came off.
+      onPanResponderTerminationRequest: () => dragFrom.current === null,
+      onPanResponderGrant: () => {
+        dragFrom.current = viewRef.current;
+        onPanningRef.current?.(true);
+      },
+      onPanResponderMove: (event, gesture) => {
+        const start = dragFrom.current;
+        if (start === null) return;
+        // A finger lifted mid-drag ends the pan rather than turning it into
+        // a one-finger one. Otherwise letting go of one finger would carry
+        // on moving the map, which is the behaviour this avoids.
+        if (event.nativeEvent.touches.length < PAN_FINGERS) {
+          endPan();
+          return;
+        }
+        // The map follows the finger, so the window moves the other way.
+        // Screen pixels become disc pixels by dividing by the scale.
+        setView(
+          containView({
+            scale: start.scale,
+            cxF: start.cxF - gesture.dx / (size * start.scale),
+            cyF: start.cyF - gesture.dy / (size * start.scale),
+          }),
+        );
+      },
+      onPanResponderRelease: endPan,
+      onPanResponderTerminate: endPan,
+    });
+  }, [size]);
 
   /** Frames where this band reaches, with a tenth of margin around it. */
   const fitTo = (box: ReachBox | null) => {

@@ -138,8 +138,8 @@ export interface CellLayerProps {
   ramp: Record<QualityKey, { fill: string; opacity: number; }>;
   /** The disc's own colour, and the patch backing's. */
   card: string;
-  /** The stipple's colour. */
-  ink: string;
+  /** The near-vertical stipple's colour. */
+  nvisDot: string;
 }
 
 /**

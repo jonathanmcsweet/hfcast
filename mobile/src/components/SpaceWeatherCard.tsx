@@ -4,7 +4,7 @@ import { Icon, Text, useTheme } from 'react-native-paper';
 
 import type { Sounding, SpaceWeather } from '../data/types';
 import { useFormatters } from '../hooks/useFormatters';
-import { face, numeric, radius, spacing, typography } from '../theme';
+import { face, numeric, radius, spacing, track, typography } from '../theme';
 import type { AppTheme } from '../theme';
 
 interface Props {
@@ -208,8 +208,8 @@ const styles = StyleSheet.create({
   tagText: {
     fontSize: 11,
     lineHeight: 14,
-    fontFamily: face.bold,
-    letterSpacing: 0.6,
+    ...face.bold,
+    letterSpacing: track(0.6),
     textTransform: 'uppercase',
   },
   unavailable: {

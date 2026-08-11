@@ -2,7 +2,12 @@ import { useTranslation } from 'react-i18next';
 import { StyleSheet, View } from 'react-native';
 import { Text, useTheme } from 'react-native-paper';
 import { QUALITY_ORDER } from '../data/quality';
-import { radius as radii, spacing, typography } from '../theme';
+import {
+  NVIS_DOT_OPACITY,
+  radius as radii,
+  spacing,
+  typography,
+} from '../theme';
 import type { AppTheme } from '../theme';
 
 /**
@@ -77,7 +82,7 @@ export default function MapLegend({ hasNvis = false }: Props) {
       {hasNvis
         ? (
           <View style={styles.item}>
-            <View style={[styles.dot, { backgroundColor: ui.ink }]} />
+            <View style={[styles.dot, { backgroundColor: ui.nvisDot }]} />
             <Text style={[typography.axis, { color: ui.text4 }]}>
               {t('reach.legendNvis')}
             </Text>
@@ -102,5 +107,5 @@ const styles = StyleSheet.create({
   night: { opacity: 0.35, borderWidth: StyleSheet.hairlineWidth },
   // One dot, at the size the map draws them, so the key shows the mark
   // rather than a description of it.
-  dot: { width: 4, height: 4, borderRadius: 2, opacity: 0.55 },
+  dot: { width: 4, height: 4, borderRadius: 2, opacity: NVIS_DOT_OPACITY },
 });

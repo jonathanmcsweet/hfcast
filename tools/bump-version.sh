@@ -8,9 +8,9 @@
 #   tools/bump-version.sh 0.60.0     # to that version
 #   tools/bump-version.sh --check    # say what the files hold, change nothing
 #
-# Four places have to agree: three package.json files and `app.json`,
-# which also holds `versionCode`. A sed over one of them has been done by
-# hand and got it wrong twice, and the failure is quiet — the app shows one
+# Three places have to agree: two package.json files and `app.json`, which
+# also holds `versionCode`. A sed over one of them has been done by hand
+# and got it wrong twice, and the failure is quiet — the app shows one
 # number, the installed package carries another.
 #
 # `versionCode` is what Android compares to decide what is an upgrade. The
@@ -46,14 +46,11 @@ node_bin() {
 node="$(node_bin)"
 
 # Every version in the files, so disagreement is reported rather than
-# silently overwritten by whichever file is read first.
+# silently overwritten by whichever file is read first. The reading is in
+# `tools/read-versions.mjs`, because a program in another language is
+# never written inline here.
 read_versions() {
-  for f in "${files[@]}"; do
-    "$node" -e "
-      const v = require('$root/$f');
-      process.stdout.write((v.version ?? v.expo?.version ?? '') + '\n');
-    "
-  done
+  "$node" tools/read-versions.mjs "${files[@]}"
 }
 
 current() {
@@ -101,13 +98,7 @@ esac
 # second copy of the formula that drifts from it. The modern tier is the
 # one `app.json` carries; the legacy build takes its own from the same
 # function at build time.
-code="$(
-  cd mobile && "$node" --experimental-strip-types -e "
-    import('./src/data/version.ts').then(({ versionCodeFor }) => {
-      process.stdout.write(String(versionCodeFor('$next', 'modern')));
-    });
-  " 2>/dev/null
-)"
+code="$("$node" --experimental-strip-types tools/version-code.mjs "$next" 2>/dev/null)"
 
 [[ $code =~ ^[0-9]+$ ]] || {
   echo "could not compute the version code for $next" >&2
@@ -124,24 +115,7 @@ if [[ $largest -gt 2100000000 ]]; then
   exit 1
 fi
 
-VERSION="$next" CODE="$code" "$node" -e '
-  const fs = require("fs");
-  const { VERSION, CODE } = process.env;
-  for (const f of process.argv.slice(1)) {
-    const text = fs.readFileSync(f, "utf8");
-    // Text, not JSON.parse and stringify: these files are formatted by
-    // dprint, and rewriting them from the object would reflow every line.
-    const out = text
-      .replace(/("version": )"[0-9]+\.[0-9]+\.[0-9]+"/, `$1"${VERSION}"`)
-      .replace(/("versionCode": )[0-9]+/, `$1${CODE}`);
-    if (out === text) {
-      console.error(`nothing changed in ${f} — its shape is not what this expects`);
-      process.exit(1);
-    }
-    fs.writeFileSync(f, out);
-    console.log(`${f}: ${VERSION}`);
-  }
-' "${files[@]}"
+VERSION="$next" CODE="$code" "$node" tools/write-version.mjs "${files[@]}"
 
 echo
 echo "version      $now -> $next"

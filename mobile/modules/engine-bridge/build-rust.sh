@@ -46,10 +46,15 @@ fi
 # that the engine does not redistribute. So an APK is built from a checkout
 # of the engine repository, which has the files.
 #
-# A Cargo path override does that. It replaces the source of the crate and
-# nothing else, so the version in `Cargo.toml` still says what the
-# application depends on, and `Cargo.lock` is not changed. It is also the
-# way to try an engine change here before it is published.
+# A `[patch.crates-io]` entry does that. It replaces where the crate comes
+# from and nothing else, so `Cargo.toml` still says which version the
+# application depends on.
+#
+# It used to be a `paths` override, which cannot do the other job this has
+# to do: trying an engine change here before it is published. A `paths`
+# override only replaces a crate with a local copy carrying the same
+# version, so the moment the checkout is a version ahead of the registry it
+# stops applying and the build fails to resolve. A patch has no such rule.
 engine="${HFCAST_ENGINE:-}"
 if [[ -z $engine ]]; then
   dir="$here"
@@ -93,6 +98,32 @@ targets=(
 wanted=("$@")
 built=0
 
+# Keep the committed `Cargo.lock` describing the published crate.
+#
+# The patch below replaces where the engine comes from, and cargo records
+# that in the lock file: the `hfcast` entry loses its `source` and its
+# `checksum`, because a patched crate has neither. That leaves the
+# repository holding a lock file which pins nothing — the version in it
+# means "whatever is in the checkout beside this repository", and CI
+# installs the crate from crates.io on the strength of a checksum that is
+# no longer there.
+#
+# It also breaks the one command `rust/Cargo.toml` tells a maintainer to
+# use: `cargo update -p hfcast --precise <version>` answers "package ID
+# specification `hfcast` did not match any packages", because the package
+# in the lock is no longer a registry one (user, 2026-08-10).
+#
+# So the lock is put back the way it was found. The build still resolves
+# through the patch; what does not survive it is the edit to a file under
+# version control that nobody asked for.
+lock="$here/rust/Cargo.lock"
+if [[ -f $lock ]]; then
+  held="$(mktemp)"
+  cp "$lock" "$held"
+  # On every exit, including a failed build and an interrupted one.
+  trap 'cp "$held" "$lock"; rm -f "$held"' EXIT
+fi
+
 for entry in "${targets[@]}"; do
   read -r triple abi linker_prefix <<<"$entry"
 
@@ -116,7 +147,7 @@ for entry in "${targets[@]}"; do
     "CC_${triple//-/_}=$linker" \
     "AR_${triple//-/_}=$ndk/llvm-ar" \
     cargo build --release --manifest-path "$here/rust/Cargo.toml" \
-      --config "paths=[\"$engine\"]" \
+      --config "patch.crates-io.hfcast.path=\"$engine\"" \
       --target "$triple" --jobs "${CARGO_JOBS:-2}"
 
   out="$here/android/src/main/jniLibs/$abi"

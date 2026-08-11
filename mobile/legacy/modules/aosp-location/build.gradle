@@ -1,0 +1,25 @@
+// The Android 5.0 build of modules/aosp-location. See the note in
+// legacy/modules/engine-bridge/build.gradle for why this file exists.
+apply plugin: 'com.android.library'
+
+group = 'com.hfcast.aosplocation'
+version = '1.0.0'
+
+def expoModulesCorePlugin = new File(project(":expo-modules-core").projectDir.absolutePath, "ExpoModulesCorePlugin.gradle")
+apply from: expoModulesCorePlugin
+applyKotlinExpoModulesCorePlugin()
+useCoreDependencies()
+
+// No dependencies block on purpose. Everything this module calls is in the
+// Android platform itself, which is the whole reason it exists: expo-location
+// pulls in com.google.android.gms:play-services-location, and that artifact is
+// proprietary, so a build containing it cannot ship on F-Droid and does not
+// work on a phone without Google services.
+
+android {
+  namespace "com.hfcast.aosplocation"
+  defaultConfig {
+    versionCode 1
+    versionName "1.0.0"
+  }
+}

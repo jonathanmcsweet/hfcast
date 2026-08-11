@@ -9,7 +9,7 @@
  */
 
 import type { BandHourPrediction, BandKey } from '../../../shared/bands.ts';
-import type { CoveragePoint } from '../../../shared/points.ts';
+import type { RawCoveragePoint } from '../../../shared/correctMap.ts';
 
 export type {
   BandHourPrediction,
@@ -153,6 +153,21 @@ export interface Place {
   admin1: string | null;
 }
 
+/**
+ * A searched place as an endpoint.
+ *
+ * The one field that is not a rename: a place's `name` becomes the
+ * endpoint's `label`. Both screens that offer a search had a copy of
+ * this.
+ */
+export const placeToEndpoint = (place: Place): Endpoint => ({
+  grid: place.grid,
+  label: place.name,
+  lat: place.lat,
+  lon: place.lon,
+});
+
+export type { RawCoveragePoint } from '../../../shared/correctMap.ts';
 export type { CoveragePoint } from '../../../shared/points.ts';
 
 export interface Coverage {
@@ -162,7 +177,15 @@ export interface Coverage {
   lonStep: number;
   reach: number;
   basis: PredictionBasis;
-  points: readonly CoveragePoint[];
+  /**
+   * Before the correction, where the engine reported enough to apply it.
+   *
+   * The map is drawn from these as soon as they exist and corrected when
+   * the lattice of daily middles arrives — see `correctedCoverage`. That
+   * is what lets the first paint be immediate and the second be right,
+   * without computing the grid twice.
+   */
+  points: readonly RawCoveragePoint[];
 }
 
 /**
@@ -188,7 +211,8 @@ export interface CoveragePatch {
   lonMin: number;
   lonMax: number;
   basis: PredictionBasis;
-  points: readonly CoveragePoint[];
+  /** Before the correction, as `Coverage.points` are. */
+  points: readonly RawCoveragePoint[];
 }
 
 /**

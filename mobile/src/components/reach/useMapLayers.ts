@@ -152,7 +152,15 @@ export function useMapLayers(from: Endpoint, band: BandKey, hour: number) {
   // these queries are keyed. In both windows the drawn map answers the
   // previous band while the sentence above it names the new one, and
   // that gap is what a reader reports as a wrong map.
-  const behind = coverage !== undefined && coverage.band !== band;
+  //
+  // Both the band and the hour, the way `mapLayers.ts` compares them.
+  // The hour settles before the queries are keyed, so through a slider
+  // drag nothing is running and the band still matches, while the clock
+  // above the map already reads the new hour. `useSettled` restarts its
+  // timer on every value, so that held for the whole drag rather than
+  // for one settle window.
+  const behind = coverage !== undefined
+    && (coverage.band !== band || coverage.hour !== hour);
   // Every layer, not the fine grid alone. The layers are gated against
   // one another — the patch stands down once the fine grid is there, and
   // the fine grid needs a canvas — so at any moment some of these queries

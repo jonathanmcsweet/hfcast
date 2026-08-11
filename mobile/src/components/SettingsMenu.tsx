@@ -1,7 +1,11 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { StyleSheet, View } from 'react-native';
 import { Divider, IconButton, Menu, Text, useTheme } from 'react-native-paper';
+import * as Engine from '../../modules/engine-bridge';
+import { type BenchmarkResult, runBenchmark } from '../data/benchmark';
+import { setDiagnostics } from '../data/diagnostics';
+import { canStore } from '../data/globeStore';
 import { UNIT_PREFERENCES } from '../data/units';
 import type { UnitPreference } from '../data/units';
 import { useDirection } from '../hooks/useDirection';
@@ -13,7 +17,9 @@ import type { ThemeMode } from '../store/useSettingsStore';
 import { spacing, typography } from '../theme';
 import type { AppTheme } from '../theme';
 import AboutModal from './AboutModal';
-import HelpModal from './HelpModal';
+import HowTheForecastIsMadeModal from './HowTheForecastIsMadeModal';
+import MapsModal from './MapsModal';
+import MeasureModal from './MeasureModal';
 
 /** The icon each mode shows, so a glance says which one is in force. */
 const THEME_ICONS: Record<ThemeMode, string> = {
@@ -61,6 +67,7 @@ export default function SettingsMenu(
 ) {
   const [aboutOpen, setAboutOpen] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
+  const [mapsOpen, setMapsOpen] = useState(false);
   const [open, setOpen] = useState(false);
   const theme = useTheme<AppTheme>();
   const { i18n, t } = useTranslation();
@@ -69,8 +76,46 @@ export default function SettingsMenu(
   const setMode = useSettingsStore((s) => s.setThemeMode);
   const units = useSettingsStore((s) => s.units);
   const setUnits = useSettingsStore((s) => s.setUnits);
+  const keepMaps = useSettingsStore((s) => s.keepMaps);
+  const setKeepMaps = useSettingsStore((s) => s.setKeepMaps);
+  const mapsOnCard = useSettingsStore((s) => s.mapsOnCard);
+  const setMapsOnCard = useSettingsStore((s) => s.setMapsOnCard);
+  const developer = useSettingsStore((s) => s.developer);
+  // Asked once a mount, not once a render. It reaches the file system to
+  // find the card, and this menu is rendered by a screen that redraws
+  // whenever the clock moves — so calling it in the body below would put
+  // a file system call on that path for an answer that does not change
+  // while the app is open. A card put in now is seen at the next start.
+  const hasCard = useMemo(() => Engine.mapCardAvailable(), []);
   const resolved = useUnits();
+  const [measuring, setMeasuring] = useState(false);
+  const [measurement, setMeasurement] = useState<string | null>(null);
   const ui = theme.colors.ui;
+
+  /**
+   * Runs the benchmark and puts its numbers where they can be read.
+   *
+   * Two places, because they answer to different people. The Android log
+   * gets the whole path under the `hfcast` tag, including the two stages
+   * JavaScript cannot see — what the Rust spent computing, and what the
+   * boundary spent turning a 2.9 MB answer into a Java string. The
+   * dialog gets a summary, so somebody holding the phone can read it —
+   * and copy it — without a cable.
+   */
+  const measure = async () => {
+    setMeasuring(true);
+    setMeasurement('');
+    setDiagnostics(true);
+    try {
+      const result = await runBenchmark();
+      setMeasurement(summarise(result));
+    } catch (e) {
+      setMeasurement(`${t('settings.measureFailed')}\n\n${String(e)}`);
+    } finally {
+      setDiagnostics(null);
+      setMeasuring(false);
+    }
+  };
 
   const heading = (text: string) => (
     <View style={styles.heading}>
@@ -209,11 +254,107 @@ export default function SettingsMenu(
             setAboutOpen(true);
           }}
         />
+
+        {
+          /* Only where maps can be kept, which is where there is an
+             engine to compute them and a place to put them. The web
+             build has neither. */
+        }
+        {canStore()
+          ? (
+            <>
+              <Divider />
+              {heading(t('settings.mapsSection'))}
+              <Menu.Item
+                title={t('settings.keepMaps')}
+                leadingIcon={keepMaps ? 'check' : 'content-save-outline'}
+                onPress={() => setKeepMaps(!keepMaps)}
+              />
+              {
+                /* Offered only where a card is in the device. The old
+                   tablets this app is for are often short of internal
+                   storage and take one. */
+              }
+              {hasCard
+                ? (
+                  <Menu.Item
+                    title={t('settings.mapsOnCard')}
+                    leadingIcon={mapsOnCard ? 'check' : 'sd'}
+                    onPress={() => setMapsOnCard(!mapsOnCard)}
+                  />
+                )
+                : null}
+              <Menu.Item
+                title={t('settings.computeAhead')}
+                leadingIcon="calendar-arrow-right"
+                onPress={() => {
+                  setOpen(false);
+                  setMapsOpen(true);
+                }}
+              />
+            </>
+          )
+          : null}
+
+        {
+          /* Only where there is an engine to measure, and only once
+             somebody has asked to see it by tapping the version in
+             About three times (user, 2026-08-11). The benchmark runs
+             the engine flat out for about half a minute, which is not
+             something to offer a reader who came to change the theme —
+             but it stays reachable in the build that ships, because
+             that is the build whose numbers are worth having. */
+        }
+        {developer && Engine.isAvailable()
+          ? (
+            <>
+              <Divider />
+              {heading(t('settings.diagnosticsSection'))}
+              <Menu.Item
+                title={t('settings.measure')}
+                leadingIcon="timer-outline"
+                disabled={measuring}
+                onPress={() => {
+                  setOpen(false);
+                  void measure();
+                }}
+              />
+            </>
+          )
+          : null}
       </Menu>
-      <HelpModal visible={helpOpen} onDismiss={() => setHelpOpen(false)} />
+      <HowTheForecastIsMadeModal
+        visible={helpOpen}
+        onDismiss={() => setHelpOpen(false)}
+      />
       <AboutModal visible={aboutOpen} onDismiss={() => setAboutOpen(false)} />
+      <MeasureModal
+        visible={measurement !== null}
+        measuring={measuring}
+        text={measurement ?? ''}
+        onDismiss={() => setMeasurement(null)}
+      />
+      <MapsModal visible={mapsOpen} onDismiss={() => setMapsOpen(false)} />
     </>
   );
+}
+
+/**
+ * The benchmark's numbers as a few lines somebody can read or photograph.
+ *
+ * Deliberately not translated. It is a measurement, not a message: the
+ * stage names match what the log writes, so a screenshot and a log can
+ * be lined up against each other.
+ */
+function summarise(result: BenchmarkResult): string {
+  const lines = result.stages.map((each) =>
+    `${each.what}\n  ${each.points} points, engine ${each.nativeMs} ms, `
+    + `parse ${each.parseMs} ms, total ${each.totalMs} ms`
+  );
+  return [
+    `${result.cores} cores, ${result.threads} threads`,
+    ...lines,
+  ].join('\n');
 }
 
 const styles = StyleSheet.create({

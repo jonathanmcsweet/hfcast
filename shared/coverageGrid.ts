@@ -20,11 +20,16 @@ export const LAT_STEP = 15;
 export const LON_STEP = 22.5;
 
 /**
- * The threshold "reachable" means, matching the app's `patchy` band.
+ * The threshold "reachable" means, which is the app's `patchy` band.
  *
  * The share of the map above it is a more useful summary than the best cell,
  * which saturates at "reliable" for almost every band and hour and so says
  * nothing about the difference between them.
+ *
+ * `mobile/src/data/quality.ts` reads this for the bound between `weak` and
+ * `patchy`, so retuning the bucket ladder moves what the map paints and what
+ * the percentage counts together. Two numbers would let "reach 40%" stop
+ * meaning "the share of the map at least patchy" with nothing failing.
  */
 export const REACHABLE = 0.4;
 

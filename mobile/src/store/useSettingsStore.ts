@@ -2,6 +2,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 
+import { BAND_ORDER, type BandKey } from '../../../shared/bands';
+import type { ScopeMonths } from '../data/precomputePlan';
 import type { UnitPreference } from '../data/units';
 
 /**
@@ -47,12 +49,74 @@ interface SettingsState {
    */
   units: UnitPreference;
   setUnits: (units: UnitPreference) => void;
+  /**
+   * Whether computed maps are kept on disk to be read again.
+   *
+   * On by default, because what it keeps costs nothing to make: only a
+   * map computed without a live space weather reading is stored, and
+   * that is the map a device with no network computes anyway. So an
+   * afternoon offline fills the store with exactly what the next
+   * afternoon offline will want, and no run happens that would not have
+   * happened.
+   */
+  keepMaps: boolean;
+  setKeepMaps: (keep: boolean) => void;
+  /**
+   * Whether they go on the memory card.
+   *
+   * Off by default and offered only where a card is present. The old
+   * tablets this app is for are often short of internal storage and take
+   * one (user, 2026-08-10).
+   */
+  mapsOnCard: boolean;
+  setMapsOnCard: (onCard: boolean) => void;
+  /** How much room the stored maps may take, in megabytes. */
+  mapBudgetMb: number;
+  setMapBudgetMb: (mb: number) => void;
+  /** How many months ahead the compute-ahead job covers, including this. */
+  precomputeMonths: ScopeMonths;
+  setPrecomputeMonths: (months: ScopeMonths) => void;
+  /**
+   * Which bands it computes.
+   *
+   * Every band by default, with the smallest scope of months, so the
+   * job somebody starts without reading anything is one month of
+   * everything rather than a year of it.
+   *
+   * Each band is its own engine run — the whole-world fine grid has no
+   * multi-band pass — so this is the strongest control a person has
+   * over how long a large scope takes, as well as over the room.
+   */
+  precomputeBands: readonly BandKey[];
+  setPrecomputeBands: (bands: readonly BandKey[]) => void;
+  /**
+   * Whether the tools for measuring this device are shown.
+   *
+   * Off, and reached by tapping the version in About three times (user,
+   * 2026-08-11). What it reveals is a benchmark that runs the engine
+   * flat out for half a minute — useful to whoever is working on the
+   * app, and to somebody sending numbers in, but not something to leave
+   * in front of a person who came here to change the theme.
+   *
+   * A stored choice rather than a development build flag, because the
+   * measurement worth having is of the build that ships. See
+   * `diagnostics.ts`, which makes the same argument about its own
+   * switch.
+   */
+  developer: boolean;
+  setDeveloper: (on: boolean) => void;
 }
 
-// Raised for `units`. A saved version 1 has no units field, so it is
-// migrated forward rather than discarded: losing a theme choice to gain a
-// units default would be a poor trade.
-const PERSIST_VERSION = 2;
+/** How much room the stored maps may take, unless somebody says otherwise. */
+export const DEFAULT_MAP_BUDGET_MB = 128;
+
+/** The sizes offered. A whole year of nine bands is about 171 MB. */
+export const MAP_BUDGET_CHOICES = [64, 128, 256, 512] as const;
+
+// Raised for the stored maps at 3, and for `developer` at 4. An older
+// saved shape is migrated forward rather than discarded: losing a theme
+// and a units choice to gain a storage default would be a poor trade.
+const PERSIST_VERSION = 4;
 
 export const useSettingsStore = create<SettingsState>()(
   persist(
@@ -61,6 +125,18 @@ export const useSettingsStore = create<SettingsState>()(
       setThemeMode: (themeMode) => set({ themeMode }),
       units: 'auto',
       setUnits: (units) => set({ units }),
+      keepMaps: true,
+      setKeepMaps: (keepMaps) => set({ keepMaps }),
+      mapsOnCard: false,
+      setMapsOnCard: (mapsOnCard) => set({ mapsOnCard }),
+      mapBudgetMb: DEFAULT_MAP_BUDGET_MB,
+      setMapBudgetMb: (mapBudgetMb) => set({ mapBudgetMb }),
+      precomputeMonths: 1,
+      setPrecomputeMonths: (precomputeMonths) => set({ precomputeMonths }),
+      precomputeBands: BAND_ORDER,
+      setPrecomputeBands: (precomputeBands) => set({ precomputeBands }),
+      developer: false,
+      setDeveloper: (developer) => set({ developer }),
     }),
     {
       name: 'hfcast.settings',
@@ -69,21 +145,39 @@ export const useSettingsStore = create<SettingsState>()(
       partialize: (state) => ({
         themeMode: state.themeMode,
         units: state.units,
+        keepMaps: state.keepMaps,
+        mapsOnCard: state.mapsOnCard,
+        mapBudgetMb: state.mapBudgetMb,
+        precomputeMonths: state.precomputeMonths,
+        precomputeBands: state.precomputeBands,
+        developer: state.developer,
       }),
       migrate: (persisted, version) => {
         if (version === PERSIST_VERSION) {
           return persisted as Partial<SettingsState>;
         }
-        // Version 1 is the same shape without `units`. Keeping the theme
-        // and letting units fall to `auto` is what the reader would
-        // expect: `auto` is what they would have chosen anyway.
-        if (
-          version === 1 && persisted !== null && typeof persisted === 'object'
-        ) {
-          return { ...(persisted as Partial<SettingsState>), units: 'auto' };
+        if (persisted === null || typeof persisted !== 'object') {
+          return undefined;
+        }
+        // Version 1 is the same shape without `units`, and version 2
+        // without the stored maps. Keeping what was chosen and letting
+        // the rest fall to their defaults is what the reader would
+        // expect: the defaults are what they would have chosen anyway.
+        const held = persisted as Partial<SettingsState>;
+        if (version === 1 || version === 2 || version === 3) {
+          return {
+            ...held,
+            units: held.units ?? 'auto',
+            keepMaps: held.keepMaps ?? true,
+            mapsOnCard: held.mapsOnCard ?? false,
+            mapBudgetMb: held.mapBudgetMb ?? DEFAULT_MAP_BUDGET_MB,
+            precomputeMonths: held.precomputeMonths ?? 1,
+            precomputeBands: held.precomputeBands ?? BAND_ORDER,
+            developer: false,
+          };
         }
         // Anything else falls back to the defaults, which follow the
-        // device on both counts.
+        // device on every count that can.
         return undefined;
       },
     },

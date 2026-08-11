@@ -24,9 +24,12 @@ import { slate } from '../src/palette.ts';
  * changed in `palette.ts` now fails here rather than on somebody's phone
  * in daylight.
  *
- * React Native cannot be loaded under Node, so `theme.ts`'s two imports
+ * React Native cannot be loaded under Node, so `theme.ts`'s imports of it
  * are replaced with the little it uses — the same arrangement, and for
- * the same reason, as `theme.test.ts`.
+ * the same reason, as `theme.test.ts`. The device's language is stubbed
+ * for the same reason: the theme asks for it to know whether the bundled
+ * font has letters for it, and none of the colours below depend on the
+ * answer.
  */
 
 const fonts = {
@@ -44,6 +47,9 @@ mock.module('react-native-paper', {
     MD3LightTheme: { colors: {}, fonts },
     MD3DarkTheme: { colors: {}, fonts },
   },
+});
+mock.module('expo-localization', {
+  namedExports: { getLocales: () => [{ languageCode: 'en' }] },
 });
 
 const themes = async () => {

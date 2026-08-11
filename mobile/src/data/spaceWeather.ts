@@ -22,6 +22,21 @@ import type { SpaceWeather } from './types';
 const SWPC = 'https://services.swpc.noaa.gov';
 
 /**
+ * How old a reading may be and still describe now.
+ *
+ * Twenty-four hours, because the number it carries is the highest K
+ * index of the last twenty-four: past that it describes a window which
+ * has entirely gone. The readings are kept on disk for a week so a
+ * forecast survives losing the network, so without this a device with no
+ * signal would drive today's map from last Tuesday's storm and present
+ * it as current.
+ *
+ * Here rather than beside the query that applies it, so the help screen
+ * can state the number without importing the whole query layer.
+ */
+export const NOWCAST_GOOD_FOR_MS = 24 * 60 * 60 * 1000;
+
+/**
  * Shorter than the ten seconds the prediction client allows. A forecast the
  * device can compute on its own is waiting on this, so a slow answer costs
  * more here than a missing one: the climatology forecast is drawn either way,

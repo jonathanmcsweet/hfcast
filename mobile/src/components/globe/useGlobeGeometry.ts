@@ -31,13 +31,19 @@ import type {
  * answers, these are pure functions producing path strings. What is left
  * in the component is layout, controls and paint.
  *
- * The split is in two memos, and that is the point of it rather than a
+ * The split is in three memos, and that is the point of it rather than a
  * tidying. The cells are the costly part — a whole-world fine grid is
  * 34,560 rings projected and written out as path text, measured at 141 ms
  * on a desktop — and the hour slider reports every value it passes
  * through. Only the terminator moves with the hour, and it is one ring of
  * a few hundred points, so it is cheap enough to rebuild on every frame of
  * a drag while the cells are not.
+ *
+ * The coastline and the distance rings are the third memo. They read only
+ * the projection, so they move when the station or the size moves and at
+ * no other time. They sat with the cells, and rebuilt with every new
+ * answer: 123 rings and 5,108 points reprojected to the same bytes, three
+ * times for one change of hour, because three queries answer separately.
  *
  * The band and the settled hour still rebuild the cells, through
  * `coverage`, `patch` and `fine` — new answers are new objects. That is
@@ -142,12 +148,6 @@ export function useGlobeGeometry(
       ? nvisPoints(p, gridPoints(fine))
       : nvisPoints(p, patch?.points ?? []);
 
-    const coast = RINGS.flatMap((ring) =>
-      projectRing(p, ring).map((run) => pathOf(run))
-    );
-
-    const distanceRings = RING_KM.map((km) => ({ km, r: km * p.pxPerKm }));
-
     const home = p.project(from.lon, from.lat);
     const target = to ? p.project(to.lon, to.lat) : null;
     const path = to
@@ -160,14 +160,33 @@ export function useGlobeGeometry(
       patchCells: patchField.buckets,
       patchBacking,
       nvisDots,
-      coast,
-      distanceRings,
       home,
       target,
       path,
       reachBox,
     };
   }, [p, coverage, patch, fine, from.lat, from.lon, to]);
+
+  // The coastline and the distance rings, which only the projection
+  // moves.
+  //
+  // Their own memo because the one above rebuilds on every new answer,
+  // and three separate queries deliver three new object identities at
+  // three different moments for one change of hour. `land.json` holds
+  // 123 rings and 5,108 points, so that was 4 to 12 ms of reprojection
+  // each time for output that is the same bytes. It costs nothing
+  // against a fine grid, and it is the largest part of the coarse and
+  // patch rebuilds, which are the ones that exist to paint quickly.
+  //
+  // This is the cheap-and-expensive split the header describes. The
+  // coast was on the expensive side and reads nothing that belongs
+  // there.
+  const world = useMemo(() => ({
+    coast: RINGS.flatMap((ring) =>
+      projectRing(p, ring).map((run) => pathOf(run))
+    ),
+    distanceRings: RING_KM.map((km) => ({ km, r: km * p.pxPerKm })),
+  }), [p]);
 
   // The terminator, which is the only geometry the hour moves. Cheap —
   // one ring of a few hundred points — so the slider may rebuild it on
@@ -221,10 +240,10 @@ export function useGlobeGeometry(
     return { nightPaths, terminator, nightFill };
   }, [p, from.lat, from.lon, hour]);
 
-  // One object, so every reader below is unchanged. Both halves are
+  // One object, so every reader below is unchanged. All three parts are
   // memoised, so this only rebuilds when one of them does.
   return useMemo(
-    () => ({ ...cells, ...night, p }),
-    [cells, night, p],
+    () => ({ ...cells, ...world, ...night, p }),
+    [cells, world, night, p],
   );
 }

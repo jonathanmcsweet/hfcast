@@ -31,18 +31,29 @@ export const FINE_GRID_POINTS = 34560;
 /**
  * How many threads a batch runs across, given the device's core count.
  *
- * Every core, up to eight. The engine is arithmetic on data already in
- * memory, so it scales with cores until it runs out of them; the cap is
- * there because a phone reporting more than eight is reporting cores
- * this run has no way to keep fed, and because a thread per core is
- * already the point at which the run competes with the interface it is
- * drawing for.
+ * Four, measured, not the core count assumed. A Pixel 8 ran the
+ * whole-world grid at every count (Diagnostics sweep, 2026-08-10):
+ *
+ *   threads   1        2        4        8
+ *   grid      2606 ms  1987 ms  1753 ms  2164 ms
+ *   cpu cost  2430 ms  3568 ms  5695 ms  10466 ms
+ *
+ * The curve turns at four. Eight was slower than two, and its log line
+ * said why twice over: 7.7 strips in flight but only 5.2 cores held —
+ * threads past four wait for cores the phone will not run flat out —
+ * and each held core ran its strip four times slower than it runs
+ * alone, which is cores fighting over memory. Both faults shrink as
+ * the count comes down.
+ *
+ * The cpu row is the other half of the reason. Eight threads spent
+ * nearly twice the processor-seconds of four to deliver a slower
+ * answer: heat and battery for less than nothing.
  *
  * Two at the bottom, not one. A device reporting a single core is more
  * likely to be reporting badly than to have one, and two strips on one
  * core cost only the second strip's coefficient load.
  */
-export const MAX_THREADS = 8;
+export const MAX_THREADS = 4;
 
 export function threadsFor(cores: number): number {
   const usable = Number.isFinite(cores) && cores >= 1 ? Math.floor(cores) : 4;

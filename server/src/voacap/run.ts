@@ -14,6 +14,7 @@
  * trees is made once and reused, with each run holding one for its duration.
  */
 import { execFile } from 'node:child_process';
+import { rmSync } from 'node:fs';
 import { cp, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { homedir, tmpdir } from 'node:os';
 import path from 'node:path';
@@ -60,8 +61,23 @@ function createTreePool(size: number) {
 
     // Removing the copies on exit keeps a long-lived process from leaving one
     // tree per restart behind in the temp directory.
+    //
+    // Removed with the blocking call rather than the promise one. Node runs
+    // no more input or output after an `exit` handler returns, so a promise
+    // started there is never finished and the tree stayed on disk — which is
+    // the whole of what this handler is for.
+    //
+    // `once` on the two signals, so the handler removes itself before it
+    // runs and the second one of the same signal reaches Node's own default.
+    // A server that ignored a stop signal would be worse than a leaked
+    // directory.
     const cleanup = () => {
-      rm(base, { recursive: true, force: true }).catch(() => {});
+      try {
+        rmSync(base, { recursive: true, force: true });
+      } catch {
+        // A tree that is already gone, or a directory that cannot be
+        // removed. Neither is worth failing an exit over.
+      }
     };
     process.once('exit', cleanup);
     process.once('SIGINT', cleanup);

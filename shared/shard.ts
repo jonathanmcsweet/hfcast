@@ -134,6 +134,22 @@ export function latShards(
   latStep: number,
   lonStep: number,
   shards: number,
+  /**
+   * How many points make a grid worth splitting.
+   *
+   * The default counts one hour at each place, which is what an area run
+   * has always been. A whole-day run is about fifteen times that at the
+   * same places — see `dailyMedian` in the engine — so a lattice of
+   * 1,728 places is more work than a one-hour grid of 25,000, and the
+   * default would refuse to split it.
+   *
+   * A caller splitting for a reason other than speed passes a lower
+   * number. Work that fills the map in behind the reader is cut small on
+   * purpose: the engine takes one request at a time and cannot be
+   * interrupted, so the size of a piece is the longest anyone can be
+   * held up by it.
+   */
+  minimum: number = MIN_SHARD_POINTS,
 ): AreaBounds[] | null {
   if (shards < 2) return null;
   const lat = axisOf(bounds?.latMin, bounds?.latMax, latStep, -90, 180);
@@ -142,7 +158,7 @@ export function latShards(
 
   const rows = lat.last - lat.first + 1;
   const columns = lon.last - lon.first + 1;
-  if (rows * columns < MIN_SHARD_POINTS) return null;
+  if (rows * columns < minimum) return null;
   // A strip needs two rows, because a one-row rectangle is a division by
   // zero in the engine rather than a thin answer.
   const strips = Math.min(shards, Math.floor(rows / 2));
