@@ -90,6 +90,21 @@ interface SettingsState {
   precomputeBands: readonly BandKey[];
   setPrecomputeBands: (bands: readonly BandKey[]) => void;
   /**
+   * Whether a job computing maps ahead waits for a charger.
+   *
+   * On, because the job it guards is the long one. A year of nine bands
+   * is about 75 minutes of the engine at full tilt, and this app is for
+   * devices carried into a field with no charger in reach — so the
+   * default protects the battery somebody will need for the radio, and
+   * turning it off is a deliberate act (user, 2026-08-11).
+   *
+   * Waiting rather than refusing: unplugging pauses the job and plugging
+   * back in continues it, so a job left running overnight survives
+   * somebody moving the tablet.
+   */
+  precomputeOnCharger: boolean;
+  setPrecomputeOnCharger: (on: boolean) => void;
+  /**
    * Whether the tools for measuring this device are shown.
    *
    * Off, and reached by tapping the version in About three times (user,
@@ -113,10 +128,11 @@ export const DEFAULT_MAP_BUDGET_MB = 128;
 /** The sizes offered. A whole year of nine bands is about 171 MB. */
 export const MAP_BUDGET_CHOICES = [64, 128, 256, 512] as const;
 
-// Raised for the stored maps at 3, and for `developer` at 4. An older
+// Raised for the stored maps at 3, `developer` at 4, and waiting for a
+// charger at 5. An older
 // saved shape is migrated forward rather than discarded: losing a theme
 // and a units choice to gain a storage default would be a poor trade.
-const PERSIST_VERSION = 4;
+const PERSIST_VERSION = 5;
 
 export const useSettingsStore = create<SettingsState>()(
   persist(
@@ -135,6 +151,9 @@ export const useSettingsStore = create<SettingsState>()(
       setPrecomputeMonths: (precomputeMonths) => set({ precomputeMonths }),
       precomputeBands: BAND_ORDER,
       setPrecomputeBands: (precomputeBands) => set({ precomputeBands }),
+      precomputeOnCharger: true,
+      setPrecomputeOnCharger: (precomputeOnCharger) =>
+        set({ precomputeOnCharger }),
       developer: false,
       setDeveloper: (developer) => set({ developer }),
     }),
@@ -150,6 +169,7 @@ export const useSettingsStore = create<SettingsState>()(
         mapBudgetMb: state.mapBudgetMb,
         precomputeMonths: state.precomputeMonths,
         precomputeBands: state.precomputeBands,
+        precomputeOnCharger: state.precomputeOnCharger,
         developer: state.developer,
       }),
       migrate: (persisted, version) => {
@@ -164,7 +184,7 @@ export const useSettingsStore = create<SettingsState>()(
         // the rest fall to their defaults is what the reader would
         // expect: the defaults are what they would have chosen anyway.
         const held = persisted as Partial<SettingsState>;
-        if (version === 1 || version === 2 || version === 3) {
+        if (version >= 1 && version <= 4) {
           return {
             ...held,
             units: held.units ?? 'auto',
@@ -173,7 +193,10 @@ export const useSettingsStore = create<SettingsState>()(
             mapBudgetMb: held.mapBudgetMb ?? DEFAULT_MAP_BUDGET_MB,
             precomputeMonths: held.precomputeMonths ?? 1,
             precomputeBands: held.precomputeBands ?? BAND_ORDER,
-            developer: false,
+            // Kept where a version 4 store already had one, so somebody
+            // upgrading does not lose a choice they made.
+            precomputeOnCharger: held.precomputeOnCharger ?? true,
+            developer: held.developer ?? false,
           };
         }
         // Anything else falls back to the defaults, which follow the

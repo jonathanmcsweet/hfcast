@@ -23,15 +23,23 @@
  * It can always be stopped, and stopping loses only the grid in hand.
  * Every finished grid is on disk before the next one starts.
  *
- * What it cannot do is run while the app is closed. React Native stops
- * the JavaScript that drives this when the app leaves the screen, so a
- * long job wants the app open and the device on a charger — which is
- * the arrangement it was designed for anyway.
+ * It used to stop the moment the app left the screen, because Android
+ * freezes a backgrounded process and the JavaScript driving this stops
+ * with it. A foreground service now holds the process up for as long as
+ * a job runs — see `PrecomputeService.kt` — so a job continues with the
+ * screen locked and with the app swiped out of recents (user,
+ * 2026-08-11). The price Android sets for that is a notification that
+ * cannot be dismissed, so it carries the progress and a Stop button.
+ *
+ * It waits for a charger unless told not to. The long scope is about an
+ * hour and a quarter of the engine at full tilt, and this app is for
+ * devices carried somewhere with no charger in reach.
  */
 import type { BandKey } from '../../../shared/bands.ts';
 import type { CentreField } from '../../../shared/correctMap';
 import * as Engine from '../../modules/engine-bridge';
 import { usePrecomputeStore } from '../store/usePrecomputeStore';
+import { useSettingsStore } from '../store/useSettingsStore';
 import type { Station } from '../store/useStationStore';
 import { FINE_CENTRE_LAT_STEP, FINE_CENTRE_LON_STEP } from './correctMap';
 import { timing } from './diagnostics';
@@ -44,6 +52,34 @@ import type { Endpoint } from './types';
 
 /** What `dropLater` matches on when the job is stopped. */
 export const PRECOMPUTE_GROUP = 'precompute';
+
+/**
+ * How often a waiting job looks for a charger.
+ *
+ * Long enough to cost nothing — the answer comes from a broadcast
+ * Android already holds — and short enough that plugging the device in
+ * and watching the screen does not feel broken.
+ */
+const CHARGER_POLL_MS = 5000;
+
+/**
+ * What the notification says, in the reader's language.
+ *
+ * Passed in rather than read here. This module has no business knowing
+ * about i18n, and the native side that draws the notification has no
+ * languages at all — so the words come from the screen that started the
+ * job, which already has them.
+ */
+export interface PrecomputeLabels {
+  /** The notification's title. */
+  title: string;
+  /** The button on the notification. */
+  stop: string;
+  /** The line under the title, given what is done and what is left. */
+  progress: (done: number, total: number) => string;
+  /** The line while it holds for a charger. */
+  waiting: string;
+}
 
 /** What a job needs to know. */
 export interface PrecomputeAsk {
@@ -95,7 +131,10 @@ export function stopPrecompute(): void {
  * are counted and passed over: one hour that the engine refuses should
  * not cost the other 287.
  */
-export async function precompute(ask: PrecomputeAsk): Promise<void> {
+export async function precompute(
+  ask: PrecomputeAsk,
+  labels: PrecomputeLabels,
+): Promise<void> {
   if (!Engine.isAvailable() || !canStore()) return;
   if (usePrecomputeStore.getState().running) return;
   if (ask.bands.length === 0 || ask.months <= 0) return;
@@ -116,6 +155,17 @@ export async function precompute(ask: PrecomputeAsk): Promise<void> {
   }
 
   const startedAt = Date.now();
+  // Stop on the notification ends the job exactly as the button in the
+  // app does. One path out, so the disk is left in one state whichever
+  // of the two somebody pressed.
+  const unlisten = Engine.onBackgroundStop(stopPrecompute);
+  Engine.startBackgroundWork(
+    labels.title,
+    labels.progress(0, jobs.length),
+    0,
+    jobs.length,
+    labels.stop,
+  );
   // The lattice of daily middles, once a month rather than once a grid.
   // It does not depend on the hour and one call answers every band, so a
   // month of nine bands needs one of these and not 216.
@@ -127,6 +177,10 @@ export async function precompute(ask: PrecomputeAsk): Promise<void> {
     // at a time, and it has to be able to stop between any two of them.
     for (const job of jobs) {
       if (stopping) {
+        asked = true;
+        break;
+      }
+      if (!await waitForCharger(labels, jobs.length)) {
         asked = true;
         break;
       }
@@ -175,6 +229,14 @@ export async function precompute(ask: PrecomputeAsk): Promise<void> {
         usePrecomputeStore.getState().advance(
           `${tag} ${String(job.run.hour).padStart(2, '0')}:00 ${job.band}`,
         );
+        const moved = usePrecomputeStore.getState();
+        Engine.startBackgroundWork(
+          labels.title,
+          labels.progress(moved.done, moved.total),
+          moved.done,
+          moved.total,
+          labels.stop,
+        );
       } catch (e) {
         if (wasDropped(e)) {
           // The job was stopped while this grid was in the queue. That
@@ -190,6 +252,8 @@ export async function precompute(ask: PrecomputeAsk): Promise<void> {
       }
     }
   } finally {
+    unlisten();
+    Engine.stopBackgroundWork();
     const state = usePrecomputeStore.getState();
     timing('computed ahead', {
       done: state.done,
@@ -200,6 +264,48 @@ export async function precompute(ask: PrecomputeAsk): Promise<void> {
     state.finish(asked);
     stopping = false;
   }
+}
+
+/**
+ * Holds until the device is on power, if that is what was asked for.
+ *
+ * Returns false only when the job was stopped while waiting, which the
+ * caller treats exactly as Stop — the flag is read again on the way out
+ * rather than trusted from before the wait.
+ *
+ * A poll rather than a subscription. The wait is minutes at most, the
+ * answer costs nothing to ask for, and a listener would be one more
+ * thing with a lifetime to get wrong.
+ */
+async function waitForCharger(
+  labels: PrecomputeLabels,
+  total: number,
+): Promise<boolean> {
+  if (!useSettingsStore.getState().precomputeOnCharger) return true;
+  if (Engine.isCharging()) return true;
+
+  const store = usePrecomputeStore.getState();
+  store.setWaiting(true);
+  Engine.startBackgroundWork(
+    labels.title,
+    labels.waiting,
+    store.done,
+    total,
+    labels.stop,
+  );
+  timing('waiting for a charger before computing more maps', {
+    done: store.done,
+    of: total,
+  });
+
+  try {
+    while (!stopping && !Engine.isCharging()) {
+      await new Promise((resolve) => setTimeout(resolve, CHARGER_POLL_MS));
+    }
+  } finally {
+    usePrecomputeStore.getState().setWaiting(false);
+  }
+  return !stopping;
 }
 
 /**

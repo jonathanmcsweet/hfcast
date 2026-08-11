@@ -43,6 +43,16 @@ interface Native {
   removeMapCache?(names: string[]): Promise<number>;
   /** Whether a memory card is present, and where maps are kept. */
   mapCardAvailable?(): boolean;
+  startBackgroundWork?(
+    title: string,
+    text: string,
+    done: number,
+    total: number,
+    stopLabel: string,
+  ): boolean;
+  stopBackgroundWork?(): boolean;
+  isCharging?(): boolean;
+  addListener?(event: string, listener: () => void): { remove(): void; };
   setMapCardUse?(on: boolean): string;
 }
 
@@ -283,4 +293,58 @@ export async function predictMany<T>(
     nativeMs: answeredAt - askedAt,
     parseMs: Date.now() - answeredAt,
   };
+}
+
+/**
+ * Keeps a long map job running while the screen is off.
+ *
+ * Called again for every step, which is what moves the progress bar: the
+ * service takes the same intent as a start or an update, and Android
+ * hands it to the instance already running.
+ *
+ * The wording comes from here rather than from the module, because this
+ * app has five languages and that module has none. `stopLabel` is what
+ * the button on the notification says.
+ *
+ * False means the device would not start it — an old build, a
+ * manufacturer that refuses, a permission withheld. The job then behaves
+ * as it did before this existed: it runs while the app is open and waits
+ * when it is not, which is worth saying out loud rather than failing.
+ */
+export const startBackgroundWork = (
+  title: string,
+  text: string,
+  done: number,
+  total: number,
+  stopLabel: string,
+): boolean =>
+  native?.startBackgroundWork?.(title, text, done, total, stopLabel) === true;
+
+/** Takes the notification down and lets the processor sleep again. */
+export const stopBackgroundWork = (): boolean =>
+  native?.stopBackgroundWork?.() === true;
+
+/**
+ * Whether the device is on power.
+ *
+ * Asked rather than watched. A job checks between maps, and a job
+ * waiting for a charger asks every few seconds — which is cheap, because
+ * the answer comes from a broadcast Android already keeps. A listener
+ * would be one more thing with a lifetime to get wrong for an answer
+ * nothing needs within the second.
+ *
+ * True where the engine is absent, so a build with no way to ask never
+ * refuses to compute for want of an answer it cannot get.
+ */
+export const isCharging = (): boolean => native?.isCharging?.() !== false;
+
+/**
+ * Calls back when Stop is pressed on the notification.
+ *
+ * Returns a function that stops listening, or one that does nothing
+ * where there is no module to listen to.
+ */
+export function onBackgroundStop(listener: () => void): () => void {
+  const subscription = native?.addListener?.('onBackgroundStop', listener);
+  return () => subscription?.remove();
 }

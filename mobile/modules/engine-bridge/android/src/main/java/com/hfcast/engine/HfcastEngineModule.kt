@@ -1,5 +1,9 @@
 package com.hfcast.engine
 
+import android.content.Intent
+import android.content.IntentFilter
+import android.os.BatteryManager
+import android.os.Build
 import android.util.Base64
 import android.util.Log
 import expo.modules.kotlin.Promise
@@ -65,6 +69,77 @@ class HfcastEngineModule : Module() {
 
   override fun definition() = ModuleDefinition {
     Name("HfcastEngine")
+
+    /**
+     * The one thing the notification can tell the app: Stop was pressed.
+     *
+     * The button ends the job through the same path the button inside the
+     * app uses, rather than tearing the service down under it, so a job
+     * always ends one way and always leaves the disk in one state.
+     */
+    Events("onBackgroundStop")
+
+    OnCreate {
+      PrecomputeService.onStopRequested = {
+        sendEvent("onBackgroundStop", emptyMap<String, Any>())
+      }
+    }
+
+    OnDestroy {
+      PrecomputeService.onStopRequested = null
+    }
+
+    /**
+     * Starts, or updates, the notification that keeps a job running.
+     *
+     * One function for both because the service is started with the same
+     * intent either way: Android delivers it to the running instance if
+     * there is one, and `setOnlyAlertOnce` keeps a moving count from
+     * making a sound. The wording arrives from the app rather than being
+     * written here — the app has five languages and this module has none.
+     *
+     * Returns whether it started. False on a device that refuses the
+     * service, and the job then runs exactly as it did before: fine while
+     * the app is open, stopped when it is not.
+     */
+    Function("startBackgroundWork") { title: String, text: String, done: Int, total: Int, stopLabel: String ->
+      return@Function runService(
+        PrecomputeService.ACTION_START,
+        title,
+        text,
+        done,
+        total,
+        stopLabel,
+      )
+    }
+
+    /** Takes the notification down and lets the processor sleep again. */
+    Function("stopBackgroundWork") {
+      return@Function runService(PrecomputeService.ACTION_STOP, "", "", 0, 0, "")
+    }
+
+    /**
+     * Whether the device is on power.
+     *
+     * Read from the sticky battery broadcast rather than
+     * `BatteryManager.isCharging`, which arrived in Android 6 — the older
+     * of the two builds targets Android 5. Asking with a null receiver
+     * returns the last broadcast without registering anything, so this
+     * costs no lifecycle and can be called whenever the answer is wanted.
+     *
+     * "Full" counts as charging. A device left on a charger overnight
+     * reports full rather than charging, and a job that stopped at 100%
+     * would be stopping at exactly the moment it was safest to run.
+     */
+    Function("isCharging") {
+      val context = appContext.reactContext ?: return@Function false
+      val status = context
+        .registerReceiver(null, IntentFilter(Intent.ACTION_BATTERY_CHANGED))
+        ?.getIntExtra(BatteryManager.EXTRA_STATUS, -1)
+        ?: -1
+      return@Function status == BatteryManager.BATTERY_STATUS_CHARGING ||
+        status == BatteryManager.BATTERY_STATUS_FULL
+    }
 
     /**
      * Turns the timing lines on or off.
@@ -456,6 +531,45 @@ class HfcastEngineModule : Module() {
    * which is the right arrangement for something that can be computed
    * again.
    */
+  /**
+   * Hands one intent to the service, and says whether it was taken.
+   *
+   * `startForegroundService` from Android 8, which requires the service
+   * to call `startForeground` within a few seconds — it does, first
+   * thing. Failures are caught rather than thrown: a device that refuses
+   * to start it is a device where maps compute only while the app is
+   * open, which is what happened everywhere before this existed, and is
+   * not a reason to fail the job.
+   */
+  private fun runService(
+    action: String,
+    title: String,
+    text: String,
+    done: Int,
+    total: Int,
+    stopLabel: String,
+  ): Boolean {
+    val context = appContext.reactContext ?: return false
+    val intent = Intent(context, PrecomputeService::class.java)
+      .setAction(action)
+      .putExtra(PrecomputeService.EXTRA_TITLE, title)
+      .putExtra(PrecomputeService.EXTRA_TEXT, text)
+      .putExtra(PrecomputeService.EXTRA_DONE, done)
+      .putExtra(PrecomputeService.EXTRA_TOTAL, total)
+      .putExtra(PrecomputeService.EXTRA_STOP, stopLabel)
+    return try {
+      if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+        context.startForegroundService(intent)
+      } else {
+        context.startService(intent)
+      }
+      true
+    } catch (e: Exception) {
+      Log.w("hfcast", "could not start the background map service: ${e.message}")
+      false
+    }
+  }
+
   private fun cardRoot(): File? {
     val context = appContext.reactContext ?: return null
     return context.getExternalFilesDirs(null)

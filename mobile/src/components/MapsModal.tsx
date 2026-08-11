@@ -91,9 +91,14 @@ export default function MapsModal({ visible, onDismiss }: Props) {
   const bands = useSettingsStore((state) => state.precomputeBands);
   const setBands = useSettingsStore((state) => state.setPrecomputeBands);
   const budgetMb = useSettingsStore((state) => state.mapBudgetMb);
+  const onCharger = useSettingsStore((state) => state.precomputeOnCharger);
+  const setOnCharger = useSettingsStore(
+    (state) => state.setPrecomputeOnCharger,
+  );
   const setBudgetMb = useSettingsStore((state) => state.setMapBudgetMb);
 
   const running = usePrecomputeStore((state) => state.running);
+  const waiting = usePrecomputeStore((state) => state.waiting);
   const done = usePrecomputeStore((state) => state.done);
   const total = usePrecomputeStore((state) => state.total);
   const failed = usePrecomputeStore((state) => state.failed);
@@ -174,7 +179,14 @@ export default function MapsModal({ visible, onDismiss }: Props) {
   const start = () => {
     setNote(null);
     setLeft(null);
-    void precompute(ask);
+    // The words the notification shows are handed over here, because
+    // this is the side that has languages. See `PrecomputeLabels`.
+    void precompute(ask, {
+      title: t('maps.notifyTitle'),
+      stop: t('maps.stop'),
+      progress: (done, total) => t('maps.notifyProgress', { done, total }),
+      waiting: t('maps.notifyWaiting'),
+    });
   };
 
   const forget = async () => {
@@ -300,6 +312,48 @@ export default function MapsModal({ visible, onDismiss }: Props) {
             )}
           </View>
 
+          {
+            /* Off means the job runs on battery. It is offered rather
+               than fixed because a person at home with the tablet on a
+               desk is the case this feature was built for, and a person
+               in a field with a power bank is a case it should not
+               refuse. The default protects the battery somebody will
+               want for the radio. */
+          }
+          {running ? null : (
+            <TouchableRipple
+              onPress={() => setOnCharger(!onCharger)}
+              accessibilityRole="switch"
+              accessibilityState={{ checked: onCharger }}
+              accessibilityLabel={t('maps.onCharger')}
+              style={styles.toggle}
+            >
+              <View style={styles.toggleRow}>
+                <Text
+                  style={[typography.body, styles.toggleText, {
+                    color: ui.ink,
+                  }]}
+                >
+                  {t('maps.onCharger')}
+                </Text>
+                <Text style={[typography.body, { color: ui.accent }]}>
+                  {onCharger ? t('maps.on') : t('maps.off')}
+                </Text>
+              </View>
+            </TouchableRipple>
+          )}
+          {running || onCharger
+            ? null
+            : (
+              <Text
+                style={[typography.caption, styles.note, {
+                  color: ui.text3,
+                }]}
+              >
+                {t('maps.batteryNote')}
+              </Text>
+            )}
+
           <Divider style={styles.divider} />
 
           {running
@@ -315,7 +369,18 @@ export default function MapsModal({ visible, onDismiss }: Props) {
                   progress={total === 0 ? 0 : done / total}
                   style={styles.bar}
                 />
-                {at === null
+                {
+                  /* Waiting for a charger looks exactly like being stuck
+                     unless the screen says otherwise, so it says so in
+                     place of the hour it would otherwise be naming. */
+                }
+                {waiting
+                  ? (
+                    <Text style={[typography.caption, { color: ui.text2 }]}>
+                      {t('maps.waitingForCharger')}
+                    </Text>
+                  )
+                  : at === null
                   ? null
                   : (
                     <Text style={[typography.caption, { color: ui.text4 }]}>
@@ -471,6 +536,14 @@ const styles = StyleSheet.create({
     borderRadius: radius.inset,
     borderWidth: 1,
   },
+  toggle: { minHeight: 44, justifyContent: 'center', marginTop: spacing.sm },
+  toggleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
+  toggleText: { flex: 1 },
+  note: { marginTop: spacing.xs },
   divider: { marginVertical: spacing.md },
   bar: { marginVertical: spacing.sm },
   held: { marginTop: spacing.sm },
