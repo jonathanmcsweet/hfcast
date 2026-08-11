@@ -1,0 +1,7 @@
+{
+  "mcpServers": {
+    "playwright": {
+      "command": "tools/mcp-playwright.sh"
+    }
+  }
+}

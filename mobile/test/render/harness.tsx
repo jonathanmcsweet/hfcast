@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { render } from '@testing-library/react-native';
+import { act, render } from '@testing-library/react-native';
 import type { ReactElement, ReactNode } from 'react';
 import { I18nextProvider } from 'react-i18next';
 import { PaperProvider, Portal } from 'react-native-paper';
@@ -7,6 +7,26 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import i18n from '../../src/i18n/index';
 import { lightTheme } from '../../src/theme';
+
+/**
+ * How long react-native-paper waits before it draws a placeholder.
+ *
+ * `TextInput` holds the placeholder back by this much so that it does not
+ * overlap the label while the label moves. It does that with a timer, and
+ * the timer sets state after the first paint. A test that only waits for
+ * the first paint therefore leaves a state change running loose behind
+ * it, and React says so: "An update to ForwardRef inside a test was not
+ * wrapped in act(...)". The warning only appears when the test is still
+ * running 50 ms later, so it comes and goes between runs.
+ *
+ * Keep this equal to the delay in `TextInput.tsx` in react-native-paper.
+ * If the two disagree, the harness waits too little and the warning comes
+ * back, or it waits too long and every render test is slower.
+ */
+const PAPER_PLACEHOLDER_DELAY_MS = 50;
+
+/** A margin, so the wait ends after the delay above and not with it. */
+const SETTLE_MARGIN_MS = 5;
 
 /**
  * The providers a component needs to render, and nothing else.
@@ -25,6 +45,9 @@ import { lightTheme } from '../../src/theme';
  *
  * Awaited, because the library's own `render` is: it wraps the first
  * paint in `act`, so the tree is only settled once the promise resolves.
+ * The first paint is not the whole of it, though — a component can start
+ * a timer as it mounts and change state when that timer ends. This waits
+ * for that too. See `PAPER_PLACEHOLDER_DELAY_MS` below.
  *
  * Icons draw nothing. The font is loaded by the app at boot and there is
  * no boot here, so every icon in the tree would otherwise print a warning
@@ -32,7 +55,7 @@ import { lightTheme } from '../../src/theme';
  * carry no text, so a label is what a screen reader announces and a label
  * is what these tests look for.
  */
-export function renderWithApp(ui: ReactElement) {
+export async function renderWithApp(ui: ReactElement) {
   const client = new QueryClient({
     defaultOptions: { queries: { retry: false, gcTime: 0 } },
   });
@@ -55,5 +78,16 @@ export function renderWithApp(ui: ReactElement) {
     </QueryClientProvider>
   );
 
-  return render(ui, { wrapper: Wrapper });
+  const view = await render(ui, { wrapper: Wrapper });
+
+  // Run out the timers the first paint started, inside `act`, so that the
+  // state they set counts as part of the render and not as a stray update
+  // after it. The test then reads a tree that has stopped changing.
+  await act(async () => {
+    await new Promise((resolve) =>
+      setTimeout(resolve, PAPER_PLACEHOLDER_DELAY_MS + SETTLE_MARGIN_MS)
+    );
+  });
+
+  return view;
 }

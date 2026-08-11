@@ -36,3 +36,18 @@ target/
 # neither rule matched anything and 227 KB sat untracked and unignored.
 /docs/*roadmap*.md
 /docs/code-review-*.md
+
+# Page snapshots and screenshots the Playwright MCP server writes as it
+# browses. They are a record of one session looking at the app, not part
+# of the app.
+.playwright-mcp/
+
+# The same server, asked for a screenshot under a chosen name, writes it
+# here at the top instead. A named file is treated as one the user asked
+# for, so it goes to the top of the workspace and not to the directory
+# above. --output-dir does not move it. The 28 images the app ships all
+# live under mobile/ and server/, so nothing real is lost by ignoring
+# images at the top only.
+/*.png
+/*.jpg
+/*.jpeg
