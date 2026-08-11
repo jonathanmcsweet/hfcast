@@ -1,7 +1,7 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
   <!--
     Declared here rather than in a config plugin. `mobile/android/` is
-    rewritten by `expo prebuild --clean` on every build and is not in git,
+    rewritten by a clean `expo prebuild` on every build and is not in git,
     so anything put in the app's own manifest by hand is lost. This module
     is an Android library, and the manifest merger folds what is below into
     whichever app is built — which means the modern and the legacy builds
