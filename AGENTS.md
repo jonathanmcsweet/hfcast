@@ -1,6 +1,7 @@
 # Agents.md — guidance for AI agents working in this repo
 
 ## Your behavior
+
 - Never modify this document without consulting the user first
 - Explain things in concise, plain english free of technical jargon.
 - Use technical terms accurate to the domain terms in the codebase
