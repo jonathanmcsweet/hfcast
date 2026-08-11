@@ -42,7 +42,8 @@
     "footnoteHours": "Las horas son UTC. La hora local en {{place}} está en el reloj de arriba.",
     "footnoteSaved": "Son datos guardados, así que no pueden mostrar nada que haya cambiado desde que se descargaron.",
     "unitDirections": "Direcciones alcanzables, %",
-    "chanceAnywhere": "alcanza cerca del {{percent}} de las direcciones muestreadas"
+    "chanceAnywhere": "alcanza cerca del {{percent}} de las direcciones muestreadas",
+    "mapFilling": "El mapa de {{band}} todavía se está calculando."
   },
   "sections": {
     "allBandsHint": "Hasta dónde llega cada banda, hora a hora.",
@@ -146,7 +147,18 @@
       "metric": "Métrico",
       "imperial": "Imperial"
     },
-    "refresh": "Actualizar ahora"
+    "refresh": "Actualizar ahora",
+    "diagnosticsSection": "Diagnóstico",
+    "measure": "Medir este dispositivo",
+    "measuring": "Midiendo. Tarda alrededor de medio minuto.",
+    "measureFailed": "La medición no pudo terminar.",
+    "copyMeasurement": "Copiar los números",
+    "copied": "Copiado",
+    "measureClose": "Cerrar",
+    "mapsSection": "Mapas guardados",
+    "keepMaps": "Guardar los mapas calculados",
+    "mapsOnCard": "Guardarlos en la tarjeta de memoria",
+    "computeAhead": "Calcular mapas por adelantado"
   },
   "a11y": {
     "changeLocation": "Transmitiendo desde {{place}}. Toca para cambiarlo.",
@@ -292,7 +304,10 @@
       "plex": "IBM Plex Sans, la tipografía"
     },
     "openSource": "Abrir el sitio de {{who}}",
-    "openTerms": "Leer la licencia {{terms}}"
+    "openTerms": "Leer la licencia {{terms}}",
+    "developerHint": "Toca tres veces para mostrar u ocultar las herramientas para medir este dispositivo.",
+    "developerOn": "Las herramientas de medición ya se ven en Ajustes.",
+    "developerOff": "Las herramientas de medición ya están ocultas."
   },
   "firstRun": {
     "kicker": "TU UBICACIÓN",
@@ -310,18 +325,63 @@
   "help": {
     "title": "Cómo se hace la previsión",
     "close": "Cerrar la ayuda",
+    "engine": {
+      "heading": "De dónde salen los números",
+      "body": "Cada previsión se calcula en este dispositivo con VOACAP, un modelo de propagación que lleva décadas en uso. Podemos usar VOACAP sin conexión, y lo hacemos, pero también admite previsiones actualizadas del clima espacial, que sí usamos en el modo con conexión.\n\nEl motor de VOACAP describe un día típico para cada día del mes y, sin datos del clima espacial en vivo, no puede conocer tus condiciones en un día concreto ni en tu ubicación. El motor de VOACAP es la mejor estimación posible de tus condiciones locales."
+    },
+    "ssn": {
+      "heading": "El número de manchas solares",
+      "body": "El número de manchas solares suavizado del mes es lo que más influye en el modelo de predicción. Las bandas, las horas y los trayectos salen de él.\n\nLas cifras de cada mes desde {{first}} hasta {{last}} vienen dentro de la aplicación, así que una previsión no necesita red. Los meses futuros usan la predicción publicada, que puede cambiar más adelante.\n\nCuando una lectura de las condiciones solares y magnéticas tiene menos de {{hours}} horas, la aplicación usa esa lectura. Pasado ese tiempo vuelve a la cifra mensual."
+    },
+    "colours": {
+      "heading": "Qué significan los colores",
+      "body": "Un color es la probabilidad de lograr el contacto, no la fuerza que tendrá la señal. Fiable significa unas {{reliable}} veces de cada 100 o mejor, Irregular al menos {{patchy}} de cada 100 y Débil al menos {{weak}} de cada 100. Por debajo de eso la banda se considera Cerrada."
+    },
+    "map": {
+      "heading": "Cómo se dibuja el mapa",
+      "body": "Primero se dibuja un mapa aproximado del mundo, para que haya algo que leer enseguida, y un mapa más fino de {{points}} puntos va apareciendo a medida que se completan sus cálculos.\n\nUn mapa no cambia dentro de un mes, así que la aplicación guarda los mapas que ya ha calculado, y puede hacerlos antes de que los necesites: mira Calcular mapas por adelantado en este menú."
+    },
     "invertedV": {
-      "heading": "La V invertida",
-      "noModel": "VOACAP no tiene una V invertida. Tiene diez patrones de antena, y la V invertida no es uno de ellos, así que la aplicación no puede seleccionarla.",
-      "whatWeDo": "La aplicación calcula una V invertida como un dipolo al {{percent}} % de la altura del vértice. Si el vértice está a 10 metros, el modelo usa 8 metros.",
-      "whyItIsFair": "En un hilo horizontal, la altura sobre el suelo determina la ganancia hacia arriba. Una V invertida tiene los extremos más bajos que el vértice, así que se comporta como un dipolo por debajo del vértice. Hacia arriba, un hilo horizontal radia casi igual en todas las direcciones, así que la orientación del hilo cambia poco.",
-      "limits": "Esto es una aproximación, no una medida. Una V con brazos muy inclinados se comporta como una más baja, y una V poco inclinada como una más alta. Selecciona el dipolo si tu hilo está horizontal."
+      "heading": "Nota sobre la V invertida",
+      "body": "VOACAP no tiene una V invertida internamente. En su lugar, la aplicación calcula una V invertida como un dipolo al {{percent}} % de la altura del vértice. Si el vértice está a 10 metros, el modelo usa 8 metros.\n\nEn un hilo horizontal, la altura sobre el suelo determina la ganancia hacia arriba. Una V invertida tiene los extremos más bajos que el vértice, así que se comporta como un dipolo por debajo del vértice. Hacia arriba, un hilo horizontal radia casi igual en todas las direcciones, así que la orientación del hilo cambia poco.\n\nEsto es una aproximación, no una medida. Una V con brazos muy inclinados se comporta como una más baja, y una V poco inclinada como una más alta. Selecciona el dipolo si tu hilo está horizontal."
     },
     "nvis": {
       "heading": "Incidencia casi vertical",
-      "what": "Por debajo de unos pocos cientos de kilómetros, las bandas bajas funcionan de otra manera. La señal sube casi vertical, vuelve a bajar cerca del punto de partida y no hay zona de silencio. Los operadores lo llaman NVIS.",
-      "howWeKnow": "La aplicación no lo deduce de la distancia. El motor calcula el ángulo de salida de la señal, y la aplicación llama casi vertical a un trayecto cuando ese ángulo es de {{degrees}} grados o más y la banda funciona.",
-      "onTheMap": "El mapa pone puntos sobre la zona que te alcanza así. Los puntos son distintos de los colores, porque los colores ya muestran la probabilidad de contacto. La línea bajo el mapa da la distancia en palabras."
+      "body": "Por debajo de unos pocos cientos de kilómetros, las bandas bajas funcionan de otra manera. La señal sube casi vertical, vuelve a bajar cerca del punto de partida y no hay zona de silencio. Los operadores lo llaman NVIS.\n\nLa aplicación no lo deduce de la distancia. El motor calcula el ángulo de salida de la señal, y la aplicación llama casi vertical a un trayecto cuando ese ángulo es de {{degrees}} grados o más y la banda funciona.\n\nEl mapa pone puntos sobre la zona que te alcanza así. Los puntos son distintos de los colores, porque los colores ya muestran la probabilidad de contacto. La línea bajo el mapa da la distancia en palabras."
     }
+  },
+  "maps": {
+    "title": "Calcular mapas por adelantado",
+    "what": "Calcular los mapas ahora, por adelantado, ahorra batería en el campo. Si no, las horas siguientes se calculan al abrirlas. Con conexión, la previsión usa las condiciones actuales. Los mapas de fechas futuras se pueden calcular aquí por adelantado y sin conexión.",
+    "monthsSection": "Cuánto por adelantado",
+    "months": {
+      "1": "Este mes",
+      "3": "Tres meses",
+      "12": "Todo un año"
+    },
+    "bandsSection": "Bandas",
+    "bandsAll": "Todas las bandas",
+    "bandsOne": "Solo {{band}}",
+    "roomSection": "Espacio permitido",
+    "room": "{{size}}",
+    "estimate": "{{files}} mapas, cerca de {{size}}, cerca de {{time}}",
+    "estimateNoTime": "{{files}} mapas, cerca de {{size}}",
+    "measureFirst": "Mide este dispositivo en Diagnóstico para estimar el tiempo.",
+    "willNotFit": "El espacio permitido admite cerca de {{files}} de ellos. El resto no se calculará.",
+    "nothingToDo": "Todos los mapas de esta opción ya están guardados.",
+    "charger": "Deja la aplicación abierta y el dispositivo en el cargador.",
+    "start": "Empezar",
+    "stop": "Parar",
+    "close": "Cerrar",
+    "running": "{{done}} de {{total}}",
+    "finished": "Terminado. {{done}} mapas guardados.",
+    "stoppedEarly": "Detenido. {{done}} mapas guardados.",
+    "someFailed": "No se pudieron calcular {{failed}}.",
+    "held": "Ahora hay {{size}} guardados.",
+    "forget": "Borrar los mapas guardados",
+    "forgotten": "Mapas guardados borrados.",
+    "onCardNow": "Guardados en la tarjeta de memoria.",
+    "onPhoneNow": "Guardados en el almacenamiento interno.",
+    "a11yProgress": "Calculando mapas por adelantado. {{done}} de {{total}} hechos."
   }
 }

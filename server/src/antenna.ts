@@ -11,8 +11,9 @@
  *
  * Each file is named from a digest of its own contents, which makes
  * writing it idempotent: two requests for the same antenna agree on the
- * name, so concurrent runs cannot half-write one another's file, and a
- * name that already exists needs no work.
+ * name, so one cannot write over another's file with different bytes.
+ * They can still write the same file at the same moment, so the write
+ * itself is done through a rename — see `antennaFile`.
  *
  * Lengths and heights are metres, or wavelengths when negative
  * (`hfcast-engine/src/voacap/ioncap.rs`). Element length is given as -0.5
@@ -20,8 +21,8 @@
  * models the resonant antenna an operator actually has on each band
  * rather than one piece of wire mistuned everywhere but one.
  */
-import { createHash } from 'node:crypto';
-import { mkdir, writeFile } from 'node:fs/promises';
+import { createHash, randomUUID } from 'node:crypto';
+import { mkdir, rename, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 
 import {
@@ -229,7 +230,17 @@ export async function antennaFile(
   // Written every time rather than only when absent. The name is the
   // digest of the contents, so a write can only ever replace a file with
   // the same bytes, and checking first would cost a stat to save nothing.
-  await writeFile(full, text);
+  //
+  // Written beside it and then renamed, because several requests can be
+  // writing the same path at the same moment: two predictions with the
+  // same antenna, or the forty-eight runs of one survey. Writing in
+  // place empties the file first, and an engine process reading it in
+  // that moment reads a file that is short or empty. A rename replaces
+  // the whole file in one step, so a reader sees either the old bytes or
+  // the new ones, which here are the same bytes.
+  const partial = `${full}.${randomUUID()}`;
+  await writeFile(partial, text);
+  await rename(partial, full);
   return name;
 }
 

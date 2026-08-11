@@ -4,9 +4,16 @@ import { describe, it } from 'node:test';
 import * as sharedAntenna from '../../shared/antenna.ts';
 import * as sharedCorrect from '../../shared/correct.ts';
 import * as sharedGrid from '../../shared/coverageGrid.ts';
+import * as sharedPatch from '../../shared/coveragePatch.ts';
 import * as sharedModes from '../../shared/modes.ts';
 import { ANTENNA_ORDER, INVERTED_V_HEIGHT_FRACTION } from '../src/antenna.ts';
-import { LAT_STEP, LON_STEP, REACHABLE } from '../src/coverage.ts';
+import {
+  FINE_LAT_STEP,
+  FINE_LON_STEP,
+  LAT_STEP,
+  LON_STEP,
+  REACHABLE,
+} from '../src/coverage.ts';
 import { MODES } from '../src/station.ts';
 import {
   SPREAD_FACTOR_LOW,
@@ -43,11 +50,18 @@ import { MIN_SHARD_POINTS } from '../src/voacap/shard.ts';
 
 describe('what this server exports is what shared holds', () => {
   it('reaches the one copy, not a second one that agrees today', () => {
-    // Identity, not equality. Two modules with the same numbers pass an
-    // equality check and are exactly the arrangement this replaced.
-    assert.equal(SWING_FACTOR, sharedCorrect.SWING_FACTOR);
+    // Identity for the tables: `node:assert/strict` compares objects by
+    // reference, so a second `MODES` with the same entries fails here.
     assert.equal(MODES, sharedModes.MODES);
     assert.equal(ANTENNA_ORDER, sharedAntenna.ANTENNA_ORDER);
+
+    // Value for the numbers, because a number has no identity to
+    // compare. What keeps these one copy is that each module below
+    // re-exports the shared one rather than declaring its own — a claim
+    // about the import graph, which these lines cannot make and the
+    // compiler can. `coverage.ts` declared its own for a while, with the
+    // comments copied across as well, and this test passed throughout.
+    assert.equal(SWING_FACTOR, sharedCorrect.SWING_FACTOR);
     assert.equal(LAT_STEP, sharedGrid.LAT_STEP);
     assert.equal(LON_STEP, sharedGrid.LON_STEP);
     assert.equal(REACHABLE, sharedGrid.REACHABLE);
@@ -55,6 +69,23 @@ describe('what this server exports is what shared holds', () => {
       INVERTED_V_HEIGHT_FRACTION,
       sharedAntenna.INVERTED_V_HEIGHT_FRACTION,
     );
+  });
+
+  it('runs the fine grid on the lattice the patch uses', () => {
+    // Not two numbers that agree: the whole-world fine grid and the
+    // viewport patch must land on one lattice, or a patch cell straddles
+    // a fine cell and zooming in changes the answer instead of the
+    // magnification. Three files used to write the pair out separately,
+    // with comments in each saying they were the same.
+    assert.equal(FINE_LAT_STEP, sharedPatch.PATCH_LAT_STEP);
+    assert.equal(FINE_LON_STEP, sharedPatch.PATCH_LON_STEP);
+    assert.equal((180 / FINE_LAT_STEP) * (360 / FINE_LON_STEP), 34560);
+    // Every rung of the patch ladder divides a coarse cell exactly, so
+    // whichever one a zoom lands on nests inside the map under it.
+    for (const [lat, lon] of sharedPatch.PATCH_STEPS) {
+      assert.equal((LAT_STEP / lat) % 1, 0, `latitude rung ${lat}`);
+      assert.equal((LON_STEP / lon) % 1, 0, `longitude rung ${lon}`);
+    }
   });
 });
 

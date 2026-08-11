@@ -42,7 +42,8 @@
     "footnoteHours": "Stunden in UTC. Die Ortszeit in {{place}} steht auf der Uhr darüber.",
     "footnoteSaved": "Dies sind gespeicherte Daten und können nichts zeigen, was sich seit dem Abruf geändert hat.",
     "unitDirections": "Erreichbare Richtungen, %",
-    "chanceAnywhere": "erreicht etwa {{percent}} der geprüften Richtungen"
+    "chanceAnywhere": "erreicht etwa {{percent}} der geprüften Richtungen",
+    "mapFilling": "Die Karte für {{band}} wird noch berechnet."
   },
   "sections": {
     "allBandsHint": "Wie weit jedes Band trägt, Stunde für Stunde.",
@@ -146,7 +147,18 @@
       "metric": "Metrisch",
       "imperial": "Angloamerikanisch"
     },
-    "refresh": "Jetzt aktualisieren"
+    "refresh": "Jetzt aktualisieren",
+    "diagnosticsSection": "Diagnose",
+    "measure": "Dieses Gerät messen",
+    "measuring": "Messung läuft. Das dauert etwa eine halbe Minute.",
+    "measureFailed": "Die Messung konnte nicht abgeschlossen werden.",
+    "copyMeasurement": "Zahlen kopieren",
+    "copied": "Kopiert",
+    "measureClose": "Schließen",
+    "mapsSection": "Gespeicherte Karten",
+    "keepMaps": "Berechnete Karten behalten",
+    "mapsOnCard": "Auf der Speicherkarte behalten",
+    "computeAhead": "Karten im Voraus berechnen"
   },
   "a11y": {
     "changeLocation": "Sendestandort {{place}}. Zum Ändern tippen.",
@@ -292,7 +304,10 @@
       "plex": "IBM Plex Sans, die Schriftart"
     },
     "openSource": "Website von {{who}} öffnen",
-    "openTerms": "Lizenz {{terms}} lesen"
+    "openTerms": "Lizenz {{terms}} lesen",
+    "developerHint": "Dreimal tippen, um die Werkzeuge zum Messen dieses Geräts ein- oder auszublenden.",
+    "developerOn": "Die Messwerkzeuge werden jetzt in den Einstellungen angezeigt.",
+    "developerOff": "Die Messwerkzeuge sind jetzt ausgeblendet."
   },
   "firstRun": {
     "kicker": "DEIN STANDORT",
@@ -310,18 +325,63 @@
   "help": {
     "title": "Wie die Vorhersage entsteht",
     "close": "Hilfe schließen",
+    "engine": {
+      "heading": "Woher die Zahlen kommen",
+      "body": "Jede Vorhersage wird auf diesem Gerät von VOACAP berechnet, einem Ausbreitungsmodell, das seit Jahrzehnten im Einsatz ist. VOACAP lässt sich offline nutzen, und das tun wir auch, es kann aber ebenso aktuelle Weltraumwetter-Vorhersagen verarbeiten, die wir im Online-Betrieb verwenden.\n\nDie VOACAP-Engine beschreibt einen typischen Tag für jeden Tag des Monats. Ohne laufende Weltraumwetterdaten kann sie die Bedingungen an einem bestimmten Tag an deinem Standort nicht kennen. Die VOACAP-Engine ist eine bestmögliche Schätzung deiner örtlichen Bedingungen."
+    },
+    "ssn": {
+      "heading": "Die Sonnenfleckenzahl",
+      "body": "Die geglättete Sonnenfleckenzahl des Monats ist der größte Treiber des Vorhersagemodells. Die Bänder, die Stunden und die Wege folgen alle daraus.\n\nDie Werte für jeden Monat von {{first}} bis {{last}} sind in der App enthalten, eine Vorhersage braucht also kein Netz. Kommende Monate nutzen die veröffentlichte Vorhersage, die später noch geändert werden kann.\n\nIst eine Messung der Sonnen- und Magnetbedingungen weniger als {{hours}} Stunden alt, nutzt die App diese stattdessen. Danach kehrt sie zum Monatswert zurück."
+    },
+    "colours": {
+      "heading": "Was die Farben bedeuten",
+      "body": "Eine Farbe zeigt die Chance auf eine Verbindung, nicht die Stärke des Signals. Zuverlässig bedeutet etwa {{reliable}} von 100 Versuchen oder besser, Wechselhaft mindestens {{patchy}} von 100 und Schwach mindestens {{weak}} von 100. Darunter gilt das Band als Geschlossen."
+    },
+    "map": {
+      "heading": "Wie die Karte entsteht",
+      "body": "Zuerst wird eine grobe Weltkarte gezeichnet, damit sofort etwas zu sehen ist; eine feinere Karte aus {{points}} Punkten erscheint nach und nach, sobald ihre Berechnungen fertig sind.\n\nEine Karte ändert sich innerhalb eines Monats nicht, deshalb behält die App die Karten, die sie bereits berechnet hat, und kann sie schon vorher berechnen — siehe Karten im Voraus berechnen in diesem Menü."
+    },
     "invertedV": {
-      "heading": "Die Inverted V",
-      "noModel": "VOACAP kennt keine Inverted V. Es hat zehn Antennenmuster, und eine Inverted V ist keines davon, also kann die App sie nicht auswählen.",
-      "whatWeDo": "Die App berechnet eine Inverted V als Dipol auf {{percent}} % der Scheitelhöhe. Liegt der Scheitel bei 10 Metern, rechnet das Modell mit 8 Metern.",
-      "whyItIsFair": "Bei einem waagerechten Draht bestimmt die Höhe über Grund den Gewinn nach oben. Eine Inverted V hat ihre Enden tiefer als den Scheitel und verhält sich daher wie ein Dipol unterhalb des Scheitels. Steil nach oben strahlt ein waagerechter Draht fast in alle Richtungen gleich, die Ausrichtung ändert also wenig.",
-      "limits": "Das ist eine Näherung, keine Messung. Eine V mit steilen Schenkeln verhält sich tiefer, eine flache V höher. Wähle den Dipol, wenn dein Draht waagerecht hängt."
+      "heading": "Hinweis zur Inverted V",
+      "body": "VOACAP kennt intern keine Inverted V. Stattdessen berechnet die App eine Inverted V als Dipol auf {{percent}} % der Scheitelhöhe. Liegt der Scheitel bei 10 Metern, rechnet das Modell mit 8 Metern.\n\nBei einem waagerechten Draht bestimmt die Höhe über Grund den Gewinn nach oben. Eine Inverted V hat ihre Enden tiefer als den Scheitel und verhält sich daher wie ein Dipol unterhalb des Scheitels. Steil nach oben strahlt ein waagerechter Draht fast in alle Richtungen gleich, die Ausrichtung ändert also wenig.\n\nDas ist eine Näherung, keine Messung. Eine V mit steilen Schenkeln verhält sich tiefer, eine flache V höher. Wähle den Dipol, wenn dein Draht waagerecht hängt."
     },
     "nvis": {
       "heading": "Steilstrahlung",
-      "what": "Unter einigen hundert Kilometern arbeiten die unteren Bänder anders. Das Signal geht steil nach oben, kommt nahe am Ausgangspunkt wieder herunter, und es gibt keine tote Zone. Funkamateure nennen das NVIS.",
-      "howWeKnow": "Die App schätzt das nicht aus der Entfernung. Die Rechenmaschine bestimmt den Abstrahlwinkel, und die App nennt einen Weg steil, wenn dieser Winkel mindestens {{degrees}} Grad beträgt und das Band funktioniert.",
-      "onTheMap": "Die Karte setzt Punkte auf das Gebiet, das dich so erreicht. Die Punkte sind von den Farben getrennt, denn die Farben zeigen schon die Chance auf eine Verbindung. Die Zeile unter der Karte nennt die Entfernung in Worten."
+      "body": "Unter einigen hundert Kilometern arbeiten die unteren Bänder anders. Das Signal geht steil nach oben, kommt nahe am Ausgangspunkt wieder herunter, und es gibt keine tote Zone. Funkamateure nennen das NVIS.\n\nDie App schätzt das nicht aus der Entfernung. Die Rechenmaschine bestimmt den Abstrahlwinkel, und die App nennt einen Weg steil, wenn dieser Winkel mindestens {{degrees}} Grad beträgt und das Band funktioniert.\n\nDie Karte setzt Punkte auf das Gebiet, das dich so erreicht. Die Punkte sind von den Farben getrennt, denn die Farben zeigen schon die Chance auf eine Verbindung. Die Zeile unter der Karte nennt die Entfernung in Worten."
     }
+  },
+  "maps": {
+    "title": "Karten im Voraus berechnen",
+    "what": "Karten jetzt im Voraus zu berechnen spart Akku im Feld. Sonst werden spätere Stunden erst beim Öffnen berechnet. Mit Netz nutzt die Vorhersage die aktuellen Bedingungen. Karten für die Zukunft lassen sich hier auch ohne Netz im Voraus berechnen.",
+    "monthsSection": "Wie weit im Voraus",
+    "months": {
+      "1": "Dieser Monat",
+      "3": "Drei Monate",
+      "12": "Ein ganzes Jahr"
+    },
+    "bandsSection": "Bänder",
+    "bandsAll": "Alle Bänder",
+    "bandsOne": "Nur {{band}}",
+    "roomSection": "Erlaubter Platz",
+    "room": "{{size}}",
+    "estimate": "{{files}} Karten, etwa {{size}}, etwa {{time}}",
+    "estimateNoTime": "{{files}} Karten, etwa {{size}}",
+    "measureFirst": "Miss dieses Gerät in der Diagnose, um die Zeit zu schätzen.",
+    "willNotFit": "Der erlaubte Platz reicht für etwa {{files}} davon. Der Rest wird nicht berechnet.",
+    "nothingToDo": "Jede Karte für diese Auswahl ist schon gespeichert.",
+    "charger": "Lass die App offen und das Gerät am Ladegerät.",
+    "start": "Starten",
+    "stop": "Stoppen",
+    "close": "Schließen",
+    "running": "{{done}} von {{total}}",
+    "finished": "Fertig. {{done}} Karten gespeichert.",
+    "stoppedEarly": "Gestoppt. {{done}} Karten gespeichert.",
+    "someFailed": "{{failed}} konnten nicht berechnet werden.",
+    "held": "{{size}} jetzt gespeichert.",
+    "forget": "Gespeicherte Karten löschen",
+    "forgotten": "Gespeicherte Karten gelöscht.",
+    "onCardNow": "Auf der Speicherkarte gespeichert.",
+    "onPhoneNow": "Im internen Speicher gespeichert.",
+    "a11yProgress": "Karten werden im Voraus berechnet. {{done}} von {{total}} fertig."
   }
 }

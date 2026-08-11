@@ -19,6 +19,19 @@ interface Props {
   prediction: PathPrediction;
   band: BandKey;
   hour: number;
+  /**
+   * The band whose map correction is still being worked out, or null.
+   *
+   * The grid itself is complete the moment it is drawn — it is one path
+   * over 24 hours, which is a single engine run. What takes longer is
+   * the map above: correcting it needs the middle of each place's day,
+   * one lattice per band, and those are filled in behind the reader.
+   *
+   * Said here rather than on the map, because the map is meant to
+   * change without announcing itself (user, 2026-08-09) and this is
+   * where the reader is choosing between bands.
+   */
+  fillingBand?: BandKey | null;
   /** The current UTC hour, so "now" can be said rather than implied. */
   nowHour: number;
   /** The hour the grid's first column shows. See `src/data/timeline.ts`. */
@@ -39,6 +52,7 @@ export default function ReachGrid({
   prediction,
   band,
   hour,
+  fillingBand = null,
   nowHour,
   start,
   offline,
@@ -146,6 +160,21 @@ export default function ReachGrid({
         {t('grid.footnoteHours', { place })}
         {offline ? ` ${t('grid.footnoteSaved')}` : ''}
       </Text>
+
+      {
+        /* Text, not a spinner: it says which band and it is readable by
+           a screen reader, where a turning shape says only "something is
+           happening". `polite` so it is announced when the reader
+           reaches it rather than interrupting them. */
+      }
+      {fillingBand === null ? null : (
+        <Text
+          accessibilityLiveRegion="polite"
+          style={[typography.caption, styles.footnote, { color: ui.text3 }]}
+        >
+          {t('grid.mapFilling', { band: fillingBand.toUpperCase() })}
+        </Text>
+      )}
     </Card>
   );
 }

@@ -2,7 +2,7 @@ import { useTranslation } from 'react-i18next';
 import { StyleSheet, View } from 'react-native';
 import { Text, TouchableRipple, useTheme } from 'react-native-paper';
 import { useFormatters } from '../hooks/useFormatters';
-import { face, radius, spacing, typography } from '../theme';
+import { face, radius, spacing, track, typography } from '../theme';
 import type { AppTheme } from '../theme';
 import SettingsMenu from './SettingsMenu';
 
@@ -198,7 +198,7 @@ const styles = StyleSheet.create({
   change: {
     fontSize: 13,
     lineHeight: 18,
-    fontFamily: face.bold,
+    ...face.bold,
     flexShrink: 0,
   },
   chip: {
@@ -218,8 +218,8 @@ const styles = StyleSheet.create({
   chipText: {
     fontSize: 11,
     lineHeight: 14,
-    fontFamily: face.bold,
-    letterSpacing: 0.6,
+    ...face.bold,
+    letterSpacing: track(0.6),
     textTransform: 'uppercase',
   },
   dot: { width: 7, height: 7, borderRadius: 4, borderWidth: 1.5 },

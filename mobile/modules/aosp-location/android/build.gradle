@@ -1,26 +1,23 @@
-apply plugin: 'com.android.library'
+// This is the Expo SDK 57 build of this module. The Android 5.0 build runs on
+// SDK 50 and cannot read this file; it gets `legacy/modules/aosp-location/
+// build.gradle` instead, copied in by tools/build-android.sh. See the note in
+// modules/engine-bridge/android/build.gradle for what the plugin does and why
+// the older one is not enough.
+plugins {
+  id 'com.android.library'
+  id 'expo-module-gradle-plugin'
+}
 
 group = 'com.hfcast.aosplocation'
 version = '1.0.0'
-
-def expoModulesCorePlugin = new File(project(":expo-modules-core").projectDir.absolutePath, "ExpoModulesCorePlugin.gradle")
-apply from: expoModulesCorePlugin
-applyKotlinExpoModulesCorePlugin()
-useCoreDependencies()
-
-// Only Expo SDK 51 and later define this. Before that the Kotlin plugin above
-// set the SDK versions itself, so on SDK 50 — which the Android 5.0 build uses —
-// the call is both missing and unnecessary. Asking rather than assuming lets one
-// file build under both.
-if (project.ext.has('useDefaultAndroidSdkVersions')) {
-  useDefaultAndroidSdkVersions()
-}
 
 // No dependencies block on purpose. Everything this module calls is in the
 // Android platform itself, which is the whole reason it exists: expo-location
 // pulls in com.google.android.gms:play-services-location, and that artifact is
 // proprietary, so a build containing it cannot ship on F-Droid and does not
-// work on a phone without Google services.
+// work on a phone without Google services. The plugin above adds only
+// expo-modules-core and the Kotlin standard library, which is what this module
+// was already built against.
 
 android {
   namespace "com.hfcast.aosplocation"

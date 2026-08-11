@@ -24,7 +24,12 @@ import SkeletonForecast from '../components/SkeletonForecast';
 import SpaceWeatherCard from '../components/SpaceWeatherCard';
 import StationModal from '../components/StationModal';
 
-import { usePrediction, useSounding, useSpaceWeather } from '../api/queries';
+import {
+  useBandProgress,
+  usePrediction,
+  useSounding,
+  useSpaceWeather,
+} from '../api/queries';
 import { qualityFor } from '../data/quality';
 import { mayRefresh } from '../data/refreshPolicy';
 import { trackStart } from '../data/timeline';
@@ -58,6 +63,10 @@ export default function ForecastScreen() {
   const band = usePathStore((s) => s.band);
   const setBand = usePathStore((s) => s.setBand);
   const hour = usePathStore((s) => s.hour);
+  // Which band's map correction is being worked out behind the screen.
+  // The fill runs from here rather than from the map, so it keeps
+  // going while the reader scrolls down to the grid.
+  const mapProgress = useBandProgress(from, band, hour);
   const setHour = usePathStore((s) => s.setHour);
   const anchor = usePathStore((s) => s.anchor);
   const past = usePathStore((s) => s.past);
@@ -351,6 +360,7 @@ export default function ForecastScreen() {
           prediction={prediction}
           band={band}
           hour={hour}
+          fillingBand={mapProgress.working}
           nowHour={nowHour}
           start={start}
           offline={offline}

@@ -196,7 +196,7 @@ export default function CoverageGlobe({
             nvis={geometry.nvisDots}
             ramp={ramp}
             card={ui.card}
-            ink={ui.ink}
+            nvisDot={ui.nvisDot}
           />
         )
         : null}
@@ -228,7 +228,7 @@ export default function CoverageGlobe({
               nvis={geometry.nvisDots}
               ramp={ramp}
               card={ui.card}
-              ink={ui.ink}
+              nvisDot={ui.nvisDot}
               px={px}
             />
           )}

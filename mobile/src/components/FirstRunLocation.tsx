@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ScrollView, StyleSheet, View } from 'react-native';
 import {
@@ -13,12 +13,11 @@ import {
 } from 'react-native-paper';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import * as DeviceLocation from '../../modules/aosp-location';
 import { useGeocode } from '../api/queries';
-import { latLonToGrid } from '../data/grid';
-import type { Endpoint, Place } from '../data/types';
+import { type Endpoint, placeToEndpoint } from '../data/types';
+import { useDeviceFix } from '../hooks/useDeviceFix';
 import { GREENWICH } from '../store/usePathStore';
-import { face, radius, spacing, typography } from '../theme';
+import { face, radius, spacing, track, typography } from '../theme';
 import type { AppTheme } from '../theme';
 
 interface Props {
@@ -40,13 +39,6 @@ const EXAMPLES = [
   'DM79',
 ] as const;
 
-const placeToEndpoint = (place: Place): Endpoint => ({
-  grid: place.grid,
-  label: place.name,
-  lat: place.lat,
-  lon: place.lon,
-});
-
 /**
  * The first thing a new install shows: where is the operator.
  *
@@ -66,8 +58,6 @@ export default function FirstRunLocation({ onDone }: Props) {
   const ui = theme.colors.ui;
 
   const [query, setQuery] = useState('');
-  const [locating, setLocating] = useState(false);
-  const [locationError, setLocationError] = useState<string | null>(null);
 
   const { data: results, isFetching } = useGeocode(query, i18n.language);
 
@@ -75,27 +65,12 @@ export default function FirstRunLocation({ onDone }: Props) {
   // alternatives to it rather than a separate set of options.
   const best = useMemo(() => results?.[0] ?? null, [results]);
 
-  const useDeviceLocation = useCallback(async () => {
-    setLocating(true);
-    setLocationError(null);
-    try {
-      if (!await DeviceLocation.requestPermission()) {
-        setLocationError(t('location.permissionDenied'));
-        return;
-      }
-      if (!await DeviceLocation.hasProvider()) {
-        setLocationError(t('location.noProvider'));
-        return;
-      }
-      const { latitude, longitude } = await DeviceLocation.currentFix();
-      const grid = latLonToGrid(latitude, longitude);
-      onDone({ grid, label: grid, lat: latitude, lon: longitude });
-    } catch {
-      setLocationError(t('location.unavailable'));
-    } finally {
-      setLocating(false);
-    }
-  }, [onDone, t]);
+  const {
+    available: canUseDevice,
+    locating,
+    error: locationError,
+    locate: useDeviceLocation,
+  } = useDeviceFix(onDone);
 
   return (
     <ScrollView
@@ -121,7 +96,7 @@ export default function FirstRunLocation({ onDone }: Props) {
            there is no implementation on iOS or in Expo Go, and typing a
            place name does the same job. */
       }
-      {DeviceLocation.isAvailable()
+      {canUseDevice
         ? (
           <Button
             mode="contained"
@@ -265,8 +240,8 @@ const styles = StyleSheet.create({
   kicker: {
     fontSize: 11,
     lineHeight: 14,
-    fontFamily: face.bold,
-    letterSpacing: 0.8,
+    ...face.bold,
+    letterSpacing: track(0.8),
     textTransform: 'uppercase',
   },
   subtitle: { marginBottom: spacing.sm },

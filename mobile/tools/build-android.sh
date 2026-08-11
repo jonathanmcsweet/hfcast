@@ -76,6 +76,44 @@ check_icon_font() {
   echo "$(basename "$apk"): icon font present ($biggest bytes)"
 }
 
+# Expo SDK 57 writes each module function's argument and result types when the
+# module is compiled, using the pika compiler plugin that
+# `expo-module-gradle-plugin` brings in. A module built without that plugin
+# still compiles and still packages, but every one of its types is left as a
+# placeholder that throws the moment the module is created. That stops React
+# Native before it draws anything, so the application opens to a black screen
+# and writes one line to the log. It has happened once already — the modules
+# here kept the older Expo build file through the SDK 50 to 57 upgrade — and it
+# cost a full build to find, so it is checked here against the compiled
+# classes, where the placeholder is named in plain text.
+#
+# Modern only. Expo SDK 50 has no pika and reads the types when the module is
+# created, so there is nothing to check in the legacy build.
+check_type_descriptors() {
+  local tree="$1"
+  local module name classes left
+
+  for module in "$tree"/modules/*/android; do
+    name="$(basename "$(dirname "$module")")"
+    classes="$module/build/tmp/kotlin-classes/release"
+
+    # Rather than pass quietly if a Gradle release moves where classes land.
+    if [[ ! -d $classes ]]; then
+      echo "$name: nothing compiled at $classes to check" >&2
+      exit 1
+    fi
+
+    left="$(grep -rl "throwNonReifiedTypeDescriptorError" "$classes" || true)"
+    if [[ -n $left ]]; then
+      echo "$name: function types were left as placeholders" >&2
+      echo "$left" >&2
+      echo "add 'expo-module-gradle-plugin' to $module/build.gradle" >&2
+      exit 1
+    fi
+    echo "$name: function types built at compile time"
+  done
+}
+
 # Collects the four per-architecture APKs a build produced.
 #
 # Both builds split by architecture — see plugins/withAbiSplits.ts, which
@@ -116,6 +154,7 @@ build_modern() {
   ANDROID_API=24 bash "$mobile/modules/engine-bridge/build-rust.sh"
   (cd "$mobile" && npx expo prebuild --clean --platform android --no-install)
   run_gradle "$mobile"
+  check_type_descriptors "$mobile"
   collect_apks "$mobile" android7
 }
 
@@ -162,6 +201,18 @@ build_legacy() {
   # rather than passing quietly.
   rm -rf "$work/src/render"
   cp -r "$mobile/legacy/render" "$work/src/render"
+
+  # The Gradle seam, for the same reason as the Skia one above.
+  #
+  # Each module in `modules/` is built by `expo-module-gradle-plugin`, which
+  # Expo SDK 50 does not have. Every module therefore needs a second build
+  # file here, and the loop reads the module list from the tree rather than
+  # from a list written by hand, so a module added without one stops this
+  # build instead of producing an APK that opens to a black screen.
+  for android in "$work"/modules/*/android; do
+    name="$(basename "$(dirname "$android")")"
+    cp "$mobile/legacy/modules/$name/build.gradle" "$android/build.gradle"
+  done
 
   # The copy arrives holding the modern lockfile, which describes a different
   # dependency set entirely. It is replaced by the legacy one, or removed so

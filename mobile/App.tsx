@@ -13,6 +13,7 @@ import { StyleSheet, useColorScheme, View } from 'react-native';
 import { PaperProvider } from 'react-native-paper';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
+import * as Engine from './modules/engine-bridge';
 import { wireFocus } from './src/api/focus';
 import {
   CACHE_BUSTER,
@@ -30,10 +31,19 @@ import { darkTheme, lightTheme, lowLightTheme } from './src/theme';
 export default function App() {
   const scheme = useColorScheme();
   const mode = useSettingsStore((s) => s.themeMode);
+  const mapsOnCard = useSettingsStore((s) => s.mapsOnCard);
 
   // Stale readings refetch once when the app comes back to the front.
   // See `api/focus.ts` for why React Query cannot see that by itself.
   React.useEffect(() => wireFocus(), []);
+
+  // Where stored maps are kept. Told to the module here rather than
+  // where the choice is made, because the module forgets it when the app
+  // stops and the choice outlives the app — a person who put their maps
+  // on the card last month must still find them there today.
+  React.useEffect(() => {
+    if (Engine.canStoreMaps()) Engine.useMapCard(mapsOnCard);
+  }, [mapsOnCard]);
   // `system` follows the device; the others override it. Read here so one
   // value drives the theme, the status bar and every component below.
   //

@@ -110,8 +110,8 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
     minHeight: 28,
   },
-  title: { flex: 1, fontSize: 13, lineHeight: 18, fontFamily: face.semibold },
-  caret: { fontSize: 13, lineHeight: 18, fontFamily: face.bold },
+  title: { flex: 1, fontSize: 13, lineHeight: 18, ...face.semibold },
+  caret: { fontSize: 13, lineHeight: 18, ...face.bold },
   body: { gap: spacing.xs },
   text: { fontSize: 12, lineHeight: 18 },
 });

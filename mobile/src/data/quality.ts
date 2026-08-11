@@ -1,6 +1,7 @@
 import type { QualityKey } from '../theme';
 // Extensions spelled out because a test imports this module and node's
 // type stripping loads the file named. Metro resolves it either way.
+import { REACHABLE } from './coverageGrid.ts';
 import { angularDistanceDeg, EARTH_KM } from './projection.ts';
 import type { CoveragePoint } from './types.ts';
 
@@ -8,11 +9,28 @@ import type { CoveragePoint } from './types.ts';
  * VOACAP reliability is continuous, but the decision it feeds is not:
  * an operator is choosing whether to call on this band. Four buckets
  * carry that decision better than a gradient does.
+ *
+ * The bound between `weak` and `patchy` is `REACHABLE`, which is the
+ * threshold the reach percentage and both surveys count against. It has
+ * to be the same number: "reach 40%" means "the share of the map at
+ * least patchy", and with two numbers it would quietly stop meaning
+ * that. It was written out here as 0.4 and agreed only by chance.
  */
+/**
+ * The two bounds that are only used here, named so the help screen can
+ * quote them rather than write them out again.
+ *
+ * `REACHABLE` is the third and is shared, for the reason above. Text
+ * that states a threshold has to read it from the same place the map
+ * colours it, or the two drift apart and only the reader notices.
+ */
+export const RELIABLE_AT = 0.7;
+export const WEAK_AT = 0.15;
+
 export function qualityFor(reliability: number): QualityKey {
-  if (reliability >= 0.7) return 'reliable';
-  if (reliability >= 0.4) return 'patchy';
-  if (reliability >= 0.15) return 'weak';
+  if (reliability >= RELIABLE_AT) return 'reliable';
+  if (reliability >= REACHABLE) return 'patchy';
+  if (reliability >= WEAK_AT) return 'weak';
   return 'closed';
 }
 

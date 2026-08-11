@@ -7,9 +7,25 @@
 - Use technical terms accurate to the domain terms in the codebase
 - When making technical decisions, do not give weight to development cost or development hours. Instead prefer readability, quality, simplicity, robustness, scalability, testability, and long term maintainability
 
-## Roadmap and progress — read and update it, don't rely on memory
+## Who the users are
 
-**`docs/roadmap.md` is the SINGLE SOURCE of open work** — deferred features and known gaps, each with the constraint that motivated deferral. It must survive a compacted or cleared session, so keep it current instead of holding state in your head:
+HFcast is for amateur radio operators who use both new and old, cheap, low-power
+Android devices as assistants. Many operate in the field: field days, hikes,
+portable stations, etc. An old Fire HD 7 is a real target device, not an
+edge case. De-googled devices are also a normal target.
+
+What this means for every change:
+
+- Never assume a fast device. Performance work must hold on weak
+  hardware, and where a number depends on the device, measure it on the
+  device rather than fixing it from a fast one.
+- Battery and heat are features. A field device may have no charger nearby,
+  so processor time spent for nothing is a cost the user feels.
+- The app must work with no network. A hilltop may have none.
+
+## Open work and progress
+
+`docs/roadmap.md` is the SINGLE SOURCE of open work — deferred features and known gaps, each with the constraint that motivated deferral. It must survive a compacted or cleared session, so keep it current instead of holding state in your head:
 
 - At the start of a task, read the roadmap to see current status; at the end,update it so the next agent (or the next session) picks up an accurate picture.
 - When you finish a roadmap item, record it in **`docs/roadmap-progress.md`**
@@ -65,8 +81,11 @@ tools/build-android.sh legacy   # Android 5.0 and later, not published
 
 An APK takes about ten minutes. Offer the web build first.
 
-Four files hold the application version and have to agree. Move them
-with the script, never by hand:
+Three files hold the application version and have to agree
+(`mobile/package.json`, `mobile/legacy/package.json` and
+`mobile/app.json`). Move them with the script, never by hand. The server
+and the tooling project at the top hold their own versions, which the
+script does not touch:
 
 ```bash
 tools/bump-version.sh patch

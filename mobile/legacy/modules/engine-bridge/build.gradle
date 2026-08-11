@@ -1,0 +1,37 @@
+// The Android 5.0 build of modules/engine-bridge.
+//
+// That build runs on Expo SDK 50, which has no `expo-module-gradle-plugin`, so
+// it cannot read the file this one replaces. It also has no pika compiler
+// plugin and does not need one: SDK 50 reads each function's argument and
+// result types when the module is created rather than writing them at compile
+// time.
+//
+// tools/build-android.sh copies this over `modules/engine-bridge/android/
+// build.gradle` in the legacy tree. It expects one file here for every module,
+// and stops if one is missing.
+apply plugin: 'com.android.library'
+
+group = 'com.hfcast.engine'
+version = '1.0.0'
+
+def expoModulesCorePlugin = new File(project(":expo-modules-core").projectDir.absolutePath, "ExpoModulesCorePlugin.gradle")
+apply from: expoModulesCorePlugin
+applyKotlinExpoModulesCorePlugin()
+useCoreDependencies()
+
+// The prediction engine itself is the Rust in rust/, built by
+// ../build-rust.sh into src/main/jniLibs. Gradle packages whatever is there;
+// it does not build it, because a Cargo build inside a Gradle task hides
+// which of the two failed.
+android {
+  namespace "com.hfcast.engine"
+  defaultConfig {
+    versionCode 1
+    versionName "1.0.0"
+  }
+  sourceSets {
+    main {
+      jniLibs.srcDirs = ['src/main/jniLibs']
+    }
+  }
+}

@@ -19,12 +19,20 @@ import '@formatjs/intl-pluralrules/locale-data/ja';
 import '@formatjs/intl-pluralrules/locale-data/ar';
 
 import '@formatjs/intl-numberformat/locale-data/en';
+import '@formatjs/intl-numberformat/locale-data/en-GB';
+import '@formatjs/intl-numberformat/locale-data/en-CA';
 import '@formatjs/intl-numberformat/locale-data/es';
 import '@formatjs/intl-numberformat/locale-data/de';
 import '@formatjs/intl-numberformat/locale-data/ja';
 import '@formatjs/intl-numberformat/locale-data/ar';
 
 import '@formatjs/intl-datetimeformat/locale-data/en';
+// Britain and Canada write a date differently from the United States,
+// and this is what makes the difference reach the screen. Plural rules
+// are the same for every English, so `intl-pluralrules` ships one `en`
+// and needs no entry for either.
+import '@formatjs/intl-datetimeformat/locale-data/en-GB';
+import '@formatjs/intl-datetimeformat/locale-data/en-CA';
 import '@formatjs/intl-datetimeformat/locale-data/es';
 import '@formatjs/intl-datetimeformat/locale-data/de';
 import '@formatjs/intl-datetimeformat/locale-data/ja';
