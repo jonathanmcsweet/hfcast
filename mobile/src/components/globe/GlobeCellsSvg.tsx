@@ -1,6 +1,7 @@
 import { Circle, G, Path } from 'react-native-svg';
 
 import type { CellBucket } from '../../data/cellField';
+import { NVIS_DOT_OPACITY } from '../../theme';
 import type { QualityKey } from '../../theme';
 
 /**
@@ -33,7 +34,7 @@ interface Props {
   nvis: readonly [number, number][];
   ramp: Readonly<Record<QualityKey, { fill: string; opacity: number; }>>;
   card: string;
-  ink: string;
+  nvisDot: string;
   /** One screen pixel at the current scale. See `CoverageGlobe`. */
   px: (n: number) => number;
 }
@@ -48,7 +49,7 @@ export default function GlobeCellsSvg({
   nvis,
   ramp,
   card,
-  ink,
+  nvisDot,
   px,
 }: Props) {
   return (
@@ -82,8 +83,8 @@ export default function GlobeCellsSvg({
           cx={x}
           cy={y}
           r={px(1.2)}
-          fill={ink}
-          fillOpacity={0.55}
+          fill={nvisDot}
+          fillOpacity={NVIS_DOT_OPACITY}
         />
       ))}
     </G>

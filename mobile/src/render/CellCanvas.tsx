@@ -22,6 +22,7 @@ import { useMemo } from 'react';
 
 import { Canvas, Circle, Group, Path, Skia } from '@shopify/react-native-skia';
 import type { CellBucket, CellLayerProps } from '../data/cellField.ts';
+import { NVIS_DOT_OPACITY } from '../theme.ts';
 
 /**
  * Parse the bucket strings into Skia paths, once per data change.
@@ -55,7 +56,7 @@ export default function CellCanvas({
   nvis,
   ramp,
   card,
-  ink,
+  nvisDot,
 }: CellLayerProps) {
   const coarsePaths = useBucketPaths(coarse);
   const patchPaths = useBucketPaths(patch);
@@ -131,8 +132,8 @@ export default function CellCanvas({
             cx={x}
             cy={y}
             r={dotRadius}
-            color={ink}
-            opacity={0.55}
+            color={nvisDot}
+            opacity={NVIS_DOT_OPACITY}
           />
         ))}
       </Group>

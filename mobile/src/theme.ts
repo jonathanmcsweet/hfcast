@@ -214,6 +214,20 @@ interface UiColors {
   ink: string;
   /** Text on an `ink` fill. */
   inkInv: string;
+  /**
+   * The stipple marking near-vertical incidence on the map.
+   *
+   * Turquoise (user, 2026-08-11), and its own colour rather than `ink`
+   * because it is not text and does not sit on a page: it sits on the
+   * violet reach ramp, which runs dark in the light theme and light in
+   * the dark one. A hue away from that ramp says "a different quantity"
+   * in a way a grey cannot.
+   *
+   * The low-light theme keeps its red. Turquoise is close to the
+   * wavelength the eye is most sensitive to in the dark, so one on a
+   * night screen would undo what that theme is for.
+   */
+  nvisDot: string;
   /** Secondary text. */
   text2: string;
   /** Captions. */
@@ -268,6 +282,7 @@ export const uiLight: UiColors = {
   line: slate[100],
   line2: slate[200],
   ink: slate[950],
+  nvisDot: cyan[200],
   inkInv: slate[25],
   text2: slate[700],
   text3: slate[500],
@@ -298,6 +313,7 @@ export const uiDark: UiColors = {
   line: slate[800],
   line2: slate[700],
   ink: slate[25],
+  nvisDot: cyan[200],
   inkInv: slate[1000],
   text2: slate[200],
   text3: slate[300],
@@ -370,6 +386,7 @@ export const uiLowLight: UiColors = {
   // The answer. Near the top of the ramp, which here is a soft pink
   // rather than a red — about 12:1 on the page.
   ink: nightRed[200],
+  nvisDot: nightRed[200],
   inkInv: nightRed[1000],
   // A real ladder, and one the pure-red version could not have: three
   // measured steps rather than three shades of the same red.
@@ -679,6 +696,21 @@ export const lowLightTheme = {
   fonts: appFonts(MD3DarkTheme.fonts),
 };
 export type AppTheme = typeof lightTheme;
+
+/**
+ * How solid the near-vertical stipple is drawn.
+ *
+ * It was 0.55, chosen for a near-black or near-white mark. A turquoise
+ * blended more than half into the fill under it is no longer turquoise,
+ * and it measured worse: against the three fills a dot can land on, the
+ * weakest contrast rises from 1.21 to 1.37 by taking this to 0.9, which
+ * is where the old mark sat (1.35 light, 1.38 dark).
+ *
+ * Not fully solid, because the stipple answers a second question about a
+ * cell whose first question the colour has already answered, and it
+ * should not compete with the ramp for the eye.
+ */
+export const NVIS_DOT_OPACITY = 0.9;
 
 /**
  * Percentages, frequencies and hours all sit in columns that must not jitter
