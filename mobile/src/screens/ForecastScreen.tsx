@@ -175,9 +175,17 @@ export default function ForecastScreen() {
 
   // Before anything else, and before any forecast is computed: a first launch
   // has no location, and the forecast it would show is about nowhere the
-  // reader chose. The queries above still run, which is deliberate — the
-  // space weather poll starts while the pane is open, so the first forecast
-  // after it is answered is already a now-cast.
+  // reader chose.
+  //
+  // The hooks above still run — React requires that — but the runs they
+  // start do not. Each one that depends on a place waits for `ready`; see
+  // `useMapRun`. Without that, a first launch drew Greenwich, computed a
+  // whole map of it, and replaced both about two seconds later with the
+  // place that had just been chosen (user, 2026-08-12).
+  //
+  // The space weather poll is the exception and is left running, because
+  // it does not depend on the place and having it answered by the time
+  // this pane closes is what makes the first forecast a now-cast.
   if (!ready) return <FirstRunLocation onDone={finishFirstRun} />;
 
   // Skeleton blocks where the forecast is about to be, under a real
