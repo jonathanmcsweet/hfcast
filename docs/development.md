@@ -229,6 +229,43 @@ The third is the application's own line. `native` is everything up to
 the answers arriving as text; `parse` is turning them into objects, on
 the thread that draws.
 
+## The three parts
+
+| Directory        | What it is             | Language                       |
+| ---------------- | ---------------------- | ------------------------------ |
+| `mobile/`        | The application        | TypeScript, React Native, Expo |
+| `server/`        | The prediction API     | TypeScript, Node               |
+| `hfcast-engine/` | The propagation engine | Rust                           |
+
+`mobile/` is named for the kind of device, not for one operating
+system. It builds the Android APK and it builds for the web, and
+`app.json` also carries an iOS configuration. A desktop application, if
+one is written, gets its own directory beside it rather than a place
+inside this one.
+
+The engine is a different git repository. It is not a submodule. The
+application finds it at `hfcast-engine/` beside the application
+directory, and `.gitignore` excludes that path.
+
+This has two results that you must remember:
+
+- To build the application you must clone both.
+- A change to the engine is a different repository, and this one uses
+  only released versions of it. The pin is the `hfcast` version in
+  `mobile/modules/engine-bridge/rust/Cargo.lock`. Every workflow reads
+  that one file: the server tests install that version from crates.io,
+  and an Android build takes the engine repository at the tag of the
+  same version. No engine commit is named anywhere.
+- If your change needs a newer engine, publish that engine version and
+  tag it, then move the pin in the same pull request:
+
+  ```bash
+  cd mobile/modules/engine-bridge/rust
+  cargo update -p hfcast --precise 0.66.6
+  ```
+
+  Run the server tests against the new version before you do.
+
 ## How the engine gets into the application
 
 The application does not call the server on Android. It has the engine
