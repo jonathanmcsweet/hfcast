@@ -51,6 +51,7 @@ interface Native {
     stopLabel: string,
   ): boolean;
   stopBackgroundWork?(): boolean;
+  askToNotify?(): Promise<{ granted: boolean; }>;
   isCharging?(): boolean;
   addListener?(event: string, listener: () => void): { remove(): void; };
   setMapCardUse?(on: boolean): string;
@@ -325,13 +326,36 @@ export const stopBackgroundWork = (): boolean =>
   native?.stopBackgroundWork?.() === true;
 
 /**
+ * Asks to be allowed to show the job's notification.
+ *
+ * Declaring the permission is not the same as holding it. From Android 13
+ * the person has to agree, and until they do the service runs with its
+ * notification dropped in silence — so a job carrying on in the
+ * background says nothing on screen and offers no Stop (user,
+ * 2026-08-12).
+ *
+ * A refusal is not a failure and does not stop a job. Called before one
+ * starts, so the ask arrives with the reason for it on screen rather than
+ * out of nowhere.
+ */
+export async function askToNotify(): Promise<boolean> {
+  const ask = native?.askToNotify;
+  if (ask === undefined) return false;
+  try {
+    return (await ask.call(native)).granted === true;
+  } catch {
+    // An older build of the module, or a platform with no permission to
+    // ask for. Neither is a reason to hold up the work.
+    return false;
+  }
+}
+
+/**
  * Whether the device is on power.
  *
- * Asked rather than watched. A job checks between maps, and a job
- * waiting for a charger asks every few seconds — which is cheap, because
- * the answer comes from a broadcast Android already keeps. A listener
- * would be one more thing with a lifetime to get wrong for an answer
- * nothing needs within the second.
+ * Cheap to ask, because the answer comes from a broadcast Android
+ * already keeps, so it is asked at each step rather than remembered.
+ * `onPowerChanged` says when to ask again.
  *
  * True where the engine is absent, so a build with no way to ask never
  * refuses to compute for want of an answer it cannot get.
@@ -346,5 +370,23 @@ export const isCharging = (): boolean => native?.isCharging?.() !== false;
  */
 export function onBackgroundStop(listener: () => void): () => void {
   const subscription = native?.addListener?.('onBackgroundStop', listener);
+  return () => subscription?.remove();
+}
+
+/**
+ * Calls back when the charger goes in or comes out.
+ *
+ * This exists because a job cannot wait on a timer. React Native drives
+ * `setTimeout` from the screen's frame clock, and Android stops that
+ * clock when the screen goes off, so a job that slept for five seconds
+ * to look again slept until somebody woke the phone (user, 2026-08-12).
+ * An event from the platform is delivered whatever the screen is doing.
+ *
+ * Returns a function that stops listening. Listening is what makes the
+ * module register for the broadcast at all, so dropping the last
+ * listener takes the receiver down with it.
+ */
+export function onPowerChanged(listener: () => void): () => void {
+  const subscription = native?.addListener?.('onPowerChanged', listener);
   return () => subscription?.remove();
 }
