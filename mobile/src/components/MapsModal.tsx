@@ -152,6 +152,10 @@ export default function MapsModal({ visible, onDismiss }: Props) {
   // computed and not the ones a fresh device would have needed.
   useEffect(() => {
     if (!visible || running) return;
+    // The one mutable value here, and it never leaves this closure. Two
+    // reads are in flight and the modal can close before either answers;
+    // without this they would set state on a screen that has gone. An
+    // effect and its cleanup are where a change like this belongs.
     let alive = true;
     void storedBytes().then((bytes) => {
       if (alive) setHeld(bytes);

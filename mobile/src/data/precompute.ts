@@ -170,20 +170,42 @@ export async function precompute(
   // It does not depend on the hour and one call answers every band, so a
   // month of nine bands needs one of these and not 216.
   const centres = new Map<string, Record<BandKey, CentreField | null>>();
-  let asked = false;
+
+  /**
+   * The lattice for a month, computed at most once.
+   *
+   * The one effect in this loop that is not the work itself, so it is
+   * named and kept to four lines rather than spread through the body.
+   * Lazy rather than worked out up front: a job stopped after two months
+   * should not have paid for the other ten.
+   */
+  const centresFor = async (
+    tag: string,
+    base: Parameters<typeof centresLocally>[0],
+  ): Promise<Record<BandKey, CentreField | null>> => {
+    const held = centres.get(tag);
+    if (held !== undefined) return held;
+    const found = await centresLocally(
+      base,
+      FINE_CENTRE_LAT_STEP,
+      FINE_CENTRE_LON_STEP,
+      null,
+      { group: PRECOMPUTE_GROUP },
+    );
+    centres.set(tag, found);
+    return found;
+  };
 
   try {
     // A loop rather than a fold or `Promise.all`: the grids must run one
     // at a time, and it has to be able to stop between any two of them.
     for (const job of jobs) {
-      if (stopping) {
-        asked = true;
-        break;
-      }
-      if (!await waitForCharger(labels, jobs.length)) {
-        asked = true;
-        break;
-      }
+      // Every way out of this loop is a stop, and `stopping` already
+      // says so — `dropLater` is called by nothing but `stopPrecompute`.
+      // A second flag saying the same thing would be one more place for
+      // the two to disagree.
+      if (stopping) break;
+      if (!await waitForCharger(labels, jobs.length)) break;
       const tag = monthTag(job.run);
       const date = new Date(`${tag}-01T00:00:00Z`);
       const base = {
@@ -195,17 +217,7 @@ export async function precompute(
       };
 
       try {
-        let centre = centres.get(tag);
-        if (centre === undefined) {
-          centre = await centresLocally(
-            base,
-            FINE_CENTRE_LAT_STEP,
-            FINE_CENTRE_LON_STEP,
-            null,
-            { group: PRECOMPUTE_GROUP },
-          );
-          centres.set(tag, centre);
-        }
+        const centre = await centresFor(tag, base);
 
         // No lattice for this band means the correction cannot be
         // applied, and an uncorrected grid must not be stored: it would
@@ -241,7 +253,6 @@ export async function precompute(
         if (wasDropped(e)) {
           // The job was stopped while this grid was in the queue. That
           // is not a failure, and nothing after it should run.
-          asked = true;
           break;
         }
         usePrecomputeStore.getState().fail();
@@ -261,7 +272,9 @@ export async function precompute(
       of: state.total,
       ms: Date.now() - startedAt,
     });
-    state.finish(asked);
+    // Read before the flag is put back, because it is the answer to
+    // "was this asked for" that `finish` wants.
+    state.finish(stopping);
     stopping = false;
   }
 }
@@ -299,6 +312,10 @@ async function waitForCharger(
   });
 
   try {
+    // A loop because each wait has to follow the one before it. Anything
+    // that built the waits as values would have to know how many there
+    // were, and that is exactly what is not known — it is however long
+    // somebody takes to reach a charger.
     while (!stopping && !Engine.isCharging()) {
       await new Promise((resolve) => setTimeout(resolve, CHARGER_POLL_MS));
     }
