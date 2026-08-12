@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import { describe, it } from 'node:test';
 
@@ -13,11 +13,16 @@ import { describe, it } from 'node:test';
  * and therefore asked never: it sat there until somebody woke the phone
  * (user, 2026-08-12).
  *
- * Nothing type-checks that rule and no test can act it out, because the
- * fault needs a locked device. What can be checked is that the code has
- * not gone back to a timer, and that the event it uses instead is
- * declared on both sides of the boundary. It costs milliseconds and it
- * stands in for a device nobody here is holding.
+ * It happened twice. The first fix took the timer out of the wait for a
+ * charger; the yield between the strips of every grid was one import
+ * away and stopped the job just as dead. The guard written the first
+ * time named `precompute.ts` and so reported safety it did not have,
+ * which is why the check below follows the imports instead of a list.
+ *
+ * Nothing type-checks the rule, and acting it out needs a locked device.
+ * `test/e2e/background.spec.ts` gets as close as a browser can by
+ * killing timers outright; this holds the rule across the whole path in
+ * milliseconds. Neither is a phone — see the roadmap.
  */
 
 const here = import.meta.dirname;
@@ -52,19 +57,98 @@ const code = (text: string): string =>
     .replace(/\/\*[\s\S]*?\*\//g, '')
     .replace(/(^|[^:])\/\/.*$/gm, '$1');
 
-describe('work that carries on with the screen off', () => {
-  it('waits on no timer', () => {
-    // `setInterval` and `requestAnimationFrame` for the same reason, and
-    // `sleep` because that helper was the shape the fault took.
-    for (
-      const timer of ['setTimeout', 'setInterval', 'requestAnimationFrame']
-    ) {
-      assert.ok(
-        !code(precompute).includes(timer),
-        `precompute.ts calls ${timer}, which does not fire with the screen
-           off, so a job that reaches it stops until the phone is woken`,
-      );
+/**
+ * Every file the job runs through, found by following the imports.
+ *
+ * Listed rather than named, because naming them is what let the second
+ * fault through: the rule was checked against `precompute.ts` alone
+ * while the yield that stopped the job sat one import away in
+ * `localCoverage.ts`, and the guard reported safety it did not have.
+ *
+ * The walk stops at the edges of the computing path — `src/data`,
+ * `shared` and the engine module. Stores and components are reached from
+ * here too, and a timer in one of those is ordinary: they run while
+ * somebody is looking at them.
+ */
+function jobReaches(entry: string): string[] {
+  const root = path.join(here, '..');
+  const inScope = (file: string): boolean =>
+    ['src/data', 'shared', 'modules/engine-bridge']
+      .some((dir) =>
+        path.relative(root, file).replace(/\\/g, '/').startsWith(dir)
+      )
+    || path.relative(path.join(root, '..'), file).startsWith('shared');
+
+  const resolve = (from: string, spec: string): string | null => {
+    if (!spec.startsWith('.')) return null;
+    const base = path.resolve(path.dirname(from), spec);
+    for (const candidate of [base, `${base}.ts`, path.join(base, 'index.ts')]) {
+      if (candidate.endsWith('.ts') && existsSync(candidate)) return candidate;
     }
+    return null;
+  };
+
+  // A breadth-first walk with a seen set. A loop because it is iteration
+  // over a list that grows as it is walked, which no fold expresses.
+  const seen = new Set<string>();
+  const queue = [entry];
+  while (queue.length > 0) {
+    const file = queue.shift() as string;
+    if (seen.has(file)) continue;
+    seen.add(file);
+    const text = readFileSync(file, 'utf8');
+    for (const match of text.matchAll(/from\s+'([^']+)'/g)) {
+      const next = resolve(file, match[1] ?? '');
+      if (next !== null && inScope(next) && !seen.has(next)) queue.push(next);
+    }
+  }
+  return [...seen];
+}
+
+describe('work that carries on with the screen off', () => {
+  it('waits on no timer, in any file the job reaches', () => {
+    const entry = path.join(here, '..', 'src', 'data', 'precompute.ts');
+    const reached = jobReaches(entry);
+    // The walk itself has to be working. One file would mean the imports
+    // were not followed and the check below proves nothing.
+    assert.ok(
+      reached.length > 5,
+      `only ${reached.length} files were reached, so the walk is broken`,
+    );
+    assert.ok(
+      reached.some((file) => file.endsWith('localCoverage.ts')),
+      'the walk did not reach localCoverage.ts, where the second fault was',
+    );
+
+    for (const file of reached) {
+      // `breathe.ts` is the one place a timer is allowed, because it is
+      // the one place that asks first whether the timer can fire.
+      if (file.endsWith('breathe.ts')) continue;
+      const text = code(readFileSync(file, 'utf8'));
+      for (
+        const timer of ['setTimeout', 'setInterval', 'requestAnimationFrame']
+      ) {
+        assert.ok(
+          !text.includes(timer),
+          `${path.basename(file)} calls ${timer}. It does not fire with the
+             screen off, so a job that reaches it stops there until the
+             phone is woken. Yield through breathe(onScreen()) instead`,
+        );
+      }
+    }
+  });
+
+  it('never yields without saying whether there is a screen', () => {
+    // `breathe()` with no argument is the old fault written again: the
+    // argument is the whole of the fix.
+    const coverage = read('src', 'data', 'localCoverage.ts');
+    assert.ok(
+      !code(coverage).includes('breathe()'),
+      'breathe() was called with no argument, so it yields off screen too',
+    );
+    assert.match(code(coverage), /breathe\(onScreen\(\)\)/);
+    // And the answer has to come from the lifecycle, not from a guess.
+    assert.match(code(coverage), /AppState\.currentState === 'active'/);
   });
 
   it('listens for the charger instead', () => {
