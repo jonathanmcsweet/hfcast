@@ -48,6 +48,7 @@ import { type MapIdentity, storedName } from './globeName';
 import { canStore, keepGlobe, listStored, makeRoom } from './globeStore';
 import { centresLocally, coverFineLocally } from './localCoverage';
 import { type MonthHour, runsFor } from './precomputePlan';
+import { sleep } from './sleep.ts';
 import type { Endpoint } from './types';
 
 /** What `dropLater` matches on when the job is stopped. */
@@ -102,12 +103,20 @@ interface Job {
 }
 
 /**
- * Set while a job should stop.
+ * The job in flight, or null when there is none.
  *
- * Module state rather than store state because the loop reads it between
- * every grid, and a React store read is not what that wants.
+ * An `AbortController` rather than a boolean of this module's own. It is
+ * the standard way to say "stop what you started", the same one
+ * `spaceWeather.ts` hands to `fetch`, and its signal can be waited on as
+ * well as read — which is what lets a job waiting for a charger notice
+ * Stop at once instead of at the end of its next five-second sleep.
+ *
+ * Still one mutable value at module scope, because cancelling work in
+ * flight is a change to the world by definition and something outside
+ * the job has to be able to reach it. It is the edge, and it is one
+ * line wide.
  */
-let stopping = false;
+let inFlight: AbortController | null = null;
 
 const monthTag = (run: MonthHour): string =>
   `${run.year}-${String(run.month).padStart(2, '0')}`;
@@ -115,12 +124,12 @@ const monthTag = (run: MonthHour): string =>
 /**
  * Stops the job.
  *
- * Both halves are needed. The flag stops the loop asking for more, and
+ * Both halves are needed. The abort stops the loop asking for more, and
  * `dropLater` gives up the pieces already queued — without it, stopping
  * would still work through everything the last grid had asked for.
  */
 export function stopPrecompute(): void {
-  stopping = true;
+  inFlight?.abort();
   dropLater(PRECOMPUTE_GROUP);
 }
 
@@ -139,7 +148,9 @@ export async function precompute(
   if (usePrecomputeStore.getState().running) return;
   if (ask.bands.length === 0 || ask.months <= 0) return;
 
-  stopping = false;
+  const controller = new AbortController();
+  inFlight = controller;
+  const { signal } = controller;
   const now = new Date();
   const jobs = await jobsFor(ask, {
     year: now.getUTCFullYear(),
@@ -200,12 +211,12 @@ export async function precompute(
     // A loop rather than a fold or `Promise.all`: the grids must run one
     // at a time, and it has to be able to stop between any two of them.
     for (const job of jobs) {
-      // Every way out of this loop is a stop, and `stopping` already
-      // says so — `dropLater` is called by nothing but `stopPrecompute`.
-      // A second flag saying the same thing would be one more place for
-      // the two to disagree.
-      if (stopping) break;
-      if (!await waitForCharger(labels, jobs.length)) break;
+      // Every way out of this loop is a stop, and the signal already
+      // says so — `dropLater` is called by nothing but `stopPrecompute`,
+      // which aborts. A second flag saying the same thing would be one
+      // more place for the two to disagree.
+      if (signal.aborted) break;
+      if (!await waitForCharger(labels, jobs.length, signal)) break;
       const tag = monthTag(job.run);
       const date = new Date(`${tag}-01T00:00:00Z`);
       const base = {
@@ -272,10 +283,10 @@ export async function precompute(
       of: state.total,
       ms: Date.now() - startedAt,
     });
-    // Read before the flag is put back, because it is the answer to
-    // "was this asked for" that `finish` wants.
-    state.finish(stopping);
-    stopping = false;
+    state.finish(signal.aborted);
+    // Only if it is still this job's. A later job would have put its own
+    // controller here, and clearing that would leave it uncancellable.
+    if (inFlight === controller) inFlight = null;
   }
 }
 
@@ -293,6 +304,7 @@ export async function precompute(
 async function waitForCharger(
   labels: PrecomputeLabels,
   total: number,
+  signal: AbortSignal,
 ): Promise<boolean> {
   if (!useSettingsStore.getState().precomputeOnCharger) return true;
   if (Engine.isCharging()) return true;
@@ -316,13 +328,13 @@ async function waitForCharger(
     // that built the waits as values would have to know how many there
     // were, and that is exactly what is not known — it is however long
     // somebody takes to reach a charger.
-    while (!stopping && !Engine.isCharging()) {
-      await new Promise((resolve) => setTimeout(resolve, CHARGER_POLL_MS));
+    while (!signal.aborted && !Engine.isCharging()) {
+      await sleep(CHARGER_POLL_MS, signal);
     }
   } finally {
     usePrecomputeStore.getState().setWaiting(false);
   }
-  return !stopping;
+  return !signal.aborted;
 }
 
 /**
