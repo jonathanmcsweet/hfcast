@@ -385,12 +385,10 @@
     "a11yProgress": "Calculando mapas por adelantado. {{done}} de {{total}} hechos.",
     "notifyTitle": "Calculando mapas",
     "notifyProgress": "{{done}} de {{total}} mapas",
-    "notifyWaiting": "Esperando corriente",
-    "waitingForCharger": "Esperando corriente. Conecta el dispositivo para seguir.",
+    "waitingTitle": "Esperando corriente",
+    "waitingForCharger": "Conecta el dispositivo, o desactiva «{{setting}}» abajo para trabajar con batería.",
     "onCharger": "Solo mientras carga",
-    "batteryNote": "Un trabajo largo con batería calienta el dispositivo y gasta mucha. Déjalo enchufado si puedes.",
-    "on": "Sí",
-    "off": "No"
+    "batteryNote": "Un trabajo largo con batería calienta el dispositivo y gasta mucha. Déjalo enchufado si puedes."
   },
   "preferences": {
     "title": "Preferencias",

@@ -385,12 +385,10 @@
     "a11yProgress": "Computing maps ahead. {{done}} of {{total}} done.",
     "notifyTitle": "Computing maps",
     "notifyProgress": "{{done}} of {{total}} maps",
-    "notifyWaiting": "Waiting for a charger",
-    "waitingForCharger": "Waiting for a charger. Plug the device in to carry on.",
+    "waitingTitle": "Waiting for a charger",
+    "waitingForCharger": "Plug the device in, or turn off “{{setting}}” below to work on battery.",
     "onCharger": "Only while charging",
-    "batteryNote": "A long job on battery will warm the device and use a lot of it. Keep it plugged in where you can.",
-    "on": "On",
-    "off": "Off"
+    "batteryNote": "A long job on battery will warm the device and use a lot of it. Keep it plugged in where you can."
   },
   "preferences": {
     "title": "Preferences",
