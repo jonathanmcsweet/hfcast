@@ -1,16 +1,20 @@
 import { StyleSheet, View } from 'react-native';
 import { Text, TouchableRipple, useTheme } from 'react-native-paper';
 
-import { radius, spacing, typography } from '../../theme';
-import type { AppTheme } from '../../theme';
+import { radius, spacing, typography } from '../theme';
+import type { AppTheme } from '../theme';
 
 /**
  * One row of chips, of which exactly one is chosen.
  *
- * The modes and the antenna families are the same control over different
- * lists, so they are one component. It is generic over the value because
- * the caller gets its own key type back from `onSelect`, not a string it
- * then has to check.
+ * The modes, the antenna families, the languages and the units are the
+ * same control over different lists, so they are one component. It is
+ * generic over the value because the caller gets its own key type back
+ * from `onSelect`, not a string it then has to check.
+ *
+ * It sat under `station/` while the station was the only thing that used
+ * it. Preferences uses it too, so it lives here now: nothing about a row
+ * of chips is about a radio.
  */
 export default function ChipGroup<T extends string>(
   { options, selected, onSelect, label, a11yLabel }: {

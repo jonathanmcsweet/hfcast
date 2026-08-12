@@ -6,6 +6,7 @@
 - Explain things in concise, plain english free of technical jargon.
 - Use technical terms accurate to the domain terms in the codebase
 - When making technical decisions, do not give weight to development cost or development hours. Instead prefer readability, quality, simplicity, robustness, scalability, testability, and long term maintainability
+- when writting commit messages, be extremely concise. Favor concision over proper grammar.
 
 ## Who the users are
 

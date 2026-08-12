@@ -24,6 +24,17 @@ export interface PrecomputeState {
   at: string | null;
   /** Whether the last stop was asked for rather than the job finishing. */
   stopped: boolean;
+  /**
+   * True while the job is holding for a charger.
+   *
+   * Its own flag rather than a pause in `running`, because the job has
+   * not stopped and nothing about it needs restarting — the progress,
+   * the count and the notification all stay exactly as they were. What
+   * changes is only what the screen should say about why nothing is
+   * moving, which is a question a bare "running" cannot answer.
+   */
+  waiting: boolean;
+  setWaiting: (waiting: boolean) => void;
   begin: (total: number) => void;
   advance: (at: string) => void;
   fail: () => void;
@@ -37,9 +48,20 @@ export const usePrecomputeStore = create<PrecomputeState>()((set) => ({
   failed: 0,
   at: null,
   stopped: false,
+  waiting: false,
+  setWaiting: (waiting) => set({ waiting }),
   begin: (total) =>
-    set({ running: true, done: 0, total, failed: 0, at: null, stopped: false }),
+    set({
+      running: true,
+      done: 0,
+      total,
+      failed: 0,
+      at: null,
+      stopped: false,
+      waiting: false,
+    }),
   advance: (at) => set((state) => ({ done: state.done + 1, at })),
   fail: () => set((state) => ({ failed: state.failed + 1 })),
-  finish: (stopped) => set({ running: false, at: null, stopped }),
+  finish: (stopped) =>
+    set({ running: false, at: null, stopped, waiting: false }),
 }));

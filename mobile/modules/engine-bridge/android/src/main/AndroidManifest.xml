@@ -1,0 +1,34 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+  <!--
+    Declared here rather than in a config plugin. `mobile/android/` is
+    rewritten by a clean `expo prebuild` on every build and is not in git,
+    so anything put in the app's own manifest by hand is lost. This module
+    is an Android library, and the manifest merger folds what is below into
+    whichever app is built — which means the modern and the legacy builds
+    both get it from one place, and it is a tracked file either way.
+
+    All four exist for one feature: computing maps ahead while the screen
+    is locked. See `PrecomputeService.kt`.
+
+    FOREGROUND_SERVICE_DATA_SYNC is only read from Android 14, where a
+    foreground service has to say what it is for. POST_NOTIFICATIONS is
+    only asked for from Android 13; refusing it hides the notification but
+    does not stop the job.
+  -->
+  <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+  <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
+  <uses-permission android:name="android.permission.WAKE_LOCK" />
+  <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+
+  <application>
+    <!--
+      Not exported: nothing outside the app has any reason to start a map
+      job, and an exported service that acquires a wake lock is a way for
+      any other app to flatten the battery.
+    -->
+    <service
+      android:name="com.hfcast.engine.PrecomputeService"
+      android:exported="false"
+      android:foregroundServiceType="dataSync" />
+  </application>
+</manifest>

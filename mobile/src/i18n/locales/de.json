@@ -382,6 +382,16 @@
     "forgotten": "Gespeicherte Karten gelöscht.",
     "onCardNow": "Auf der Speicherkarte gespeichert.",
     "onPhoneNow": "Im internen Speicher gespeichert.",
-    "a11yProgress": "Karten werden im Voraus berechnet. {{done}} von {{total}} fertig."
+    "a11yProgress": "Karten werden im Voraus berechnet. {{done}} von {{total}} fertig.",
+    "notifyTitle": "Karten werden berechnet",
+    "notifyProgress": "{{done}} von {{total}} Karten",
+    "waitingTitle": "Wartet auf Strom",
+    "waitingForCharger": "Schließe das Gerät an, oder schalte „{{setting}}“ unten aus, um im Akkubetrieb zu arbeiten.",
+    "onCharger": "Nur beim Laden",
+    "batteryNote": "Ein langer Auftrag im Akkubetrieb wärmt das Gerät und braucht viel Strom. Lass es angeschlossen, wenn du kannst."
+  },
+  "preferences": {
+    "title": "Voreinstellungen",
+    "close": "Voreinstellungen schließen"
   }
 }

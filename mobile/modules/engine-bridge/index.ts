@@ -43,6 +43,17 @@ interface Native {
   removeMapCache?(names: string[]): Promise<number>;
   /** Whether a memory card is present, and where maps are kept. */
   mapCardAvailable?(): boolean;
+  startBackgroundWork?(
+    title: string,
+    text: string,
+    done: number,
+    total: number,
+    stopLabel: string,
+  ): boolean;
+  stopBackgroundWork?(): boolean;
+  askToNotify?(): Promise<{ granted: boolean; }>;
+  isCharging?(): boolean;
+  addListener?(event: string, listener: () => void): { remove(): void; };
   setMapCardUse?(on: boolean): string;
 }
 
@@ -283,4 +294,99 @@ export async function predictMany<T>(
     nativeMs: answeredAt - askedAt,
     parseMs: Date.now() - answeredAt,
   };
+}
+
+/**
+ * Keeps a long map job running while the screen is off.
+ *
+ * Called again for every step, which is what moves the progress bar: the
+ * service takes the same intent as a start or an update, and Android
+ * hands it to the instance already running.
+ *
+ * The wording comes from here rather than from the module, because this
+ * app has five languages and that module has none. `stopLabel` is what
+ * the button on the notification says.
+ *
+ * False means the device would not start it — an old build, a
+ * manufacturer that refuses, a permission withheld. The job then behaves
+ * as it did before this existed: it runs while the app is open and waits
+ * when it is not, which is worth saying out loud rather than failing.
+ */
+export const startBackgroundWork = (
+  title: string,
+  text: string,
+  done: number,
+  total: number,
+  stopLabel: string,
+): boolean =>
+  native?.startBackgroundWork?.(title, text, done, total, stopLabel) === true;
+
+/** Takes the notification down and lets the processor sleep again. */
+export const stopBackgroundWork = (): boolean =>
+  native?.stopBackgroundWork?.() === true;
+
+/**
+ * Asks to be allowed to show the job's notification.
+ *
+ * Declaring the permission is not the same as holding it. From Android 13
+ * the person has to agree, and until they do the service runs with its
+ * notification dropped in silence — so a job carrying on in the
+ * background says nothing on screen and offers no Stop (user,
+ * 2026-08-12).
+ *
+ * A refusal is not a failure and does not stop a job. Called before one
+ * starts, so the ask arrives with the reason for it on screen rather than
+ * out of nowhere.
+ */
+export async function askToNotify(): Promise<boolean> {
+  const ask = native?.askToNotify;
+  if (ask === undefined) return false;
+  try {
+    return (await ask.call(native)).granted === true;
+  } catch {
+    // An older build of the module, or a platform with no permission to
+    // ask for. Neither is a reason to hold up the work.
+    return false;
+  }
+}
+
+/**
+ * Whether the device is on power.
+ *
+ * Cheap to ask, because the answer comes from a broadcast Android
+ * already keeps, so it is asked at each step rather than remembered.
+ * `onPowerChanged` says when to ask again.
+ *
+ * True where the engine is absent, so a build with no way to ask never
+ * refuses to compute for want of an answer it cannot get.
+ */
+export const isCharging = (): boolean => native?.isCharging?.() !== false;
+
+/**
+ * Calls back when Stop is pressed on the notification.
+ *
+ * Returns a function that stops listening, or one that does nothing
+ * where there is no module to listen to.
+ */
+export function onBackgroundStop(listener: () => void): () => void {
+  const subscription = native?.addListener?.('onBackgroundStop', listener);
+  return () => subscription?.remove();
+}
+
+/**
+ * Calls back when the charger goes in or comes out.
+ *
+ * This exists because a job cannot wait on a timer. React Native drives
+ * `setTimeout` from the screen's frame clock, and Android stops that
+ * clock when the screen goes off, so a job that slept for five seconds
+ * to look again slept until somebody woke the phone (user, 2026-08-12).
+ * An event from the platform is delivered whatever the screen is doing.
+ *
+ * Returns a function that stops listening. Listening is what makes the
+ * module register for the broadcast at all, so dropping the last
+ * listener takes the receiver down with it.
+ */
+export function onPowerChanged(listener: () => void): () => void {
+  const subscription = native?.addListener?.('onPowerChanged', listener);
+  return () => subscription?.remove();
 }

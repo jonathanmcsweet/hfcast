@@ -1,3 +1,5 @@
+import { AppState } from 'react-native';
+
 import type {
   WireCoverage,
   WireCoveragePoint,
@@ -5,6 +7,7 @@ import type {
 } from '../../../shared/wire.ts';
 import * as Engine from '../../modules/engine-bridge';
 import type { Station } from '../store/useStationStore';
+import { breathe } from './breathe.ts';
 import { tunedThreadsFor } from './calibrate';
 import { factorsFor } from './correct';
 import {
@@ -75,21 +78,12 @@ const asPoint = (p: WireCoveragePoint): RawCoveragePoint => ({
 export const canMapLocally = (): boolean => Engine.isAvailable();
 
 /**
- * Lets the screen draw a frame before the next piece of work.
+ * Whether there is a screen to yield to, and so whether a yield works.
  *
- * The engine's strips run on their own threads. Everything after them
- * does not: turning the answers into objects and packing them into
- * typed arrays happens on the thread that draws, and while it runs no
- * progress bar moves and no touch is answered. At 34,560 points that is
- * long enough to look like the app has stopped.
- *
- * A timeout of zero is the only yield React Native offers here that
- * lets the interface run. It does not make the work shorter — it breaks
- * one long block into pieces the screen can get between, which is the
- * difference between a slow device and a frozen one.
+ * The one effect behind `breathe`, kept here at the edge. See that
+ * module for why the two questions have the same answer.
  */
-const breathe = (): Promise<void> =>
-  new Promise((resume) => setTimeout(resume, 0));
+const onScreen = (): boolean => AppState.currentState === 'active';
 
 export interface LocalCoverageRequest {
   from: Endpoint;
@@ -696,7 +690,10 @@ export async function coverFineLocally(
     for (const point of correctCoverage(raw, centre, required, factors)) {
       points.push(point);
     }
-    await breathe();
+    // Skipped outright when the app is not on screen, which is the state
+    // a job computing ahead spends most of its life in. There is nothing
+    // to draw a frame for, and the timeout behind this would not fire.
+    await breathe(onScreen());
   }
   if (points.length === 0) {
     throw new Error('the engine produced no fine coverage points');

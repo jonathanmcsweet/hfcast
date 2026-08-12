@@ -14,7 +14,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useGeocode } from '../api/queries';
-import { type Endpoint, placeToEndpoint } from '../data/types';
+import { type Endpoint, type Place, placeToEndpoint } from '../data/types';
 import { useDeviceFix } from '../hooks/useDeviceFix';
 import { GREENWICH } from '../store/usePathStore';
 import { face, radius, spacing, track, typography } from '../theme';
@@ -58,12 +58,29 @@ export default function FirstRunLocation({ onDone }: Props) {
   const ui = theme.colors.ui;
 
   const [query, setQuery] = useState('');
+  // What was picked from the list, which outranks the first match until the
+  // query changes. Tapping a result used to finish the screen outright; it
+  // now fills the panel above and closes the list, because a list that
+  // stayed open after a choice read as a choice that had not registered
+  // (user, 2026-08-12).
+  const [picked, setPicked] = useState<Place | null>(null);
 
   const { data: results, isFetching } = useGeocode(query, i18n.language);
 
-  // The first match is what Continue takes, so the list below is showing the
-  // alternatives to it rather than a separate set of options.
-  const best = useMemo(() => results?.[0] ?? null, [results]);
+  // The first match is what Continue takes unless something was picked, so
+  // the list below is showing the alternatives to it rather than a separate
+  // set of options.
+  const best = useMemo(
+    () => picked ?? results?.[0] ?? null,
+    [picked, results],
+  );
+
+  // A new query means the old pick is not an answer to it. One place that
+  // does both, so no path can change one without the other.
+  const retype = (text: string) => {
+    setPicked(null);
+    setQuery(text);
+  };
 
   const {
     available: canUseDevice,
@@ -73,144 +90,161 @@ export default function FirstRunLocation({ onDone }: Props) {
   } = useDeviceFix(onDone);
 
   return (
-    <ScrollView
-      style={{ backgroundColor: ui.page }}
-      contentContainerStyle={[styles.page, {
-        paddingTop: insets.top + spacing.xl,
-        paddingBottom: insets.bottom + spacing.xl,
-      }]}
-      keyboardShouldPersistTaps="handled"
-    >
-      <Text style={[styles.kicker, { color: ui.text4 }]}>
-        {t('firstRun.kicker')}
-      </Text>
-      <Text style={[typography.screenTitle, { color: ui.ink }]}>
-        {t('firstRun.title')}
-      </Text>
-      <Text style={[typography.body, styles.subtitle, { color: ui.text2 }]}>
-        {t('firstRun.subtitle')}
-      </Text>
+    <View style={[styles.screen, { backgroundColor: ui.page }]}>
+      <ScrollView
+        contentContainerStyle={[styles.page, {
+          paddingTop: insets.top + spacing.xl,
+        }]}
+        keyboardShouldPersistTaps="handled"
+      >
+        <Text style={[styles.kicker, { color: ui.text4 }]}>
+          {t('firstRun.kicker')}
+        </Text>
+        <Text style={[typography.screenTitle, { color: ui.ink }]}>
+          {t('firstRun.title')}
+        </Text>
+        <Text style={[typography.body, styles.subtitle, { color: ui.text2 }]}>
+          {t('firstRun.subtitle')}
+        </Text>
 
-      {
-        /* Absent where it could not work rather than present and failing:
+        {
+          /* Absent where it could not work rather than present and failing:
            there is no implementation on iOS or in Expo Go, and typing a
            place name does the same job. */
-      }
-      {canUseDevice
-        ? (
-          <Button
-            mode="contained"
-            icon="crosshairs-gps"
-            onPress={useDeviceLocation}
-            loading={locating}
-            disabled={locating}
-            style={styles.gps}
-            contentStyle={styles.gpsContent}
-          >
-            {t('firstRun.useGps')}
-          </Button>
-        )
-        : null}
+        }
+        {canUseDevice
+          ? (
+            <Button
+              mode="contained"
+              icon="crosshairs-gps"
+              onPress={useDeviceLocation}
+              loading={locating}
+              disabled={locating}
+              style={styles.gps}
+              contentStyle={styles.gpsContent}
+            >
+              {t('firstRun.useGps')}
+            </Button>
+          )
+          : null}
 
-      {locationError
-        ? (
-          <Text style={[typography.caption, styles.note, { color: ui.text3 }]}>
-            {locationError}
-          </Text>
-        )
-        : null}
-
-      <View style={styles.dividerRow}>
-        <Divider style={styles.dividerLine} />
-        <Text style={[styles.kicker, { color: ui.text4 }]}>
-          {t('firstRun.orType')}
-        </Text>
-        <Divider style={styles.dividerLine} />
-      </View>
-
-      <TextInput
-        mode="outlined"
-        value={query}
-        onChangeText={setQuery}
-        placeholder={t('location.searchPlaceholder')}
-        autoCapitalize="none"
-        autoCorrect={false}
-        style={styles.field}
-      />
-
-      <View style={styles.chips}>
-        {EXAMPLES.map((example) => (
-          <TouchableRipple
-            key={example}
-            onPress={() => setQuery(example)}
-            accessibilityRole="button"
-            style={[styles.chip, {
-              backgroundColor: ui.card,
-              borderColor: ui.line,
-            }]}
-          >
-            <Text style={[typography.caption, { color: ui.text2 }]}>
-              {example}
+        {locationError
+          ? (
+            <Text
+              style={[typography.caption, styles.note, { color: ui.text3 }]}
+            >
+              {locationError}
             </Text>
-          </TouchableRipple>
-        ))}
-      </View>
+          )
+          : null}
 
-      {
-        /* What was recognised, echoed back. A coordinate typed one character
+        <View style={styles.dividerRow}>
+          <Divider style={styles.dividerLine} />
+          <Text style={[styles.kicker, { color: ui.text4 }]}>
+            {t('firstRun.orType')}
+          </Text>
+          <Divider style={styles.dividerLine} />
+        </View>
+
+        <TextInput
+          mode="outlined"
+          value={query}
+          onChangeText={retype}
+          placeholder={t('location.searchPlaceholder')}
+          autoCapitalize="none"
+          autoCorrect={false}
+          style={styles.field}
+        />
+
+        <View style={styles.chips}>
+          {EXAMPLES.map((example) => (
+            <TouchableRipple
+              key={example}
+              onPress={() => retype(example)}
+              accessibilityRole="button"
+              style={[styles.chip, {
+                backgroundColor: ui.card,
+                borderColor: ui.line,
+              }]}
+            >
+              <Text style={[typography.caption, { color: ui.text2 }]}>
+                {example}
+              </Text>
+            </TouchableRipple>
+          ))}
+        </View>
+
+        {
+          /* What was recognised, echoed back. A coordinate typed one character
            wrong resolves to somewhere real, so the check is showing the
            reader where the app thinks they are before it is used. */
-      }
-      <View style={[styles.panel, { backgroundColor: ui.inset }]}>
-        {best
-          ? (
-            <>
-              <Text style={[styles.kicker, { color: ui.text4 }]}>
-                {t('firstRun.recognised')}
-              </Text>
-              <Text style={[typography.bodyStrong, { color: ui.ink }]}>
-                {best.name}
-              </Text>
-              <Text style={[typography.caption, { color: ui.text3 }]}>
-                {[best.admin1, best.country, best.grid]
-                  .filter(Boolean)
-                  .join(' · ')}
-              </Text>
-            </>
-          )
-          : (
-            <>
-              <Text style={[typography.bodyStrong, { color: ui.text2 }]}>
-                {t('firstRun.formats')}
-              </Text>
-              <Text style={[typography.caption, { color: ui.text3 }]}>
-                {t('firstRun.formatsHint')}
-              </Text>
-            </>
-          )}
-        {isFetching ? <ActivityIndicator style={styles.spinner} /> : null}
-      </View>
+        }
+        <View style={[styles.panel, { backgroundColor: ui.inset }]}>
+          {best
+            ? (
+              <>
+                <Text style={[styles.kicker, { color: ui.text4 }]}>
+                  {t('firstRun.recognised')}
+                </Text>
+                <Text style={[typography.bodyStrong, { color: ui.ink }]}>
+                  {best.name}
+                </Text>
+                <Text style={[typography.caption, { color: ui.text3 }]}>
+                  {[best.admin1, best.country, best.grid]
+                    .filter(Boolean)
+                    .join(' · ')}
+                </Text>
+              </>
+            )
+            : (
+              <>
+                <Text style={[typography.bodyStrong, { color: ui.text2 }]}>
+                  {t('firstRun.formats')}
+                </Text>
+                <Text style={[typography.caption, { color: ui.text3 }]}>
+                  {t('firstRun.formatsHint')}
+                </Text>
+              </>
+            )}
+          {isFetching ? <ActivityIndicator style={styles.spinner} /> : null}
+        </View>
+
+        {
+          /* The rest of the matches, so a common place name can be told apart
+           from the one meant. Gone once one has been picked: the panel above
+           is then showing the answer, and a list still offering four others
+           beside it says the tap did nothing. */
+        }
+        {picked !== null
+          ? null
+          : (results ?? []).slice(1, 5).map((place) => (
+            <List.Item
+              key={`${place.grid}:${place.name}:${place.lat}`}
+              title={place.name}
+              description={[place.admin1, place.country, place.grid]
+                .filter(Boolean)
+                .join(' · ')}
+              onPress={() => setPicked(place)}
+            />
+          ))}
+
+        <Text style={[typography.caption, styles.note, { color: ui.text3 }]}>
+          {t('firstRun.footnote')}
+        </Text>
+      </ScrollView>
 
       {
-        /* The rest of the matches, so a common place name can be told apart
-           from the one meant. Absent when there is nothing to choose. */
+        /* Below the scroll rather than in it. These were the last thing on a
+           page that grows by four rows as soon as anybody types, which put
+           the only two ways forward under the fold on a phone (user,
+           2026-08-12). Outside the scrolling area they cannot move. */
       }
-      {(results ?? []).slice(1, 5).map((place) => (
-        <List.Item
-          key={`${place.grid}:${place.name}:${place.lat}`}
-          title={place.name}
-          description={[place.admin1, place.country, place.grid]
-            .filter(Boolean)
-            .join(' · ')}
-          onPress={() => onDone(placeToEndpoint(place))}
-        />
-      ))}
-
-      <Text style={[typography.caption, styles.note, { color: ui.text3 }]}>
-        {t('firstRun.footnote')}
-      </Text>
-
-      <View style={styles.actions}>
+      <View
+        style={[styles.footer, {
+          borderTopColor: ui.line,
+          paddingBottom: insets.bottom + spacing.md,
+        }]}
+      >
         <Button
           mode="outlined"
           onPress={() => onDone(GREENWICH)}
@@ -231,12 +265,17 @@ export default function FirstRunLocation({ onDone }: Props) {
           {t('firstRun.continue')}
         </Button>
       </View>
-    </ScrollView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  page: { paddingHorizontal: spacing.lg, gap: spacing.md },
+  screen: { flex: 1 },
+  page: {
+    paddingHorizontal: spacing.lg,
+    paddingBottom: spacing.xl,
+    gap: spacing.md,
+  },
   kicker: {
     fontSize: 11,
     lineHeight: 14,
@@ -267,7 +306,13 @@ const styles = StyleSheet.create({
   },
   spinner: { alignSelf: 'flex-start', marginTop: spacing.xs },
   note: { marginTop: spacing.xs },
-  actions: { flexDirection: 'row', gap: spacing.md, marginTop: spacing.sm },
+  footer: {
+    flexDirection: 'row',
+    gap: spacing.md,
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.md,
+    borderTopWidth: StyleSheet.hairlineWidth,
+  },
   action: { flex: 1, borderRadius: radius.inset },
   actionContent: { minHeight: 52 },
 });
