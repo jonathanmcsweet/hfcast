@@ -385,12 +385,10 @@
     "a11yProgress": "Karten werden im Voraus berechnet. {{done}} von {{total}} fertig.",
     "notifyTitle": "Karten werden berechnet",
     "notifyProgress": "{{done}} von {{total}} Karten",
-    "notifyWaiting": "Wartet auf Strom",
-    "waitingForCharger": "Wartet auf Strom. Schließe das Gerät an, um weiterzumachen.",
+    "waitingTitle": "Wartet auf Strom",
+    "waitingForCharger": "Schließe das Gerät an, oder schalte „{{setting}}“ unten aus, um im Akkubetrieb zu arbeiten.",
     "onCharger": "Nur beim Laden",
-    "batteryNote": "Ein langer Auftrag im Akkubetrieb wärmt das Gerät und braucht viel Strom. Lass es angeschlossen, wenn du kannst.",
-    "on": "An",
-    "off": "Aus"
+    "batteryNote": "Ein langer Auftrag im Akkubetrieb wärmt das Gerät und braucht viel Strom. Lass es angeschlossen, wenn du kannst."
   },
   "preferences": {
     "title": "Voreinstellungen",

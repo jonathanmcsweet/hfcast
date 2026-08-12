@@ -385,12 +385,10 @@
     "a11yProgress": "地図を前もって計算しています。{{total}} 件中 {{done}} 件が完了しました。",
     "notifyTitle": "地図を計算中",
     "notifyProgress": "{{total}} 件中 {{done}} 件",
-    "notifyWaiting": "充電を待っています",
-    "waitingForCharger": "充電を待っています。続けるには電源につないでください。",
+    "waitingTitle": "充電を待っています",
+    "waitingForCharger": "電源につなぐか、下の「{{setting}}」をオフにするとバッテリーで実行します。",
     "onCharger": "充電中のみ",
-    "batteryNote": "長い処理をバッテリーで行うと本体が熱くなり、電池を多く使います。できるだけ電源につないでおいてください。",
-    "on": "オン",
-    "off": "オフ"
+    "batteryNote": "長い処理をバッテリーで行うと本体が熱くなり、電池を多く使います。できるだけ電源につないでおいてください。"
   },
   "preferences": {
     "title": "言語と単位",

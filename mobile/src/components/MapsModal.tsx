@@ -4,16 +4,19 @@ import { AccessibilityInfo, ScrollView, StyleSheet, View } from 'react-native';
 import {
   Button,
   Divider,
+  Icon,
   IconButton,
   Modal,
   Portal,
   ProgressBar,
+  Switch,
   Text,
   TouchableRipple,
   useTheme,
 } from 'react-native-paper';
 
 import { BAND_ORDER } from '../../../shared/bands';
+import * as Engine from '../../modules/engine-bridge';
 import { FINE_POINTS } from '../data/fineGlobe';
 import { forgetStored, storedBytes } from '../data/globeStore';
 import { precompute, remainingFiles, stopPrecompute } from '../data/precompute';
@@ -180,16 +183,20 @@ export default function MapsModal({ visible, onDismiss }: Props) {
   );
   const fits = filesWithin(budgetMb * MB, FINE_POINTS);
 
-  const start = () => {
+  const start = async () => {
     setNote(null);
     setLeft(null);
+    // Asked for here rather than at boot, so the reason for it is the
+    // screen behind it. Whatever comes back, the job runs: a refusal
+    // costs the progress notification and its Stop button, not the work.
+    await Engine.askToNotify();
     // The words the notification shows are handed over here, because
     // this is the side that has languages. See `PrecomputeLabels`.
     void precompute(ask, {
       title: t('maps.notifyTitle'),
       stop: t('maps.stop'),
       progress: (done, total) => t('maps.notifyProgress', { done, total }),
-      waiting: t('maps.notifyWaiting'),
+      waiting: t('maps.waitingTitle'),
     });
   };
 
@@ -271,6 +278,45 @@ export default function MapsModal({ visible, onDismiss }: Props) {
           )}
         </View>
 
+        {
+          /* Outside the scroll, so it cannot be the thing nobody scrolled
+             to. A job that is waiting looks exactly like a job that has
+             stalled, and the first person to see this state read it as
+             one and did not find the line saying otherwise (user,
+             2026-08-12). So it is a band of colour at the top rather than
+             a caption in the middle, and it names the switch that ends
+             the wait rather than only reporting it. */
+        }
+        {running && waiting
+          ? (
+            <View
+              accessibilityRole="alert"
+              accessibilityLiveRegion="polite"
+              style={[styles.banner, { backgroundColor: ui.amberBg }]}
+            >
+              <Icon source="power-plug-off" size={20} color={ui.amberFg} />
+              <View style={styles.bannerText}>
+                <Text
+                  style={[typography.bodyStrong, { color: ui.amberFg }]}
+                >
+                  {t('maps.waitingTitle')}
+                </Text>
+                {
+                  /* The switch is named by asking for its own label
+                     rather than by repeating the words, so renaming it
+                     cannot leave this sentence pointing at something
+                     that is no longer called that. */
+                }
+                <Text style={[typography.caption, { color: ui.amberFg }]}>
+                  {t('maps.waitingForCharger', {
+                    setting: t('maps.onCharger'),
+                  })}
+                </Text>
+              </View>
+            </View>
+          )
+          : null}
+
         <ScrollView showsVerticalScrollIndicator={false}>
           <Text style={[typography.body, { color: ui.text2 }]}>
             {t('maps.what')}
@@ -322,41 +368,34 @@ export default function MapsModal({ visible, onDismiss }: Props) {
                desk is the case this feature was built for, and a person
                in a field with a power bank is a case it should not
                refuse. The default protects the battery somebody will
-               want for the radio. */
+               want for the radio.
+
+               Unlike every other choice here it stays live while a job
+               runs, because the moment somebody wants it is the moment
+               they find the job waiting for a charger they have not got.
+               Turning it off then does not wait for the next map to
+               finish — see `waitForCharger`, which reads this on every
+               pass. */
           }
-          {running ? null : (
-            <TouchableRipple
-              onPress={() => setOnCharger(!onCharger)}
-              accessibilityRole="switch"
-              accessibilityState={{ checked: onCharger }}
-              accessibilityLabel={t('maps.onCharger')}
-              style={styles.toggle}
+          <View style={styles.toggleRow}>
+            <Text
+              style={[typography.body, styles.toggleText, { color: ui.ink }]}
             >
-              <View style={styles.toggleRow}>
-                <Text
-                  style={[typography.body, styles.toggleText, {
-                    color: ui.ink,
-                  }]}
-                >
-                  {t('maps.onCharger')}
-                </Text>
-                <Text style={[typography.body, { color: ui.accent }]}>
-                  {onCharger ? t('maps.on') : t('maps.off')}
-                </Text>
-              </View>
-            </TouchableRipple>
+              {t('maps.onCharger')}
+            </Text>
+            <Switch
+              value={onCharger}
+              onValueChange={setOnCharger}
+              accessibilityLabel={t('maps.onCharger')}
+            />
+          </View>
+          {onCharger ? null : (
+            <Text
+              style={[typography.caption, styles.note, { color: ui.text3 }]}
+            >
+              {t('maps.batteryNote')}
+            </Text>
           )}
-          {running || onCharger
-            ? null
-            : (
-              <Text
-                style={[typography.caption, styles.note, {
-                  color: ui.text3,
-                }]}
-              >
-                {t('maps.batteryNote')}
-              </Text>
-            )}
 
           <Divider style={styles.divider} />
 
@@ -374,17 +413,12 @@ export default function MapsModal({ visible, onDismiss }: Props) {
                   style={styles.bar}
                 />
                 {
-                  /* Waiting for a charger looks exactly like being stuck
-                     unless the screen says otherwise, so it says so in
-                     place of the hour it would otherwise be naming. */
+                  /* The month, hour and band last computed. Kept while
+                     the job waits for a charger, because it is then the
+                     answer to "where will it pick up" — the banner above
+                     already says why nothing is moving. */
                 }
-                {waiting
-                  ? (
-                    <Text style={[typography.caption, { color: ui.text2 }]}>
-                      {t('maps.waitingForCharger')}
-                    </Text>
-                  )
-                  : at === null
+                {at === null
                   ? null
                   : (
                     <Text style={[typography.caption, { color: ui.text4 }]}>
@@ -471,7 +505,9 @@ export default function MapsModal({ visible, onDismiss }: Props) {
               : (
                 <Button
                   mode="contained"
-                  onPress={start}
+                  onPress={() => {
+                    void start();
+                  }}
                   disabled={cost.files === 0}
                 >
                   {t('maps.start')}
@@ -540,11 +576,21 @@ const styles = StyleSheet.create({
     borderRadius: radius.inset,
     borderWidth: 1,
   },
-  toggle: { minHeight: 44, justifyContent: 'center', marginTop: spacing.sm },
+  banner: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: spacing.sm,
+    padding: spacing.md,
+    marginBottom: spacing.sm,
+    borderRadius: radius.inset,
+  },
+  bannerText: { flex: 1, gap: 2 },
   toggleRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.sm,
+    minHeight: 48,
+    marginTop: spacing.sm,
   },
   toggleText: { flex: 1 },
   note: { marginTop: spacing.xs },
