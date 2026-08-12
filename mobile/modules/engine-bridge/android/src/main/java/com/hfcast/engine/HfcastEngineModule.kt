@@ -37,6 +37,21 @@ import org.json.JSONObject
 internal class EngineFailedException(message: String) :
   CodedException("The prediction engine failed: $message")
 
+/**
+ * One strip of a batch: its answer, and what it cost.
+ *
+ * A value rather than three totals the threads all add to. Adding to a
+ * shared total is the only reason those threads would need a lock, and
+ * the sum is wanted once, at the end, by one thread.
+ */
+private data class Strip(
+  val answer: String?,
+  /** Wall time inside the engine, in nanoseconds. */
+  val computeNs: Long,
+  /** Processor time this thread actually held, in milliseconds. */
+  val cpuMs: Long,
+)
+
 class HfcastEngineModule : Module() {
   /**
    * One thread, and not the one the interface is drawn on.
@@ -233,8 +248,7 @@ class HfcastEngineModule : Module() {
         .registerReceiver(null, IntentFilter(Intent.ACTION_BATTERY_CHANGED))
         ?.getIntExtra(BatteryManager.EXTRA_STATUS, -1)
         ?: -1
-      return@Function status == BatteryManager.BATTERY_STATUS_CHARGING ||
-        status == BatteryManager.BATTERY_STATUS_FULL
+      return@Function onPower(status)
     }
 
     /**
@@ -292,7 +306,7 @@ class HfcastEngineModule : Module() {
      */
     AsyncFunction("writeFile") { name: String, contents: String, promise: Promise ->
       worker.execute {
-        if (name.contains("..") || name.startsWith("/")) {
+        if (!isEngineInputName(name)) {
           promise.reject(EngineFailedException("bad file name: $name"))
           return@execute
         }
@@ -396,25 +410,25 @@ class HfcastEngineModule : Module() {
           promise.reject(EngineFailedException("bad map name: $name"))
           return@execute
         }
-        var part: File? = null
+        val writing = File(file.parentFile, "${file.name}$PART")
         try {
           val bytes = Base64.decode(contents, Base64.NO_WRAP)
           file.parentFile?.mkdirs()
-          val writing = File(file.parentFile, "${file.name}$PART")
-          part = writing
           writing.writeBytes(bytes)
           if (!writing.renameTo(file)) {
             promise.reject(EngineFailedException("could not store $name"))
             return@execute
           }
-          part = null
           promise.resolve(bytes.size)
         } catch (e: Throwable) {
           promise.reject(EngineFailedException(e.message ?: e.toString()))
         } finally {
           // A part file left behind would be counted as room used and
-          // never read, so a failed write cleans up after itself.
-          part?.delete()
+          // never read, so a failed write cleans up after itself. Asked
+          // unconditionally rather than tracked through a variable: a
+          // rename that worked left nothing here to delete, and deleting
+          // what is not there is how `File.delete` reports false.
+          writing.delete()
         }
       }
     }
@@ -429,22 +443,14 @@ class HfcastEngineModule : Module() {
     AsyncFunction("listMapCache") { promise: Promise ->
       files.execute {
         try {
-          val listed = JSONArray()
-          val found = maps().listFiles()
-          if (found != null) {
-            // A loop for its effect, over a directory listing that the
-            // platform hands back as an array.
-            for (file in found) {
-              if (!file.isFile || file.name.endsWith(PART)) continue
-              listed.put(
-                JSONObject()
-                  .put("name", file.name)
-                  .put("bytes", file.length())
-                  .put("at", file.lastModified()),
-              )
-            }
-          }
-          promise.resolve(listed.toString())
+          // Reading the directory is the effect; what a listing looks like
+          // is a rule, and it lives in `EngineRules.kt` where a test can
+          // reach it. The platform hands back null for a directory it
+          // could not read.
+          val listed = (maps().listFiles() ?: emptyArray())
+            .filter { it.isFile && isMapName(it.name) }
+            .map { StoredMap(it.name, it.length(), it.lastModified()) }
+          promise.resolve(listingJson(listed))
         } catch (e: Throwable) {
           promise.reject(EngineFailedException(e.message ?: e.toString()))
         }
@@ -455,12 +461,10 @@ class HfcastEngineModule : Module() {
     AsyncFunction("removeMapCache") { names: List<String>, promise: Promise ->
       files.execute {
         try {
-          var gone = 0
-          for (name in names) {
-            val file = mapFile(name) ?: continue
-            if (file.delete()) gone += 1
-          }
-          promise.resolve(gone)
+          // `count` rather than a running total: the answer is how many of
+          // them went, which is what counting a list is for. A name that is
+          // not a map name deletes nothing and counts as nothing.
+          promise.resolve(names.count { mapFile(it)?.delete() == true })
         } catch (e: Throwable) {
           promise.reject(EngineFailedException(e.message ?: e.toString()))
         }
@@ -526,11 +530,13 @@ class HfcastEngineModule : Module() {
         // of one in every total.
         val inFlight = AtomicInteger(0)
         val widest = AtomicInteger(0)
-        var computeNs = 0L
-        var cpuMs = 0L
         try {
+          // Each strip answers with its own timings rather than adding them
+          // to a total the others are also adding to. Same numbers, and the
+          // threads no longer share anything to lock: the sum is taken once,
+          // afterwards, by the thread that wanted it.
           val running = requests.map { request ->
-            pool.submit<String?> {
+            pool.submit<Strip> {
               val here = inFlight.incrementAndGet()
               widest.updateAndGet { most -> if (here > most) here else most }
               val began = System.nanoTime()
@@ -542,45 +548,39 @@ class HfcastEngineModule : Module() {
               // "the threads are waiting for a core".
               val cpuBegan = android.os.SystemClock.currentThreadTimeMillis()
               try {
-                predictNative(request)
+                Strip(
+                  answer = predictNative(request),
+                  computeNs = System.nanoTime() - began,
+                  cpuMs = android.os.SystemClock.currentThreadTimeMillis() - cpuBegan,
+                )
               } finally {
-                val cpuHere = android.os.SystemClock.currentThreadTimeMillis() - cpuBegan
-                synchronized(this) {
-                  computeNs += System.nanoTime() - began
-                  cpuMs += cpuHere
-                }
                 inFlight.decrementAndGet()
               }
             }
           }
           // `get` in request order, so the results line up with what was
           // asked rather than with what finished first.
-          val answers = running.map { it.get() }
+          val strips = running.map { it.get() }
+          val answers = strips.map { it.answer }
           if (tracing) {
-            val wallMs = (System.nanoTime() - startedAt) / 1_000_000
-            val busyMs = computeNs / 1_000_000
-            val characters = answers.sumOf { it?.length ?: 0 }
-            // Two ratios, and they answer different questions.
-            //
-            // `engine / wall` counts tasks in flight. It says eight even
-            // when all eight are only waiting, so on its own it cannot tell
-            // a busy pool from a stalled one — a Pixel 8 reported 7.8 here
-            // while each strip ran five times slower than it does alone.
-            //
-            // `cpu / wall` counts cores actually held. In flight high and
-            // busy low means the threads are waiting for cores — the
-            // scheduler, or thermal limits. Both high while each strip is
-            // slow means the cores are held but starved, which is memory.
-            val flight = if (wallMs > 0) busyMs.toDouble() / wallMs else 0.0
-            val busy = if (wallMs > 0) cpuMs.toDouble() / wallMs else 0.0
+            // Measuring is the effect; what the line says about the
+            // measurements is a rule, and it is written and tested in
+            // `EngineRules.kt`. A Pixel 8 reported 7.8 strips in flight
+            // while each one ran five times slower than it does alone,
+            // which is why both ratios are on the line and not just one.
             Log.i(
               "hfcast",
-              "batch | ${requests.size} strips | $width threads asked | " +
-                "${widest.get()} at once | wall $wallMs ms | " +
-                "engine $busyMs ms | cpu $cpuMs ms | " +
-                "${"%.1f".format(flight)} in flight | " +
-                "${"%.1f".format(busy)} cores busy | " +
-                "$characters chars back",
+              batchLine(
+                BatchTiming(
+                  strips = requests.size,
+                  threadsAsked = width,
+                  widest = widest.get(),
+                  wallMs = (System.nanoTime() - startedAt) / 1_000_000,
+                  engineMs = strips.sumOf { it.computeNs } / 1_000_000,
+                  cpuMs = strips.sumOf { it.cpuMs },
+                  characters = answers.sumOf { it?.length ?: 0 },
+                ),
+              ),
             )
           }
           val missing = answers.indexOfFirst { it == null }
@@ -720,11 +720,8 @@ class HfcastEngineModule : Module() {
    * cannot contain a separator cannot climb out of the directory it is
    * meant to stay in.
    */
-  private fun mapFile(name: String): File? {
-    if (name.isEmpty() || name.contains("/") || name.contains("..")) return null
-    if (name.endsWith(PART)) return null
-    return File(maps(), name)
-  }
+  private fun mapFile(name: String): File? =
+    if (isMapName(name)) File(maps(), name) else null
 
   private external fun predictNative(request: String): String?
 
@@ -732,14 +729,6 @@ class HfcastEngineModule : Module() {
   private external fun setTracingNative(on: Boolean)
 
   companion object {
-    /**
-     * What a map being written is called until it is written.
-     *
-     * A name nothing else can take, so a listing can tell an unfinished
-     * write from a stored map and neither counts the other.
-     */
-    private const val PART = ".writing"
-
     init {
       // Named without the "lib" prefix and the extension, as the loader
       // expects. The four ABIs are in src/main/jniLibs; Android picks the one
