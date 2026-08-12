@@ -1,11 +1,15 @@
 package com.hfcast.engine
 
+import android.Manifest
+import android.content.BroadcastReceiver
+import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.os.BatteryManager
 import android.os.Build
 import android.util.Base64
 import android.util.Log
+import expo.modules.interfaces.permissions.Permissions
 import expo.modules.kotlin.Promise
 import expo.modules.kotlin.exception.CodedException
 import expo.modules.kotlin.modules.Module
@@ -67,17 +71,32 @@ class HfcastEngineModule : Module() {
   @Volatile
   private var tracing = false
 
+  /**
+   * What listens for the charger being plugged in or pulled out.
+   *
+   * Null unless something is waiting to hear about it. Registered when
+   * the app starts listening and taken down when it stops, so an app
+   * that is not waiting for a charger holds no receiver at all.
+   */
+  private var power: BroadcastReceiver? = null
+
   override fun definition() = ModuleDefinition {
     Name("HfcastEngine")
 
     /**
-     * The one thing the notification can tell the app: Stop was pressed.
+     * The two things this module tells the app about.
      *
-     * The button ends the job through the same path the button inside the
-     * app uses, rather than tearing the service down under it, so a job
-     * always ends one way and always leaves the disk in one state.
+     * `onBackgroundStop` is Stop pressed on the notification. The button
+     * ends the job through the same path the button inside the app uses,
+     * rather than tearing the service down under it, so a job always ends
+     * one way and always leaves the disk in one state.
+     *
+     * `onPowerChanged` is the charger going in or coming out. A job
+     * waiting for one has to be told rather than asking on a timer,
+     * because React Native's timers do not run while the screen is off —
+     * see `waitForCharger` in `precompute.ts` for what that cost.
      */
-    Events("onBackgroundStop")
+    Events("onBackgroundStop", "onPowerChanged")
 
     OnCreate {
       PrecomputeService.onStopRequested = {
@@ -85,8 +104,47 @@ class HfcastEngineModule : Module() {
       }
     }
 
+    /**
+     * Starts listening for the charger, once something wants to know.
+     *
+     * Registered from code rather than in the manifest, which is what
+     * makes it exempt from the limits Android puts on broadcasts a
+     * manifest asks for, and what gets it delivered with the screen off
+     * while the service holds this process up.
+     */
+    OnStartObserving("onPowerChanged") {
+      val context = appContext.reactContext
+      if (context == null || power != null) return@OnStartObserving
+      val receiver = object : BroadcastReceiver() {
+        override fun onReceive(from: Context?, intent: Intent?) {
+          // Only that it changed. What it changed to is read by the app
+          // through `isCharging`, so there is one answer to that question
+          // rather than two that can disagree.
+          sendEvent("onPowerChanged", emptyMap<String, Any>())
+        }
+      }
+      val filter = IntentFilter().apply {
+        addAction(Intent.ACTION_POWER_CONNECTED)
+        addAction(Intent.ACTION_POWER_DISCONNECTED)
+      }
+      // From Android 13 a registered receiver has to say whether other
+      // apps may reach it. These are broadcasts only the system sends, so
+      // nothing outside this app should be able to imitate one.
+      if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+        context.registerReceiver(receiver, filter, Context.RECEIVER_NOT_EXPORTED)
+      } else {
+        context.registerReceiver(receiver, filter)
+      }
+      power = receiver
+    }
+
+    OnStopObserving("onPowerChanged") {
+      releasePower()
+    }
+
     OnDestroy {
       PrecomputeService.onStopRequested = null
+      releasePower()
     }
 
     /**
@@ -113,6 +171,39 @@ class HfcastEngineModule : Module() {
       )
     }
 
+    /**
+     * Asks to be allowed to show the job's notification.
+     *
+     * Android requires a foreground service to post one, and from Android
+     * 13 it also requires the person to have agreed to notifications.
+     * Declaring the permission is not agreeing to it: without the ask, the
+     * service starts and runs and its notification is dropped in silence,
+     * so a job computing away in the background has nothing on screen
+     * saying so and no Stop button (user, 2026-08-12).
+     *
+     * Answering false does not stop a job. The work still runs and the
+     * service still holds the process up; what is lost is the progress and
+     * the button, which is the person's own choice to make.
+     */
+    AsyncFunction("askToNotify") { promise: Promise ->
+      if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
+        // Before Android 13 there is nothing to ask for: a notification
+        // needs no permission and this one is always shown.
+        promise.resolve(true)
+        return@AsyncFunction
+      }
+      val permissions = appContext.permissions
+      if (permissions == null) {
+        promise.resolve(false)
+        return@AsyncFunction
+      }
+      Permissions.askForPermissionsWithPermissionsManager(
+        permissions,
+        promise,
+        Manifest.permission.POST_NOTIFICATIONS,
+      )
+    }
+
     /** Takes the notification down and lets the processor sleep again. */
     Function("stopBackgroundWork") {
       return@Function runService(PrecomputeService.ACTION_STOP, "", "", 0, 0, "")
@@ -126,6 +217,11 @@ class HfcastEngineModule : Module() {
      * of the two builds targets Android 5. Asking with a null receiver
      * returns the last broadcast without registering anything, so this
      * costs no lifecycle and can be called whenever the answer is wanted.
+     *
+     * This is the answer; `onPowerChanged` is only the prompt to ask for
+     * it again. A job waiting for a charger listens for the event and
+     * then reads this, so there is one place that decides what counts as
+     * charging.
      *
      * "Full" counts as charging. A device left on a charger overnight
      * reports full rather than charging, and a job that stopped at 100%
@@ -504,6 +600,24 @@ class HfcastEngineModule : Module() {
     OnDestroy {
       worker.shutdownNow()
       files.shutdownNow()
+    }
+  }
+
+  /**
+   * Stops listening for the charger, if it was.
+   *
+   * Unregistering a receiver that is already gone throws, and this is
+   * reached from two places that can both be last — the app dropping its
+   * listener and the module being destroyed — so the failure is caught
+   * rather than ordered around.
+   */
+  private fun releasePower() {
+    val receiver = power ?: return
+    power = null
+    try {
+      appContext.reactContext?.unregisterReceiver(receiver)
+    } catch (e: IllegalArgumentException) {
+      Log.w("hfcast", "the charger receiver was already gone: ${e.message}")
     }
   }
 

@@ -33,7 +33,12 @@
  *
  * It waits for a charger unless told not to. The long scope is about an
  * hour and a quarter of the engine at full tilt, and this app is for
- * devices carried somewhere with no charger in reach.
+ * devices carried somewhere with no charger in reach. That wait listens
+ * for the charger rather than looking for it every few seconds: React
+ * Native runs `setTimeout` off the screen's frame clock, which Android
+ * stops when the screen goes off, so a job that was waiting stayed
+ * waiting until somebody woke the phone (user, 2026-08-12). Nothing in
+ * this file may wait on a timer for that reason.
  */
 import type { BandKey } from '../../../shared/bands.ts';
 import type { CentreField } from '../../../shared/correctMap';
@@ -48,20 +53,10 @@ import { type MapIdentity, storedName } from './globeName';
 import { canStore, keepGlobe, listStored, makeRoom } from './globeStore';
 import { centresLocally, coverFineLocally } from './localCoverage';
 import { type MonthHour, runsFor } from './precomputePlan';
-import { sleep } from './sleep.ts';
 import type { Endpoint } from './types';
 
 /** What `dropLater` matches on when the job is stopped. */
 export const PRECOMPUTE_GROUP = 'precompute';
-
-/**
- * How often a waiting job looks for a charger.
- *
- * Long enough to cost nothing — the answer comes from a broadcast
- * Android already holds — and short enough that plugging the device in
- * and watching the screen does not feel broken.
- */
-const CHARGER_POLL_MS = 5000;
 
 /**
  * What the notification says, in the reader's language.
@@ -290,24 +285,57 @@ export async function precompute(
   }
 }
 
+/** Whether the person still wants the job held back for a charger. */
+const chargerWanted = (): boolean =>
+  useSettingsStore.getState().precomputeOnCharger;
+
+/** Whether there is any reason left to keep waiting. */
+const stillWaiting = (signal: AbortSignal): boolean =>
+  !signal.aborted && chargerWanted() && !Engine.isCharging();
+
+/**
+ * Resolves the next time anything that could end the wait happens.
+ *
+ * Three things can: the charger goes in, the person turns the charger
+ * rule off, or the job is stopped. Each is an event, and none of them is
+ * a timer — see `onPowerChanged` for why a timer cannot be used here.
+ * Whichever arrives first drops all three, so a wait of an hour costs
+ * one wake-up rather than seven hundred.
+ */
+function nextChange(signal: AbortSignal): Promise<void> {
+  return new Promise<void>((resolve) => {
+    const finish = () => {
+      offPower();
+      offSetting();
+      signal.removeEventListener('abort', finish);
+      resolve();
+    };
+    const offPower = Engine.onPowerChanged(finish);
+    // Every settings change rather than this one alone, because the store
+    // reports the whole state. The caller checks what it cares about
+    // afterwards, so a wake-up for the wrong setting costs a comparison.
+    const offSetting = useSettingsStore.subscribe(finish);
+    signal.addEventListener('abort', finish);
+  });
+}
+
 /**
  * Holds until the device is on power, if that is what was asked for.
  *
  * Returns false only when the job was stopped while waiting, which the
- * caller treats exactly as Stop — the flag is read again on the way out
- * rather than trusted from before the wait.
+ * caller treats exactly as Stop — the signal is read again on the way
+ * out rather than trusted from before the wait.
  *
- * A poll rather than a subscription. The wait is minutes at most, the
- * answer costs nothing to ask for, and a listener would be one more
- * thing with a lifetime to get wrong.
+ * The rule is read on every pass rather than once at the top, so turning
+ * the switch off during a wait starts the work rather than being noticed
+ * whenever the next map happens to finish.
  */
 async function waitForCharger(
   labels: PrecomputeLabels,
   total: number,
   signal: AbortSignal,
 ): Promise<boolean> {
-  if (!useSettingsStore.getState().precomputeOnCharger) return true;
-  if (Engine.isCharging()) return true;
+  if (!stillWaiting(signal)) return !signal.aborted;
 
   const store = usePrecomputeStore.getState();
   store.setWaiting(true);
@@ -328,8 +356,8 @@ async function waitForCharger(
     // that built the waits as values would have to know how many there
     // were, and that is exactly what is not known — it is however long
     // somebody takes to reach a charger.
-    while (!signal.aborted && !Engine.isCharging()) {
-      await sleep(CHARGER_POLL_MS, signal);
+    while (stillWaiting(signal)) {
+      await nextChange(signal);
     }
   } finally {
     usePrecomputeStore.getState().setWaiting(false);
