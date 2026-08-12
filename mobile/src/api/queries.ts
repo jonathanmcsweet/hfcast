@@ -52,7 +52,7 @@ import {
 } from '../data/types';
 import { useSettled } from '../hooks/useSettled';
 import { hasSkia } from '../render/available';
-import { today } from '../store/usePathStore';
+import { today, usePathStore } from '../store/usePathStore';
 import { useSettingsStore } from '../store/useSettingsStore';
 import {
   activePreset,
@@ -298,6 +298,7 @@ function useMapRun(from: Endpoint, band: BandKey, reportedHour: number) {
   const month = today().slice(0, 7);
   const date = `${month}-01`;
   const station = useStation();
+  const ready = usePathStore((state) => state.ready);
   const local = canMapLocally();
   const nowcast = nowcastFrom(useSpaceWeather().data);
   // Long enough to swallow a sweep, short enough that choosing one hour
@@ -311,8 +312,9 @@ function useMapRun(from: Endpoint, band: BandKey, reportedHour: number) {
     hour,
     // Held while the station dialog is open, and run once when it closes.
     // Every control in that dialog changes the answer, and an area run is
-    // the expensive one.
-    enabled: !station.editing,
+    // the expensive one. Held again until the first-run pane has been
+    // answered — see `useFirstRunAnswered`.
+    enabled: !station.editing && ready,
 
     /**
      * The key for one of these queries.
@@ -441,6 +443,7 @@ function useMapRun(from: Endpoint, band: BandKey, reportedHour: number) {
 export function usePrediction(from: Endpoint, to: Endpoint | null) {
   const date = today();
   const station = useStation();
+  const ready = usePathStore((state) => state.ready);
   // The engine is in this build, or it is not; it cannot appear part way
   // through a session, so this is not state.
   const local = canPredictLocally();
@@ -502,8 +505,9 @@ export function usePrediction(from: Endpoint, to: Endpoint | null) {
           toLabel: to.label,
         });
     },
-    // Held while the station dialog is open, and run once when it closes.
-    enabled: !station.editing,
+    // Held while the station dialog is open, and run once when it closes,
+    // and until the reader has said where they are.
+    enabled: !station.editing && ready,
     // So the screen behind the dialog keeps the forecast it already had
     // rather than falling back to the loading state on every adjustment.
     // It also covers the climatology-to-now-cast change: the first answer
@@ -529,6 +533,7 @@ export function usePrediction(from: Endpoint, to: Endpoint | null) {
  * would be worse than none.
  */
 export function useSounding(from: Endpoint) {
+  const ready = usePathStore((state) => state.ready);
   // As for space weather, the source follows the engine. GIRO restricts its
   // CORS header to its own origin, which blocks a browser and not a native
   // app, so a device asks GIRO and the web build asks the server.
@@ -549,7 +554,7 @@ export function useSounding(from: Endpoint) {
       local
         ? fetchSoundingDirect(from.lat, from.lon)
         : fetchSounding(from.lat, from.lon),
-    enabled: !local || covered,
+    enabled: ready && (!local || covered),
     // Stations sound every 5 to 15 minutes.
     staleTime: 5 * 60 * 1000,
     gcTime: 15 * 60 * 1000,
