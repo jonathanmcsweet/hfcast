@@ -382,6 +382,16 @@
     "forgotten": "Mapas guardados borrados.",
     "onCardNow": "Guardados en la tarjeta de memoria.",
     "onPhoneNow": "Guardados en el almacenamiento interno.",
-    "a11yProgress": "Calculando mapas por adelantado. {{done}} de {{total}} hechos."
+    "a11yProgress": "Calculando mapas por adelantado. {{done}} de {{total}} hechos.",
+    "notifyTitle": "Calculando mapas",
+    "notifyProgress": "{{done}} de {{total}} mapas",
+    "waitingTitle": "Esperando corriente",
+    "waitingForCharger": "Conecta el dispositivo, o desactiva «{{setting}}» abajo para trabajar con batería.",
+    "onCharger": "Solo mientras carga",
+    "batteryNote": "Un trabajo largo con batería calienta el dispositivo y gasta mucha. Déjalo enchufado si puedes."
+  },
+  "preferences": {
+    "title": "Preferencias",
+    "close": "Cerrar preferencias"
   }
 }

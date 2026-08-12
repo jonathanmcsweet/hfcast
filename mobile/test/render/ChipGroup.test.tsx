@@ -1,6 +1,6 @@
 import { fireEvent } from '@testing-library/react-native';
 
-import ChipGroup from '../../src/components/station/ChipGroup';
+import ChipGroup from '../../src/components/ChipGroup';
 import { renderWithApp } from './harness';
 
 describe('the chip row', () => {

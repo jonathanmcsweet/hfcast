@@ -1,7 +1,15 @@
 package com.hfcast.engine
 
+import android.Manifest
+import android.content.BroadcastReceiver
+import android.content.Context
+import android.content.Intent
+import android.content.IntentFilter
+import android.os.BatteryManager
+import android.os.Build
 import android.util.Base64
 import android.util.Log
+import expo.modules.interfaces.permissions.Permissions
 import expo.modules.kotlin.Promise
 import expo.modules.kotlin.exception.CodedException
 import expo.modules.kotlin.modules.Module
@@ -28,6 +36,21 @@ import org.json.JSONObject
 
 internal class EngineFailedException(message: String) :
   CodedException("The prediction engine failed: $message")
+
+/**
+ * One strip of a batch: its answer, and what it cost.
+ *
+ * A value rather than three totals the threads all add to. Adding to a
+ * shared total is the only reason those threads would need a lock, and
+ * the sum is wanted once, at the end, by one thread.
+ */
+private data class Strip(
+  val answer: String?,
+  /** Wall time inside the engine, in nanoseconds. */
+  val computeNs: Long,
+  /** Processor time this thread actually held, in milliseconds. */
+  val cpuMs: Long,
+)
 
 class HfcastEngineModule : Module() {
   /**
@@ -63,8 +86,170 @@ class HfcastEngineModule : Module() {
   @Volatile
   private var tracing = false
 
+  /**
+   * What listens for the charger being plugged in or pulled out.
+   *
+   * Null unless something is waiting to hear about it. Registered when
+   * the app starts listening and taken down when it stops, so an app
+   * that is not waiting for a charger holds no receiver at all.
+   */
+  private var power: BroadcastReceiver? = null
+
   override fun definition() = ModuleDefinition {
     Name("HfcastEngine")
+
+    /**
+     * The two things this module tells the app about.
+     *
+     * `onBackgroundStop` is Stop pressed on the notification. The button
+     * ends the job through the same path the button inside the app uses,
+     * rather than tearing the service down under it, so a job always ends
+     * one way and always leaves the disk in one state.
+     *
+     * `onPowerChanged` is the charger going in or coming out. A job
+     * waiting for one has to be told rather than asking on a timer,
+     * because React Native's timers do not run while the screen is off —
+     * see `waitForCharger` in `precompute.ts` for what that cost.
+     */
+    Events("onBackgroundStop", "onPowerChanged")
+
+    OnCreate {
+      PrecomputeService.onStopRequested = {
+        sendEvent("onBackgroundStop", emptyMap<String, Any>())
+      }
+    }
+
+    /**
+     * Starts listening for the charger, once something wants to know.
+     *
+     * Registered from code rather than in the manifest, which is what
+     * makes it exempt from the limits Android puts on broadcasts a
+     * manifest asks for, and what gets it delivered with the screen off
+     * while the service holds this process up.
+     */
+    OnStartObserving("onPowerChanged") {
+      val context = appContext.reactContext
+      if (context == null || power != null) return@OnStartObserving
+      val receiver = object : BroadcastReceiver() {
+        override fun onReceive(from: Context?, intent: Intent?) {
+          // Only that it changed. What it changed to is read by the app
+          // through `isCharging`, so there is one answer to that question
+          // rather than two that can disagree.
+          sendEvent("onPowerChanged", emptyMap<String, Any>())
+        }
+      }
+      val filter = IntentFilter().apply {
+        addAction(Intent.ACTION_POWER_CONNECTED)
+        addAction(Intent.ACTION_POWER_DISCONNECTED)
+      }
+      // From Android 13 a registered receiver has to say whether other
+      // apps may reach it. These are broadcasts only the system sends, so
+      // nothing outside this app should be able to imitate one.
+      if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+        context.registerReceiver(receiver, filter, Context.RECEIVER_NOT_EXPORTED)
+      } else {
+        context.registerReceiver(receiver, filter)
+      }
+      power = receiver
+    }
+
+    OnStopObserving("onPowerChanged") {
+      releasePower()
+    }
+
+    OnDestroy {
+      PrecomputeService.onStopRequested = null
+      releasePower()
+    }
+
+    /**
+     * Starts, or updates, the notification that keeps a job running.
+     *
+     * One function for both because the service is started with the same
+     * intent either way: Android delivers it to the running instance if
+     * there is one, and `setOnlyAlertOnce` keeps a moving count from
+     * making a sound. The wording arrives from the app rather than being
+     * written here — the app has five languages and this module has none.
+     *
+     * Returns whether it started. False on a device that refuses the
+     * service, and the job then runs exactly as it did before: fine while
+     * the app is open, stopped when it is not.
+     */
+    Function("startBackgroundWork") { title: String, text: String, done: Int, total: Int, stopLabel: String ->
+      return@Function runService(
+        PrecomputeService.ACTION_START,
+        title,
+        text,
+        done,
+        total,
+        stopLabel,
+      )
+    }
+
+    /**
+     * Asks to be allowed to show the job's notification.
+     *
+     * Android requires a foreground service to post one, and from Android
+     * 13 it also requires the person to have agreed to notifications.
+     * Declaring the permission is not agreeing to it: without the ask, the
+     * service starts and runs and its notification is dropped in silence,
+     * so a job computing away in the background has nothing on screen
+     * saying so and no Stop button (user, 2026-08-12).
+     *
+     * Answering false does not stop a job. The work still runs and the
+     * service still holds the process up; what is lost is the progress and
+     * the button, which is the person's own choice to make.
+     */
+    AsyncFunction("askToNotify") { promise: Promise ->
+      if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
+        // Before Android 13 there is nothing to ask for: a notification
+        // needs no permission and this one is always shown.
+        promise.resolve(true)
+        return@AsyncFunction
+      }
+      val permissions = appContext.permissions
+      if (permissions == null) {
+        promise.resolve(false)
+        return@AsyncFunction
+      }
+      Permissions.askForPermissionsWithPermissionsManager(
+        permissions,
+        promise,
+        Manifest.permission.POST_NOTIFICATIONS,
+      )
+    }
+
+    /** Takes the notification down and lets the processor sleep again. */
+    Function("stopBackgroundWork") {
+      return@Function runService(PrecomputeService.ACTION_STOP, "", "", 0, 0, "")
+    }
+
+    /**
+     * Whether the device is on power.
+     *
+     * Read from the sticky battery broadcast rather than
+     * `BatteryManager.isCharging`, which arrived in Android 6 — the older
+     * of the two builds targets Android 5. Asking with a null receiver
+     * returns the last broadcast without registering anything, so this
+     * costs no lifecycle and can be called whenever the answer is wanted.
+     *
+     * This is the answer; `onPowerChanged` is only the prompt to ask for
+     * it again. A job waiting for a charger listens for the event and
+     * then reads this, so there is one place that decides what counts as
+     * charging.
+     *
+     * "Full" counts as charging. A device left on a charger overnight
+     * reports full rather than charging, and a job that stopped at 100%
+     * would be stopping at exactly the moment it was safest to run.
+     */
+    Function("isCharging") {
+      val context = appContext.reactContext ?: return@Function false
+      val status = context
+        .registerReceiver(null, IntentFilter(Intent.ACTION_BATTERY_CHANGED))
+        ?.getIntExtra(BatteryManager.EXTRA_STATUS, -1)
+        ?: -1
+      return@Function onPower(status)
+    }
 
     /**
      * Turns the timing lines on or off.
@@ -121,7 +306,7 @@ class HfcastEngineModule : Module() {
      */
     AsyncFunction("writeFile") { name: String, contents: String, promise: Promise ->
       worker.execute {
-        if (name.contains("..") || name.startsWith("/")) {
+        if (!isEngineInputName(name)) {
           promise.reject(EngineFailedException("bad file name: $name"))
           return@execute
         }
@@ -225,25 +410,25 @@ class HfcastEngineModule : Module() {
           promise.reject(EngineFailedException("bad map name: $name"))
           return@execute
         }
-        var part: File? = null
+        val writing = File(file.parentFile, "${file.name}$PART")
         try {
           val bytes = Base64.decode(contents, Base64.NO_WRAP)
           file.parentFile?.mkdirs()
-          val writing = File(file.parentFile, "${file.name}$PART")
-          part = writing
           writing.writeBytes(bytes)
           if (!writing.renameTo(file)) {
             promise.reject(EngineFailedException("could not store $name"))
             return@execute
           }
-          part = null
           promise.resolve(bytes.size)
         } catch (e: Throwable) {
           promise.reject(EngineFailedException(e.message ?: e.toString()))
         } finally {
           // A part file left behind would be counted as room used and
-          // never read, so a failed write cleans up after itself.
-          part?.delete()
+          // never read, so a failed write cleans up after itself. Asked
+          // unconditionally rather than tracked through a variable: a
+          // rename that worked left nothing here to delete, and deleting
+          // what is not there is how `File.delete` reports false.
+          writing.delete()
         }
       }
     }
@@ -258,22 +443,14 @@ class HfcastEngineModule : Module() {
     AsyncFunction("listMapCache") { promise: Promise ->
       files.execute {
         try {
-          val listed = JSONArray()
-          val found = maps().listFiles()
-          if (found != null) {
-            // A loop for its effect, over a directory listing that the
-            // platform hands back as an array.
-            for (file in found) {
-              if (!file.isFile || file.name.endsWith(PART)) continue
-              listed.put(
-                JSONObject()
-                  .put("name", file.name)
-                  .put("bytes", file.length())
-                  .put("at", file.lastModified()),
-              )
-            }
-          }
-          promise.resolve(listed.toString())
+          // Reading the directory is the effect; what a listing looks like
+          // is a rule, and it lives in `EngineRules.kt` where a test can
+          // reach it. The platform hands back null for a directory it
+          // could not read.
+          val listed = (maps().listFiles() ?: emptyArray())
+            .filter { it.isFile && isMapName(it.name) }
+            .map { StoredMap(it.name, it.length(), it.lastModified()) }
+          promise.resolve(listingJson(listed))
         } catch (e: Throwable) {
           promise.reject(EngineFailedException(e.message ?: e.toString()))
         }
@@ -284,12 +461,10 @@ class HfcastEngineModule : Module() {
     AsyncFunction("removeMapCache") { names: List<String>, promise: Promise ->
       files.execute {
         try {
-          var gone = 0
-          for (name in names) {
-            val file = mapFile(name) ?: continue
-            if (file.delete()) gone += 1
-          }
-          promise.resolve(gone)
+          // `count` rather than a running total: the answer is how many of
+          // them went, which is what counting a list is for. A name that is
+          // not a map name deletes nothing and counts as nothing.
+          promise.resolve(names.count { mapFile(it)?.delete() == true })
         } catch (e: Throwable) {
           promise.reject(EngineFailedException(e.message ?: e.toString()))
         }
@@ -355,11 +530,13 @@ class HfcastEngineModule : Module() {
         // of one in every total.
         val inFlight = AtomicInteger(0)
         val widest = AtomicInteger(0)
-        var computeNs = 0L
-        var cpuMs = 0L
         try {
+          // Each strip answers with its own timings rather than adding them
+          // to a total the others are also adding to. Same numbers, and the
+          // threads no longer share anything to lock: the sum is taken once,
+          // afterwards, by the thread that wanted it.
           val running = requests.map { request ->
-            pool.submit<String?> {
+            pool.submit<Strip> {
               val here = inFlight.incrementAndGet()
               widest.updateAndGet { most -> if (here > most) here else most }
               val began = System.nanoTime()
@@ -371,45 +548,39 @@ class HfcastEngineModule : Module() {
               // "the threads are waiting for a core".
               val cpuBegan = android.os.SystemClock.currentThreadTimeMillis()
               try {
-                predictNative(request)
+                Strip(
+                  answer = predictNative(request),
+                  computeNs = System.nanoTime() - began,
+                  cpuMs = android.os.SystemClock.currentThreadTimeMillis() - cpuBegan,
+                )
               } finally {
-                val cpuHere = android.os.SystemClock.currentThreadTimeMillis() - cpuBegan
-                synchronized(this) {
-                  computeNs += System.nanoTime() - began
-                  cpuMs += cpuHere
-                }
                 inFlight.decrementAndGet()
               }
             }
           }
           // `get` in request order, so the results line up with what was
           // asked rather than with what finished first.
-          val answers = running.map { it.get() }
+          val strips = running.map { it.get() }
+          val answers = strips.map { it.answer }
           if (tracing) {
-            val wallMs = (System.nanoTime() - startedAt) / 1_000_000
-            val busyMs = computeNs / 1_000_000
-            val characters = answers.sumOf { it?.length ?: 0 }
-            // Two ratios, and they answer different questions.
-            //
-            // `engine / wall` counts tasks in flight. It says eight even
-            // when all eight are only waiting, so on its own it cannot tell
-            // a busy pool from a stalled one — a Pixel 8 reported 7.8 here
-            // while each strip ran five times slower than it does alone.
-            //
-            // `cpu / wall` counts cores actually held. In flight high and
-            // busy low means the threads are waiting for cores — the
-            // scheduler, or thermal limits. Both high while each strip is
-            // slow means the cores are held but starved, which is memory.
-            val flight = if (wallMs > 0) busyMs.toDouble() / wallMs else 0.0
-            val busy = if (wallMs > 0) cpuMs.toDouble() / wallMs else 0.0
+            // Measuring is the effect; what the line says about the
+            // measurements is a rule, and it is written and tested in
+            // `EngineRules.kt`. A Pixel 8 reported 7.8 strips in flight
+            // while each one ran five times slower than it does alone,
+            // which is why both ratios are on the line and not just one.
             Log.i(
               "hfcast",
-              "batch | ${requests.size} strips | $width threads asked | " +
-                "${widest.get()} at once | wall $wallMs ms | " +
-                "engine $busyMs ms | cpu $cpuMs ms | " +
-                "${"%.1f".format(flight)} in flight | " +
-                "${"%.1f".format(busy)} cores busy | " +
-                "$characters chars back",
+              batchLine(
+                BatchTiming(
+                  strips = requests.size,
+                  threadsAsked = width,
+                  widest = widest.get(),
+                  wallMs = (System.nanoTime() - startedAt) / 1_000_000,
+                  engineMs = strips.sumOf { it.computeNs } / 1_000_000,
+                  cpuMs = strips.sumOf { it.cpuMs },
+                  characters = answers.sumOf { it?.length ?: 0 },
+                ),
+              ),
             )
           }
           val missing = answers.indexOfFirst { it == null }
@@ -429,6 +600,24 @@ class HfcastEngineModule : Module() {
     OnDestroy {
       worker.shutdownNow()
       files.shutdownNow()
+    }
+  }
+
+  /**
+   * Stops listening for the charger, if it was.
+   *
+   * Unregistering a receiver that is already gone throws, and this is
+   * reached from two places that can both be last — the app dropping its
+   * listener and the module being destroyed — so the failure is caught
+   * rather than ordered around.
+   */
+  private fun releasePower() {
+    val receiver = power ?: return
+    power = null
+    try {
+      appContext.reactContext?.unregisterReceiver(receiver)
+    } catch (e: IllegalArgumentException) {
+      Log.w("hfcast", "the charger receiver was already gone: ${e.message}")
     }
   }
 
@@ -456,6 +645,45 @@ class HfcastEngineModule : Module() {
    * which is the right arrangement for something that can be computed
    * again.
    */
+  /**
+   * Hands one intent to the service, and says whether it was taken.
+   *
+   * `startForegroundService` from Android 8, which requires the service
+   * to call `startForeground` within a few seconds — it does, first
+   * thing. Failures are caught rather than thrown: a device that refuses
+   * to start it is a device where maps compute only while the app is
+   * open, which is what happened everywhere before this existed, and is
+   * not a reason to fail the job.
+   */
+  private fun runService(
+    action: String,
+    title: String,
+    text: String,
+    done: Int,
+    total: Int,
+    stopLabel: String,
+  ): Boolean {
+    val context = appContext.reactContext ?: return false
+    val intent = Intent(context, PrecomputeService::class.java)
+      .setAction(action)
+      .putExtra(PrecomputeService.EXTRA_TITLE, title)
+      .putExtra(PrecomputeService.EXTRA_TEXT, text)
+      .putExtra(PrecomputeService.EXTRA_DONE, done)
+      .putExtra(PrecomputeService.EXTRA_TOTAL, total)
+      .putExtra(PrecomputeService.EXTRA_STOP, stopLabel)
+    return try {
+      if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+        context.startForegroundService(intent)
+      } else {
+        context.startService(intent)
+      }
+      true
+    } catch (e: Exception) {
+      Log.w("hfcast", "could not start the background map service: ${e.message}")
+      false
+    }
+  }
+
   private fun cardRoot(): File? {
     val context = appContext.reactContext ?: return null
     return context.getExternalFilesDirs(null)
@@ -492,11 +720,8 @@ class HfcastEngineModule : Module() {
    * cannot contain a separator cannot climb out of the directory it is
    * meant to stay in.
    */
-  private fun mapFile(name: String): File? {
-    if (name.isEmpty() || name.contains("/") || name.contains("..")) return null
-    if (name.endsWith(PART)) return null
-    return File(maps(), name)
-  }
+  private fun mapFile(name: String): File? =
+    if (isMapName(name)) File(maps(), name) else null
 
   private external fun predictNative(request: String): String?
 
@@ -504,14 +729,6 @@ class HfcastEngineModule : Module() {
   private external fun setTracingNative(on: Boolean)
 
   companion object {
-    /**
-     * What a map being written is called until it is written.
-     *
-     * A name nothing else can take, so a listing can tell an unfinished
-     * write from a stored map and neither counts the other.
-     */
-    private const val PART = ".writing"
-
     init {
       // Named without the "lib" prefix and the extension, as the loader
       // expects. The four ABIs are in src/main/jniLibs; Android picks the one

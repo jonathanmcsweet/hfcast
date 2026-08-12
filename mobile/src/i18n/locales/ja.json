@@ -382,6 +382,16 @@
     "forgotten": "保存した地図を削除しました。",
     "onCardNow": "メモリーカードに保存しています。",
     "onPhoneNow": "本体のストレージに保存しています。",
-    "a11yProgress": "地図を前もって計算しています。{{total}} 件中 {{done}} 件が完了しました。"
+    "a11yProgress": "地図を前もって計算しています。{{total}} 件中 {{done}} 件が完了しました。",
+    "notifyTitle": "地図を計算中",
+    "notifyProgress": "{{total}} 件中 {{done}} 件",
+    "waitingTitle": "充電を待っています",
+    "waitingForCharger": "電源につなぐか、下の「{{setting}}」をオフにするとバッテリーで実行します。",
+    "onCharger": "充電中のみ",
+    "batteryNote": "長い処理をバッテリーで行うと本体が熱くなり、電池を多く使います。できるだけ電源につないでおいてください。"
+  },
+  "preferences": {
+    "title": "言語と単位",
+    "close": "言語と単位を閉じる"
   }
 }
