@@ -93,4 +93,64 @@ test.describe('the first launch', () => {
     ).toBe(1);
     expect([...places][0] ?? DEFAULT_PLACE).toBe(DEFAULT_PLACE);
   });
+
+  /**
+   * A common name matches four thousand bundled towns, so typing one adds
+   * four rows to a page that was already full. Those rows used to push the
+   * only two ways forward off the bottom, and the first person to meet
+   * this screen did not know to scroll (user, 2026-08-12).
+   *
+   * "San" is deliberate: it matches far more than the five the app calls
+   * enough, so nothing is asked of the network and the test needs no
+   * geocoder.
+   */
+  test('keeps both ways forward on screen once matches appear', async ({ page }) => {
+    await stubApi(page);
+    await page.clock.install({
+      time: new Date(Date.UTC(2026, 7, 5, 12, 0, 0)),
+    });
+    await page.clock.resume();
+    await page.goto('/');
+
+    const skip = page.getByRole('button', { name: /skip/i }).first();
+    const carryOn = page.getByRole('button', { name: /continue/i }).first();
+    await expect(skip).toBeVisible({ timeout: 15_000 });
+
+    await page.getByPlaceholder(/town, coordinates/i).fill('San');
+    // The alternatives are on screen, which is the state that used to
+    // push the buttons away.
+    await expect(page.getByText('San Antonio').first()).toBeVisible({
+      timeout: 15_000,
+    });
+
+    // In the viewport, not merely in the page. Visible is true of an
+    // element that is only reachable by scrolling.
+    await expect(skip).toBeInViewport();
+    await expect(carryOn).toBeInViewport();
+  });
+
+  test('closes the list once a place has been picked', async ({ page }) => {
+    await stubApi(page);
+    await page.clock.install({
+      time: new Date(Date.UTC(2026, 7, 5, 12, 0, 0)),
+    });
+    await page.clock.resume();
+    await page.goto('/');
+
+    await expect(
+      page.getByRole('button', { name: /skip/i }).first(),
+    ).toBeVisible({ timeout: 15_000 });
+    await page.getByPlaceholder(/town, coordinates/i).fill('San');
+    await expect(page.getByText('San Antonio').first()).toBeVisible({
+      timeout: 15_000,
+    });
+
+    await page.getByText('San Antonio').first().click();
+
+    // The one picked is now the answer above, and the others are gone. A
+    // list still offering them beside the choice reads as a tap that did
+    // nothing, which is how this was reported.
+    await expect(page.getByText('San Antonio').first()).toBeVisible();
+    await expect(page.getByText('San Angelo')).toHaveCount(0);
+  });
 });
