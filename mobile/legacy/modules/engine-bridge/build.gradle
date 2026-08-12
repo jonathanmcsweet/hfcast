@@ -1,23 +1,22 @@
-// The Android 5.0 build of modules/engine-bridge.
+// This is the Expo SDK 57 build of this module. The Android 5.0 build runs on
+// SDK 50 and cannot read this file; it gets `legacy/engine-bridge.build.gradle`
+// instead, copied in by tools/build-android.sh.
 //
-// That build runs on Expo SDK 50, which has no `expo-module-gradle-plugin`, so
-// it cannot read the file this one replaces. It also has no pika compiler
-// plugin and does not need one: SDK 50 reads each function's argument and
-// result types when the module is created rather than writing them at compile
-// time.
-//
-// tools/build-android.sh copies this over `modules/engine-bridge/android/
-// build.gradle` in the legacy tree. It expects one file here for every module,
-// and stops if one is missing.
-apply plugin: 'com.android.library'
+// `expo-module-gradle-plugin` is what every module inside Expo itself uses, and
+// from SDK 57 it is the only supported way to build one. It brings in the pika
+// compiler plugin, which writes each function's argument and result types at
+// compile time. Without pika the module still compiles, but every type is left
+// as a placeholder that throws the moment the module is created — which stops
+// React Native before it draws anything, so the application opens to a black
+// screen with one line in the log. The older `applyKotlinExpoModulesCorePlugin`
+// used here before does not apply pika.
+plugins {
+  id 'com.android.library'
+  id 'expo-module-gradle-plugin'
+}
 
 group = 'com.hfcast.engine'
 version = '1.0.0'
-
-def expoModulesCorePlugin = new File(project(":expo-modules-core").projectDir.absolutePath, "ExpoModulesCorePlugin.gradle")
-apply from: expoModulesCorePlugin
-applyKotlinExpoModulesCorePlugin()
-useCoreDependencies()
 
 // The prediction engine itself is the Rust in rust/, built by
 // ../build-rust.sh into src/main/jniLibs. Gradle packages whatever is there;
@@ -34,4 +33,19 @@ android {
       jniLibs.srcDirs = ['src/main/jniLibs']
     }
   }
+  // `EngineRules.kt` reads and writes nothing, so it runs on a plain JVM.
+  // Everything else here needs a device, and the nearest one is somebody's
+  // telephone — so the rules are the part worth a test that runs in
+  // seconds. `unitTests.returnDefaultValues` lets those tests call the
+  // stubbed android.jar without each call throwing.
+  testOptions {
+    unitTests.returnDefaultValues = true
+  }
+}
+
+dependencies {
+  testImplementation 'junit:junit:4.13.2'
+  // The real org.json, because android.jar ships only stubs of it and the
+  // listing is built with JSONArray and JSONObject.
+  testImplementation 'org.json:json:20240303'
 }
