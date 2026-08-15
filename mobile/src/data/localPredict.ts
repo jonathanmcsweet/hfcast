@@ -1,6 +1,7 @@
 import { bearingDeg, distanceKm } from '../../../shared/geo.ts';
 import type { WireCell, WirePrediction } from '../../../shared/wire.ts';
 import * as Engine from '../../modules/engine-bridge';
+import type { EngineModel } from '../store/useSettingsStore';
 import { type Station, usesBeam } from '../store/useStationStore';
 import { antennaOnDisk } from './antennaFile';
 import { correctCells, factorsFor, type RawBandHour } from './correct';
@@ -96,6 +97,34 @@ export interface LocalRequest {
   station: Station;
   /** Absent offline, and then the run is climatology. */
   nowcast?: Nowcast | undefined;
+  /** Which model answers. Absent runs the classic engine unchanged. */
+  engine?: EngineModel | undefined;
+}
+
+/**
+ * The request fields that pick the model.
+ *
+ * The classic choice sends the sunspot number exactly as it always has.
+ * The new model instead names itself and the calendar day: with a live
+ * effective index that index conditions the run, and without one the
+ * engine derives its own from the built-in day-of-year correction —
+ * the offline form that is measured to beat the classic run with no
+ * network (engine repository, `docs/offline.md`). The two forms are
+ * exclusive because the engine refuses `ssn` beside `engine:"nowcast"`:
+ * they would disagree about what the run should do.
+ */
+export function engineFields(
+  engine: EngineModel | undefined,
+  date: Date,
+  ssn: number,
+  nowcast: Nowcast | undefined,
+): Record<string, unknown> {
+  if (engine !== 'nowcast') return { ssn };
+  return {
+    engine: 'nowcast',
+    day: date.getUTCDate(),
+    ...(nowcast ? { essn: nowcast.effectiveSsn } : {}),
+  };
 }
 
 /**
@@ -155,7 +184,7 @@ export async function predictLocally(
     toLabel: request.to.label,
     month,
     year,
-    ssn,
+    ...engineFields(request.engine, request.date, ssn, request.nowcast),
     watts: request.station.watts,
     requiredSnrDb,
     noiseDbw: NOISE_DBW,

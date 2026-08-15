@@ -53,6 +53,10 @@ export function keyFor(request: SurveyRequest): string {
     request.kpMax24h === undefined
       ? 'climatology'
       : stormWidening(request.kpMax24h).toFixed(2),
+    // Two models, two answers, and the new model's offline form moves
+    // along a day-of-year curve — the same terms the prediction key adds.
+    request.engine ?? 'voacap',
+    request.engine === 'nowcast' ? request.date.getUTCDate() : 0,
   ].join('|');
 }
 

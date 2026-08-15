@@ -7,7 +7,7 @@ import { useDirection } from '../hooks/useDirection';
 import { useUnits } from '../hooks/useUnits';
 import { LANGUAGE_NAMES, SUPPORTED } from '../i18n';
 import type { SupportedLanguage } from '../i18n';
-import { useSettingsStore } from '../store/useSettingsStore';
+import { ENGINE_MODELS, useSettingsStore } from '../store/useSettingsStore';
 import { radius, spacing, typography } from '../theme';
 import type { AppTheme } from '../theme';
 import ChipGroup from './ChipGroup';
@@ -41,6 +41,8 @@ export default function PreferencesModal({ visible, onDismiss }: Props) {
   const { setLanguage } = useDirection();
   const units = useSettingsStore((s) => s.units);
   const setUnits = useSettingsStore((s) => s.setUnits);
+  const engineModel = useSettingsStore((s) => s.engineModel);
+  const setEngineModel = useSettingsStore((s) => s.setEngineModel);
   const resolved = useUnits();
   const ui = theme.colors.ui;
 
@@ -109,6 +111,24 @@ export default function PreferencesModal({ visible, onDismiss }: Props) {
             label={unitLabel}
             a11yLabel={unitLabel}
           />
+
+          {heading(t('settings.engineSection'))}
+          <ChipGroup
+            options={ENGINE_MODELS}
+            selected={engineModel}
+            onSelect={setEngineModel}
+            label={(model) => t(`settings.engine.${model}`)}
+            a11yLabel={(model) => t(`settings.engine.${model}`)}
+          />
+          {
+            /* One sentence of what the choice means, because the two chip
+               names alone cannot say why the numbers just moved. */
+          }
+          <Text
+            style={[typography.caption, styles.caption, { color: ui.text3 }]}
+          >
+            {t('settings.engine.caption')}
+          </Text>
         </ScrollView>
       </Modal>
     </Portal>
@@ -126,4 +146,5 @@ const styles = StyleSheet.create({
   headerRow: { flexDirection: 'row', alignItems: 'center' },
   title: { flex: 1 },
   heading: { marginTop: spacing.lg, marginBottom: spacing.sm },
+  caption: { marginTop: spacing.sm },
 });

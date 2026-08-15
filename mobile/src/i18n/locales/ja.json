@@ -141,11 +141,17 @@
     "languageSection": "言語",
     "stationSection": "無線機",
     "unitsSection": "単位",
+    "engineSection": "予報モデル",
     "units": {
       "auto": "端末に合わせる",
       "autoNamed": "端末に合わせる（{{system}}）",
       "metric": "メートル法",
       "imperial": "ヤード・ポンド法"
+    },
+    "engine": {
+      "voacap": "VOACAP（クラシック）",
+      "nowcast": "HFcast（新）",
+      "caption": "新しいモデルは毎日の予報を現在の太陽活動に合わせて調整します。実際の電離層観測と比較すると、ネットワークがなくてもクラシックモデルより近い結果が測定されています。"
     },
     "refresh": "今すぐ更新",
     "diagnosticsSection": "診断",

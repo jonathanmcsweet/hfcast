@@ -18,6 +18,7 @@ import type {
   Sounding,
   SpaceWeather,
 } from '../data/types';
+import type { EngineModel } from '../store/useSettingsStore';
 /**
  * Where the prediction server lives.
  *
@@ -102,6 +103,8 @@ export interface PredictionParams {
   date: string;
   /** Ask the server to drive the run from current conditions. */
   nowcast: boolean;
+  /** Which model answers. Absent runs the classic engine unchanged. */
+  engine?: EngineModel | undefined;
   /**
    * Power, mode and antenna, already as query parameters. Built by
    * `stationParams` so the app and the server cannot disagree about the
@@ -120,6 +123,7 @@ export function fetchPrediction(
     toLabel: p.toLabel,
     date: p.date,
     nowcast: p.nowcast ? '1' : '',
+    engine: p.engine ?? '',
     ...p.station,
   }, checkPredictionResponse<PredictionResponse>);
 }
@@ -138,6 +142,7 @@ export function fetchSurvey(
     fromLabel: p.fromLabel,
     date: p.date,
     nowcast: p.nowcast ? '1' : '',
+    engine: p.engine ?? '',
     ...p.station,
   }, checkPredictionResponse<PredictionResponse>);
 }

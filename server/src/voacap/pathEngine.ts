@@ -38,16 +38,25 @@ export type PathEngine = (
 
 const rust: PathEngine = (request) => runEngine(request);
 
-const fortran: PathEngine = async (request, txAntenna) =>
-  parseVoacapOutput(
+const fortran: PathEngine = async (request, txAntenna) => {
+  const { ssn } = request;
+  // A deck states a sunspot number and nothing else; the new model's
+  // conditioning has no card to go on. Refusing beats silently running
+  // the classic physics under the new model's name.
+  if (request.engine === 'nowcast' || ssn === undefined) {
+    throw new Error('the fortran engine answers only the classic model');
+  }
+  return parseVoacapOutput(
     await runVoacap(buildDeck({
       ...request,
+      ssn,
       ...(txAntenna
         ? { txAntennaFile: txAntenna.file, txBeamDeg: txAntenna.beamDeg }
         : {}),
     })),
     BANDS_BY_FREQ,
   );
+};
 
 /** Which engine this process uses. `HFCAST_ENGINE=fortran` picks the old one. */
 export const ENGINE_NAME = process.env.HFCAST_ENGINE === 'fortran'

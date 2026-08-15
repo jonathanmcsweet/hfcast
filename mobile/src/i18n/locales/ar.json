@@ -141,11 +141,17 @@
     "languageSection": "اللغة",
     "stationSection": "الجهاز",
     "unitsSection": "الوحدات",
+    "engineSection": "نموذج التنبؤ",
     "units": {
       "auto": "اتّباع الجهاز",
       "autoNamed": "اتّباع الجهاز ({{system}})",
       "metric": "متري",
       "imperial": "إمبراطوري"
+    },
+    "engine": {
+      "voacap": "VOACAP (الكلاسيكي)",
+      "nowcast": "HFcast (الجديد)",
+      "caption": "يضبط النموذج الجديد توقعات كل يوم وفق أحوال الشمس الحالية. وعند قياسه مقابل قراءات السماء الفعلية جاء أقرب من النموذج الكلاسيكي، حتى بدون شبكة."
     },
     "refresh": "تحديث الآن",
     "diagnosticsSection": "التشخيص",

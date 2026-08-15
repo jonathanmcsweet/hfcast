@@ -141,11 +141,17 @@
     "languageSection": "Idioma",
     "stationSection": "Radio",
     "unitsSection": "Unidades",
+    "engineSection": "Modelo de pronóstico",
     "units": {
       "auto": "Seguir al dispositivo",
       "autoNamed": "Seguir al dispositivo ({{system}})",
       "metric": "Métrico",
       "imperial": "Imperial"
+    },
+    "engine": {
+      "voacap": "VOACAP (clásico)",
+      "nowcast": "HFcast (nuevo)",
+      "caption": "El nuevo modelo ajusta el pronóstico de cada día a las condiciones solares actuales. Medido contra lecturas reales del cielo resulta más preciso que el modelo clásico, incluso sin red."
     },
     "refresh": "Actualizar ahora",
     "diagnosticsSection": "Diagnóstico",

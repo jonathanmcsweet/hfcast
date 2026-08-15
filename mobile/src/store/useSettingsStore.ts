@@ -40,6 +40,19 @@ export const THEME_MODES: ThemeMode[] = [
   'lowLight',
 ];
 
+/**
+ * Which prediction model answers.
+ *
+ * `voacap` is the engine as it has always run. `nowcast` is the same
+ * physics conditioned the new model's way: on a live effective index
+ * when the app has one, and otherwise on the engine's built-in
+ * day-of-year correction — which is measured to beat the classic run
+ * with no network at all (engine repository, `docs/offline.md`).
+ */
+export type EngineModel = 'voacap' | 'nowcast';
+
+export const ENGINE_MODELS: EngineModel[] = ['voacap', 'nowcast'];
+
 interface SettingsState {
   themeMode: ThemeMode;
   setThemeMode: (mode: ThemeMode) => void;
@@ -120,6 +133,16 @@ interface SettingsState {
    */
   developer: boolean;
   setDeveloper: (on: boolean) => void;
+  /**
+   * Which prediction model answers.
+   *
+   * `voacap` by default: it is the behaviour every existing install
+   * has, and switching models moves every number in the app, so that
+   * is a choice a person makes rather than an upgrade that happens to
+   * them.
+   */
+  engineModel: EngineModel;
+  setEngineModel: (model: EngineModel) => void;
 }
 
 /** How much room the stored maps may take, unless somebody says otherwise. */
@@ -128,11 +151,11 @@ export const DEFAULT_MAP_BUDGET_MB = 128;
 /** The sizes offered. A whole year of nine bands is about 171 MB. */
 export const MAP_BUDGET_CHOICES = [64, 128, 256, 512] as const;
 
-// Raised for the stored maps at 3, `developer` at 4, and waiting for a
-// charger at 5. An older
+// Raised for the stored maps at 3, `developer` at 4, waiting for a
+// charger at 5, and the engine model at 6. An older
 // saved shape is migrated forward rather than discarded: losing a theme
 // and a units choice to gain a storage default would be a poor trade.
-const PERSIST_VERSION = 5;
+const PERSIST_VERSION = 6;
 
 export const useSettingsStore = create<SettingsState>()(
   persist(
@@ -156,6 +179,8 @@ export const useSettingsStore = create<SettingsState>()(
         set({ precomputeOnCharger }),
       developer: false,
       setDeveloper: (developer) => set({ developer }),
+      engineModel: 'voacap',
+      setEngineModel: (engineModel) => set({ engineModel }),
     }),
     {
       name: 'hfcast.settings',
@@ -171,6 +196,7 @@ export const useSettingsStore = create<SettingsState>()(
         precomputeBands: state.precomputeBands,
         precomputeOnCharger: state.precomputeOnCharger,
         developer: state.developer,
+        engineModel: state.engineModel,
       }),
       migrate: (persisted, version) => {
         if (version === PERSIST_VERSION) {
@@ -184,7 +210,7 @@ export const useSettingsStore = create<SettingsState>()(
         // the rest fall to their defaults is what the reader would
         // expect: the defaults are what they would have chosen anyway.
         const held = persisted as Partial<SettingsState>;
-        if (version >= 1 && version <= 4) {
+        if (version >= 1 && version <= 5) {
           return {
             ...held,
             units: held.units ?? 'auto',
@@ -197,6 +223,7 @@ export const useSettingsStore = create<SettingsState>()(
             // upgrading does not lose a choice they made.
             precomputeOnCharger: held.precomputeOnCharger ?? true,
             developer: held.developer ?? false,
+            engineModel: held.engineModel ?? 'voacap',
           };
         }
         // Anything else falls back to the defaults, which follow the

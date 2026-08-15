@@ -141,11 +141,17 @@
     "languageSection": "Language",
     "stationSection": "Radio",
     "unitsSection": "Units",
+    "engineSection": "Forecast model",
     "units": {
       "auto": "Follow the device",
       "autoNamed": "Follow the device ({{system}})",
       "metric": "Metric",
       "imperial": "Imperial"
+    },
+    "engine": {
+      "voacap": "VOACAP (classic)",
+      "nowcast": "HFcast (new)",
+      "caption": "The new model tunes each day's forecast to current solar conditions. Measured against real sky readings it comes out closer than the classic model, even with no network."
     },
     "refresh": "Refresh now",
     "diagnosticsSection": "Diagnostics",
