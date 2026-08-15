@@ -42,7 +42,7 @@ export default function App() {
   // stops and the choice outlives the app — a person who put their maps
   // on the card last month must still find them there today.
   React.useEffect(() => {
-    if (Engine.canStoreMaps()) Engine.useMapCard(mapsOnCard);
+    if (Engine.canStoreMaps()) Engine.setMapCardUse(mapsOnCard);
   }, [mapsOnCard]);
   // `system` follows the device; the others override it. Read here so one
   // value drives the theme, the status bar and every component below.

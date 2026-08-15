@@ -27,19 +27,24 @@ strictDepBuilds: false
 # writes this list itself on install; it is kept rather than removed, because
 # without it the next install quietly resolves different versions.
 minimumReleaseAgeExclude:
-  - '@expo/cli@57.0.11'
-  - '@expo/inline-modules@0.1.4'
-  - '@expo/local-build-cache-provider@57.0.5'
+  - '@expo/cli@57.0.15'
+  - '@expo/config-plugins@57.0.8'
+  - '@expo/inline-modules@0.1.5'
+  - '@expo/local-build-cache-provider@57.0.6'
   - '@expo/log-box@57.0.2'
-  - '@expo/metro-runtime@57.0.8'
-  - '@expo/prebuild-config@57.0.10'
-  - babel-preset-expo@57.0.5
-  - expo-asset@57.0.8
-  - expo-build-properties@57.0.8
-  - expo-constants@57.0.8
-  - expo-modules-core@57.0.8
-  - expo-updates@57.0.11
-  - expo@57.0.9
+  - '@expo/metro-runtime@57.0.10'
+  - '@expo/prebuild-config@57.0.12'
+  - '@expo/router-server@57.0.6'
+  - babel-preset-expo@57.0.7
+  - expo-asset@57.0.11
+  - expo-build-properties@57.0.11
+  - expo-constants@57.0.11
+  - expo-file-system@57.0.3
+  - expo-modules-autolinking@57.0.10
+  - expo-modules-core@57.0.11
+  - expo-server@57.0.3
+  - expo-updates@57.0.14
+  - expo@57.0.13
 
 # Skia ships its Android and Apple binaries as separate packages and its
 # postinstall copies them into the place its Gradle script reads,
@@ -55,13 +60,14 @@ allowBuilds:
 # This file is also what the legacy build installs against (build-android.sh
 # copies it unchanged into the legacy work tree), so entries here cover
 # both `mobile/pnpm-lock.yaml` and `mobile/legacy/pnpm-lock.yaml`.
+#
+# Dropped on 2026-08-14, because the requester now asks for a range whose
+# newest release is the patched one and resolution reaches it on its own:
+# brace-expansion@5 (minimatch asks ^5.0.8), js-yaml@3 and js-yaml@4
+# (cosmiconfig ^3.13.1, @expo/xcpretty ^4.1.0), nanoid@3 (postcss ^3.3.16).
 overrides:
   fast-xml-parser: ^5.10.1
   uuid: ^14.0.1
-  brace-expansion@5: 5.0.9
-  js-yaml@3: 3.15.1
-  js-yaml@4: 4.3.1
-  nanoid@3: ^3.3.17
   # legacy (Expo SDK 50) only, below this line
   fast-uri@3.1.4: ^3.1.5
   postcss@8.4.49: 8.5.25

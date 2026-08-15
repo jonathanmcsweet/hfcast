@@ -220,6 +220,18 @@ The failure this avoids reports itself as `Gradle build daemon disappeared
 unexpectedly`, with nothing about memory in it. On a machine with memory to
 spare, skip all of this.
 
+Where that is still not enough, build for one processor. The native code is
+compiled once per architecture, so a build for one does a quarter of the work:
+
+```bash
+HFCAST_ABIS=arm64-v8a tools/build-android.sh modern
+```
+
+`arm64-v8a` is every telephone of the last ten years. The build then produces
+that one APK and says so. **A release needs all four**, so never publish what
+comes out of a build with this set: the architectures left out have no file at
+all, and a device that needs one has nothing to install.
+
 **An Android build needs no server at all** — it carries the engine and predicts
 on the device. The rest of this section applies to the builds that do not: Expo
 Go, the web build and iOS.
