@@ -504,7 +504,9 @@ export function usePrediction(from: Endpoint, to: Endpoint | null) {
         date,
         nowcast: true,
         station: station.params,
-        engine: engineModel,
+        // Named only for the new model: the classic request stays the
+        // shape every old server understands.
+        engine: engineModel === 'nowcast' ? engineModel : undefined,
       };
       return to === null
         ? await fetchSurvey(common)
