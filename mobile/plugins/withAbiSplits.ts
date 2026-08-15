@@ -24,6 +24,13 @@ const { withAppBuildGradle } =
  *
  * `expo prebuild` rewrites `android/` from scratch, so this puts the change
  * back on every run — the same reason `withReleaseSigning.ts` exists.
+ *
+ * The list of architectures is also what decides how many times the native
+ * code is compiled, so it is read from `reactNativeArchitectures` rather than
+ * fixed here. A release passes nothing and gets all four. A machine with
+ * little memory passes one and does a quarter of the work — four compilers on
+ * the Skia sources is what ends a build on a small machine, and the message
+ * names no cause.
  */
 
 const SPLITS = `
@@ -32,7 +39,19 @@ const SPLITS = `
         abi {
             enable true
             reset()
-            include "armeabi-v7a", "arm64-v8a", "x86", "x86_64"
+            // This list decides how many times the native code is compiled,
+            // not only how many files come out. It follows React Native's own
+            // reactNativeArchitectures property, which android/gradle.properties
+            // sets to all four, so a release is unchanged. A machine short of
+            // memory asks for one and compiles once instead of four times:
+            //
+            //     ./gradlew assembleRelease -PreactNativeArchitectures=arm64-v8a
+            //
+            // Commas and no spaces, as gradle.properties writes it. A space
+            // ends the build in project :expo before this list is read.
+            def requested = project.findProperty("reactNativeArchitectures")
+                ?: "armeabi-v7a,arm64-v8a,x86,x86_64"
+            requested.toString().split(",").each { include it }
             // No fifth file holding all four. Nothing in the release needs
             // one, and it is the largest thing the build can produce.
             universalApk false

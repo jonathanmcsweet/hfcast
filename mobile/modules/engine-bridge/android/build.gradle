@@ -33,4 +33,22 @@ android {
       jniLibs.srcDirs = ['src/main/jniLibs']
     }
   }
+  // `EngineRules.kt` reads and writes nothing, so it runs on a plain JVM.
+  // Everything else here needs a device, and the nearest one is somebody's
+  // telephone — so the rules are the part worth a test that runs in
+  // seconds. `unitTests.returnDefaultValues` lets those tests call the
+  // stubbed android.jar without each call throwing.
+  testOptions {
+    unitTests.returnDefaultValues = true
+  }
+}
+
+// Without these, `src/test` does not compile and its ten tests never run.
+// The test file was kept through a merge and this block was not, so the
+// tests were present and silent — see `EngineRulesTest.kt`.
+dependencies {
+  testImplementation 'junit:junit:4.13.2'
+  // The real org.json, because android.jar ships only stubs of it and the
+  // listing is built with JSONArray and JSONObject.
+  testImplementation 'org.json:json:20240303'
 }

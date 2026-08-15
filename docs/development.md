@@ -120,6 +120,16 @@ HFCAST_BUILD_CPUS=0-3 tools/build-android.sh modern
 This is necessary because the C++ step reads the number of processors
 directly. No Gradle setting changes it.
 
+If the build still stops, build for one processor type. The native code
+is compiled once for each, so this does a quarter of the work:
+
+```bash
+HFCAST_ABIS=arm64-v8a tools/build-android.sh modern
+```
+
+`arm64-v8a` fits every telephone of the last ten years. Do not publish a
+release built this way: the other three have no file at all.
+
 ### 4. Install
 
 With a USB cable:
