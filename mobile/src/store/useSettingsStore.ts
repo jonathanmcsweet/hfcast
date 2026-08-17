@@ -43,15 +43,15 @@ export const THEME_MODES: ThemeMode[] = [
 /**
  * Which prediction model answers.
  *
- * `voacap` is the engine as it has always run. `nowcast` is the same
+ * `voacap` is the engine as it has always run. `truecast` is the same
  * physics conditioned the new model's way: on a live effective index
  * when the app has one, and otherwise on the engine's built-in
  * day-of-year correction — which is measured to beat the classic run
  * with no network at all (engine repository, `docs/offline.md`).
  */
-export type EngineModel = 'voacap' | 'nowcast';
+export type EngineModel = 'voacap' | 'truecast';
 
-export const ENGINE_MODELS: EngineModel[] = ['voacap', 'nowcast'];
+export const ENGINE_MODELS: EngineModel[] = ['voacap', 'truecast'];
 
 interface SettingsState {
   themeMode: ThemeMode;
@@ -152,10 +152,11 @@ export const DEFAULT_MAP_BUDGET_MB = 128;
 export const MAP_BUDGET_CHOICES = [64, 128, 256, 512] as const;
 
 // Raised for the stored maps at 3, `developer` at 4, waiting for a
-// charger at 5, and the engine model at 6. An older
-// saved shape is migrated forward rather than discarded: losing a theme
-// and a units choice to gain a storage default would be a poor trade.
-const PERSIST_VERSION = 6;
+// charger at 5, the engine model at 6, and its renamed value at 7. An
+// older saved shape is migrated forward rather than discarded: losing a
+// theme and a units choice to gain a storage default would be a poor
+// trade.
+const PERSIST_VERSION = 7;
 
 export const useSettingsStore = create<SettingsState>()(
   persist(
@@ -210,7 +211,7 @@ export const useSettingsStore = create<SettingsState>()(
         // the rest fall to their defaults is what the reader would
         // expect: the defaults are what they would have chosen anyway.
         const held = persisted as Partial<SettingsState>;
-        if (version >= 1 && version <= 5) {
+        if (version >= 1 && version <= 6) {
           return {
             ...held,
             units: held.units ?? 'auto',
@@ -223,7 +224,11 @@ export const useSettingsStore = create<SettingsState>()(
             // upgrading does not lose a choice they made.
             precomputeOnCharger: held.precomputeOnCharger ?? true,
             developer: held.developer ?? false,
-            engineModel: held.engineModel ?? 'voacap',
+            // A version 6 store spelled the new model `nowcast`, the
+            // name it carried before release.
+            engineModel: (held.engineModel as string) === 'nowcast'
+              ? 'truecast'
+              : held.engineModel ?? 'voacap',
           };
         }
         // Anything else falls back to the defaults, which follow the

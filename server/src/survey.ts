@@ -56,7 +56,7 @@ export function keyFor(request: SurveyRequest): string {
     // Two models, two answers, and the new model's offline form moves
     // along a day-of-year curve — the same terms the prediction key adds.
     request.engine ?? 'voacap',
-    request.engine === 'nowcast' ? request.date.getUTCDate() : 0,
+    request.engine === 'truecast' ? request.date.getUTCDate() : 0,
   ].join('|');
 }
 

@@ -3,7 +3,7 @@
  *
  * The chips live in the preferences modal, and what they change is which
  * model the server is asked for: the classic engine by silence, the new
- * one by `engine=nowcast` on the prediction request. The request is the
+ * one by `engine=truecast` on the prediction request. The request is the
  * observable that matters — a switch that changed only its own highlight
  * would look exactly the same on screen.
  */
@@ -41,13 +41,13 @@ test.describe('the forecast model choice', () => {
     // Both chips are reachable by their accessible names.
     await expect(page.getByRole('button', { name: 'VOACAP (classic)' }))
       .toBeVisible();
-    await page.getByRole('button', { name: 'HFcast (new)' }).click();
+    await page.getByRole('button', { name: 'Truecast (new)' }).click();
     await page.getByRole('button', { name: 'Close preferences' }).click();
 
     // The switch re-keys the query, so a new request follows without a
     // reload, and it names the new model. Switching back is deliberately
     // not asserted as a request: the classic answer is still cached, and
     // serving it from the cache is the right behaviour.
-    await expect.poll(() => asked.includes('nowcast')).toBe(true);
+    await expect.poll(() => asked.includes('truecast')).toBe(true);
   });
 });

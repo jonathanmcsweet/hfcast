@@ -43,7 +43,7 @@ const fortran: PathEngine = async (request, txAntenna) => {
   // A deck states a sunspot number and nothing else; the new model's
   // conditioning has no card to go on. Refusing beats silently running
   // the classic physics under the new model's name.
-  if (request.engine === 'nowcast' || ssn === undefined) {
+  if (request.engine === 'truecast' || ssn === undefined) {
     throw new Error('the fortran engine answers only the classic model');
   }
   return parseVoacapOutput(

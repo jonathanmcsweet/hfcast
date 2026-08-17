@@ -39,7 +39,7 @@ export interface PredictRequest {
    */
   antenna?: AntennaChoice;
   /** Which model answers. Absent runs the classic engine unchanged. */
-  engine?: 'voacap' | 'nowcast';
+  engine?: 'voacap' | 'truecast';
 }
 
 /**
@@ -85,7 +85,7 @@ export function keyFor(request: PredictRequest, ssn: number): string {
     request.engine ?? 'voacap',
     // The new model's offline form moves along a day-of-year curve, so
     // its runs are per-day where the classic run is per-month.
-    request.engine === 'nowcast' ? request.date.getUTCDate() : 0,
+    request.engine === 'truecast' ? request.date.getUTCDate() : 0,
   ].join('|');
 }
 
@@ -171,10 +171,10 @@ async function runOnce(
   // resolved number as `essn` only when the run is a now-cast — without
   // one the engine derives its own index from the built-in day-of-year
   // correction, the offline form (engine repository, `docs/offline.md`).
-  // Exclusive because the engine refuses `ssn` beside `engine:"nowcast"`.
-  const modelFields = request.engine === 'nowcast'
+  // Exclusive because the engine refuses `ssn` beside `engine:"truecast"`.
+  const modelFields = request.engine === 'truecast'
     ? {
-      engine: 'nowcast' as const,
+      engine: 'truecast' as const,
       day: request.date.getUTCDate(),
       ...(basis === 'nowcast' ? { essn: ssn } : {}),
     }

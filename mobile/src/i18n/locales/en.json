@@ -150,7 +150,7 @@
     },
     "engine": {
       "voacap": "VOACAP (classic)",
-      "nowcast": "HFcast (new)",
+      "truecast": "Truecast (new)",
       "caption": "The new model tunes each day's forecast to current solar conditions. Measured against real sky readings it comes out closer than the classic model, even with no network."
     },
     "refresh": "Refresh now",

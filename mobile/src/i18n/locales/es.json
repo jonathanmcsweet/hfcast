@@ -150,7 +150,7 @@
     },
     "engine": {
       "voacap": "VOACAP (clásico)",
-      "nowcast": "HFcast (nuevo)",
+      "truecast": "Truecast (nuevo)",
       "caption": "El nuevo modelo ajusta el pronóstico de cada día a las condiciones solares actuales. Medido contra lecturas reales del cielo resulta más preciso que el modelo clásico, incluso sin red."
     },
     "refresh": "Actualizar ahora",

@@ -150,7 +150,7 @@
     },
     "engine": {
       "voacap": "VOACAP (klassisch)",
-      "nowcast": "HFcast (neu)",
+      "truecast": "Truecast (neu)",
       "caption": "Das neue Modell stimmt die Vorhersage jedes Tages auf die aktuellen Sonnenbedingungen ab. An echten Ionosphärenmessungen gemessen liegt es näher als das klassische Modell, auch ohne Netz."
     },
     "refresh": "Jetzt aktualisieren",

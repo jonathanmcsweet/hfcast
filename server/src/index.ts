@@ -198,9 +198,9 @@ async function trySpaceWeather(): Promise<SpaceWeather | null> {
  * The model the request asks for. Absent or anything unrecognised runs
  * the classic engine, so an old client keeps the numbers it always had.
  */
-function parseEngine(url: URL): { engine?: 'nowcast'; } {
-  return url.searchParams.get('engine') === 'nowcast'
-    ? { engine: 'nowcast' }
+function parseEngine(url: URL): { engine?: 'truecast'; } {
+  return url.searchParams.get('engine') === 'truecast'
+    ? { engine: 'truecast' }
     : {};
 }
 

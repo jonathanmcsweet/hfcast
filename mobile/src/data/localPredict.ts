@@ -110,7 +110,7 @@ export interface LocalRequest {
  * engine derives its own from the built-in day-of-year correction —
  * the offline form that is measured to beat the classic run with no
  * network (engine repository, `docs/offline.md`). The two forms are
- * exclusive because the engine refuses `ssn` beside `engine:"nowcast"`:
+ * exclusive because the engine refuses `ssn` beside `engine:"truecast"`:
  * they would disagree about what the run should do.
  */
 export function engineFields(
@@ -119,9 +119,9 @@ export function engineFields(
   ssn: number,
   nowcast: Nowcast | undefined,
 ): Record<string, unknown> {
-  if (engine !== 'nowcast') return { ssn };
+  if (engine !== 'truecast') return { ssn };
   return {
-    engine: 'nowcast',
+    engine: 'truecast',
     day: date.getUTCDate(),
     ...(nowcast ? { essn: nowcast.effectiveSsn } : {}),
   };

@@ -93,13 +93,13 @@ export interface EngineRequest {
   year: number;
   /**
    * The classic run's sunspot number. Absent exactly when the request
-   * names the new model, which refuses `ssn` beside `engine:"nowcast"`
+   * names the new model, which refuses `ssn` beside `engine:"truecast"`
    * and derives its own index when `essn` is absent too — the offline
    * form (engine repository, `docs/offline.md`).
    */
   ssn?: number;
   /** Which model answers. Absent runs the classic engine unchanged. */
-  engine?: 'nowcast';
+  engine?: 'truecast';
   /** Calendar day for the new model's day-of-year correction. */
   day?: number;
   /** A live effective index for the new model, when the run has one. */
