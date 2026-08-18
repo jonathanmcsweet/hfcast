@@ -69,6 +69,8 @@ export interface CoverageRequest {
    */
   kpMax24h?: number;
   basis?: PredictionBasis;
+  /** Which model answers. Absent runs the classic engine unchanged. */
+  engine?: 'voacap' | 'truecast';
   /**
    * The operator's own antenna. A beam makes the map lopsided, which is
    * the honest picture: it shows where this station reaches, not where an
@@ -128,7 +130,33 @@ function keyFor(request: CoverageRequest, ssn: number): string {
     request.kpMax24h === undefined
       ? 'quiet'
       : stormWidening(request.kpMax24h).toFixed(2),
+    // Two models, two answers; one must never be served as the other.
+    request.engine ?? 'voacap',
+    // The new model's offline form moves along a day-of-year curve, so
+    // its runs are per-day where the classic run is per-month.
+    request.engine === 'truecast' ? date.getUTCDate() : 0,
   ].join('|');
+}
+
+/**
+ * The request fields that pick the model, for an area run.
+ *
+ * The same pair of forms `predict.ts` sends, and exclusive for the same
+ * reason: the engine refuses `ssn` beside `engine:"truecast"`. Without a
+ * live reading the new model derives its own index from the built-in
+ * day-of-year correction, which is the offline form.
+ */
+function modelFieldsFor(
+  request: CoverageRequest,
+  ssn: number,
+  basis: PredictionBasis,
+): { ssn: number; } | { engine: 'truecast'; day: number; essn?: number; } {
+  if (request.engine !== 'truecast') return { ssn };
+  return {
+    engine: 'truecast',
+    day: request.date.getUTCDate(),
+    ...(basis === 'nowcast' ? { essn: ssn } : {}),
+  };
 }
 
 /**
@@ -177,6 +205,7 @@ const centreCache = new TtlCache<CentreField | null>(COVERAGE_TTL_MS, 200);
 async function dailyCentres(
   request: CoverageRequest,
   ssn: number,
+  basis: PredictionBasis,
   month: number,
   year: number,
   txAntenna: Awaited<ReturnType<typeof txCard>> | null,
@@ -192,6 +221,12 @@ async function dailyCentres(
     request.watts,
     request.noiseDbw,
     antennaKey(request.antenna),
+    // The middles come from the engine too, so they are one model's or
+    // the other's. The day is in the key for the new model alone: its
+    // offline form moves along a day-of-year curve, where the classic
+    // run answers the same thing all month.
+    request.engine ?? 'voacap',
+    request.engine === 'truecast' ? request.date.getUTCDate() : 0,
   ].join('|');
 
   return await centreCache.fetch(key, async () => {
@@ -200,7 +235,7 @@ async function dailyCentres(
       fromLon: request.from.lon,
       month,
       year,
-      ssn,
+      ...modelFieldsFor(request, ssn, basis),
       watts: request.watts,
       requiredSnrDb: request.requiredSnrDb,
       noiseDbw: request.noiseDbw,
@@ -257,7 +292,7 @@ async function cachedRun<T>(
       fromLon: request.from.lon,
       month,
       year,
-      ssn,
+      ...modelFieldsFor(request, ssn, basis),
       watts: request.watts,
       requiredSnrDb: request.requiredSnrDb,
       noiseDbw: request.noiseDbw,
@@ -275,7 +310,14 @@ async function cachedRun<T>(
     // and has to draw something before that finishes; here the lattice
     // is cached and shared across every request for the place, so
     // waiting for it costs the first caller and nobody else.
-    const centre = await dailyCentres(request, ssn, month, year, txAntenna);
+    const centre = await dailyCentres(
+      request,
+      ssn,
+      basis,
+      month,
+      year,
+      txAntenna,
+    );
     return assemble({
       ...ran,
       points: correctCoverage(

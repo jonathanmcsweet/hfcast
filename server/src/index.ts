@@ -194,6 +194,16 @@ async function trySpaceWeather(): Promise<SpaceWeather | null> {
   }
 }
 
+/**
+ * The model the request asks for. Absent or anything unrecognised runs
+ * the classic engine, so an old client keeps the numbers it always had.
+ */
+function parseEngine(url: URL): { engine?: 'truecast'; } {
+  return url.searchParams.get('engine') === 'truecast'
+    ? { engine: 'truecast' }
+    : {};
+}
+
 async function handlePrediction(url: URL): Promise<PredictionResponse> {
   const from = parseEndpoint(
     url.searchParams.get('from'),
@@ -215,6 +225,7 @@ async function handlePrediction(url: URL): Promise<PredictionResponse> {
     to,
     date,
     ...parseStation(url),
+    ...parseEngine(url),
     // Falling back to climatology when the upstream is down is deliberate:
     // a slightly stale basis beats no forecast, as long as it is labelled.
     ...(wantNowcast && spaceWeather
@@ -251,6 +262,7 @@ async function handleSurvey(url: URL): Promise<PredictionResponse> {
     from,
     date,
     ...parseStation(url),
+    ...parseEngine(url),
     ...(wantNowcast && spaceWeather
       ? {
         ssnOverride: spaceWeather.effectiveSsn,
@@ -296,6 +308,7 @@ async function coverageRequest(url: URL) {
     band: band as BandKey,
     hour,
     ...parseStation(url),
+    ...parseEngine(url),
     ...(spaceWeather
       ? {
         ssnOverride: spaceWeather.effectiveSsn,

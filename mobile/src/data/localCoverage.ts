@@ -6,6 +6,7 @@ import type {
   WireMedians,
 } from '../../../shared/wire.ts';
 import * as Engine from '../../modules/engine-bridge';
+import type { EngineModel } from '../store/useSettingsStore';
 import type { Station } from '../store/useStationStore';
 import { breathe } from './breathe.ts';
 import { tunedThreadsFor } from './calibrate';
@@ -23,7 +24,12 @@ import { timing } from './diagnostics';
 import { STRIPS_PER_THREAD } from './engineBudget';
 import { BACKGROUND_PIECE_POINTS, runLater, runNow } from './engineQueue';
 import { FINE_LAT_STEP, FINE_LON_STEP, packGlobe } from './fineGlobe';
-import { engineStation, type Nowcast, ssnFor } from './localPredict';
+import {
+  engineFields,
+  engineStation,
+  type Nowcast,
+  ssnFor,
+} from './localPredict';
 import { requiredSnrFor } from './modes';
 import { latShards } from './shard';
 import {
@@ -94,6 +100,8 @@ export interface LocalCoverageRequest {
   station: Station;
   /** Absent offline, and then the run is climatology. */
   nowcast?: Nowcast | undefined;
+  /** Which model answers. Absent runs the classic engine unchanged. */
+  engine?: EngineModel | undefined;
   /**
    * The part of the world the map is showing, for the fine grid only.
    *
@@ -276,7 +284,10 @@ async function areaAsk(request: LocalCoverageRequest, ssn: number) {
     fromLon: request.from.lon,
     month: request.date.getUTCMonth() + 1,
     year: request.date.getUTCFullYear(),
-    ssn,
+    // The same pair of forms the path forecast sends, from the same
+    // place, so a map and a forecast on one screen cannot end up
+    // describing different models.
+    ...engineFields(request.engine, request.date, ssn, request.nowcast),
     watts: request.station.watts,
     requiredSnrDb: requiredSnrFor(request.station.mode),
     noiseDbw: NOISE_DBW,

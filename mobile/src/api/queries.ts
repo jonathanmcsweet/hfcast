@@ -108,7 +108,9 @@ export const queryKeys = {
     date: string,
     nowcast: string,
     station: string,
-  ) => ['prediction', server, from, to, date, nowcast, station] as const,
+    engine: string,
+  ) =>
+    ['prediction', server, from, to, date, nowcast, station, engine] as const,
   geocode: (query: string, lang: string) => ['geocode', query, lang] as const,
   sounding: (server: string, lat: number, lon: number) =>
     ['sounding', server, lat, lon] as const,
@@ -301,6 +303,11 @@ function useMapRun(from: Endpoint, band: BandKey, reportedHour: number) {
   const ready = usePathStore((state) => state.ready);
   const local = canMapLocally();
   const nowcast = nowcastFrom(useSpaceWeather().data);
+  // The map is the expensive answer, so it is the one that must not be
+  // shown from the wrong model. It enters every key below, what the
+  // engine in this build is asked, what the server is asked, and the
+  // name a stored map is filed under.
+  const engineModel = useSettingsStore((state) => state.engineModel);
   // Long enough to swallow a sweep, short enough that choosing one hour
   // feels immediate. The engine's own run is of the same order on a slow
   // device. The three queries share it, so the fine grid and the patch
@@ -340,6 +347,7 @@ function useMapRun(from: Endpoint, band: BandKey, reportedHour: number) {
         month,
         nowcastKey(nowcast),
         station.key,
+        engineModel,
         ...extra,
       ] as const,
 
@@ -361,6 +369,7 @@ function useMapRun(from: Endpoint, band: BandKey, reportedHour: number) {
         month,
         centreNowcastKey(nowcast),
         station.key,
+        engineModel,
       ] as const,
 
     /**
@@ -385,6 +394,7 @@ function useMapRun(from: Endpoint, band: BandKey, reportedHour: number) {
         ? {
           grid: from.grid,
           station: station.key,
+          engine: engineModel,
           band: forBand,
           month,
           hour,
@@ -402,6 +412,7 @@ function useMapRun(from: Endpoint, band: BandKey, reportedHour: number) {
       date: new Date(`${date}T00:00:00Z`),
       station: station.station,
       nowcast,
+      engine: engineModel,
     },
 
     /** What the server is asked. */
@@ -413,6 +424,9 @@ function useMapRun(from: Endpoint, band: BandKey, reportedHour: number) {
       date,
       nowcast: true,
       station: station.params,
+      // Named only for the new model, as the path forecast does: the
+      // classic request stays the shape every old server understands.
+      engine: engineModel === 'truecast' ? engineModel : undefined,
     },
 
     /**
@@ -452,6 +466,7 @@ export function usePrediction(from: Endpoint, to: Endpoint | null) {
   // readings arrive — which is a key change, so React Query does it. Waiting
   // instead would put the network in front of a forecast that needs none.
   const nowcast = nowcastFrom(useSpaceWeather().data);
+  const engineModel = useSettingsStore((state) => state.engineModel);
 
   return useQuery({
     queryKey: queryKeys.prediction(
@@ -466,6 +481,9 @@ export function usePrediction(from: Endpoint, to: Endpoint | null) {
       date,
       nowcastKey(nowcast),
       station.key,
+      // The model preference is part of the identity for the same reason
+      // the device-or-server choice is.
+      engineModel,
     ),
     queryFn: async () => {
       const day = new Date(`${date}T00:00:00Z`);
@@ -477,6 +495,7 @@ export function usePrediction(from: Endpoint, to: Endpoint | null) {
               date: day,
               station: station.station,
               nowcast,
+              engine: engineModel,
             })
             : await predictLocally({
               from,
@@ -484,6 +503,7 @@ export function usePrediction(from: Endpoint, to: Endpoint | null) {
               date: day,
               station: station.station,
               nowcast,
+              engine: engineModel,
             }),
           // Fetched separately by `useSpaceWeather`, which is what supplied
           // the now-cast above. Null here so the shape matches the server's.
@@ -496,6 +516,9 @@ export function usePrediction(from: Endpoint, to: Endpoint | null) {
         date,
         nowcast: true,
         station: station.params,
+        // Named only for the new model: the classic request stays the
+        // shape every old server understands.
+        engine: engineModel === 'truecast' ? engineModel : undefined,
       };
       return to === null
         ? await fetchSurvey(common)
