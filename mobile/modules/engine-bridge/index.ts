@@ -233,7 +233,7 @@ export const mapCardAvailable = (): boolean =>
  * card taken out since the choice was made falls back to internal
  * storage rather than failing.
  */
-export const useMapCard = (on: boolean): string =>
+export const setMapCardUse = (on: boolean): string =>
   native?.setMapCardUse?.(on) ?? '';
 
 /** A batch's answers, and where its time went. */

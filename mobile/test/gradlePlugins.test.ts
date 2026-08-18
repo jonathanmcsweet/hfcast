@@ -170,9 +170,19 @@ describe('the architecture split plugin', () => {
   const split = addAbiSplits(TEMPLATE);
 
   it('builds the four architectures and no fifth file', () => {
-    assert.match(split, /include "armeabi-v7a", "arm64-v8a", "x86", "x86_64"/);
+    // The default is what a release gets, and a release must never ship
+    // fewer architectures than the download page offers.
+    assert.match(split, /\?: "armeabi-v7a,arm64-v8a,x86,x86_64"/);
     assert.match(split, /universalApk false/);
     assert.match(split, /enable true/);
+  });
+
+  it('lets a build ask for fewer architectures', () => {
+    // The list is also what decides how many times the native code is
+    // compiled. Without this, a machine short of memory cannot build at
+    // all: four compilers on the Skia sources end the build.
+    assert.match(split, /findProperty\("reactNativeArchitectures"\)/);
+    assert.match(split, /split\(","\)\.each \{ include it \}/);
   });
 
   it('puts splits inside the android block and the codes outside it', () => {
