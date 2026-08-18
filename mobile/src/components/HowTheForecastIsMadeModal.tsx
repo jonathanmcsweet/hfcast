@@ -78,6 +78,7 @@ const PARAGRAPH_BREAK = /\n\s*\n/;
  */
 const SECTIONS = [
   'engine',
+  'truecast',
   'ssn',
   'colours',
   'map',

@@ -334,7 +334,11 @@
     "close": "Close help",
     "engine": {
       "heading": "Where the numbers come from",
-      "body": "Every forecast is worked out on this device by VOACAP, a propagation model that has been in use for decades. While we can use VOACAP offline, and do, it can also take up-to-date space weather forecasts, which we do use in online mode.\n\nVOACAP's engine describes a typical day for each day of the month, and without live space weather data being fed into it, cannot know your conditions on a particular day, in your location. VOACAP's engine is a best guess at your local conditions."
+      "body": "Every forecast is worked out on this device by the core physics behind VOACAP, a propagation model that has been in use for decades. The core physics are the same whichever model you pick.\n\nThis app offers two models:\n\n1. VOACAP, which was written by the US government's Institute for Telecommunication Sciences. It is reproduced faithfully here, including a small number of defects that were in the original model. This model uses a monthly average. While each time of day is different, each day in the same month is not. So 4pm this Tuesday looks the same as 4pm this Thursday.\n\n2. Truecast, which works from what the ionosphere is actually doing that day. Scored day by day against real measurements since 2015, it was closer than VOACAP on 77% of days, and its average miss was about a fifth smaller. More on Truecast below."
+    },
+    "truecast": {
+      "heading": "Truecast, the newer model",
+      "body": "Truecast is this app's own model based on VOACAP physics but adjusts for what the ionosphere is doing on the day instead of for a typical day of the month.\n\nAlong with daily granularity, a daily sunspot figure worked out from ionosonde stations, a table of magnetic storms, and a better calculation of the height a signal bounces from all change how this forecast is calculated.\n\nThis model was built and checked against ionosonde readings covering a full solar cycle, from 2015 to today. It was then scored on eight months it had never seen, chosen in advance to span quiet and stormy conditions. On those months it removed the month-to-month bias VOACAP carries, and it was closer to the measured values in seven of those eight months.\n\nLike the VOACAP model, it needs no network. With no connection it uses a built-in correction for the time of year, and is still better than the monthly average.\n\nYou can switch to VOACAP at any time in Preferences. Changing the model recomputes the forecast and the map."
     },
     "ssn": {
       "heading": "The sunspot number",
@@ -359,7 +363,7 @@
   },
   "maps": {
     "title": "Compute maps ahead",
-    "what": "Pre-computing propagation maps now, helps preserve battery life in the field, else we calculate subsequent hours on-demand. Apart from being online when we can access current conditions, future predictions can be made here offline ahead of time.",
+    "what": "Pre-computing propagation maps now, helps preserve battery life in the field, else subsequent hours are calculated on demand. Apart from being online, when current conditions can be read, future predictions can be made here offline ahead of time.",
     "monthsSection": "How far ahead",
     "months": {
       "1": "This month",
