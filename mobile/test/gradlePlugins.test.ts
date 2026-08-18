@@ -3,10 +3,19 @@ import { describe, it } from 'node:test';
 
 import { ABI_CODES, addAbiSplits } from '../plugins/withAbiSplits.ts';
 import {
+  EXTRACTION_RULES,
+  FULL_BACKUP_CONTENT,
+  nameBackupRules,
+} from '../plugins/withBackupRules.ts';
+import {
   JVM_ARGS,
   type PropertiesItem,
   setBuildMemory,
 } from '../plugins/withBuildMemory.ts';
+import {
+  keepDataOnUninstall,
+  type Manifest,
+} from '../plugins/withKeepDataOnUninstall.ts';
 import { addReleaseSigning } from '../plugins/withReleaseSigning.ts';
 import { BUILD_TIERS, versionCodeFor } from '../src/data/version.ts';
 
@@ -360,5 +369,85 @@ describe('the version code each architecture gets', () => {
     assert.ok(largest('209.999.99') <= 2_100_000_000);
     assert.ok(largest('210.0.0') > 2_100_000_000);
     assert.equal(BUILD_TIERS.modern, 1);
+  });
+});
+
+describe('the keep-data-on-uninstall plugin', () => {
+  /** A manifest shaped as Expo's mod hands it over. */
+  const manifest = () => ({
+    manifest: {
+      $: { 'xmlns:android': 'http://schemas.android.com/apk/res/android' },
+      application: [{ $: { 'android:label': '@string/app_name' } }],
+    },
+  } as unknown as Manifest);
+
+  it('asks the system to offer to keep the data', () => {
+    const held = keepDataOnUninstall(manifest());
+    assert.equal(
+      held.manifest.application?.[0]?.$['android:hasFragileUserData'],
+      'true',
+    );
+  });
+
+  it('leaves everything else on the application tag alone', () => {
+    const held = keepDataOnUninstall(manifest());
+    assert.equal(
+      held.manifest.application?.[0]?.$['android:label'],
+      '@string/app_name',
+    );
+  });
+
+  it('changes nothing when there is no application tag', () => {
+    // A manifest this plugin was not written for. Adding the tag would be
+    // a guess at where it belongs, and a wrong one builds an app that
+    // does not start.
+    const bare = { manifest: { $: {} } } as unknown as Manifest;
+    assert.deepEqual(keepDataOnUninstall(bare), bare);
+  });
+});
+
+describe('the backup rules plugin', () => {
+  const manifest = () => ({
+    manifest: {
+      $: { 'xmlns:android': 'http://schemas.android.com/apk/res/android' },
+      application: [{ $: { 'android:label': '@string/app_name' } }],
+    },
+  } as unknown as Manifest);
+
+  it('names both rule files, since the format changed at Android 12', () => {
+    const held = nameBackupRules(manifest());
+    const tag = held.manifest.application?.[0]?.$;
+    assert.equal(
+      tag?.['android:dataExtractionRules'],
+      '@xml/data_extraction_rules',
+    );
+    assert.equal(tag?.['android:fullBackupContent'], '@xml/backup_rules');
+    assert.equal(tag?.['android:allowBackup'], 'true');
+  });
+
+  it('carries the settings store', () => {
+    // The station and the settings are what a person set by hand, and
+    // they live in the database `@react-native-async-storage` keeps.
+    for (const rules of [EXTRACTION_RULES, FULL_BACKUP_CONTENT]) {
+      assert.match(rules, /<include domain="database" path="RKStorage" \/>/);
+      assert.match(rules, /<include domain="sharedpref" path="\." \/>/);
+    }
+  });
+
+  it('leaves the maps out by naming what it carries, not by excluding', () => {
+    // Stored maps reach the whole budget, up to 512 MB, and the app can
+    // compute them again, so a backup carrying them would be refused by
+    // the transport for nothing. Naming the includes is what leaves them
+    // out. An `exclude` for a path outside every `include` is what fails
+    // `lintVitalRelease`, which is how this was found (2026-08-18).
+    for (const rules of [EXTRACTION_RULES, FULL_BACKUP_CONTENT]) {
+      assert.ok(!rules.includes('<exclude'), 'no exclude outside an include');
+      assert.ok(!rules.includes('hfcast-maps'), 'the maps are not named');
+      assert.ok(!rules.includes('domain="file"'), 'the file domain is not in');
+    }
+  });
+
+  it('covers a direct move to a new device as well as a backup', () => {
+    assert.match(EXTRACTION_RULES, /<device-transfer>/);
   });
 });

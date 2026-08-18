@@ -48,6 +48,8 @@
       "./plugins/withReleaseSigning.ts",
       "./plugins/withAbiSplits.ts",
       "./plugins/withBuildMemory.ts",
+      "./plugins/withKeepDataOnUninstall.ts",
+      "./plugins/withBackupRules.ts",
       [
         "expo-build-properties",
         {
