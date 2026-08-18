@@ -1,6 +1,6 @@
 {
   "name": "hfcast-server",
-  "version": "0.21.0",
+  "version": "0.21.1",
   "private": true,
   "type": "module",
   "description": "VOACAP prediction and space weather API for the HFcast app",
@@ -13,7 +13,7 @@
     "test": "node --experimental-strip-types --test test/*.test.ts"
   },
   "devDependencies": {
-    "@types/node": "^24.13.3",
-    "typescript": "~6.0.3"
+    "@types/node": "^26.2.0",
+    "typescript": "~7.0.2"
   }
 }

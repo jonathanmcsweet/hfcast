@@ -44,6 +44,23 @@ esac
 version="$(node -p "require('$mobile/package.json').version")"
 mkdir -p "$out"
 
+# Which processors to build for. A release builds all four, which is what a
+# release has to carry. The list also decides how many times the native code is
+# compiled, and four compilations of Skia is more than a small machine has the
+# memory for, so a build that is only going to be installed on one telephone
+# names that one:
+#
+#     HFCAST_ABIS=arm64-v8a tools/build-android.sh modern
+#
+# `plugins/withAbiSplits.ts` reads the same list, so the APKs that come out are
+# the ones that were asked for. Never publish a release built this way: the
+# architectures left out have no file at all.
+all_abis="armeabi-v7a,arm64-v8a,x86,x86_64"
+abis="${HFCAST_ABIS:-$all_abis}"
+if [[ $abis != "$all_abis" ]]; then
+  echo "building $abis only — not a release, which needs all of $all_abis"
+fi
+
 # Ninja decides how many compilers to run from the CPUs it is allowed, and each
 # one wants a few hundred megabytes. On a machine with more cores than memory
 # that is what runs it out, and it presents as "Gradle build daemon disappeared
@@ -52,9 +69,10 @@ mkdir -p "$out"
 run_gradle() {
   local dir="$1"
   if [[ -n ${HFCAST_BUILD_CPUS:-} ]]; then
-    (cd "$dir/android" && taskset -c "$HFCAST_BUILD_CPUS" ./gradlew assembleRelease)
+    (cd "$dir/android" && taskset -c "$HFCAST_BUILD_CPUS" ./gradlew assembleRelease \
+      -PreactNativeArchitectures="$abis")
   else
-    (cd "$dir/android" && ./gradlew assembleRelease)
+    (cd "$dir/android" && ./gradlew assembleRelease -PreactNativeArchitectures="$abis")
   fi
 }
 
@@ -128,7 +146,10 @@ collect_apks() {
   local src="$tree/android/app/build/outputs/apk/release"
   local found=0
 
-  for abi in armeabi-v7a arm64-v8a x86 x86_64; do
+  local wanted=0
+
+  for abi in ${abis//,/ }; do
+    wanted=$((wanted + 1))
     local from="$src/app-$abi-release.apk"
     if [[ ! -f $from ]]; then
       continue
@@ -139,10 +160,10 @@ collect_apks() {
     found=$((found + 1))
   done
 
-  if [[ $found -ne 4 ]]; then
+  if [[ $found -ne $wanted ]]; then
     # A build that quietly produced one file, or three, would look like a
     # release and leave some devices with nothing to install.
-    echo "expected 4 per-architecture APKs, found $found in $src" >&2
+    echo "expected $wanted per-architecture APKs, found $found in $src" >&2
     ls -1 "$src" >&2
     exit 1
   fi

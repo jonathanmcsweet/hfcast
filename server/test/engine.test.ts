@@ -120,12 +120,15 @@ test('the window is ordered LUF below FOT below MUF', {
   // every value would still look plausible on its own and only the
   // ordering would give it away.
   const { window, mufByHour } = await runEngine(FIXTURE_REQUEST);
-  assert.ok(window);
+  assert.ok(window, 'the prediction must supply a window');
   let compared = 0;
   for (let hour = 0; hour < 24; hour++) {
-    const fot = window.fotByHour[hour];
-    const hpf = window.hpfByHour[hour];
-    const luf = window.lufByHour[hour];
+    // Annotated: `assert.ok` is overloaded in @types/node 26, so an
+    // assertion that mentions one of these values needs its type before
+    // the type can be inferred from the initializer.
+    const fot: number | null | undefined = window.fotByHour[hour];
+    const hpf: number | null | undefined = window.hpfByHour[hour];
+    const luf: number | null | undefined = window.lufByHour[hour];
     const muf = mufByHour[hour];
     if (fot === null || fot === undefined || muf === undefined) continue;
     compared++;

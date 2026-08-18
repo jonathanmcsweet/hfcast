@@ -10,9 +10,21 @@
  * Kept apart by file name rather than by folder alone — `*.test.tsx` here,
  * `*.test.ts` there — so neither runner can pick up the other's tests.
  */
+const expoPreset = require('jest-expo/jest-preset');
+
+// jest-expo names the packages under `node_modules` that babel may
+// compile. Everything else is read as written, and the `@formatjs`
+// polyfills the app loads for Hermes now ship as ES modules, which this
+// runner cannot read. Adding them to the list compiles them like the
+// application code, so a render test loads what the app loads.
+const transformIgnorePatterns = expoPreset.transformIgnorePatterns.map((
+  pattern,
+) => pattern.replace('(?!', '(?!@formatjs|'));
+
 module.exports = {
   preset: 'jest-expo',
   testMatch: ['<rootDir>/test/render/**/*.test.tsx'],
+  transformIgnorePatterns,
   // `legacy/` is a second app that shares this name, and `build/` holds a
   // copy of this one. Both make the module map ambiguous, and neither is
   // ever imported from a test.
