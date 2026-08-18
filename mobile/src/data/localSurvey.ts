@@ -1,3 +1,4 @@
+import type { EngineModel } from '../store/useSettingsStore';
 import type { Station } from '../store/useStationStore';
 import { latLonToGrid } from './grid';
 import { type Nowcast, predictLocally } from './localPredict';
@@ -19,6 +20,8 @@ export interface LocalSurveyRequest {
   date: Date;
   station: Station;
   nowcast?: Nowcast | undefined;
+  /** Which model answers. Absent runs the classic engine unchanged. */
+  engine?: EngineModel | undefined;
 }
 
 export async function surveyLocally(
@@ -46,6 +49,7 @@ export async function surveyLocally(
         date: request.date,
         station: request.station,
         nowcast: request.nowcast,
+        engine: request.engine,
       }),
     );
   }

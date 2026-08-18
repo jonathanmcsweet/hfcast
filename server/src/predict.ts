@@ -38,6 +38,8 @@ export interface PredictRequest {
    * to a station this server knows nothing about.
    */
   antenna?: AntennaChoice;
+  /** Which model answers. Absent runs the classic engine unchanged. */
+  engine?: 'voacap' | 'truecast';
 }
 
 /**
@@ -79,6 +81,11 @@ export function keyFor(request: PredictRequest, ssn: number): string {
     request.kpMax24h === undefined
       ? 'climatology'
       : stormWidening(request.kpMax24h).toFixed(2),
+    // Two models, two answers; one must never be served as the other.
+    request.engine ?? 'voacap',
+    // The new model's offline form moves along a day-of-year curve, so
+    // its runs are per-day where the classic run is per-month.
+    request.engine === 'truecast' ? request.date.getUTCDate() : 0,
   ].join('|');
 }
 
@@ -159,6 +166,19 @@ async function runOnce(
   year: number,
   txAntenna: Awaited<ReturnType<typeof txCard>> | null,
 ): Promise<PathPrediction> {
+  // The classic run states the sunspot number as it always has. The new
+  // model instead names itself and the calendar day, and states the
+  // resolved number as `essn` only when the run is a now-cast — without
+  // one the engine derives its own index from the built-in day-of-year
+  // correction, the offline form (engine repository, `docs/offline.md`).
+  // Exclusive because the engine refuses `ssn` beside `engine:"truecast"`.
+  const modelFields = request.engine === 'truecast'
+    ? {
+      engine: 'truecast' as const,
+      day: request.date.getUTCDate(),
+      ...(basis === 'nowcast' ? { essn: ssn } : {}),
+    }
+    : { ssn };
   const engineRequest = {
     fromLat: request.from.lat,
     fromLon: request.from.lon,
@@ -168,7 +188,7 @@ async function runOnce(
     toLabel: request.to.label,
     month,
     year,
-    ssn,
+    ...modelFields,
     watts: request.watts,
     requiredSnrDb: request.requiredSnrDb,
     noiseDbw: request.noiseDbw,

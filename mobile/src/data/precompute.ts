@@ -44,7 +44,7 @@ import type { BandKey } from '../../../shared/bands.ts';
 import type { CentreField } from '../../../shared/correctMap';
 import * as Engine from '../../modules/engine-bridge';
 import { usePrecomputeStore } from '../store/usePrecomputeStore';
-import { useSettingsStore } from '../store/useSettingsStore';
+import { type EngineModel, useSettingsStore } from '../store/useSettingsStore';
 import type { Station } from '../store/useStationStore';
 import { FINE_CENTRE_LAT_STEP, FINE_CENTRE_LON_STEP } from './correctMap';
 import { timing } from './diagnostics';
@@ -83,6 +83,8 @@ export interface PrecomputeAsk {
   station: Station;
   /** `stationKey` — the same string the file name is built from. */
   stationKey: string;
+  /** Which model computes them. Stored maps are filed under it. */
+  engine: EngineModel;
   bands: readonly BandKey[];
   /** How many months from this one, including it. */
   months: number;
@@ -220,6 +222,12 @@ export async function precompute(
         band: job.band,
         hour: job.run.hour,
         date,
+        // No live reading is passed with it, so this is the offline
+        // form of the new model: the engine derives its own index from
+        // the built-in day-of-year correction. That is the form a map
+        // computed ahead should hold, because a map is read in the
+        // field where there is no network to improve on it.
+        engine: ask.engine,
       };
 
       try {
@@ -407,6 +415,7 @@ async function jobsFor(
         id: {
           grid: ask.from.grid,
           station: ask.stationKey,
+          engine: ask.engine,
           band,
           month: monthTag(run),
           hour: run.hour,

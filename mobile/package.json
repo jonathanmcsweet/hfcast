@@ -1,6 +1,6 @@
 {
   "name": "hfcast",
-  "version": "0.63.2",
+  "version": "1.2.6",
   "license": "Apache-2.0",
   "packageManager": "pnpm@11.17.0",
   "main": "index.js",
