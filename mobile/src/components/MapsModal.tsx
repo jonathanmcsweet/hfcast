@@ -92,6 +92,7 @@ export default function MapsModal({ visible, onDismiss }: Props) {
   const months = useSettingsStore((state) => state.precomputeMonths);
   const setMonths = useSettingsStore((state) => state.setPrecomputeMonths);
   const bands = useSettingsStore((state) => state.precomputeBands);
+  const engineModel = useSettingsStore((state) => state.engineModel);
   const setBands = useSettingsStore((state) => state.setPrecomputeBands);
   const budgetMb = useSettingsStore((state) => state.mapBudgetMb);
   const onCharger = useSettingsStore((state) => state.precomputeOnCharger);
@@ -137,11 +138,12 @@ export default function MapsModal({ visible, onDismiss }: Props) {
       from,
       station,
       stationKey: stationKey(station),
+      engine: engineModel,
       bands,
       months,
       budgetBytes: budgetMb * MB,
     }),
-    [from, station, bands, months, budgetMb],
+    [from, station, engineModel, bands, months, budgetMb],
   );
 
   // The room in use and the work left, read when the dialog opens, when

@@ -289,7 +289,17 @@ export interface CoverageRequest {
   /** 1-12. */
   month: number;
   year: number;
-  ssn: number;
+  /**
+   * The classic run's sunspot number. Absent exactly when the request
+   * names the new model, on the same terms as `EngineRequest` above.
+   */
+  ssn?: number;
+  /** Which model answers. Absent runs the classic engine unchanged. */
+  engine?: 'truecast';
+  /** Calendar day for the new model's day-of-year correction. */
+  day?: number;
+  /** A live effective index for the new model, when the run has one. */
+  essn?: number;
   watts: number;
   requiredSnrDb: number;
   noiseDbw: number;

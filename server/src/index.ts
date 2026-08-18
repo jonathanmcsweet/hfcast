@@ -308,6 +308,7 @@ async function coverageRequest(url: URL) {
     band: band as BandKey,
     hour,
     ...parseStation(url),
+    ...parseEngine(url),
     ...(spaceWeather
       ? {
         ssnOverride: spaceWeather.effectiveSsn,

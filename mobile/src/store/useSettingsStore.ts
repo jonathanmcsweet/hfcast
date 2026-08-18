@@ -136,10 +136,11 @@ interface SettingsState {
   /**
    * Which prediction model answers.
    *
-   * `voacap` by default: it is the behaviour every existing install
-   * has, and switching models moves every number in the app, so that
-   * is a choice a person makes rather than an upgrade that happens to
-   * them.
+   * `truecast` by default. It is measured to beat the classic model
+   * against ionosonde soundings, and it does so with no network at all
+   * (engine repository, `docs/comparison.md`), so the better answer is
+   * the one a reader who never opens this menu gets. `voacap` stays a
+   * choice for anyone who wants the classic numbers.
    */
   engineModel: EngineModel;
   setEngineModel: (model: EngineModel) => void;
@@ -152,11 +153,11 @@ export const DEFAULT_MAP_BUDGET_MB = 128;
 export const MAP_BUDGET_CHOICES = [64, 128, 256, 512] as const;
 
 // Raised for the stored maps at 3, `developer` at 4, waiting for a
-// charger at 5, the engine model at 6, and its renamed value at 7. An
-// older saved shape is migrated forward rather than discarded: losing a
-// theme and a units choice to gain a storage default would be a poor
-// trade.
-const PERSIST_VERSION = 7;
+// charger at 5, the engine model at 6, its renamed value at 7, and the
+// new model becoming the default at 8. An older saved shape is migrated
+// forward rather than discarded: losing a theme and a units choice to
+// gain a storage default would be a poor trade.
+const PERSIST_VERSION = 8;
 
 export const useSettingsStore = create<SettingsState>()(
   persist(
@@ -180,7 +181,7 @@ export const useSettingsStore = create<SettingsState>()(
         set({ precomputeOnCharger }),
       developer: false,
       setDeveloper: (developer) => set({ developer }),
-      engineModel: 'voacap',
+      engineModel: 'truecast',
       setEngineModel: (engineModel) => set({ engineModel }),
     }),
     {
@@ -211,7 +212,7 @@ export const useSettingsStore = create<SettingsState>()(
         // the rest fall to their defaults is what the reader would
         // expect: the defaults are what they would have chosen anyway.
         const held = persisted as Partial<SettingsState>;
-        if (version >= 1 && version <= 6) {
+        if (version >= 1 && version <= 7) {
           return {
             ...held,
             units: held.units ?? 'auto',
@@ -224,11 +225,13 @@ export const useSettingsStore = create<SettingsState>()(
             // upgrading does not lose a choice they made.
             precomputeOnCharger: held.precomputeOnCharger ?? true,
             developer: held.developer ?? false,
-            // A version 6 store spelled the new model `nowcast`, the
-            // name it carried before release.
-            engineModel: (held.engineModel as string) === 'nowcast'
-              ? 'truecast'
-              : held.engineModel ?? 'voacap',
+            // Every stored shape up to 7 moves to the new default, and
+            // no reader loses a decision by it: the model choice never
+            // reached a released build, so a stored `voacap` is the old
+            // default rather than something somebody picked. Version 6
+            // spelled the new model `nowcast`, the name it carried
+            // before release, and that lands in the same place.
+            engineModel: 'truecast',
           };
         }
         // Anything else falls back to the defaults, which follow the

@@ -183,6 +183,8 @@ export function fetchCoverage(p: {
   hour: number;
   date: string;
   nowcast?: boolean;
+  /** Which model answers. Absent runs the classic engine unchanged. */
+  engine?: EngineModel | undefined;
   station: Record<string, string>;
 }): Promise<Coverage> {
   return getJson('/api/coverage', {
@@ -192,6 +194,7 @@ export function fetchCoverage(p: {
     hour: String(p.hour),
     date: p.date,
     nowcast: p.nowcast ? '1' : '',
+    engine: p.engine ?? '',
     ...p.station,
   }, checkCoverage<Coverage>);
 }
@@ -214,6 +217,8 @@ export async function fetchFineGlobe(p: {
   hour: number;
   date: string;
   nowcast?: boolean;
+  /** Which model answers. Absent runs the classic engine unchanged. */
+  engine?: EngineModel | undefined;
   station: Record<string, string>;
 }): Promise<FineGlobe> {
   const answer = await getJson('/api/coverage/fine', {
@@ -223,6 +228,7 @@ export async function fetchFineGlobe(p: {
     hour: String(p.hour),
     date: p.date,
     nowcast: p.nowcast ? '1' : '',
+    engine: p.engine ?? '',
     ...p.station,
   }, checkCoverage<Coverage>);
   return packGlobe(p.band, p.hour, answer);
@@ -242,6 +248,8 @@ export function fetchCoveragePatch(p: {
   hour: number;
   date: string;
   nowcast?: boolean;
+  /** Which model answers. Absent runs the classic engine unchanged. */
+  engine?: EngineModel | undefined;
   station: Record<string, string>;
   /**
    * Where the map is pointed and how much of it is showing. Absent asks
@@ -257,6 +265,7 @@ export function fetchCoveragePatch(p: {
     hour: String(p.hour),
     date: p.date,
     nowcast: p.nowcast ? '1' : '',
+    engine: p.engine ?? '',
     ...(p.region
       ? {
         atLat: String(p.region.lat),

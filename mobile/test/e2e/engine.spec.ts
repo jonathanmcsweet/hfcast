@@ -6,6 +6,9 @@
  * one by `engine=truecast` on the prediction request. The request is the
  * observable that matters — a switch that changed only its own highlight
  * would look exactly the same on screen.
+ *
+ * The new model is the default, so the silence is what has to be reached
+ * by picking the classic chip rather than by doing nothing.
  */
 import { expect, test } from './fixtures.ts';
 
@@ -30,24 +33,23 @@ test.describe('the forecast model choice', () => {
 
     await open();
 
-    // The default asks for nothing: the classic request shape every old
-    // server understands, so no install changes behaviour uninvited.
+    // The default names the new model, which is what answers unless
+    // somebody chooses otherwise.
     await expect.poll(() => asked.length).toBeGreaterThan(0);
-    expect(asked[0]).toBe('absent');
+    expect(asked[0]).toBe('truecast');
 
     await openPreferences(page);
     await expect(page.getByText('Forecast model')).toBeVisible();
 
     // Both chips are reachable by their accessible names.
-    await expect(page.getByRole('button', { name: 'VOACAP (classic)' }))
+    await expect(page.getByRole('button', { name: 'Truecast (new)' }))
       .toBeVisible();
-    await page.getByRole('button', { name: 'Truecast (new)' }).click();
+    await page.getByRole('button', { name: 'VOACAP (classic)' }).click();
     await page.getByRole('button', { name: 'Close preferences' }).click();
 
     // The switch re-keys the query, so a new request follows without a
-    // reload, and it names the new model. Switching back is deliberately
-    // not asserted as a request: the classic answer is still cached, and
-    // serving it from the cache is the right behaviour.
-    await expect.poll(() => asked.includes('truecast')).toBe(true);
+    // reload, and the classic choice names no model at all: the request
+    // shape every old server understands.
+    await expect.poll(() => asked.includes('absent')).toBe(true);
   });
 });

@@ -21,6 +21,7 @@ import {
 const HOME: MapIdentity = {
   grid: 'FN42kx',
   station: 'watts=100&mode=ssb&antHeight=10',
+  engine: 'voacap',
   band: '20m',
   month: '2026-08',
   hour: 18,
@@ -85,6 +86,25 @@ describe('which station a stored map belongs to', () => {
       placeName(HOME),
       placeName({ ...HOME, station: 'watts=5&mode=cw&antHeight=2' }),
     );
+  });
+
+  it('is not shared between the two models', () => {
+    // The two answer differently for the same place and hour, so one
+    // model's map must never be read back as the other's.
+    assert.notEqual(
+      placeName(HOME),
+      placeName({ ...HOME, engine: 'truecast' }),
+    );
+  });
+
+  it('leaves the classic name as it was before the model was named', () => {
+    // Maps already on a device hold classic answers, because the model
+    // choice never reached a released build. The classic model adds
+    // nothing to the hashed text, so those files stay readable instead
+    // of being orphaned by an upgrade. This is the value the hash gave
+    // before `engine` existed, so a change that would strand a device's
+    // whole store fails here rather than in the field.
+    assert.equal(placeName(HOME), '6a94387a28bd2cf2');
   });
 
   it('is the same length whatever it was made from', () => {

@@ -303,6 +303,11 @@ function useMapRun(from: Endpoint, band: BandKey, reportedHour: number) {
   const ready = usePathStore((state) => state.ready);
   const local = canMapLocally();
   const nowcast = nowcastFrom(useSpaceWeather().data);
+  // The map is the expensive answer, so it is the one that must not be
+  // shown from the wrong model. It enters every key below, what the
+  // engine in this build is asked, what the server is asked, and the
+  // name a stored map is filed under.
+  const engineModel = useSettingsStore((state) => state.engineModel);
   // Long enough to swallow a sweep, short enough that choosing one hour
   // feels immediate. The engine's own run is of the same order on a slow
   // device. The three queries share it, so the fine grid and the patch
@@ -342,6 +347,7 @@ function useMapRun(from: Endpoint, band: BandKey, reportedHour: number) {
         month,
         nowcastKey(nowcast),
         station.key,
+        engineModel,
         ...extra,
       ] as const,
 
@@ -363,6 +369,7 @@ function useMapRun(from: Endpoint, band: BandKey, reportedHour: number) {
         month,
         centreNowcastKey(nowcast),
         station.key,
+        engineModel,
       ] as const,
 
     /**
@@ -387,6 +394,7 @@ function useMapRun(from: Endpoint, band: BandKey, reportedHour: number) {
         ? {
           grid: from.grid,
           station: station.key,
+          engine: engineModel,
           band: forBand,
           month,
           hour,
@@ -404,6 +412,7 @@ function useMapRun(from: Endpoint, band: BandKey, reportedHour: number) {
       date: new Date(`${date}T00:00:00Z`),
       station: station.station,
       nowcast,
+      engine: engineModel,
     },
 
     /** What the server is asked. */
@@ -415,6 +424,9 @@ function useMapRun(from: Endpoint, band: BandKey, reportedHour: number) {
       date,
       nowcast: true,
       station: station.params,
+      // Named only for the new model, as the path forecast does: the
+      // classic request stays the shape every old server understands.
+      engine: engineModel === 'truecast' ? engineModel : undefined,
     },
 
     /**
