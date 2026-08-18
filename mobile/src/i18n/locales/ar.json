@@ -170,6 +170,7 @@
     "changeLocation": "الإرسال من {{place}}. انقر للتغيير.",
     "swapEnds": "تبديل طرفي المسار",
     "pinBand": "عرض {{band}}",
+    "bandPosition": "النطاق {{at}} من {{of}}",
     "hourSlider": "ساعة اليوم بالتوقيت العالمي",
     "gridCell": "{{band}}، {{hour}} بالتوقيت العالمي، {{percent}}، {{quality}}",
     "windowRail": "النافذة الصالحة: الحد الأدنى {{floor}}، الحد الأعلى {{ceiling}}. انقر للشرح.",

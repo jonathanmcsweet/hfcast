@@ -170,6 +170,7 @@
     "changeLocation": "Sendestandort {{place}}. Zum Ändern tippen.",
     "swapEnds": "Die beiden Enden der Strecke tauschen",
     "pinBand": "{{band}} anzeigen",
+    "bandPosition": "Band {{at}} von {{of}}",
     "hourSlider": "Stunde des Tages, UTC",
     "gridCell": "{{band}}, {{hour}} UTC, {{percent}}, {{quality}}",
     "windowRail": "Nutzbarer Bereich: Untergrenze {{floor}}, Obergrenze {{ceiling}}. Zum Erklären tippen.",

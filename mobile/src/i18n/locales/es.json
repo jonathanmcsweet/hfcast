@@ -170,6 +170,7 @@
     "changeLocation": "Transmitiendo desde {{place}}. Toca para cambiarlo.",
     "swapEnds": "Intercambiar los dos extremos de la ruta",
     "pinBand": "Mostrar {{band}}",
+    "bandPosition": "Banda {{at}} de {{of}}",
     "hourSlider": "Hora del día, UTC",
     "gridCell": "{{band}}, {{hour}} UTC, {{percent}}, {{quality}}",
     "windowRail": "Ventana utilizable: mínima {{floor}}, máxima {{ceiling}}. Toca para ver la explicación.",

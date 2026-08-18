@@ -170,6 +170,7 @@
     "changeLocation": "Transmitting from {{place}}. Tap to change.",
     "swapEnds": "Swap the two ends of the path",
     "pinBand": "Show {{band}}",
+    "bandPosition": "Band {{at}} of {{of}}",
     "hourSlider": "Hour of day, UTC",
     "gridCell": "{{band}}, {{hour}} UTC, {{percent}}, {{quality}}",
     "windowRail": "Usable window: floor {{floor}}, ceiling {{ceiling}}. Tap for an explanation.",

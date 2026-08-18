@@ -170,6 +170,7 @@
     "changeLocation": "送信地は {{place}} です。タップして変更します。",
     "swapEnds": "経路の両端を入れ替える",
     "pinBand": "{{band}} を表示",
+    "bandPosition": "{{of}} 件中 {{at}} 件目のバンド",
     "hourSlider": "時刻（UTC）",
     "gridCell": "{{band}}、{{hour}} UTC、{{percent}}、{{quality}}",
     "windowRail": "使用可能な範囲：下限 {{floor}}、上限 {{ceiling}}。タップすると説明が開きます。",
