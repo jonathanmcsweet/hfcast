@@ -64,6 +64,7 @@ pnpm install
 pnpm start           # listens on 127.0.0.1:8787
 pnpm test            # deck builder, output parser, geo maths
 pnpm typecheck
+pnpm record-fixture  # re-record the reference listing; needs voacapl
 ```
 
 TypeScript runs through Node's type stripping, so there is no build step.
@@ -129,6 +130,13 @@ then 5-character numeric fields with no separators. Values that fill a field run
 straight into the next one, so `9.7011.85` is two numbers. Both the deck builder
 and the output parser work by column position, and the tests assert those
 positions byte-for-byte against output from a real run.
+
+That run is `test/fixtures/seattle-tokyo-jul2026-ssn68.out`, one Fortran
+listing of the deck the server writes today, and every band the app forecasts.
+Adding a band or changing a card makes it stale; `pnpm record-fixture` records
+it again. A listing carries the deck it was run from in its own header, and a
+test compares that against the deck the builder produces now, so a stale
+fixture fails instead of being read as current.
 
 In a method 30 listing each hour is a block starting with a line ending in
 `FREQ`. The first data column is the value at the MUF, not a requested

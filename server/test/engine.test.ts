@@ -9,9 +9,7 @@
  */
 import assert from 'node:assert/strict';
 import { existsSync, readFileSync } from 'node:fs';
-import path from 'node:path';
 import { test } from 'node:test';
-import { fileURLToPath } from 'node:url';
 
 import { txCard } from '../src/antenna.ts';
 import { FINE_LAT_STEP, FINE_LON_STEP } from '../src/coverage.ts';
@@ -23,55 +21,27 @@ import {
   runEngine,
 } from '../src/voacap/engine.ts';
 import { parseVoacapOutput } from '../src/voacap/parse.ts';
-import { FIXTURE_BANDS } from './fixtureBands.ts';
-
-const here = path.dirname(fileURLToPath(import.meta.url));
+import { FIXTURE_PATH, FIXTURE_REQUEST } from './fixtureRequest.ts';
 
 const available = existsSync(PREDICT_BIN);
 if (!available) {
   console.error(`skipping engine tests: no predict binary at ${PREDICT_BIN}`);
 }
 
-/** The request behind test/fixtures/seattle-tokyo-jul2026-ssn68.out. */
-const FIXTURE_REQUEST = {
-  fromLat: 47.61,
-  fromLon: -122.33,
-  toLat: 35.68,
-  toLon: 139.77,
-  fromLabel: 'SEATTLE',
-  toLabel: 'TOKYO',
-  month: 7,
-  year: 2026,
-  ssn: 68,
-  watts: 100,
-  requiredSnrDb: 24,
-  noiseDbw: 145,
-};
-
 /**
- * The Fortran reference's own listing for the deck the server writes today.
+ * The Fortran reference's own listing for the deck the server writes
+ * today, cell for cell.
  *
- * The older `seattle-tokyo-jul2026-ssn68.out` fixture predates the change
- * that enabled sporadic E (`FPROB` fourth value, server 0.2.0), so it is a
- * listing for a deck this server no longer sends. It stays because the
- * parser tests use it as known text; comparing engine output against it
- * would compare two different questions.
+ * Every band, so a band added to the app is compared here rather than
+ * quietly left out. `voacap.test.ts` checks that the listing still answers
+ * the deck; re-record it with `pnpm record-fixture` when it does not.
  */
 test('the engine reproduces the reference listing cell for cell', {
   skip: !available,
 }, async () => {
-  const fixture = readFileSync(
-    path.join(here, 'fixtures/seattle-tokyo-jul2026-ssn68-es.out'),
-    'utf8',
-  );
-  const expected = parseVoacapOutput(fixture, FIXTURE_BANDS);
-  // The same nine bands the listing was captured for, so this stays a
-  // comparison of two answers to one question rather than of two
-  // questions.
-  const actual = await runEngine({
-    ...FIXTURE_REQUEST,
-    bands: FIXTURE_BANDS,
-  });
+  const fixture = readFileSync(FIXTURE_PATH, 'utf8');
+  const expected = parseVoacapOutput(fixture, BANDS_BY_FREQ);
+  const actual = await runEngine(FIXTURE_REQUEST);
 
   assert.deepEqual(actual.mufByHour, expected.mufByHour);
   assert.equal(actual.cells.length, expected.cells.length);
@@ -253,16 +223,13 @@ test(
 );
 
 /**
- * The bug this guards against was invisible in every other test: the
- * answers were plausible, they varied with the hour, and nothing
- * crashed. The station simply was not the one the operator had set.
+ * Invisible to every other test: the answers were plausible, varied with
+ * the hour and did not crash. The station was simply not the operator's.
  *
- * The engine takes the first antenna card whose frequency range holds
- * the frequency, and gives a frequency in no card's range no antenna at
- * all. Cards read 2 to 30 MHz until 2026-08-19, so 160m at 1.84 was
- * predicted isotropic however the antenna was described — measured at 3
- * dB on a short summer path, on the band where an inverted L or a
- * vertical is the usual antenna.
+ * The engine takes the first antenna card whose range holds the
+ * frequency, and gives a frequency in no card's range no antenna at all.
+ * Cards read 2 to 30 MHz until 2026-08-19, so 160m at 1.84 ran isotropic
+ * however the antenna was described — 3 dB on a short summer path.
  */
 test('the antenna reaches 160m, not just the bands above 2 MHz', {
   skip: !available,
@@ -293,8 +260,8 @@ test('the antenna reaches 160m, not just the bands above 2 MHz', {
       .filter((cell) => cell.band === band)
       .map((cell) => cell.snr);
 
-  // 80m proves the comparison can tell the two apart at all, so a 160m
-  // match cannot be read as the test failing to do anything.
+  // 80m proves the comparison can tell the two apart, so a 160m match
+  // cannot be read as the test doing nothing.
   assert.notDeepEqual(
     snr(withAntenna, '80m'),
     snr(isotropic, '80m'),

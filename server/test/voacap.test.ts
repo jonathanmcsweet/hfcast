@@ -1,8 +1,6 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import path from 'node:path';
 import { test } from 'node:test';
-import { fileURLToPath } from 'node:url';
 
 import {
   bearingDeg,
@@ -10,18 +8,15 @@ import {
   gridToLatLon,
   latLonToGrid,
 } from '../src/geo.ts';
+import { BANDS_BY_FREQ } from '../src/types.ts';
 import { buildDeck } from '../src/voacap/deck.ts';
 import { parseVoacapOutput } from '../src/voacap/parse.ts';
-import { FIXTURE_BANDS } from './fixtureBands.ts';
+import { FIXTURE_PATH, FIXTURE_REQUEST } from './fixtureRequest.ts';
 
-const here = path.dirname(fileURLToPath(import.meta.url));
-const fixture = readFileSync(
-  path.join(here, 'fixtures/seattle-tokyo-jul2026-ssn68.out'),
-  'utf8',
-);
+const fixture = readFileSync(FIXTURE_PATH, 'utf8');
 
-const SEATTLE = { lat: 47.61, lon: -122.33 };
-const TOKYO = { lat: 35.68, lon: 139.77 };
+const SEATTLE = { lat: FIXTURE_REQUEST.fromLat, lon: FIXTURE_REQUEST.fromLon };
+const TOKYO = { lat: FIXTURE_REQUEST.toLat, lon: FIXTURE_REQUEST.toLon };
 
 test('grid conversion round-trips through a 6-character locator', () => {
   const grid = latLonToGrid(SEATTLE.lat, SEATTLE.lon);
@@ -46,20 +41,7 @@ test('great-circle maths agrees with what VOACAP computed', () => {
 });
 
 test('deck places every field on its documented column', () => {
-  const deck = buildDeck({
-    fromLat: SEATTLE.lat,
-    fromLon: SEATTLE.lon,
-    toLat: TOKYO.lat,
-    toLon: TOKYO.lon,
-    fromLabel: 'Seattle',
-    toLabel: 'Tokyo',
-    month: 7,
-    year: 2026,
-    ssn: 68,
-    watts: 100,
-    requiredSnrDb: 24,
-    noiseDbw: 145,
-  });
+  const deck = buildDeck(FIXTURE_REQUEST);
   const lines = deck.split('\n');
   const card = (name: string) =>
     lines.find((l) => l.startsWith(name)) ?? assert.fail(`no ${name} card`);
@@ -74,12 +56,10 @@ test('deck places every field on its documented column', () => {
     card('FREQUENCY'),
     'FREQUENCY  1.84 3.75 5.36 7.1010.1214.2018.1021.2024.9428.40 0.00',
   );
-  // The antenna's frequency range, which is the whole point of the card
-  // being a range at all. It read 2 to 30 MHz until 2026-08-19, and the
-  // engine gives a frequency in no card's range no antenna at all — so
-  // 160m at 1.84 MHz was predicted isotropic whatever the operator set.
-  // The end of the card was pinned here and the range was not, which is
-  // how that went unseen.
+  // The antenna's frequency range. It read 2 to 30 MHz until 2026-08-19,
+  // and a frequency in no card's range gets no antenna, so 160m at 1.84
+  // ran isotropic. The end of the card was pinned here and the range was
+  // not, which is how it went unseen.
   assert.equal(
     card('ANTENNA').slice(0, 30),
     'ANTENNA       1    1    1   30',
@@ -95,32 +75,43 @@ test('deck places every field on its documented column', () => {
 
 test('deck refuses a value that would overflow its field', () => {
   assert.throws(
-    () =>
-      buildDeck({
-        fromLat: SEATTLE.lat,
-        fromLon: SEATTLE.lon,
-        toLat: TOKYO.lat,
-        toLon: TOKYO.lon,
-        fromLabel: 'a',
-        toLabel: 'b',
-        month: 7,
-        year: 2026,
-        ssn: 68,
-        watts: 100_000_000,
-        requiredSnrDb: 24,
-        noiseDbw: 145,
-      }),
+    () => buildDeck({ ...FIXTURE_REQUEST, watts: 100_000_000 }),
     /overflows/,
   );
 });
 
+/**
+ * The deck VOACAP echoes above its first page header, one line in from
+ * the margin and with the padding the LABEL card was written with cut off
+ * the end.
+ */
+function echoedDeck(listing: string): readonly string[] {
+  const lines = listing.split('\n');
+  const first = lines.findIndex((l) => l.startsWith(' LINEMAX'));
+  const last = lines.findIndex((l) => l.startsWith(' QUIT'));
+  assert.ok(first >= 0 && last > first, 'the listing must echo its deck');
+  return lines.slice(first, last + 1).map((l) => l.slice(1).trimEnd());
+}
+
+test('the listing was recorded from the deck the server writes today', () => {
+  // The one guard that catches a stale fixture. Every other test here
+  // reads the listing as if it answered the current question, and a
+  // listing recorded before a band or a card changed answers a different
+  // one — quietly, because the columns still line up. Re-record with
+  // `pnpm record-fixture`.
+  assert.deepEqual(
+    echoedDeck(fixture),
+    buildDeck(FIXTURE_REQUEST).trimEnd().split('\n').map((l) => l.trimEnd()),
+  );
+});
+
 test('parser reads every hour and band from a real listing', () => {
-  const { cells, mufByHour } = parseVoacapOutput(fixture, FIXTURE_BANDS);
+  const { cells, mufByHour } = parseVoacapOutput(fixture, BANDS_BY_FREQ);
 
   const hours = new Set(cells.map((c) => c.hour));
   assert.equal(hours.size, 24, 'expected all 24 UTC hours');
   assert.ok(hours.has(0), 'hour 24 should fold to 0');
-  assert.equal(cells.length, 24 * FIXTURE_BANDS.length);
+  assert.equal(cells.length, 24 * BANDS_BY_FREQ.length);
 
   assert.equal(mufByHour.length, 24);
   assert.ok(mufByHour.every((m) => m > 0 && m < 60), 'MUF should be plausible');
@@ -131,35 +122,38 @@ test('the Fortran path reports no operating window rather than an empty one', ()
   // has nothing to report until it runs a second, method-26 deck. Null
   // says that; 24 nulls would say the frequencies were computed and
   // nothing worked, which is a different and untrue claim.
-  const { window } = parseVoacapOutput(fixture, FIXTURE_BANDS);
+  const { window } = parseVoacapOutput(fixture, BANDS_BY_FREQ);
   assert.equal(window, null);
 });
 
 test('parser keeps reliability in 0..1 and reads merged columns correctly', () => {
-  const { cells } = parseVoacapOutput(fixture, FIXTURE_BANDS);
+  const { cells } = parseVoacapOutput(fixture, BANDS_BY_FREQ);
   assert.ok(cells.every((c) => c.reliability >= 0 && c.reliability <= 1));
 
   // From the fixture's 01 UTC block:
-  //   REL   0.17 0.00 0.00 0.00 0.00 0.11 0.17 0.03 0.00 0.00
-  //   SNR     13 -503 -309 -100   -6   14   12  -15  -76 -139
+  //   REL   0.42 0.00 0.00 0.00 0.00 0.00 0.51 0.41 0.08 0.00 0.00
+  //   SNR     22 -493 -299 -184  -90    4   24   22   -5  -66 -129
   //
   // The first of those columns is the value at the MUF, not a requested
-  // frequency. The bands start one column later, so 160m is 0.00 / -503 and
-  // the leading 0.17 / 13 belongs to the MUF and is reported separately.
+  // frequency. The bands start one column later, so 160m is 0.00 / -493
+  // and the leading 0.42 / 22 belongs to the MUF and is reported
+  // separately.
   const at1 = cells.filter((c) => c.hour === 1);
   const m160 = at1.find((c) => c.band === '160m');
   assert.equal(m160?.reliability, 0);
-  // -503 fills its 5-column field completely. A whitespace split would have
-  // merged it with its neighbour; reading by column position does not.
-  assert.equal(m160?.snr, -503);
+  assert.equal(m160?.snr, -493);
 
-  // Slots run 160m, 80m, 40m, 30m, 20m, 17m, 15m, 12m, 10m, so the two
-  // open bands at this hour are slot 4 and slot 5.
+  // Slots run 160m, 80m, 60m, 40m, 30m, 20m, 17m, 15m, 12m, 10m. 60m is
+  // the third, and everything after it moved a column when it arrived.
+  const m60 = at1.find((c) => c.band === '60m');
+  assert.equal(m60?.reliability, 0);
+  assert.equal(m60?.snr, -184);
+
   const m20 = at1.find((c) => c.band === '20m');
-  assert.equal(m20?.reliability, 0.11);
-  assert.equal(m20?.snr, 14);
+  assert.equal(m20?.reliability, 0.51);
+  assert.equal(m20?.snr, 24);
 
   const m17 = at1.find((c) => c.band === '17m');
-  assert.equal(m17?.reliability, 0.17);
-  assert.equal(m17?.snr, 12);
+  assert.equal(m17?.reliability, 0.41);
+  assert.equal(m17?.snr, 22);
 });

@@ -1,18 +1,17 @@
 /**
  * Checks the empirical swing correction and its reliability recomputation.
  *
- * The important test is the first one: with no correction applied (factor 1),
- * the decile formula must reproduce the engine's own printed reliability from
- * the engine's own numbers. If it does, applying the same formula after the
- * correction is consistent with the engine rather than a second model. If it
- * did not, the whole recomputation approach would be unsound.
+ * The first test is the important one: with no correction applied (factor
+ * 1), the decile formula must reproduce the engine's own printed
+ * reliability from the engine's own numbers. If it does, applying the
+ * same formula after the correction stays consistent with the engine
+ * rather than becoming a second model.
  */
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import path from 'node:path';
 import { test } from 'node:test';
-import { fileURLToPath } from 'node:url';
 
+import { BANDS_BY_FREQ } from '../src/types.ts';
 import {
   correctCells,
   factorsFor,
@@ -21,16 +20,12 @@ import {
   SWING_FACTOR,
 } from '../src/voacap/correct.ts';
 import { parseVoacapOutput } from '../src/voacap/parse.ts';
-import { FIXTURE_BANDS } from './fixtureBands.ts';
+import { FIXTURE_PATH, FIXTURE_REQUEST } from './fixtureRequest.ts';
 
-const here = path.dirname(fileURLToPath(import.meta.url));
-const fixture = readFileSync(
-  path.join(here, 'fixtures/seattle-tokyo-jul2026-ssn68.out'),
-  'utf8',
-);
+const fixture = readFileSync(FIXTURE_PATH, 'utf8');
 
-/** The fixture's SYSTEM card asked for this, echoed in its header. */
-const FIXTURE_REQUIRED_SNR = 24;
+/** What the fixture's SYSTEM card asked for, echoed in its header. */
+const FIXTURE_REQUIRED_SNR = FIXTURE_REQUEST.requiredSnrDb;
 
 function median(values: number[]): number {
   const sorted = [...values].sort((a, b) => a - b);
@@ -45,7 +40,7 @@ test('phi matches the two anchor points that matter', () => {
 });
 
 test('with factor 1, recomputed reliability matches the engine', () => {
-  const { cells } = parseVoacapOutput(fixture, FIXTURE_BANDS);
+  const { cells } = parseVoacapOutput(fixture, BANDS_BY_FREQ);
   const withDeciles = cells.filter(
     (c) => c.snrLowDecile !== null && c.snrUpDecile !== null,
   );
@@ -72,7 +67,7 @@ test('with factor 1, recomputed reliability matches the engine', () => {
 });
 
 test('the correction shrinks each band toward its own centre', () => {
-  const { cells } = parseVoacapOutput(fixture, FIXTURE_BANDS);
+  const { cells } = parseVoacapOutput(fixture, BANDS_BY_FREQ);
   const corrected = correctCells(cells, FIXTURE_REQUIRED_SNR);
 
   const bands = [...new Set(cells.map((c) => c.band))];
@@ -90,7 +85,7 @@ test('the correction shrinks each band toward its own centre', () => {
 });
 
 test('quiet hours become less dead, strong hours less inflated', () => {
-  const { cells } = parseVoacapOutput(fixture, FIXTURE_BANDS);
+  const { cells } = parseVoacapOutput(fixture, BANDS_BY_FREQ);
   // Spread factors held neutral so this test sees the swing alone.
   const corrected = correctCells(cells, FIXTURE_REQUIRED_SNR, {
     swing: SWING_FACTOR,
