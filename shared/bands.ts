@@ -34,17 +34,14 @@ export const BAND_ORDER: readonly BandKey[] = [
 /**
  * The lowest frequency an antenna card claims to serve, in whole MHz.
  *
- * The engine walks the antenna cards and takes the first one whose
- * frequency range holds the frequency being predicted; a frequency in no
- * card's range gets **no antenna at all**. The card's own default is 2
- * MHz, and 160m sits at 1.84, so until 2026-08-19 every 160m forecast
- * was computed as though the operator's station were isotropic — a
- * dipole and an isotrope returned the same numbers below 2 MHz and
- * differed by 3 dB above it, measured on a short summer path.
+ * The engine takes the first card whose range holds the frequency, and
+ * gives a frequency in no card's range **no antenna at all**. The card's
+ * default is 2 MHz and 160m is 1.84, so until 2026-08-19 every 160m
+ * forecast ran isotropic: dipole and isotrope matched below 2 MHz and
+ * differed by 3 dB above it, on a short summer path.
  *
  * 1 rather than 1.8 because the card holds whole megahertz. Nothing else
- * moves: a card that covers more frequencies than the app asks about
- * still serves each of them the same way.
+ * moves — a card covering more frequencies serves each the same way.
  */
 export const MIN_CARD_FREQ_MHZ = 1;
 
@@ -52,12 +49,11 @@ export const MIN_CARD_FREQ_MHZ = 1;
 export const BAND_MHZ: Readonly<Record<BandKey, number>> = {
   '160m': 1.84,
   '80m': 3.75,
-  // 60m is the one band here that is not a contiguous allocation
-  // everywhere. WRC-15 gave 5.3515-5.3665 MHz; several countries instead
-  // license a handful of channels either side of it, the widest spread
-  // being 5.332 to 5.405. 5.36 sits inside the WRC-15 band and within
-  // 1% of the middle of the channelised plans, which is far below what
-  // moves a prediction.
+  // The one band here that is not a contiguous allocation everywhere.
+  // WRC-15 gave 5.3515-5.3665 MHz; several countries license channels
+  // either side instead, the widest spread 5.332 to 5.405. 5.36 is inside
+  // the WRC-15 band and within 1% of the middle of the channelised plans,
+  // far below what moves a prediction.
   '60m': 5.36,
   '40m': 7.1,
   '30m': 10.12,
@@ -98,9 +94,8 @@ export interface BandHourPrediction {
    *
    * Steep means near-vertical incidence: the signal leaves steeply and
    * comes back down close to where it started, with no skip zone, which
-   * is why a short path works on bands that look too low for it. The
-   * empirical correction does not touch this — it moves the signal
-   * median, not the geometry.
+   * is why a short path works on bands that look too low. The empirical
+   * correction moves the signal median, not the geometry.
    */
   takeoffAngleDeg: number | null;
 }

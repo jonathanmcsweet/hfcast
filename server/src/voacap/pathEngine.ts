@@ -1,21 +1,15 @@
 /**
  * Which engine answers a path prediction, decided once.
  *
- * There are two. The Rust port is byte-identical to the Fortran reference
- * and `hfcast-engine`'s `paritycheck` confirms it returns the same fields
- * this server reads; the Fortran path is kept so a deployment can fall
- * back without a code change, and so the two can be compared on a live
- * host.
+ * Two of them. The Rust port is byte-identical to the Fortran reference
+ * and `paritycheck` confirms it returns the fields this server reads; the
+ * Fortran path is kept so a deployment can fall back without a code
+ * change, and so the two can be compared on a live host.
  *
- * They differ in what they take, not in what they answer. The Rust binary
- * reads one request object; `voacapl` reads a fixed-width card deck and
- * prints a listing that has to be parsed back. `predict` used to hold both
- * shapes in one ten-line ternary in the middle of the function that also
- * built the request, applied the corrections and assembled the answer, so
- * the one line that chooses was the hardest line there to find.
- *
- * Behind one function type, the choice is made here at load and `predict`
- * reads as one path.
+ * They differ in what they take, not what they answer: the Rust binary
+ * reads one request object, `voacapl` reads a fixed-width card deck and
+ * prints a listing to parse back. Behind one function type, the choice is
+ * made here at load and `predict` reads as one path.
  */
 import type { AntennaCard } from '../antenna.ts';
 import { BANDS_BY_FREQ } from '../types.ts';

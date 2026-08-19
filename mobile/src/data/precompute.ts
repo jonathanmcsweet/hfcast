@@ -1,44 +1,37 @@
 /**
  * Computing maps before they are needed.
  *
- * The case this is for, in the words it was asked in: a person sets the
- * app up at home, tells it to compute the months they care about, and
- * then has nothing to compute in the field. A prediction is monthly
- * climatology, so a map computed in August is right for the whole of
- * August, and the sunspot numbers for months ahead ship with the app —
- * see `ssn.ts` — so next month can be computed today without a network.
+ * The case, in the words it was asked in: set the app up at home, compute
+ * the months you care about, have nothing to compute in the field. A
+ * prediction is monthly climatology, so a map computed in August is right
+ * all August, and the sunspot numbers for months ahead ship with the app
+ * (`ssn.ts`), so next month can be computed today with no network.
  *
- * Three rules hold it together.
+ * Four rules:
  *
  * It runs behind the reader. Every engine call goes through the
- * background lane in pieces, so the longest anybody can wait behind it
- * is one piece — see `engineQueue.ts` and `shardedWholeWorld`. That
- * costs about half as long again as running in front, which is the
- * right trade for work nobody is waiting for.
+ * background lane in pieces, so the longest wait is one piece
+ * (`engineQueue.ts`, `shardedWholeWorld`) — about half as long again as
+ * running in front, the right trade for work nobody waits for.
  *
- * It never repeats itself. Anything already on disk is skipped before
- * the job starts, so somebody who computed three months and then asks
- * for a year pays for nine.
+ * It never repeats itself. Anything on disk is skipped before the job
+ * starts, so three months computed and then a year asked for costs nine.
  *
- * It can always be stopped, and stopping loses only the grid in hand.
- * Every finished grid is on disk before the next one starts.
- *
- * It used to stop the moment the app left the screen, because Android
- * freezes a backgrounded process and the JavaScript driving this stops
- * with it. A foreground service now holds the process up for as long as
- * a job runs — see `PrecomputeService.kt` — so a job continues with the
- * screen locked and with the app swiped out of recents (user,
- * 2026-08-11). The price Android sets for that is a notification that
- * cannot be dismissed, so it carries the progress and a Stop button.
+ * It can always be stopped, losing only the grid in hand: every finished
+ * grid is on disk before the next starts.
  *
  * It waits for a charger unless told not to. The long scope is about an
- * hour and a quarter of the engine at full tilt, and this app is for
- * devices carried somewhere with no charger in reach. That wait listens
- * for the charger rather than looking for it every few seconds: React
- * Native runs `setTimeout` off the screen's frame clock, which Android
- * stops when the screen goes off, so a job that was waiting stayed
- * waiting until somebody woke the phone (user, 2026-08-12). Nothing in
- * this file may wait on a timer for that reason.
+ * hour and a quarter of engine time, and this app is for devices carried
+ * where there is no charger. The wait listens for the charger rather than
+ * polling: React Native runs `setTimeout` off the screen's frame clock,
+ * which Android stops with the screen, so a waiting job stayed waiting
+ * until somebody woke the phone (user, 2026-08-12). Nothing here may wait
+ * on a timer.
+ *
+ * A foreground service holds the process up while a job runs
+ * (`PrecomputeService.kt`), so it continues with the screen locked and
+ * the app swiped out of recents (user, 2026-08-11). Android's price is a
+ * notification that cannot be dismissed, so it carries progress and Stop.
  */
 import type { BandKey } from '../../../shared/bands.ts';
 import type { CentreField } from '../../../shared/correctMap';
@@ -61,9 +54,8 @@ export const PRECOMPUTE_GROUP = 'precompute';
 /**
  * What the notification says, in the reader's language.
  *
- * Passed in rather than read here. This module has no business knowing
- * about i18n, and the native side that draws the notification has no
- * languages at all — so the words come from the screen that started the
+ * Passed in: this module knows nothing about i18n and the native side has
+ * no languages at all, so the words come from the screen that started the
  * job, which already has them.
  */
 export interface PrecomputeLabels {
@@ -102,16 +94,13 @@ interface Job {
 /**
  * The job in flight, or null when there is none.
  *
- * An `AbortController` rather than a boolean of this module's own. It is
- * the standard way to say "stop what you started", the same one
- * `spaceWeather.ts` hands to `fetch`, and its signal can be waited on as
- * well as read — which is what lets a job waiting for a charger notice
- * Stop at once instead of at the end of its next five-second sleep.
+ * An `AbortController` rather than a boolean of this module's own: the
+ * standard way to say "stop what you started", and its signal can be
+ * waited on as well as read — which lets a job waiting for a charger
+ * notice Stop at once rather than after its next sleep.
  *
- * Still one mutable value at module scope, because cancelling work in
- * flight is a change to the world by definition and something outside
- * the job has to be able to reach it. It is the edge, and it is one
- * line wide.
+ * One mutable value at module scope, because cancelling work in flight is
+ * a change to the world and something outside the job has to reach it.
  */
 let inFlight: AbortController | null = null;
 
@@ -119,11 +108,9 @@ const monthTag = (run: MonthHour): string =>
   `${run.year}-${String(run.month).padStart(2, '0')}`;
 
 /**
- * Stops the job.
- *
- * Both halves are needed. The abort stops the loop asking for more, and
- * `dropLater` gives up the pieces already queued — without it, stopping
- * would still work through everything the last grid had asked for.
+ * Stops the job. Both halves are needed: the abort stops the loop asking
+ * for more, `dropLater` gives up the pieces already queued. Without the
+ * second, stopping still works through the last grid.
  */
 export function stopPrecompute(): void {
   inFlight?.abort();
@@ -133,9 +120,8 @@ export function stopPrecompute(): void {
 /**
  * Computes and stores every map a scope asks for that is not held.
  *
- * Returns when the job is finished or stopped. Failures of single grids
- * are counted and passed over: one hour that the engine refuses should
- * not cost the other 287.
+ * Returns when the job finishes or stops. A failed grid is counted and
+ * passed over: one hour the engine refuses should not cost the other 287.
  */
 export async function precompute(
   ask: PrecomputeAsk,
@@ -163,9 +149,8 @@ export async function precompute(
   }
 
   const startedAt = Date.now();
-  // Stop on the notification ends the job exactly as the button in the
-  // app does. One path out, so the disk is left in one state whichever
-  // of the two somebody pressed.
+  // Stop on the notification ends the job as the button in the app does.
+  // One path out, so the disk is left the same way either way.
   const unlisten = Engine.onBackgroundStop(stopPrecompute);
   Engine.startBackgroundWork(
     labels.title,
@@ -176,16 +161,12 @@ export async function precompute(
   );
   // The lattice of daily middles, once a month rather than once a grid.
   // It does not depend on the hour and one call answers every band, so a
-  // month of nine bands needs one of these and not 216.
+  // month needs one of these and not one per band-hour.
   const centres = new Map<string, Record<BandKey, CentreField | null>>();
 
   /**
-   * The lattice for a month, computed at most once.
-   *
-   * The one effect in this loop that is not the work itself, so it is
-   * named and kept to four lines rather than spread through the body.
-   * Lazy rather than worked out up front: a job stopped after two months
-   * should not have paid for the other ten.
+   * The lattice for a month, computed at most once. Lazy rather than up
+   * front: a job stopped after two months should not have paid for ten.
    */
   const centresFor = async (
     tag: string,
@@ -208,10 +189,9 @@ export async function precompute(
     // A loop rather than a fold or `Promise.all`: the grids must run one
     // at a time, and it has to be able to stop between any two of them.
     for (const job of jobs) {
-      // Every way out of this loop is a stop, and the signal already
-      // says so — `dropLater` is called by nothing but `stopPrecompute`,
-      // which aborts. A second flag saying the same thing would be one
-      // more place for the two to disagree.
+      // Every way out of this loop is a stop and the signal says so:
+      // `dropLater` is called by nothing but `stopPrecompute`, which
+      // aborts. A second flag would be one more thing to disagree.
       if (signal.aborted) break;
       if (!await waitForCharger(labels, jobs.length, signal)) break;
       const tag = monthTag(job.run);
@@ -222,23 +202,20 @@ export async function precompute(
         band: job.band,
         hour: job.run.hour,
         date,
-        // No live reading is passed with it, so this is the offline
-        // form of the new model: the engine derives its own index from
-        // the built-in day-of-year correction. That is the form a map
-        // computed ahead should hold, because a map is read in the
-        // field where there is no network to improve on it.
+        // No live reading passed with it, so this is the new model's
+        // offline form: the engine derives its own index from the
+        // day-of-year correction. Right for a map computed ahead, which
+        // is read in the field with no network to improve on it.
         engine: ask.engine,
       };
 
       try {
         const centre = await centresFor(tag, base);
 
-        // No lattice for this band means the correction cannot be
-        // applied, and an uncorrected grid must not be stored: it would
-        // be read back for the rest of the month in place of a grid the
-        // app could have corrected, and it would look exactly like one
-        // that had been. Counted as a failure and passed over, which is
-        // the same thing the query path does by not writing at all.
+        // No lattice for this band means no correction, and an
+        // uncorrected grid must not be stored: it would be read back all
+        // month looking exactly like a corrected one. Counted as a
+        // failure and passed over, as the query path does by not writing.
         const centreHere = centre[job.band];
         if (centreHere === null) {
           usePrecomputeStore.getState().fail();
@@ -304,11 +281,10 @@ const stillWaiting = (signal: AbortSignal): boolean =>
 /**
  * Resolves the next time anything that could end the wait happens.
  *
- * Three things can: the charger goes in, the person turns the charger
- * rule off, or the job is stopped. Each is an event, and none of them is
- * a timer — see `onPowerChanged` for why a timer cannot be used here.
- * Whichever arrives first drops all three, so a wait of an hour costs
- * one wake-up rather than seven hundred.
+ * Three things can: the charger goes in, the rule is turned off, or the
+ * job is stopped. All events, no timer — see `onPowerChanged` for why.
+ * Whichever arrives first drops all three, so an hour's wait costs one
+ * wake-up rather than seven hundred.
  */
 function nextChange(signal: AbortSignal): Promise<void> {
   return new Promise<void>((resolve) => {
@@ -319,9 +295,9 @@ function nextChange(signal: AbortSignal): Promise<void> {
       resolve();
     };
     const offPower = Engine.onPowerChanged(finish);
-    // Every settings change rather than this one alone, because the store
-    // reports the whole state. The caller checks what it cares about
-    // afterwards, so a wake-up for the wrong setting costs a comparison.
+    // Every settings change, because the store reports the whole state.
+    // The caller checks afterwards, so a wake-up for the wrong setting
+    // costs a comparison.
     const offSetting = useSettingsStore.subscribe(finish);
     signal.addEventListener('abort', finish);
   });
@@ -330,13 +306,10 @@ function nextChange(signal: AbortSignal): Promise<void> {
 /**
  * Holds until the device is on power, if that is what was asked for.
  *
- * Returns false only when the job was stopped while waiting, which the
- * caller treats exactly as Stop — the signal is read again on the way
- * out rather than trusted from before the wait.
- *
- * The rule is read on every pass rather than once at the top, so turning
- * the switch off during a wait starts the work rather than being noticed
- * whenever the next map happens to finish.
+ * False only when the job was stopped while waiting; the signal is read
+ * again on the way out rather than trusted from before. The rule is read
+ * on every pass, so turning the switch off during a wait starts the work
+ * rather than being noticed when the next map finishes.
  */
 async function waitForCharger(
   labels: PrecomputeLabels,
@@ -360,10 +333,8 @@ async function waitForCharger(
   });
 
   try {
-    // A loop because each wait has to follow the one before it. Anything
-    // that built the waits as values would have to know how many there
-    // were, and that is exactly what is not known — it is however long
-    // somebody takes to reach a charger.
+    // A loop because each wait follows the one before it, and how many
+    // there are is exactly what is not known.
     while (stillWaiting(signal)) {
       await nextChange(signal);
     }
@@ -376,11 +347,9 @@ async function waitForCharger(
 /**
  * How many grids a scope would still compute.
  *
- * The same list the job itself works from, so the number a person is
- * shown before they start is the number of grids that will be computed
- * — not what a fresh device would have had to do. Somebody who computed
- * three months last week and asks for a year is told the cost of the
- * other nine.
+ * The same list the job works from, so the number shown before starting
+ * is the work left: three months computed last week and a year asked for
+ * is told the cost of the other nine.
  */
 export async function remainingFiles(ask: PrecomputeAsk): Promise<number> {
   if (!canStore() || ask.bands.length === 0 || ask.months <= 0) return 0;
@@ -396,10 +365,9 @@ export async function remainingFiles(ask: PrecomputeAsk): Promise<number> {
 /**
  * Every grid the scope asks for that is not already stored.
  *
- * The list is worked out once, before anything runs, so the number a
- * person is shown is the work left rather than the work a fresh device
- * would have had. Read from the directory listing rather than by asking
- * for each file, which would be one read for every hour of the year.
+ * Worked out once, before anything runs. Read from the directory listing
+ * rather than file by file, which would be one read for every hour of the
+ * year.
  */
 async function jobsFor(
   ask: PrecomputeAsk,

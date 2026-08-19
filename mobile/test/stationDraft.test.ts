@@ -6,12 +6,9 @@ import * as draft from '../src/data/stationDraft.ts';
 import type { Draft } from '../src/data/stationDraft.ts';
 
 /**
- * The dialog's working copy.
- *
- * What matters here is that Save writes what the reader sees, Cancel
- * costs nothing, and a station made by pressing Add arrives with a name
- * on it — the empty name is what made adding a station read as losing
- * one.
+ * The dialog's working copy. Save writes what the reader sees, Cancel
+ * costs nothing, and a station made by Add arrives named — the empty name
+ * is what made adding a station read as losing one.
  */
 
 const at = (name: string, id: string) => ({ id, name, ...DEFAULT_STATION });
@@ -52,8 +49,8 @@ describe('the station draft', () => {
   });
 
   it('names a new station rather than leaving it blank', () => {
-    // The whole point. A blank name shows the placeholder, which looks
-    // exactly like a form that was never filled in.
+    // A blank name shows the placeholder, which looks like a form that
+    // was never filled in.
     const next = draft.addStation(one, number);
     assert.equal(next.presets.length, 2);
     assert.equal(draft.active(next).name, 'Station 2');
@@ -102,8 +99,8 @@ describe('the station draft', () => {
   });
 
   it('counts a different station as a change', () => {
-    // The active station is what the forecast is run for, so switching
-    // it is something Save has to write and Cancel has to undo.
+    // The active station is what the forecast runs for, so Save has to
+    // write the switch and Cancel has to undo it.
     assert.equal(draft.isDirty(draft.selectStation(two, 's2'), two), true);
   });
 
@@ -112,8 +109,8 @@ describe('the station draft', () => {
   });
 
   it('trims names on the way to the store, not while typing', () => {
-    // Trimming as the reader types takes the space away the moment it
-    // is pressed, so "Field day" could never be typed.
+    // Trimming while typing eats the space as it is pressed, so "Field
+    // day" could never be typed.
     const typed = draft.rename(one, 'Field ');
     assert.equal(draft.active(typed).name, 'Field ');
     assert.equal(draft.forStore(typed).presets[0]?.name, 'Field');

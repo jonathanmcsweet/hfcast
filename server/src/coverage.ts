@@ -1,11 +1,9 @@
 /**
  * Where a band reaches from one place, at one hour.
  *
- * Separate from `predict.ts` because it answers a different question with
- * a different shape and a different cost. A prediction covers one path and
- * all 24 hours; this covers one hour and every direction, so a whole day
- * would be 24 runs rather than one. That asymmetry is `HFAREA`'s, not a
- * choice made here.
+ * Separate from `predict.ts`: a prediction covers one path and all 24
+ * hours, this covers one hour and every direction, so a whole day is 24
+ * runs rather than one. The asymmetry is `HFAREA`'s, not a choice here.
  */
 import { type AntennaChoice, txCard } from './antenna.ts';
 import { TtlCache } from './cache.ts';
@@ -35,9 +33,9 @@ import {
   runDailyMedians,
 } from './voacap/engine.ts';
 
-// The grid, the threshold and the reach calculation come from the shared
-// lattice modules. They were written out again here, comments and all,
-// which is the arrangement `shared/` replaced.
+// Grid, threshold and reach come from the shared lattice modules. They
+// were written out again here, comments and all — the arrangement
+// `shared/` replaced.
 export { LAT_STEP, LON_STEP, REACHABLE } from './coverageGrid.ts';
 export { FINE_LAT_STEP, FINE_LON_STEP } from './coveragePatch.ts';
 
@@ -63,9 +61,9 @@ export interface CoverageRequest {
   /**
    * Highest K index of the last 24 hours, when it is known.
    *
-   * A storm widens the spread below the median, so it changes what a
-   * corrected map is painted with. It does not change the middle of the
-   * day, which is why the lattice of middles is cached without it.
+   * A storm widens the spread below the median, changing what a corrected
+   * map is painted with. It does not move the middle of the day, so the
+   * lattice of middles is cached without it.
    */
   kpMax24h?: number;
   basis?: PredictionBasis;
@@ -73,29 +71,25 @@ export interface CoverageRequest {
   engine?: 'voacap' | 'truecast';
   /**
    * The operator's own antenna. A beam makes the map lopsided, which is
-   * the honest picture: it shows where this station reaches, not where an
-   * ideal one would.
+   * the honest picture: where this station reaches, not an ideal one.
    */
   antenna?: AntennaChoice;
   /**
    * The part of the world the map is showing, for the fine grid only.
-   *
-   * Absent means the whole globe, and then the fine grid goes around the
-   * station — which is the same place the map is centred on, so the two
-   * agree at the default view.
+   * Absent means the whole globe, and the fine grid goes around the
+   * station — where the map is centred, so the two agree by default.
    */
   region?: MapRegion;
 }
 
 /**
- * The parts of an answer that belong to the caller rather than to the
- * run, and so are never held in an entry.
+ * The parts of an answer that belong to the caller rather than the run,
+ * and are never held in an entry.
  *
- * `basis` says where the sunspot number came from, and it is per-request.
- * `from` is the station: the key rounds its position to three decimals
- * and holds no label at all, so two callers a few hundred metres apart,
- * or the same place under two names, share one entry and must still each
- * be answered with their own station.
+ * `basis` says where the sunspot number came from. `from` is the station:
+ * the key rounds its position to three decimals and holds no label, so
+ * two callers a few hundred metres apart share an entry and must each be
+ * answered with their own station.
  */
 type PerRequest = 'from' | 'basis';
 
@@ -123,10 +117,9 @@ function keyFor(request: CoverageRequest, ssn: number): string {
     requiredSnrDb,
     noiseDbw,
     antennaKey(request.antenna),
-    // The correction is applied before an answer is held, so two
-    // requests under different storm conditions are different answers.
-    // Rounded, because the widening is a smooth function of the K index
-    // and a third decimal would make every poll a fresh entry.
+    // The correction is applied before an answer is held, so two storm
+    // conditions are two answers. Rounded, because the widening is smooth
+    // in the K index and a third decimal makes every poll a fresh entry.
     request.kpMax24h === undefined
       ? 'quiet'
       : stormWidening(request.kpMax24h).toFixed(2),
@@ -142,9 +135,9 @@ function keyFor(request: CoverageRequest, ssn: number): string {
  * The request fields that pick the model, for an area run.
  *
  * The same pair of forms `predict.ts` sends, and exclusive for the same
- * reason: the engine refuses `ssn` beside `engine:"truecast"`. Without a
- * live reading the new model derives its own index from the built-in
- * day-of-year correction, which is the offline form.
+ * reason: the engine refuses `ssn` beside `engine:"truecast"`. With no
+ * live reading the new model derives its own index from the day-of-year
+ * correction — the offline form.
  */
 function modelFieldsFor(
   request: CoverageRequest,
@@ -161,9 +154,9 @@ function modelFieldsFor(
 
 /**
  * The antenna's contribution to the cache key. Every field reaching the
- * definition file is here: height alone moves a 14 MHz path by about
- * 9 dB, and a beam heading turns the map lopsided, so a shared entry
- * would be a wrong map that looks like an ordinary one.
+ * definition file: height alone moves a 14 MHz path by about 9 dB and a
+ * beam heading turns the map lopsided, so a shared entry would be a wrong
+ * map that looks like an ordinary one.
  */
 function antennaKey(antenna: AntennaChoice | undefined): string {
   if (antenna === undefined || antenna.type === 'isotropic') return 'iso';
@@ -188,18 +181,16 @@ interface GridRequest {
 /**
  * The lattice of daily middles, one entry per band and place.
  *
- * Small — 1,728 numbers a band — and reused by every hour and every grid
- * step, so it is held longer than a map and there is room for many. It
- * does not depend on the hour and it does not depend on the K index: a
- * storm widens the spread below the median and leaves the median alone.
+ * Small — 1,728 numbers a band — and reused by every hour and grid step,
+ * so there is room for many. It depends on neither the hour nor the K
+ * index: a storm widens the spread below the median and leaves it alone.
  */
 const centreCache = new TtlCache<CentreField | null>(COVERAGE_TTL_MS, 200);
 
 /**
  * The middle of the day at every lattice point, for this request's band.
  *
- * Always the fine lattice. The server has no reason to use the coarser
- * one the app starts with: it caches this across every request for the
+ * Always the fine lattice: this is cached across every request for the
  * place, so only the first caller waits and the rest read it.
  */
 async function dailyCentres(
@@ -221,10 +212,9 @@ async function dailyCentres(
     request.watts,
     request.noiseDbw,
     antennaKey(request.antenna),
-    // The middles come from the engine too, so they are one model's or
-    // the other's. The day is in the key for the new model alone: its
-    // offline form moves along a day-of-year curve, where the classic
-    // run answers the same thing all month.
+    // The middles come from the engine too, so they belong to one model
+    // or the other. The day is in the key for the new model alone: its
+    // offline form moves daily, where the classic run holds all month.
     request.engine ?? 'voacap',
     request.engine === 'truecast' ? request.date.getUTCDate() : 0,
   ].join('|');
@@ -253,15 +243,12 @@ async function dailyCentres(
  *
  * The coarse map, the whole-world fine grid and the viewport patch are
  * the same five steps: work out the month, resolve the sunspot number,
- * write the antenna card, ask the engine, and hold what comes back. Only
- * the grid asked for and the shape of the answer differ, so those are
- * the two parameters. They were written out three times, and two of the
- * three explanatory comments survived in only one copy.
+ * write the antenna card, ask the engine, hold what comes back. Only the
+ * grid and the shape of the answer differ, so those are the parameters.
  *
- * Through `fetch` rather than get-run-set, so a second request for the
- * same map that arrives while the first is still running waits on it
- * instead of starting another. At the fine step one run is up to eight
- * processes, and nothing upstream stops a caller asking twice.
+ * Through `fetch` rather than get-run-set, so a second request arriving
+ * while the first runs waits on it. At the fine step one run is up to
+ * eight processes, and nothing upstream stops a caller asking twice.
  */
 async function cachedRun<T>(
   request: CoverageRequest,
@@ -305,11 +292,9 @@ async function cachedRun<T>(
     });
 
     // Corrected before it is held, so every reader of an entry gets the
-    // same map and the app has nothing left to do. The app corrects when
-    // it reads instead, because it computes the lattice on the device
-    // and has to draw something before that finishes; here the lattice
-    // is cached and shared across every request for the place, so
-    // waiting for it costs the first caller and nobody else.
+    // same map. The app corrects on read instead, because it computes
+    // the lattice on the device and has to draw something meanwhile;
+    // here the lattice is shared, so waiting costs the first caller only.
     const centre = await dailyCentres(
       request,
       ssn,
@@ -348,15 +333,12 @@ export async function coverage(
  * The fine grid, over the whole world.
  *
  * 34,560 points, a hundred and eighty times the coarse map, at the step
- * `shared/coveragePatch.ts` holds. It is the viewport patch's own step,
- * so zooming in stops changing the answer and only changes the
- * magnification.
+ * `shared/coveragePatch.ts` holds — the viewport patch's own step, so
+ * zooming in only magnifies.
  *
- * Its own cache, and a small one: a fine result is about 2.2 MB against
- * roughly 12 KB for a coarse one, so the coarse cache's 400 entries
- * would be near a gigabyte. Twenty is about 44 MB and still holds a day
- * of one band, which is the pattern a user moving the hour slider
- * produces.
+ * Its own small cache: a fine result is about 2.2 MB against 12 KB for a
+ * coarse one, so the coarse cache's 400 entries would be near a
+ * gigabyte. Twenty is about 44 MB and still holds a day of one band.
  */
 const fineCache = new TtlCache<Held<CoverageResult>>(COVERAGE_TTL_MS, 20);
 
@@ -374,14 +356,14 @@ export async function coverageFine(
 /**
  * The fine grid around the operator, at the same band and hour.
  *
- * A second run rather than a finer first one. The same step over the
- * whole globe would be about a hundred times the work, and the question
- * it answers — where the low bands reach without a skip zone — is only
- * about the region near the station. See `coveragePatch.ts`.
+ * A second run rather than a finer first one: the same step over the
+ * whole globe is about a hundred times the work, and the question — where
+ * the low bands reach without a skip zone — is about the region near the
+ * station. See `coveragePatch.ts`.
  *
- * Null where the station is near the antimeridian and there is no
- * rectangle to ask for. Null rather than an error: it is a fact about
- * where the station is, and the coarse map is unaffected.
+ * Null near the antimeridian, where there is no rectangle to ask for.
+ * Null rather than an error: a fact about where the station is, and the
+ * coarse map is unaffected.
  */
 export type CoveragePatchResult = Coverage & {
   from: Endpoint;
@@ -420,9 +402,8 @@ export async function coveragePatch(
       latStep: grid.latStep,
       lonStep: grid.lonStep,
       bounds: patchRequestBounds(grid),
-      // The rectangle is part of the identity: two views that produce
-      // different ones are different answers, and without this the
-      // first one asked for would be served to every later one.
+      // The rectangle is part of the identity: without it the first view
+      // asked for would be served to every later one.
       keyPrefix: `patch|${patchKey(grid)}|`,
     },
     patchCache,

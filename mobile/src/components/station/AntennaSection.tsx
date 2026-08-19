@@ -40,10 +40,9 @@ export default function AntennaSection() {
   /**
    * The height while it is being typed, for the same reason power is.
    *
-   * Height was a slider alone, on the argument that a mast is "about ten
-   * metres" rather than 10.0. That is true of guessing and false of
-   * knowing: someone who has measured their mast should be able to say
-   * so, and dragging a slider to a particular metre is fiddly on a phone.
+   * A slider alone assumed a mast is "about ten metres" rather than 10.0.
+   * True of guessing and false of knowing: somebody who has measured
+   * theirs should be able to say so.
    */
   const [typedHeight, setTypedHeight] = useState<string | null>(null);
 

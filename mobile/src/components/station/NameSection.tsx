@@ -13,19 +13,17 @@ import { spacing } from '../../theme';
 import SectionHeading from './SectionHeading';
 
 /**
- * The name of the station being edited, and the two buttons that make and
+ * The name of the station being edited, and the buttons that make and
  * remove one.
  *
- * The picker above chooses which station this is; this renames it. Two
- * controls rather than one because a field that both filtered a list and
- * renamed what it found would do a different thing depending on what was
- * already typed into it.
+ * The picker above chooses the station; this renames it. Two controls,
+ * because one field that both filtered a list and renamed what it found
+ * would act differently depending on what was already in it.
  *
- * A new station arrives already named ("Station 2"), so this field is
- * never empty for one the reader has just made. It used to be, and a
- * field showing nothing but its placeholder is indistinguishable from a
- * form that was never filled in — which is why adding a station read as
- * losing one (user, 2026-08-18).
+ * A new station arrives named ("Station 2"). It used to arrive empty, and
+ * a field showing only its placeholder looks like a form that was never
+ * filled in — which is why adding a station read as losing one
+ * (user, 2026-08-18).
  */
 export default function NameSection() {
   const { t } = useTranslation();

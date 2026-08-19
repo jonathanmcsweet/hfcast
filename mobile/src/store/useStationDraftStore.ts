@@ -9,19 +9,16 @@ import * as draft from '../data/stationDraft.ts';
 /**
  * The station dialog's draft, while the dialog is open.
  *
- * Deliberately not persisted, and deliberately not the station store:
- * `useStationStore` writes to AsyncStorage on every change, which is why
- * the form used to spend a serialization and a disk write on every
- * character typed into it. Nothing here reaches disk. Save copies this
- * into `useStationStore` in one go, and Cancel abandons it.
+ * Not persisted, and not the station store: `useStationStore` writes to
+ * AsyncStorage on every change, so the form spent a serialization and a
+ * disk write on every character. Nothing here reaches disk. Save copies
+ * it across in one go, Cancel drops it.
  *
- * A store rather than a React context, which is what this was first
- * built as. A context hands the same object to every consumer, so all
- * five sections re-rendered whenever any field changed — typing in the
- * antenna height re-drew the name, mode, power and aim sections, each
- * with its own controls. A store lets a section subscribe to the one
- * field it draws. It is also what this project asks for: non-network
- * state belongs in Zustand (`CLAUDE.md`).
+ * A store rather than the React context this started as. A context hands
+ * every consumer the same object, so typing an antenna height re-drew the
+ * name, mode, power and aim sections too; a store lets a section
+ * subscribe to the one field it draws. Non-network state belongs in
+ * Zustand anyway (`CLAUDE.md`).
  */
 interface StationDraftState {
   draft: Draft;
@@ -32,10 +29,9 @@ interface StationDraftState {
   setAntenna: (antenna: Partial<Antenna>) => void;
   rename: (name: string) => void;
   /**
-   * Copies the active station under a new name.
-   *
-   * The name is translated, and a store knows nothing about i18next, so
-   * the caller passes the formatter it already has.
+   * Copies the active station under a new name. The name is translated
+   * and a store knows nothing about i18next, so the caller passes the
+   * formatter it already has.
    */
   addStation: (format: (n: number) => string) => void;
   removeStation: (id: string) => void;
@@ -65,20 +61,16 @@ export const useStationDraftStore = create<StationDraftState>()((set) => ({
 }));
 
 /**
- * The station being edited.
- *
- * Returns an object the draft already holds, so a section that reads a
- * field off it re-renders only when that field's own preset changed.
+ * The station being edited. An object the draft already holds, so a
+ * section reading a field off it re-renders only when that preset changed.
  */
 export const useDraftPreset = (): StationPreset =>
   useStationDraftStore((s) => draft.active(s.draft));
 
 /**
- * One field of it.
- *
- * The point of the store. `useDraftField((p) => p.watts)` subscribes to
- * a number, so the power section is left alone while the antenna height
- * is being typed.
+ * One field of it, which is the point of the store.
+ * `useDraftField((p) => p.watts)` subscribes to a number, so the power
+ * section is left alone while the antenna height is being typed.
  */
 export function useDraftField<T>(read: (preset: StationPreset) => T): T {
   return useStationDraftStore((s) => read(draft.active(s.draft)));

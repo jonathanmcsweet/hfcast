@@ -1,21 +1,20 @@
 /**
  * Runs the Rust engine.
  *
- * `hfcast-engine`'s `predict` binary is a port of VOACAP proven byte-identical to
- * the Fortran reference. It reads one request as JSON on stdin and writes the
- * prediction as JSON on stdout, so this needs no bindings and no build step
- * beyond having the binary on disk.
+ * `hfcast-engine`'s `predict` binary is a port of VOACAP proven
+ * byte-identical to the Fortran reference. JSON in on stdin, JSON out on
+ * stdout: no bindings, no build step beyond having the binary on disk.
  *
- * What this replaces: writing a fixed-width card deck, running `voacapl`,
- * parsing its printed listing, and giving every concurrent run its own copy of
- * the `itshfbc` tree because the Fortran names its scratch files from a global
- * counter. None of that applies here — the engine holds no global state, so
- * runs are independent and the tree is read-only.
+ * It replaces writing a fixed-width card deck, running `voacapl`, parsing
+ * the printed listing, and giving every concurrent run its own copy of
+ * the `itshfbc` tree because the Fortran names scratch files from a
+ * global counter. The engine holds no global state, so runs are
+ * independent and the tree is read-only.
  *
- * The values are the same numbers the listing carried: the binary renders the
- * listing and reads it back, so reliability still arrives at two decimals and
+ * The values are the listing's own numbers: the binary renders the
+ * listing and reads it back, so reliability arrives at two decimals and
  * SNR to the nearest dB. `hfcast-engine/src/bin/predict.rs` says why, and
- * `paritycheck` proves it over the request shapes this server sends.
+ * `paritycheck` proves it over the shapes this server sends.
  */
 import { execFile } from 'node:child_process';
 import { cpus, homedir } from 'node:os';
@@ -61,17 +60,15 @@ const RUN_TIMEOUT_MS = 30_000;
  * | ms | 1300 | 681 | 471 | 377 | 272 | 227 | 221 | 241 |
  *
  * Eight is where it stops paying: twelve is two percent better and
- * sixteen is worse, because each process re-reads the coefficient tables
- * and they start to contend. Capped at the core count as well, so a
- * small host does not oversubscribe itself.
+ * sixteen is worse, as each process re-reads the coefficient tables and
+ * they contend. Capped at the core count too, so a small host does not
+ * oversubscribe itself.
  *
- * This is how one request is split, and it is not a limit on how many
- * requests split at once. It used to say that no caller sends a grid big
- * enough to split, which stopped being true when `/api/coverage/fine`
- * arrived: that route is public, it sends a 34,560-point grid, and ten
- * callers together forked eighty processes. The count of live processes
- * is bounded in `limit.ts` instead, which is where a host-wide limit
- * belongs.
+ * This splits one request and does not limit how many split at once. It
+ * used to assume no caller sends a grid big enough to split, which ended
+ * with `/api/coverage/fine`: a public route sending a 34,560-point grid,
+ * where ten callers forked eighty processes. Live processes are bounded
+ * in `limit.ts`, where a host-wide limit belongs.
  *
  * `HFCAST_COVERAGE_SHARDS=1` turns splitting off.
  */
@@ -112,8 +109,8 @@ export interface EngineRequest {
   bands?: readonly BandKey[];
   /**
    * The operator's own antenna. Absent is the isotrope the binary
-   * defaults to. Only this end is ever described: the far end belongs to
-   * a station the server knows nothing about.
+   * defaults to. Only this end: the far end is a station the server knows
+   * nothing about.
    */
   txAntenna?: AntennaCard;
 }
@@ -121,16 +118,16 @@ export interface EngineRequest {
 /**
  * One run of the binary: JSON in on stdin, JSON out on stdout.
  *
- * A refused request still prints an object with an `error` field, which
- * carries a better message than the exit status, so a non-zero exit with
- * output is not treated as a failure until that field has been read.
+ * A refused request still prints an `error` field, which says more than
+ * the exit status, so a non-zero exit with output is not a failure until
+ * that field has been read.
  */
 async function callPredict<T extends { error?: string; }>(
   payload: string,
 ): Promise<T> {
-  // Behind the host's gate, so the number of live processes is bounded
-  // whatever arrives. Every path into the engine comes through here, and
-  // a strip of a split grid is one call like any other — see `limit.ts`.
+  // Behind the host's gate, so live processes are bounded whatever
+  // arrives. Every path into the engine comes through here, and a strip
+  // of a split grid is one call like any other (`limit.ts`).
   const stdout = await withEngineSlot(() =>
     new Promise<string>((resolve, reject) => {
       const child = execFile(
@@ -161,10 +158,9 @@ async function callPredict<T extends { error?: string; }>(
 /**
  * The binary's stdout as an object.
  *
- * A separate function so the caller can bind the result with `const`: the
- * failure has to become an error naming what was actually printed, since
- * "unexpected token" says nothing about a binary that crashed and wrote
- * a stack trace.
+ * Its own function so the caller can bind with `const`, and so a failure
+ * names what was printed: "unexpected token" says nothing about a binary
+ * that crashed and wrote a stack trace.
  */
 function readJson<T>(text: string): T {
   try {
@@ -179,18 +175,15 @@ function readJson<T>(text: string): T {
 /**
  * Runs one prediction.
  *
- * The bands are sent as frequencies and come back the same way, so the
- * mapping from a returned cell to a band is by frequency rather than by
- * position — a cell the engine dropped does not shift the ones after it.
+ * Bands go out as frequencies and come back the same way, so a cell maps
+ * to a band by frequency and not by position: a dropped cell does not
+ * shift the ones after it.
  *
- * Looking a float up in a Map is exact equality, which is safe here only
- * because the number makes a round trip and no arithmetic: the same
- * double is sent as JSON, printed back by Rust with the shortest text
- * that reads as that double, and parsed here into the same double again.
- * Rounding on either side — the binary printing a fixed number of
- * decimals, or the server deriving a frequency rather than echoing the
- * one it sent — would break the lookup, and every cell would be dropped
- * rather than misplaced.
+ * Looking a float up in a Map is exact equality, safe only because the
+ * number makes a round trip and no arithmetic — sent as JSON, printed
+ * back by Rust as the shortest text that reads as that double, parsed
+ * into the same double. Rounding on either side would break the lookup,
+ * and every cell would be dropped rather than misplaced.
  */
 export async function runEngine(
   request: EngineRequest,
@@ -242,10 +235,9 @@ export async function runEngine(
 /**
  * The operating window, or null if the binary did not send one.
  *
- * Absent rather than empty when the fields are missing, so an older
- * `predict` build reads as "this engine has no window" instead of as 24
- * hours during which nothing worked. The two look identical once the
- * arrays exist, and only one of them is true.
+ * Absent rather than empty, so an older `predict` build reads as "no
+ * window" instead of 24 hours in which nothing worked. Once the arrays
+ * exist the two look identical, and only one is true.
  */
 function windowOf(parsed: WirePrediction): OperatingWindow | null {
   const { fotByHour, hpfByHour, lufByHour } = parsed;
@@ -274,12 +266,9 @@ function hours(values: readonly (number | null)[] | undefined) {
 }
 
 /**
- * The rectangle an area run covers, in degrees.
- *
- * Absent, the engine runs the whole world, which is what every caller did
- * before a rectangle could be asked for. Defined beside the splitting,
- * which is the other thing that has to know where the lattice falls, and
- * re-exported here because this is where callers reach for it.
+ * The rectangle an area run covers, in degrees. Absent runs the whole
+ * world. Defined beside the splitting, which also has to know where the
+ * lattice falls, and re-exported here because callers reach for it here.
  */
 export type { AreaBounds };
 
@@ -311,8 +300,7 @@ export interface CoverageRequest {
   lonStep: number;
   /**
    * The operator's own antenna. A beam makes the map directional, which
-   * is the point: it shows where the station can be heard, not where an
-   * ideal one could.
+   * is the point: where this station can be heard, not an ideal one.
    */
   txAntenna?: AntennaCard;
   /**
@@ -333,10 +321,9 @@ export interface Coverage extends Partial<AreaBounds> {
 /**
  * Where this band reaches, this hour, in every direction.
  *
- * One band per call. Asking the engine for several frequencies at once
- * makes it report the best of them at each point, which saturates the
- * whole map and answers a question nobody asked — the map exists to show
- * how the band the user selected differs from the others.
+ * One band per call. Several frequencies at once makes the engine report
+ * the best of them at each point, which saturates the map: it exists to
+ * show how the selected band differs from the others.
  */
 export async function runCoverage(
   request: CoverageRequest,
@@ -360,9 +347,8 @@ export async function runCoverage(
     request.lonStep,
     shards,
   );
-  // Concatenated south to north, which is the order one whole run emits
-  // its rows in, so a split grid is the same sequence and not just the
-  // same set.
+  // Concatenated south to north, the order one whole run emits rows in,
+  // so a split grid is the same sequence and not just the same set.
   const parts = strips === null
     ? [await ask(bounds)]
     : await Promise.all(strips.map(ask));
@@ -375,10 +361,9 @@ export async function runCoverage(
     hour: request.hour,
     latStep: first.latStep ?? request.latStep,
     lonStep: first.lonStep ?? request.lonStep,
-    // The engine snaps a rectangle to its own lattice, so what comes back
-    // is the grid that ran rather than the one asked for. A whole-world
-    // request reports no rectangle whether it was split or not: the
-    // strips are this function's business, not its caller's.
+    // The engine snaps a rectangle to its own lattice, so this is the
+    // grid that ran, not the one asked for. A whole-world request reports
+    // no rectangle: the strips are this function's business.
     ...(bounds
       ? {
         latMin: first.latMin ?? bounds.latMin,
@@ -407,13 +392,11 @@ export async function runCoverage(
  * The middle of the day at every point of a lattice.
  *
  * The one thing the swing correction needs from the other 23 hours. The
- * engine walks all 24 in a single pass over the grid — see `dailyMedian`
- * in `hfcast-engine/src/service.rs` — which costs about 15 times one
- * hour rather than 24, because roughly two fifths of an area run does
- * not depend on the hour.
+ * engine walks all 24 in a single pass (`dailyMedian` in
+ * `hfcast-engine/src/service.rs`), costing about 15 times one hour rather
+ * than 24, since two fifths of an area run does not depend on the hour.
  *
- * One band per call, as `runCoverage` is, and split into the same
- * latitude strips so the processes are used the same way.
+ * One band per call like `runCoverage`, split into the same strips.
  */
 export async function runDailyMedians(
   request: Omit<CoverageRequest, 'hour'>,

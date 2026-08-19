@@ -18,10 +18,9 @@ import SectionHeading from './SectionHeading';
 /**
  * The power, typed as well as swept.
  *
- * A rig has an exact setting worth entering, and the slider is
- * logarithmic because the range runs over four decades — a linear one
- * would spend nine tenths of its travel above 150 W and never reach a QRP
- * setting at all.
+ * A rig has an exact setting worth entering. The slider is logarithmic
+ * because the range runs over four decades: a linear one would spend nine
+ * tenths of its travel above 150 W and never reach a QRP setting.
  */
 export default function PowerSection() {
   const { t } = useTranslation();
@@ -31,22 +30,16 @@ export default function PowerSection() {
   const setWatts = useStationDraftStore((s) => s.setWatts);
 
   /**
-   * The field while it is being typed.
-   *
-   * Held apart from the store so a half-typed "0." is not parsed, clamped
-   * and written back under the reader's fingers. Null means nothing is
-   * being typed and the field shows the stored value, which is also how
-   * it follows the slider.
+   * The field while it is being typed. Held apart so a half-typed "0." is
+   * not parsed, clamped and written back under the reader's fingers. Null
+   * shows the stored value, which is also how it follows the slider.
    */
   const [typed, setTyped] = useState<string | null>(null);
 
   /**
    * Where the slider is while it is being dragged. Null when it is not.
-   *
-   * A slider reports every step it passes through, and each of those
-   * used to change the station being edited. The field above follows the
-   * drag from here instead, and the station is set once, when the finger
-   * lifts.
+   * The field above follows the drag from here, and the station is set
+   * once, when the finger lifts.
    */
   const [dragging, setDragging] = useState<number | null>(null);
   const shown = dragging === null

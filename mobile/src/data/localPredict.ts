@@ -20,44 +20,37 @@ import {
 /**
  * A forecast computed on the device, with no server and no network.
  *
- * This mirrors `server/src/predict.ts`: build the engine's request, take its
- * cells, apply the same empirical corrections, and assemble the same
- * `PathPrediction` the app already reads. The engine underneath is the same
- * code — the server reaches it through a binary over a pipe, this reaches the
- * library compiled into the APK — so the numbers agree by construction rather
- * than by two implementations being kept in step.
+ * Mirrors `server/src/predict.ts`: build the engine's request, take its
+ * cells, apply the same corrections, assemble the same `PathPrediction`.
+ * The engine underneath is the same code — the server reaches it as a
+ * binary over a pipe, this as the library compiled into the APK — so the
+ * numbers agree by construction, not by two implementations kept in step.
  *
- * The sunspot number comes from one of two places. Online it is the effective
- * SSN derived from current conditions, which is what the server does and what
- * turns the run into a now-cast. Offline it is the monthly figure from the
- * table in `ssn.ts`, which is what makes a forecast possible at all with no
- * network and also its main limitation.
+ * The sunspot number comes from one of two places: online, the effective
+ * SSN derived from current conditions, which makes it a now-cast; offline,
+ * the monthly figure from `ssn.ts`, which is what makes a forecast
+ * possible with no network and is also its main limitation.
  */
 
 /** Man-made noise at a residential site, dBW in 1 Hz. VOACAP's own default. */
 const NOISE_DBW = -145;
 
 /**
- * The engine takes an antenna as a file, and the app describes one by height,
- * gain and bearing. So the definition is written to the directory the native
- * module offers and the engine is pointed at it — the same `.voa` text the
- * server generates, by the same rules.
+ * The engine takes an antenna as a file and the app describes one by
+ * height, gain and bearing, so the definition is written to the directory
+ * the native module offers — the same `.voa` text the server generates.
  *
- * Kept in this file rather than shared with the server because the server
- * writes into an `itshfbc` tree it owns, and this writes one file into a cache
- * the operating system may empty at any time.
+ * Here rather than shared with the server, because the server writes into
+ * an `itshfbc` tree it owns and this writes one file into a cache the
+ * operating system may empty at any time.
  */
 export interface EngineAntenna {
   file: string;
   beamDeg: number;
   /**
-   * The lowest frequency this card serves, in whole MHz.
-   *
-   * The engine takes the first card whose range holds the frequency, and
-   * a frequency in no card's range gets no antenna at all. Its default
-   * is 2 MHz and 160m is 1.84, so without this every 160m forecast was
-   * computed as though the station were isotropic, whatever the operator
-   * had set. See `MIN_CARD_FREQ_MHZ`.
+   * The lowest frequency this card serves, in whole MHz. Without it the
+   * engine's 2 MHz default leaves 160m, at 1.84, with no antenna at all.
+   * See `MIN_CARD_FREQ_MHZ`.
    */
   minFreq: number;
 }
@@ -76,10 +69,10 @@ export const canPredictLocally = (): boolean => Engine.isAvailable();
 /**
  * Current conditions, when the device has them.
  *
- * The engine takes one sunspot number and no notion of a storm, so this is
- * how live readings reach it: the effective SSN replaces the month's figure,
- * and the recent Kp widens the spread the corrections apply. Absent means an
- * ordinary climatology run, which is what an offline device does.
+ * The engine takes one sunspot number and no notion of a storm, so this
+ * is how live readings reach it: the effective SSN replaces the month's
+ * figure, and the recent Kp widens the spread the corrections apply.
+ * Absent is a climatology run, which is what an offline device does.
  */
 export interface Nowcast {
   effectiveSsn: number;
@@ -115,14 +108,12 @@ export interface LocalRequest {
 /**
  * The request fields that pick the model.
  *
- * The classic choice sends the sunspot number exactly as it always has.
- * The new model instead names itself and the calendar day: with a live
- * effective index that index conditions the run, and without one the
- * engine derives its own from the built-in day-of-year correction —
- * the offline form that is measured to beat the classic run with no
- * network (engine repository, `docs/offline.md`). The two forms are
- * exclusive because the engine refuses `ssn` beside `engine:"truecast"`:
- * they would disagree about what the run should do.
+ * The classic choice sends the sunspot number as it always has. The new
+ * model names itself and the calendar day: a live effective index
+ * conditions the run, and without one the engine derives its own from
+ * the day-of-year correction — the offline form, measured to beat the
+ * classic run with no network (engine repository, `docs/offline.md`).
+ * Exclusive, because the engine refuses `ssn` beside `engine:"truecast"`.
  */
 export function engineFields(
   engine: EngineModel | undefined,
@@ -139,17 +130,14 @@ export function engineFields(
 }
 
 /**
- * The two request fields that describe where the engine reads its data and
- * which antenna it transmits from.
+ * Where the engine reads its data, and which antenna it transmits from.
  *
- * Both the path forecast and the coverage map need exactly this pair, and
- * getting it in one place means a map and a forecast cannot end up describing
- * different antennas.
+ * The path forecast and the coverage map need exactly this pair, and one
+ * place means a map and a forecast cannot describe different antennas.
  *
- * The antenna file is written on every run rather than cached: it is a few
- * hundred bytes, the cache directory can be emptied by the system at any
- * moment, and a missing antenna file fails the run rather than falling back to
- * something reasonable.
+ * The antenna file is written on every run rather than cached: a few
+ * hundred bytes, a cache directory the system may empty at any moment,
+ * and a missing file fails the run rather than falling back.
  */
 export async function engineStation(station: Station): Promise<{
   itshfbc: string;
@@ -164,8 +152,8 @@ export async function engineStation(station: Station): Promise<{
     itshfbc: Engine.overlayRoot(Engine.scratchDirectory()),
     txAntenna: {
       file: onDisk.file,
-      // Only the families whose pattern depends on azimuth carry a bearing,
-      // as on the server: a vertical measures 0 dB over the whole compass.
+      // Only families whose pattern depends on azimuth carry a bearing,
+      // as on the server: a vertical measures 0 dB round the compass.
       beamDeg: usesBeam(station.antenna.type) ? station.antenna.beamDeg : 0,
       minFreq: MIN_CARD_FREQ_MHZ,
     },

@@ -44,12 +44,10 @@ export interface Endpoint {
 export interface PathPrediction {
   from: Endpoint;
   /**
-   * The far end, or null for a survey — the forecast `/api/survey` returns,
-   * where each cell is the share of directions reachable rather than the
-   * chance of one contact.
-   *
-   * The three fields describing one path are null together, never separately.
-   * `/api/prediction` always fills all three.
+   * The far end, or null for a survey — what `/api/survey` returns, where
+   * each cell is the share of directions reachable rather than the chance
+   * of one contact. The three path fields are null together, never
+   * separately; `/api/prediction` fills all three.
    */
   to: Endpoint | null;
   distanceKm: number | null;
@@ -59,10 +57,9 @@ export interface PathPrediction {
   /**
    * The signal-to-noise this run required, in a 1 Hz bandwidth.
    *
-   * Echoed so the app can say what the numbers mean without holding its
-   * own copy of the mode table. Two tables would drift, and the symptom
-   * would be a screen naming one threshold while the grid was computed at
-   * another.
+   * Echoed so the app can say what the numbers mean without its own copy
+   * of the mode table. Two tables drift, and the symptom is a screen
+   * naming one threshold while the grid was computed at another.
    */
   requiredSnrDb: number;
   basis: PredictionBasis;
@@ -88,15 +85,13 @@ export interface PathPrediction {
  * Answers "what should I set the dial to", which the reliability figures
  * do not: too high goes through the ionosphere, too low is absorbed.
  *
- * Every entry is in MHz, or null where the engine printed no value. A
- * null LUF is ordinary and means the search found no frequency meeting
- * the required reliability at that hour, not a very low one — zero is a
- * frequency and absent is not. Whole days of null happen: a long path at
- * low power has no LUF at any hour.
+ * MHz, or null where the engine printed no value. A null LUF is ordinary
+ * — no frequency met the required reliability that hour, which is not the
+ * same as a very low one. Whole days of null happen: a long path at low
+ * power has no LUF at any hour.
  *
- * The whole object is null when the prediction came from the server's
- * Fortran fallback, which would need a second `voacapl` run to produce
- * it.
+ * The whole object is null from the server's Fortran fallback, which
+ * would need a second `voacapl` run to produce it.
  */
 export interface OperatingWindow {
   /** Frequency of optimum traffic: the one to pick. */
@@ -115,9 +110,9 @@ export interface SpaceWeather {
   /** Planetary K index, 0-9. */
   kp: number;
   /**
-   * Highest Kp over roughly the last 24 hours. Ionospheric storm effects
-   * outlast the disturbance itself, so "was there a storm recently" is the
-   * question the spread widening asks. See voacap/correct.ts.
+   * Highest Kp over roughly the last 24 hours. Storm effects outlast the
+   * disturbance, so "was there a storm recently" is what the spread
+   * widening asks. See voacap/correct.ts.
    */
   kpMax24h: number;
   /** SSN derived from f107 and kp, suitable for driving VOACAP now. */
@@ -135,10 +130,9 @@ export interface PredictionResponse {
 /**
  * The part of the world the map is showing.
  *
- * `halfLatDeg` is half the height of the frame, in degrees of latitude,
- * so a zoomed-in view asks for a small number and a zoomed-out one a
- * large one. It is the whole of what the fine grid needs to know about
- * the view: where to centre, and how much has to fit.
+ * `halfLatDeg` is half the height of the frame in degrees of latitude, so
+ * a zoomed-in view asks for a small number. Where to centre and how much
+ * has to fit is all the fine grid needs to know about the view.
  */
 export interface MapRegion {
   lat: number;

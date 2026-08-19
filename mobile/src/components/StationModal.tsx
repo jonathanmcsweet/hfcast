@@ -34,24 +34,19 @@ interface Props {
   onDismiss: () => void;
   /**
    * Bearing to the other end, degrees true, when a prediction is loaded.
-   * Offers the one heading an operator actually wants for a beam, so it
-   * does not have to be looked up and typed.
+   * Saves an operator looking up the heading a beam wants.
    */
   bearingToDestination?: number | undefined;
   /** Name of the other end, for the label on that button. */
   destinationLabel?: string | undefined;
   /**
-   * The threshold the current forecast was actually computed at, as the
-   * run reported it. Shown rather than derived, so the dialog cannot name
-   * one number while the grid was worked out from another.
+   * The threshold the forecast was computed at, as the run reported it.
+   * Reported rather than derived, so the dialog cannot name one number
+   * while the grid was worked out from another.
    *
-   * Undefined when there is no forecast — this dialog opens from the
-   * error screen too, so that power, mode and the antenna can still be
-   * set. The threshold line is left out then rather than computed from
-   * `data/modes.ts`. The app does hold that table and could produce a
-   * number, and the number would describe a forecast that does not exist:
-   * the mode shown here is the one about to be used, not the one the
-   * absent answer was worked out from.
+   * Undefined where there is no forecast — this dialog opens from the
+   * error screen too. The line is left out rather than computed from
+   * `data/modes.ts`, which would describe a forecast that does not exist.
    */
   requiredSnrDb?: number | undefined;
 }
@@ -59,22 +54,20 @@ interface Props {
 /**
  * The radio: power, mode and antenna, under a name.
  *
- * These three used to be fixed at 100 W, a CW threshold and an isotropic
- * antenna, and nothing said so. They are here rather than in the theme
- * and language menu because they are not preferences about the display —
- * they change what the forecast says.
+ * Not in the theme and language menu, because these are not preferences
+ * about the display — they change what the forecast says. All three used
+ * to be fixed at 100 W, a CW threshold and an isotropic antenna, unsaid.
  *
- * Nothing here writes to the store until Save. The dialog edits a draft
- * (`data/stationDraft.ts`), which is what gives Cancel something to throw
- * away and Save something to do. Before that the sections wrote straight
- * through, so the only button that looked like a commit was "Add a
- * station" — which made a copy and moved to it, and read as losing the
- * work rather than keeping it (user, 2026-08-18).
+ * Nothing writes to the store until Save: the dialog edits a draft
+ * (`data/stationDraft.ts`), which gives Cancel something to drop and Save
+ * something to do. The sections used to write straight through, leaving
+ * "Add a station" as the only button that looked like a commit — and it
+ * made a copy and moved to it, which read as losing the work
+ * (user, 2026-08-18).
  *
- * The dialog is the frame, the order of the sections and the footer. Each
- * section owns its own controls and its own half-typed text, because they
- * share nothing except the station they describe: it was one function of
- * 587 lines in which the height field and the aim button could only be
+ * This file is the frame, the order of the sections and the footer. Each
+ * section owns its own controls and half-typed text: it was one function
+ * of 587 lines in which the height field and the aim button could only be
  * read together.
  */
 export default function StationModal(
@@ -105,36 +98,27 @@ export default function StationModal(
   /*
    * Start the draft again each time the dialog opens.
    *
-   * In an effect rather than during a render, because the draft lives in
-   * a store outside this component and writing to one while rendering is
-   * what React warns about.
+   * In an effect because the draft lives in a store outside this
+   * component, and React warns about writing to one while rendering.
    *
-   * A layout effect and not an ordinary one. An ordinary effect runs
-   * after the frame is drawn, and the draft is empty until this has run
-   * — so the dialog would open showing the defaults the empty draft
-   * falls back to, 100 W to an isotropic antenna, and replace them with
-   * the reader's own station a frame later. This runs before anything is
-   * shown.
+   * A layout effect: an ordinary one runs after the frame is drawn, so
+   * the dialog would open on the empty draft's fallback — 100 W to an
+   * isotropic antenna — and swap in the reader's station a frame later.
    */
   useLayoutEffect(() => {
     if (!visible) return;
-    // Read at the moment of opening rather than closed over. Following
-    // the stored value afterwards would undo the reader's edits whenever
-    // anything else touched the store, and taking it from a dependency
-    // list is the same bug written more convincingly.
+    // Read at the moment of opening, not closed over. Following the
+    // stored value afterwards would undo the reader's edits whenever
+    // anything else touched the store.
     const { presets: held, activeId: heldId } = useStationStore.getState();
     begin({ presets: held, activeId: heldId });
   }, [visible, begin]);
 
   /*
-   * Hold the forecast while this is open.
-   *
-   * The draft is the reason this is still needed, not a leftover: the
-   * dialog opens on top of a forecast that was computed for the saved
-   * station, and a run started from a half-finished draft would describe
-   * a station nobody has asked for yet. The cleanup clears the flag on
-   * unmount as well as on close, so a crash or a navigation cannot leave
-   * the forecast frozen.
+   * Hold the forecast while this is open: a run started from a
+   * half-finished draft would describe a station nobody has asked for.
+   * The cleanup clears the flag on unmount as well as on close, so a
+   * crash or a navigation cannot leave the forecast frozen.
    */
   useEffect(() => {
     setEditing(visible);
@@ -151,9 +135,9 @@ export default function StationModal(
     close();
   }, [commit, draft, close]);
 
-  // The × and a tap outside both mean "leave", and both have to ask when
-  // there is something to lose. Asking when there is nothing to lose
-  // would train the reader to dismiss the question without reading it.
+  // The × and a tap outside both mean "leave", and both ask when there is
+  // something to lose. Asking when there is not would train the reader to
+  // dismiss the question unread.
   const leave = useCallback(() => {
     if (dirty) setAsking(true);
     else close();
@@ -201,9 +185,9 @@ export default function StationModal(
           </ScrollView>
 
           {
-            /* Outside the scroll view, so the two buttons that end the
-               dialog are reachable without scrolling past an antenna
-               section that changes length with the antenna. */
+            /* Outside the scroll view: the two buttons that end the
+               dialog stay reachable without scrolling past an antenna
+               section whose length changes with the antenna. */
           }
           <View style={[styles.footer, { borderTopColor: ui.line }]}>
             <Button mode="text" onPress={leave}>
@@ -250,7 +234,7 @@ function ResetButton() {
 }
 
 const styles = StyleSheet.create({
-  // Tablets get a centred dialog rather than a full-bleed sheet, matching
+  // Tablets get a centred dialog rather than a full-width sheet, matching
   // the location picker.
   modal: {
     margin: 20,

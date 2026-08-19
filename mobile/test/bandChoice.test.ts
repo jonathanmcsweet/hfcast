@@ -5,10 +5,9 @@ import { BAND_ORDER, type BandKey } from '../../shared/bands.ts';
 import { BANDS_BEFORE_60M, withNewBands } from '../src/data/bandChoice.ts';
 
 /**
- * 60m arrived after people had already chosen which bands to compute
- * maps for (2026-08-18). What their choice means is the whole question:
- * somebody who had all of them meant all of them, and somebody who had
- * three meant those three.
+ * 60m arrived after people had chosen which bands to compute maps for
+ * (2026-08-18). Somebody who had all of them meant all of them; somebody
+ * who had three meant those three.
  */
 
 const withoutSixty = BANDS_BEFORE_60M;
@@ -32,9 +31,8 @@ describe('a saved band choice meeting a new band', () => {
   });
 
   it('does not treat a same-sized different choice as everything', () => {
-    // As many bands as the old list held, but not the old list. A first
-    // attempt compared lengths and got this wrong — and got every
-    // narrower selection wrong with it.
+    // As many bands as the old list, but not the old list. Comparing
+    // lengths got this wrong, and every narrower selection with it.
     const odd: readonly BandKey[] = [
       ...withoutSixty.slice(0, -1),
       '60m' as BandKey,

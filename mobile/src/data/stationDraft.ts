@@ -1,21 +1,13 @@
 /**
  * The station dialog's working copy.
  *
- * The dialog used to write straight through to `useStationStore`, which
- * is persisted, so every character typed into the power field was a
- * serialization of the whole preset list and a write to AsyncStorage.
- * That is what made the form feel a shade behind the finger, and it is
- * also why the dialog could offer no Save button: there was nothing left
- * to save, because saving had already happened.
+ * The dialog wrote straight through to `useStationStore`, which is
+ * persisted, so every character typed was a serialization of the preset
+ * list and a write to AsyncStorage — and left nothing for a Save button
+ * to do. The store now hears nothing until Save; Cancel drops the draft.
  *
- * So the dialog now edits one of these and the store hears nothing until
- * Save. Cancel throws the draft away, which is the whole of what Cancel
- * has to do.
- *
- * Kept apart from the component for the reason `bandStrip.ts` is: none of
- * it touches React, so `node --test` runs it. What it decides — which
- * station is active, what a new one is called, whether anything changed —
- * is exactly the part that is awkward to see once it is inside a dialog.
+ * Apart from the component because none of it touches React, so
+ * `node --test` runs it.
  */
 import type { Antenna } from '../../../shared/antenna.ts';
 import type { ModeKey } from '../../../shared/modes.ts';
@@ -84,9 +76,8 @@ export const setAntenna = (draft: Draft, antenna: Partial<Antenna>): Draft =>
 /**
  * Renames the active preset.
  *
- * Not trimmed here, only capped. Trimming as the reader types takes the
- * space away the moment it is pressed, so "Field day" cannot be typed.
- * The trim happens on the way into the store instead.
+ * Capped, not trimmed: trimming as the reader types eats the space the
+ * moment it is pressed, so "Field day" cannot be typed. `forStore` trims.
  */
 export const rename = (draft: Draft, name: string): Draft =>
   onActive(draft, (preset) => ({
@@ -105,15 +96,13 @@ export const reset = (draft: Draft): Draft =>
 /**
  * What to call a station nobody has named yet.
  *
- * A new preset used to be created with an empty name, and the field then
- * showed its placeholder — which is indistinguishable from a form that
- * was never filled in, and is exactly why adding a station read as
- * losing one (user, 2026-08-18). So a new station arrives already named.
+ * New presets used to arrive empty, showing only a placeholder — which
+ * looks like a form that was never filled in, and is why adding a station
+ * read as losing one (user, 2026-08-18).
  *
- * The formatter is passed in rather than imported, because the word is
- * translated and this file knows nothing about i18next. Numbering starts
- * at the length of the list and walks up until the name is free, so
- * adding, deleting and adding again cannot produce two "Station 2"s.
+ * The formatter is passed in because the word is translated and this file
+ * knows nothing about i18next. Numbering walks up until the name is free,
+ * so adding, deleting and adding again cannot make two "Station 2"s.
  */
 export function nextName(
   presets: readonly StationPreset[],
@@ -130,9 +119,8 @@ export function nextName(
 /**
  * Copies the active preset under a new name and selects the copy.
  *
- * A copy rather than a blank one: a second station is usually the first
- * with one thing different, and starting from the defaults would mean
- * setting all three again.
+ * A copy, not a blank: a second station is usually the first with one
+ * thing different.
  */
 export function addStation(
   draft: Draft,
@@ -150,7 +138,7 @@ export function addStation(
 /**
  * Removes a preset.
  *
- * Never nothing: with one left, deleting empties it back to the defaults
+ * Never down to none: deleting the last one resets it to the defaults
  * instead. An empty list would need an empty state in this dialog, in the
  * main screen's menu and in every path that runs a forecast.
  */
@@ -179,10 +167,9 @@ export function selectStation(draft: Draft, activeId: string): Draft {
 /**
  * Whether the draft still says what the store says.
  *
- * Drives the Save button and the question the × asks on the way out.
- * Switching which station is active counts as a change, because that is
- * the station the forecast will be run for — the dialog is one
- * transaction, not a form with a separate navigation control.
+ * Drives the Save button and the question the × asks. Switching which
+ * station is active counts: that is the station the forecast will run
+ * for, so the dialog is one transaction.
  */
 export function isDirty(draft: Draft, saved: Draft): boolean {
   if (draft.activeId !== saved.activeId) return true;
@@ -204,9 +191,8 @@ export function isDirty(draft: Draft, saved: Draft): boolean {
 /**
  * The draft as the store should hold it.
  *
- * The trim that `rename` leaves undone happens here, on the one path
- * that reaches storage, so a name typed with a trailing space is stored
- * without it and a name of nothing but spaces becomes no name at all.
+ * The trim `rename` leaves undone happens here, on the one path to
+ * storage: a name of nothing but spaces becomes no name at all.
  */
 export function forStore(draft: Draft): Draft {
   return {

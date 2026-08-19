@@ -1,10 +1,10 @@
 /**
  * Builds a VOACAP input deck.
  *
- * The format is punched-card fixed width: a 10-character keyword field followed
- * by 5-character numeric fields, with no separators. Values that fill their
- * field run straight into the next one, which is legal and expected. Column
- * positions are therefore the contract — never join these with spaces.
+ * Punched-card fixed width: a 10-character keyword field then 5-character
+ * numeric fields, no separators. A value that fills its field runs into
+ * the next, which is legal and expected. Column positions are the
+ * contract — never join these with spaces.
  */
 import {
   BAND_MHZ,

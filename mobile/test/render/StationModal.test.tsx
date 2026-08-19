@@ -9,16 +9,14 @@ import { renderWithApp } from './harness';
 /**
  * The station dialog, mounted.
  *
- * It is five sections over one draft, and the rules that decide which of
- * them appear — a height field for an antenna that has a height, a gain
- * dial for one with gain, an aim control only where there is something to
- * point — are rules about the antenna and not about any one section. That
- * is what a mounted test can check and a test of a pure module cannot.
+ * Five sections over one draft. Which of them appear — a height field
+ * for an antenna with a height, a gain dial for one with gain, an aim
+ * control only where there is something to point — is a rule about the
+ * antenna, not about any one section, so only a mounted test sees it.
  *
- * Nothing here reaches the store until Save, so a test that reads the
- * store has to press it. That is the behaviour, not a detail of the
- * test: the dialog used to write on every keystroke, which left it with
- * no button that meant "keep this".
+ * Nothing reaches the store until Save, so a test that reads the store
+ * has to press it. That is the behaviour: the dialog used to write on
+ * every keystroke, leaving no button that meant "keep this".
  */
 
 const t = i18n.t.bind(i18n);
@@ -30,8 +28,8 @@ const antennaChip = (key: string) =>
 describe('the station dialog', () => {
   beforeEach(() => {
     // The whole store, not `reset()`: that returns only the active
-    // preset to its defaults, so a test that adds a station leaves it
-    // behind for the next one to trip over.
+    // preset to its defaults, so an added station is left for the next
+    // test to trip over.
     useStationStore.getState().commit({
       presets: [{ id: 's1', name: '', ...DEFAULT_STATION }],
       activeId: 's1',

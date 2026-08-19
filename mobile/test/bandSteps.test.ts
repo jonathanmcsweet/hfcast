@@ -14,10 +14,8 @@ import {
 
 /**
  * The band strip has no ends, so how far it moves is not how far apart
- * two bands are in the list. Getting this wrong is invisible in a
- * screenshot and obvious in the hand: the strip takes the long way round
- * and the reader watches eight bands go past to reach the one that was
- * already next to them.
+ * two bands sit in the list. Wrong is invisible in a screenshot and
+ * obvious in the hand: nine bands go past to reach the neighbour.
  */
 
 const at = (band: string) => BAND_ORDER.indexOf(band as never);
@@ -43,10 +41,9 @@ describe('how far the band strip moves', () => {
   });
 
   it('settles a tie the same way every time', () => {
-    // An even-length list has an exact opposite, where both directions
-    // are the same distance. Either would be correct; picking one and
-    // holding it is what stops the strip going left one time and right
-    // the next from the same pair.
+    // An even-length list has an exact opposite, the same distance
+    // either way. Either is correct; holding to one stops the strip
+    // going left one time and right the next from the same pair.
     if (LEN % 2 === 1) return;
     const half = LEN / 2;
     for (const from of BAND_ORDER.keys()) {
@@ -81,8 +78,8 @@ describe('how far the band strip moves', () => {
   });
 
   it('is never drawn wide enough to show a band twice', () => {
-    // What broke in a browser: two copies of the list on screen at once
-    // reads as a list that has gone wrong, not one that has no ends.
+    // What broke in a browser: two copies on screen at once reads as a
+    // broken list, not an endless one.
     assert.equal(showsTwice(MAX_STRIP_WIDTH), false);
     assert.equal(showsTwice(COPY_WIDTH), true);
     // And the cap is not so tight that the strip stops being a list.
@@ -90,8 +87,8 @@ describe('how far the band strip moves', () => {
   });
 
   it('keeps the cap a whole number of chips', () => {
-    // The snap counts in strides, so a cap that is not a multiple of one
-    // would leave the resting position off centre by a fraction.
+    // The snap counts in strides, so a cap that is not a multiple of
+    // one leaves the resting position off centre.
     assert.equal(MAX_STRIP_WIDTH % STRIDE, 0);
     assert.equal(COPY_WIDTH, LEN * STRIDE);
     assert.ok(CHIP_WIDTH < STRIDE);

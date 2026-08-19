@@ -18,16 +18,14 @@ import SectionHeading from './SectionHeading';
 /**
  * Which station is being edited.
  *
- * The dialog could only ever edit the active one before this, so an
- * operator who wanted to change a station they had already saved had to
- * close it, pick that station from the menu on the main screen, and open
- * it again.
+ * The dialog could only edit the active one, so changing a saved station
+ * meant closing it, picking that station from the main screen's menu and
+ * opening it again.
  *
- * A typeahead rather than a plain list because the list is the reader's
- * own and they know what is in it: with three stations the field is a
- * label, and with fifteen typing two letters is faster than scrolling.
- * It only ever selects. Creating is the button below it, so that a
- * mistyped name cannot quietly become a second station.
+ * A typeahead rather than a list: the reader knows what is in their own
+ * list, so with three stations the field is a label and with fifteen two
+ * letters beat scrolling. It only selects — creating is the button below,
+ * so a mistyped name cannot become a second station.
  */
 export default function StationPicker() {
   const { t } = useTranslation();
@@ -39,11 +37,9 @@ export default function StationPicker() {
   const selectStation = useStationDraftStore((s) => s.selectStation);
 
   /**
-   * What has been typed, or null when the field is showing the station.
-   *
-   * The same shape the power and height fields use: null means the
-   * control follows the state, and a string means the reader is in the
-   * middle of something and the state should not overwrite it.
+   * What has been typed, or null when the field shows the station. Same
+   * shape as the power and height fields: null follows the state, a
+   * string means the reader is typing and the state must not overwrite it.
    */
   const [typed, setTyped] = useState<string | null>(null);
 
@@ -82,10 +78,9 @@ export default function StationPicker() {
       />
 
       {
-        /* Drawn in the flow rather than floating over the sections
-           below. A dialog that already scrolls cannot host an overlay
-           without the list being clipped by the scroll view on one
-           platform and not the other, and the list is short. */
+        /* In the flow, not floating over the sections below: a dialog
+           that already scrolls clips an overlay on one platform and not
+           the other, and the list is short. */
       }
       {open
         ? (
