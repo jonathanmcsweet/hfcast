@@ -13,10 +13,10 @@ import {
   wireFromBeam,
 } from '../../data/orientation';
 import {
-  useActivePreset,
-  usesBeam,
-  useStationStore,
-} from '../../store/useStationStore';
+  useDraftField,
+  useStationDraftStore,
+} from '../../store/useStationDraftStore';
+import { usesBeam } from '../../store/useStationStore';
 import { spacing } from '../../theme';
 import CompassRose from '../CompassRose';
 import Dial from './Dial';
@@ -42,8 +42,8 @@ export default function AimSection(
   },
 ) {
   const { t } = useTranslation();
-  const { antenna } = useActivePreset();
-  const setAntenna = useStationStore((s) => s.setAntenna);
+  const antenna = useDraftField((preset) => preset.antenna);
+  const setAntenna = useStationDraftStore((s) => s.setAntenna);
 
   if (!usesBeam(antenna.type)) return null;
 

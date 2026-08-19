@@ -6,10 +6,10 @@ import { TextInput, useTheme } from 'react-native-paper';
 
 import { parsePower, positionOf, POWER_STEPS, wattsAt } from '../../data/power';
 import {
-  LIMITS,
-  useActivePreset,
-  useStationStore,
-} from '../../store/useStationStore';
+  useDraftField,
+  useStationDraftStore,
+} from '../../store/useStationDraftStore';
+import { LIMITS } from '../../store/useStationStore';
 import { spacing } from '../../theme';
 import type { AppTheme } from '../../theme';
 import Note from './Note';
@@ -27,8 +27,8 @@ export default function PowerSection() {
   const { t } = useTranslation();
   const theme = useTheme<AppTheme>();
   const ui = theme.colors.ui;
-  const { watts } = useActivePreset();
-  const setWatts = useStationStore((s) => s.setWatts);
+  const watts = useDraftField((preset) => preset.watts);
+  const setWatts = useStationDraftStore((s) => s.setWatts);
 
   /**
    * The field while it is being typed.

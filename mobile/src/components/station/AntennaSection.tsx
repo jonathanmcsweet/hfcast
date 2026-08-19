@@ -10,12 +10,14 @@ import {
 import { parseTypedNumber } from '../../data/typedNumber';
 import { useUnits } from '../../hooks/useUnits';
 import {
+  useDraftField,
+  useStationDraftStore,
+} from '../../store/useStationDraftStore';
+import {
   ANTENNA_ORDER,
   LIMITS,
-  useActivePreset,
   usesGain,
   usesHeight,
-  useStationStore,
 } from '../../store/useStationStore';
 import { spacing } from '../../theme';
 import ChipGroup from '../ChipGroup';
@@ -32,8 +34,8 @@ import SectionHeading from './SectionHeading';
 export default function AntennaSection() {
   const { t } = useTranslation();
   const units = useUnits();
-  const { antenna } = useActivePreset();
-  const setAntenna = useStationStore((s) => s.setAntenna);
+  const antenna = useDraftField((preset) => preset.antenna);
+  const setAntenna = useStationDraftStore((s) => s.setAntenna);
 
   /**
    * The height while it is being typed, for the same reason power is.

@@ -3,28 +3,38 @@ import { StyleSheet, View } from 'react-native';
 import { Button, TextInput } from 'react-native-paper';
 
 import {
-  MAX_NAME_LENGTH,
-  useActivePreset,
-  useStationStore,
-} from '../../store/useStationStore';
+  useDraftActiveId,
+  useDraftField,
+  useDraftPresets,
+  useStationDraftStore,
+} from '../../store/useStationDraftStore';
+import { MAX_NAME_LENGTH } from '../../store/useStationStore';
 import { spacing } from '../../theme';
 import SectionHeading from './SectionHeading';
 
 /**
- * The name, and the two buttons that make and remove a station.
+ * The name of the station being edited, and the two buttons that make and
+ * remove one.
  *
- * First in the dialog, because everything below it belongs to this one
- * station. A licence does not come with one radio: a base with a beam and
- * a portable with a wire give different answers, and both are true.
+ * The picker above chooses which station this is; this renames it. Two
+ * controls rather than one because a field that both filtered a list and
+ * renamed what it found would do a different thing depending on what was
+ * already typed into it.
+ *
+ * A new station arrives already named ("Station 2"), so this field is
+ * never empty for one the reader has just made. It used to be, and a
+ * field showing nothing but its placeholder is indistinguishable from a
+ * form that was never filled in — which is why adding a station read as
+ * losing one (user, 2026-08-18).
  */
 export default function NameSection() {
   const { t } = useTranslation();
-  const preset = useActivePreset();
-  const presets = useStationStore((s) => s.presets);
-  const activeId = useStationStore((s) => s.activeId);
-  const rename = useStationStore((s) => s.rename);
-  const addPreset = useStationStore((s) => s.addPreset);
-  const removePreset = useStationStore((s) => s.removePreset);
+  const name = useDraftField((preset) => preset.name);
+  const presets = useDraftPresets();
+  const activeId = useDraftActiveId();
+  const rename = useStationDraftStore((s) => s.rename);
+  const addStation = useStationDraftStore((s) => s.addStation);
+  const removeStation = useStationDraftStore((s) => s.removeStation);
 
   return (
     <>
@@ -32,7 +42,7 @@ export default function NameSection() {
       <TextInput
         mode="outlined"
         dense
-        value={preset.name}
+        value={name}
         placeholder={t('station.unnamed')}
         maxLength={MAX_NAME_LENGTH}
         onChangeText={rename}
@@ -43,7 +53,8 @@ export default function NameSection() {
         <Button
           mode="outlined"
           icon="plus"
-          onPress={addPreset}
+          onPress={() =>
+            addStation((n) => t('station.defaultName', { number: n }))}
           accessibilityHint={t('station.a11y.addHint')}
         >
           {t('station.add')}
@@ -51,7 +62,7 @@ export default function NameSection() {
         <Button
           mode="text"
           icon="delete-outline"
-          onPress={() => removePreset(activeId)}
+          onPress={() => removeStation(activeId)}
           disabled={presets.length <= 1}
         >
           {t('station.remove')}

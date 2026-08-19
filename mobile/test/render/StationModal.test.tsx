@@ -1,6 +1,7 @@
 import { fireEvent } from '@testing-library/react-native';
 
 import StationModal from '../../src/components/StationModal';
+import { DEFAULT_STATION } from '../../src/data/station';
 import i18n from '../../src/i18n/index';
 import { useStationStore } from '../../src/store/useStationStore';
 import { renderWithApp } from './harness';
@@ -8,11 +9,16 @@ import { renderWithApp } from './harness';
 /**
  * The station dialog, mounted.
  *
- * It is five sections over one store, and the rules that decide which of
+ * It is five sections over one draft, and the rules that decide which of
  * them appear — a height field for an antenna that has a height, a gain
  * dial for one with gain, an aim control only where there is something to
  * point — are rules about the antenna and not about any one section. That
  * is what a mounted test can check and a test of a pure module cannot.
+ *
+ * Nothing here reaches the store until Save, so a test that reads the
+ * store has to press it. That is the behaviour, not a detail of the
+ * test: the dialog used to write on every keystroke, which left it with
+ * no button that meant "keep this".
  */
 
 const t = i18n.t.bind(i18n);
@@ -23,7 +29,13 @@ const antennaChip = (key: string) =>
 
 describe('the station dialog', () => {
   beforeEach(() => {
-    useStationStore.getState().reset();
+    // The whole store, not `reset()`: that returns only the active
+    // preset to its defaults, so a test that adds a station leaves it
+    // behind for the next one to trip over.
+    useStationStore.getState().commit({
+      presets: [{ id: 's1', name: '', ...DEFAULT_STATION }],
+      activeId: 's1',
+    });
   });
 
   it('offers every mode and records the one chosen', async () => {
@@ -34,7 +46,39 @@ describe('the station dialog', () => {
     const ft8 = t('station.a11y.pickMode', { mode: t('station.mode.ft8') });
     await fireEvent.press(view.getByLabelText(ft8));
 
+    // Chosen but not yet kept.
+    expect(useStationStore.getState().presets[0]?.mode).toBe('cw');
+
+    await fireEvent.press(view.getByText(t('station.save')));
     expect(useStationStore.getState().presets[0]?.mode).toBe('ft8');
+  });
+
+  it('keeps nothing when the dialog is cancelled', async () => {
+    const view = await renderWithApp(
+      <StationModal visible onDismiss={() => {}} />,
+    );
+
+    const ft8 = t('station.a11y.pickMode', { mode: t('station.mode.ft8') });
+    await fireEvent.press(view.getByLabelText(ft8));
+    await fireEvent.press(view.getByText(t('station.cancel')));
+
+    // Cancel asks first, because there is something to lose.
+    await fireEvent.press(view.getByText(t('station.discard')));
+    expect(useStationStore.getState().presets[0]?.mode).toBe('cw');
+  });
+
+  it('names a station it makes, rather than leaving the field empty', async () => {
+    const view = await renderWithApp(
+      <StationModal visible onDismiss={() => {}} />,
+    );
+
+    await fireEvent.press(view.getByText(t('station.add')));
+    await fireEvent.press(view.getByText(t('station.save')));
+
+    const { presets, activeId } = useStationStore.getState();
+    expect(presets).toHaveLength(2);
+    expect(presets[1]?.name).toBe(t('station.defaultName', { number: 2 }));
+    expect(activeId).toBe(presets[1]?.id);
   });
 
   it('asks for a height only where the antenna has one', async () => {
@@ -97,6 +141,7 @@ describe('the station dialog', () => {
       view.getByText(t('station.aimAt', { place: 'Tokyo', degrees: 64 })),
     );
 
+    await fireEvent.press(view.getByText(t('station.save')));
     expect(useStationStore.getState().presets[0]?.antenna.beamDeg).toBe(64);
   });
 

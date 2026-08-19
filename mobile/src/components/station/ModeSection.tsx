@@ -2,10 +2,10 @@ import { useTranslation } from 'react-i18next';
 import { StyleSheet } from 'react-native';
 
 import {
-  MODE_ORDER,
-  useActivePreset,
-  useStationStore,
-} from '../../store/useStationStore';
+  useDraftField,
+  useStationDraftStore,
+} from '../../store/useStationDraftStore';
+import { MODE_ORDER } from '../../store/useStationStore';
 import { spacing } from '../../theme';
 import ChipGroup from '../ChipGroup';
 import Note from './Note';
@@ -22,8 +22,8 @@ export default function ModeSection(
   { requiredSnrDb }: { requiredSnrDb?: number | undefined; },
 ) {
   const { t } = useTranslation();
-  const { mode } = useActivePreset();
-  const setMode = useStationStore((s) => s.setMode);
+  const mode = useDraftField((preset) => preset.mode);
+  const setMode = useStationDraftStore((s) => s.setMode);
 
   return (
     <>
