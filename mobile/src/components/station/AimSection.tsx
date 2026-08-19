@@ -61,7 +61,7 @@ export default function AimSection(
     <>
       <Dial
         label={asWire ? t('station.wireRuns') : t('station.beam')}
-        value={t('station.degrees', { degrees: control })}
+        format={(degrees) => t('station.degrees', { degrees })}
         current={control}
         min={0}
         max={359}

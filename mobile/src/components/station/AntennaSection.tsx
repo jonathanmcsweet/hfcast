@@ -114,7 +114,7 @@ export default function AntennaSection() {
               label={antenna.type === 'invertedV'
                 ? t('station.apexHeight')
                 : t('station.height')}
-              value={units.height(antenna.heightM)}
+              format={(value) => units.height(units.heightToMetres(value))}
               current={units.heightFromMetres(antenna.heightM)}
               min={heightScale.min}
               max={heightScale.max}
@@ -153,7 +153,7 @@ export default function AntennaSection() {
         ? (
           <Dial
             label={t('station.gain')}
-            value={t('station.dbd', { gain: antenna.gainDbd })}
+            format={(gain) => t('station.dbd', { gain })}
             current={antenna.gainDbd}
             min={LIMITS.gainDbd.min}
             max={LIMITS.gainDbd.max}

@@ -40,6 +40,19 @@ export default function PowerSection() {
    */
   const [typed, setTyped] = useState<string | null>(null);
 
+  /**
+   * Where the slider is while it is being dragged. Null when it is not.
+   *
+   * A slider reports every step it passes through, and each of those
+   * used to change the station being edited. The field above follows the
+   * drag from here instead, and the station is set once, when the finger
+   * lifts.
+   */
+  const [dragging, setDragging] = useState<number | null>(null);
+  const shown = dragging === null
+    ? watts
+    : wattsAt(dragging, LIMITS.watts);
+
   return (
     <>
       <SectionHeading text={t('station.powerSection')} />
@@ -48,7 +61,7 @@ export default function PowerSection() {
         dense
         keyboardType="decimal-pad"
         inputMode="decimal"
-        value={typed ?? String(watts)}
+        value={typed ?? String(shown)}
         onChangeText={(text) => {
           setTyped(text);
           const parsed = parsePower(text);
@@ -72,6 +85,10 @@ export default function PowerSection() {
         step={1}
         onValueChange={(position) => {
           setTyped(null);
+          setDragging(position);
+        }}
+        onSlidingComplete={(position) => {
+          setDragging(null);
           setWatts(wattsAt(position, LIMITS.watts));
         }}
         minimumTrackTintColor={ui.accent}
