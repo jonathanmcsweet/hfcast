@@ -2,7 +2,15 @@ import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
 import { BAND_ORDER } from '../../shared/bands.ts';
-import { LEN, stepsTo } from '../src/data/bandStrip.ts';
+import {
+  CHIP_WIDTH,
+  COPY_WIDTH,
+  LEN,
+  MAX_STRIP_WIDTH,
+  showsTwice,
+  stepsTo,
+  STRIDE,
+} from '../src/data/bandStrip.ts';
 
 /**
  * The band strip has no ends, so how far it moves is not how far apart
@@ -70,5 +78,22 @@ describe('how far the band strip moves', () => {
         assert.equal(landed, to);
       }
     }
+  });
+
+  it('is never drawn wide enough to show a band twice', () => {
+    // What broke in a browser: two copies of the list on screen at once
+    // reads as a list that has gone wrong, not one that has no ends.
+    assert.equal(showsTwice(MAX_STRIP_WIDTH), false);
+    assert.equal(showsTwice(COPY_WIDTH), true);
+    // And the cap is not so tight that the strip stops being a list.
+    assert.ok(MAX_STRIP_WIDTH >= 4 * STRIDE);
+  });
+
+  it('keeps the cap a whole number of chips', () => {
+    // The snap counts in strides, so a cap that is not a multiple of one
+    // would leave the resting position off centre by a fraction.
+    assert.equal(MAX_STRIP_WIDTH % STRIDE, 0);
+    assert.equal(COPY_WIDTH, LEN * STRIDE);
+    assert.ok(CHIP_WIDTH < STRIDE);
   });
 });

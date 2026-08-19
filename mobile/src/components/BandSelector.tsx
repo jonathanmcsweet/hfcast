@@ -12,10 +12,14 @@ import { Text, TouchableRipple, useTheme } from 'react-native-paper';
 
 import {
   bandOf,
+  CHIP_GAP,
+  CHIP_WIDTH,
   COPIES,
   LEN,
+  MAX_STRIP_WIDTH,
   MIDDLE,
   stepsTo,
+  STRIDE,
   stridesTo,
   wrap,
 } from '../data/bandStrip';
@@ -34,17 +38,6 @@ interface Props {
   requiredSnrDb: number;
 }
 
-/**
- * How wide one band sits, and how far apart two of them are.
- *
- * Fixed rather than measured, because the snap has to know the stride
- * before anything is drawn. Wide enough for `160m`, which is the longest
- * designation, at the strong body face.
- */
-const CHIP_WIDTH = 64;
-const CHIP_GAP = spacing.sm;
-const STRIDE = CHIP_WIDTH + CHIP_GAP;
-
 /** Where the strip sits when `band` is centred, in the middle copy. */
 const offsetOf = (band: number): number => stridesTo(band) * STRIDE;
 
@@ -58,11 +51,15 @@ const bandAt = (x: number): number => bandOf(Math.round(x / STRIDE));
  * "best band" option — the grid shows every band at once, so an automatic
  * pick would only hide which band it chose.
  *
- * A picker rather than a row of chips. Nine bands are wider than a phone,
+ * A picker rather than a row of chips. The bands are wider than a phone,
  * and a plain row left the band at the right edge cut in half, which reads
  * as though the list ends there. So the strip holds the chosen band in the
- * middle and runs endlessly in both directions: 6m is followed by 160m
+ * middle and runs endlessly in both directions: 10m is followed by 160m
  * rather than by a wall.
+ *
+ * Never wider than `MAX_STRIP_WIDTH`, and centred in whatever it is given.
+ * The strip only reads as endless while no band is on screen twice, and a
+ * browser window is easily wide enough to break that.
  *
  * The frame in the middle is not decoration. Coming to rest chooses a
  * band, and a control that changes what the whole screen shows without
@@ -211,8 +208,8 @@ export default function BandSelector(
             const band = BAND_ORDER[wrap(at, LEN)] as BandKey;
             const selected = value === band;
             // Only one copy is offered to a screen reader. All five are
-            // the same nine bands, and reading forty-five buttons would
-            // make a short list unusable for the readers a picker is
+            // the same bands over again, and reading the list five times
+            // would make a short one unusable for the readers a picker is
             // already hardest for.
             const copy = Math.floor(at / LEN);
             const spoken = copy === MIDDLE;
@@ -272,7 +269,17 @@ const styles = StyleSheet.create({
     marginBottom: spacing.md,
   },
   label: { marginHorizontal: spacing.lg, marginBottom: spacing.sm },
-  stripRow: { justifyContent: 'center' },
+  // Centred rather than stretched, and never past one list wide: beyond
+  // that a band appears on screen twice and the strip stops reading as
+  // endless. The frame below is placed inside this box, so the cap has to
+  // be here and not on the scroll view — otherwise the frame keeps
+  // measuring against a width the bands no longer have.
+  stripRow: {
+    justifyContent: 'center',
+    maxWidth: MAX_STRIP_WIDTH,
+    alignSelf: 'center',
+    width: '100%',
+  },
   slot: {
     position: 'absolute',
     top: 0,
