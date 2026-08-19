@@ -18,6 +18,7 @@ export {
   BAND_ORDER,
   BANDS_BY_FREQ,
   isBandKey,
+  MIN_CARD_FREQ_MHZ,
 } from '../../shared/bands.ts';
 
 export type { CoveragePoint } from '../../shared/points.ts';

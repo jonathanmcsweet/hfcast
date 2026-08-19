@@ -13,9 +13,15 @@ import path from 'node:path';
 import { test } from 'node:test';
 import { fileURLToPath } from 'node:url';
 
+import { txCard } from '../src/antenna.ts';
 import { FINE_LAT_STEP, FINE_LON_STEP } from '../src/coverage.ts';
 import { BANDS_BY_FREQ } from '../src/types.ts';
-import { PREDICT_BIN, runCoverage, runEngine } from '../src/voacap/engine.ts';
+import {
+  ITSHFBC_DIR,
+  PREDICT_BIN,
+  runCoverage,
+  runEngine,
+} from '../src/voacap/engine.ts';
 import { parseVoacapOutput } from '../src/voacap/parse.ts';
 import { FIXTURE_BANDS } from './fixtureBands.ts';
 
@@ -245,3 +251,58 @@ test(
     assert.deepEqual(split.points, whole.points);
   },
 );
+
+/**
+ * The bug this guards against was invisible in every other test: the
+ * answers were plausible, they varied with the hour, and nothing
+ * crashed. The station simply was not the one the operator had set.
+ *
+ * The engine takes the first antenna card whose frequency range holds
+ * the frequency, and gives a frequency in no card's range no antenna at
+ * all. Cards read 2 to 30 MHz until 2026-08-19, so 160m at 1.84 was
+ * predicted isotropic however the antenna was described — measured at 3
+ * dB on a short summer path, on the band where an inverted L or a
+ * vertical is the usual antenna.
+ */
+test('the antenna reaches 160m, not just the bands above 2 MHz', {
+  skip: !available,
+}, async () => {
+  const card = await txCard(ITSHFBC_DIR, {
+    type: 'dipole',
+    heightM: 10,
+    gainDbd: 0,
+    beamDeg: 0,
+  });
+  assert.ok(card, 'a dipole must produce a card');
+
+  const withAntenna = await runEngine({
+    ...FIXTURE_REQUEST,
+    bands: ['160m', '80m'],
+    txAntenna: card,
+  });
+  const isotropic = await runEngine({
+    ...FIXTURE_REQUEST,
+    bands: ['160m', '80m'],
+  });
+
+  const snr = (
+    run: Awaited<ReturnType<typeof runEngine>>,
+    band: string,
+  ) =>
+    run.cells
+      .filter((cell) => cell.band === band)
+      .map((cell) => cell.snr);
+
+  // 80m proves the comparison can tell the two apart at all, so a 160m
+  // match cannot be read as the test failing to do anything.
+  assert.notDeepEqual(
+    snr(withAntenna, '80m'),
+    snr(isotropic, '80m'),
+    'a dipole must differ from an isotrope on 80m',
+  );
+  assert.notDeepEqual(
+    snr(withAntenna, '160m'),
+    snr(isotropic, '160m'),
+    'a dipole must differ from an isotrope on 160m too',
+  );
+});

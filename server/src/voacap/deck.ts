@@ -6,7 +6,12 @@
  * field run straight into the next one, which is legal and expected. Column
  * positions are therefore the contract — never join these with spaces.
  */
-import { BAND_MHZ, type BandKey, BANDS_BY_FREQ } from '../types.ts';
+import {
+  BAND_MHZ,
+  type BandKey,
+  BANDS_BY_FREQ,
+  MIN_CARD_FREQ_MHZ,
+} from '../types.ts';
 
 /** Number of frequency slots on a FREQUENCY card. */
 export const FREQ_SLOTS = 11;
@@ -125,17 +130,17 @@ export function buildDeck(options: DeckOptions): string {
     // most of all at solar minimum (7.0 to 3.0 dB in December 2019). See
     // hfcast-engine/docs/accuracy.md.
     'FPROB      1.00 1.00 1.00 1.00',
-    `ANTENNA   ${field('1', 5)}${field('1', 5)}${field('2', 5)}${
-      field('30', 5)
-    }`
+    `ANTENNA   ${field('1', 5)}${field('1', 5)}${
+      field(String(MIN_CARD_FREQ_MHZ), 5)
+    }${field('30', 5)}`
     + `${field('0.000', 10)}${
       antennaRef(options.txAntennaFile ?? ANTENNA_FILE)
     }${field((options.txBeamDeg ?? 0).toFixed(1), 5)}${
       field(kw.toFixed(4), 10)
     }`,
-    `ANTENNA   ${field('2', 5)}${field('2', 5)}${field('2', 5)}${
-      field('30', 5)
-    }`
+    `ANTENNA   ${field('2', 5)}${field('2', 5)}${
+      field(String(MIN_CARD_FREQ_MHZ), 5)
+    }${field('30', 5)}`
     + `${field('0.000', 10)}${antennaRef(ANTENNA_FILE)}${field('0.0', 5)}${
       field('0.0000', 10)
     }`,

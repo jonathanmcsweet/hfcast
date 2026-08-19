@@ -31,6 +31,23 @@ export const BAND_ORDER: readonly BandKey[] = [
   '160m',
 ];
 
+/**
+ * The lowest frequency an antenna card claims to serve, in whole MHz.
+ *
+ * The engine walks the antenna cards and takes the first one whose
+ * frequency range holds the frequency being predicted; a frequency in no
+ * card's range gets **no antenna at all**. The card's own default is 2
+ * MHz, and 160m sits at 1.84, so until 2026-08-19 every 160m forecast
+ * was computed as though the operator's station were isotropic — a
+ * dipole and an isotrope returned the same numbers below 2 MHz and
+ * differed by 3 dB above it, measured on a short summer path.
+ *
+ * 1 rather than 1.8 because the card holds whole megahertz. Nothing else
+ * moves: a card that covers more frequencies than the app asks about
+ * still serves each of them the same way.
+ */
+export const MIN_CARD_FREQ_MHZ = 1;
+
 /** Nominal centre frequency in MHz, for the deck and the MUF comparison. */
 export const BAND_MHZ: Readonly<Record<BandKey, number>> = {
   '160m': 1.84,

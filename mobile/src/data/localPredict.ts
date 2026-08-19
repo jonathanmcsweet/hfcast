@@ -1,3 +1,4 @@
+import { MIN_CARD_FREQ_MHZ } from '../../../shared/bands.ts';
 import { bearingDeg, distanceKm } from '../../../shared/geo.ts';
 import type { WireCell, WirePrediction } from '../../../shared/wire.ts';
 import * as Engine from '../../modules/engine-bridge';
@@ -49,6 +50,16 @@ const NOISE_DBW = -145;
 export interface EngineAntenna {
   file: string;
   beamDeg: number;
+  /**
+   * The lowest frequency this card serves, in whole MHz.
+   *
+   * The engine takes the first card whose range holds the frequency, and
+   * a frequency in no card's range gets no antenna at all. Its default
+   * is 2 MHz and 160m is 1.84, so without this every 160m forecast was
+   * computed as though the station were isotropic, whatever the operator
+   * had set. See `MIN_CARD_FREQ_MHZ`.
+   */
+  minFreq: number;
 }
 
 /** Exactly 24 entries, with anything unusable read as absent. */
@@ -156,6 +167,7 @@ export async function engineStation(station: Station): Promise<{
       // Only the families whose pattern depends on azimuth carry a bearing,
       // as on the server: a vertical measures 0 dB over the whole compass.
       beamDeg: usesBeam(station.antenna.type) ? station.antenna.beamDeg : 0,
+      minFreq: MIN_CARD_FREQ_MHZ,
     },
   };
 }

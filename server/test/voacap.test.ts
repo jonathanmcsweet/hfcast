@@ -74,6 +74,18 @@ test('deck places every field on its documented column', () => {
     card('FREQUENCY'),
     'FREQUENCY  1.84 3.75 5.36 7.1010.1214.2018.1021.2024.9428.40 0.00',
   );
+  // The antenna's frequency range, which is the whole point of the card
+  // being a range at all. It read 2 to 30 MHz until 2026-08-19, and the
+  // engine gives a frequency in no card's range no antenna at all — so
+  // 160m at 1.84 MHz was predicted isotropic whatever the operator set.
+  // The end of the card was pinned here and the range was not, which is
+  // how that went unseen.
+  assert.equal(
+    card('ANTENNA').slice(0, 30),
+    'ANTENNA       1    1    1   30',
+    'the transmit card must reach below 160m',
+  );
+
   // 100 W is 0.1 kW, and power sits in the last ten columns of the TX antenna.
   assert.ok(card('ANTENNA').endsWith('    0.1000'));
   // Sporadic-E on: validated against six months of measured reception

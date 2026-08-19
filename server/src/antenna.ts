@@ -35,6 +35,7 @@ import {
   MIN_GAIN_DBD,
   MIN_HEIGHT_M,
 } from '../../shared/antenna.ts';
+import { MIN_CARD_FREQ_MHZ } from './types.ts';
 
 export type { AntennaKey } from '../../shared/antenna.ts';
 export {
@@ -264,6 +265,18 @@ const DIRECTIONAL: readonly AntennaKey[] = [
 export interface AntennaCard {
   file: string;
   beamDeg: number;
+  /**
+   * The lowest frequency this card serves, in whole MHz.
+   *
+   * The engine walks the cards and takes the first one whose range holds
+   * the frequency; a frequency in no card's range gets no antenna at
+   * all. The engine's own default is 2, and 160m is 1.84, so every 160m
+   * forecast was computed as though the operator were isotropic whatever
+   * they had set — measured at 3 dB on a short summer path, and 160m is
+   * where it matters most, since an inverted L or a vertical is the
+   * usual antenna there.
+   */
+  minFreq: number;
 }
 
 /**
@@ -287,5 +300,8 @@ export async function txCard(
     // by 0 dB over the whole compass, so a bearing there would be a
     // number the model never reads.
     beamDeg: DIRECTIONAL.includes(antenna.type) ? antenna.beamDeg : 0,
+    // Low enough to hold 160m at 1.84 MHz. Whole MHz is all the card
+    // has room for, so 1 rather than 1.8.
+    minFreq: MIN_CARD_FREQ_MHZ,
   };
 }
