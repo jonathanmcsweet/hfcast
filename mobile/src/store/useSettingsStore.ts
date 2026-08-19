@@ -3,6 +3,7 @@ import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 
 import { BAND_ORDER, type BandKey } from '../../../shared/bands';
+import { withNewBands } from '../data/bandChoice.ts';
 import type { ScopeMonths } from '../data/precomputePlan';
 import type { UnitPreference } from '../data/units';
 
@@ -157,7 +158,7 @@ export const MAP_BUDGET_CHOICES = [64, 128, 256, 512] as const;
 // new model becoming the default at 8. An older saved shape is migrated
 // forward rather than discarded: losing a theme and a units choice to
 // gain a storage default would be a poor trade.
-const PERSIST_VERSION = 8;
+const PERSIST_VERSION = 9;
 
 export const useSettingsStore = create<SettingsState>()(
   persist(
@@ -212,7 +213,7 @@ export const useSettingsStore = create<SettingsState>()(
         // the rest fall to their defaults is what the reader would
         // expect: the defaults are what they would have chosen anyway.
         const held = persisted as Partial<SettingsState>;
-        if (version >= 1 && version <= 7) {
+        if (version >= 1 && version <= 8) {
           return {
             ...held,
             units: held.units ?? 'auto',
@@ -220,7 +221,12 @@ export const useSettingsStore = create<SettingsState>()(
             mapsOnCard: held.mapsOnCard ?? false,
             mapBudgetMb: held.mapBudgetMb ?? DEFAULT_MAP_BUDGET_MB,
             precomputeMonths: held.precomputeMonths ?? 1,
-            precomputeBands: held.precomputeBands ?? BAND_ORDER,
+            // 60m arrived in version 9. A store that held every band
+            // before it means "all of them", so it gets the new one too;
+            // a store that held a chosen few keeps exactly those, since
+            // adding to a deliberate selection would compute maps
+            // nobody asked for and spend the storage they capped.
+            precomputeBands: withNewBands(held.precomputeBands),
             // Kept where a version 4 store already had one, so somebody
             // upgrading does not lose a choice they made.
             precomputeOnCharger: held.precomputeOnCharger ?? true,

@@ -8,6 +8,7 @@
 export type BandKey =
   | '160m'
   | '80m'
+  | '60m'
   | '40m'
   | '30m'
   | '20m'
@@ -25,6 +26,7 @@ export const BAND_ORDER: readonly BandKey[] = [
   '20m',
   '30m',
   '40m',
+  '60m',
   '80m',
   '160m',
 ];
@@ -33,6 +35,13 @@ export const BAND_ORDER: readonly BandKey[] = [
 export const BAND_MHZ: Readonly<Record<BandKey, number>> = {
   '160m': 1.84,
   '80m': 3.75,
+  // 60m is the one band here that is not a contiguous allocation
+  // everywhere. WRC-15 gave 5.3515-5.3665 MHz; several countries instead
+  // license a handful of channels either side of it, the widest spread
+  // being 5.332 to 5.405. 5.36 sits inside the WRC-15 band and within
+  // 1% of the middle of the channelised plans, which is far below what
+  // moves a prediction.
+  '60m': 5.36,
   '40m': 7.1,
   '30m': 10.12,
   '20m': 14.2,

@@ -13,7 +13,6 @@ import path from 'node:path';
 import { test } from 'node:test';
 import { fileURLToPath } from 'node:url';
 
-import { BANDS_BY_FREQ } from '../src/types.ts';
 import {
   correctCells,
   factorsFor,
@@ -22,6 +21,7 @@ import {
   SWING_FACTOR,
 } from '../src/voacap/correct.ts';
 import { parseVoacapOutput } from '../src/voacap/parse.ts';
+import { FIXTURE_BANDS } from './fixtureBands.ts';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const fixture = readFileSync(
@@ -45,7 +45,7 @@ test('phi matches the two anchor points that matter', () => {
 });
 
 test('with factor 1, recomputed reliability matches the engine', () => {
-  const { cells } = parseVoacapOutput(fixture, BANDS_BY_FREQ);
+  const { cells } = parseVoacapOutput(fixture, FIXTURE_BANDS);
   const withDeciles = cells.filter(
     (c) => c.snrLowDecile !== null && c.snrUpDecile !== null,
   );
@@ -72,7 +72,7 @@ test('with factor 1, recomputed reliability matches the engine', () => {
 });
 
 test('the correction shrinks each band toward its own centre', () => {
-  const { cells } = parseVoacapOutput(fixture, BANDS_BY_FREQ);
+  const { cells } = parseVoacapOutput(fixture, FIXTURE_BANDS);
   const corrected = correctCells(cells, FIXTURE_REQUIRED_SNR);
 
   const bands = [...new Set(cells.map((c) => c.band))];
@@ -90,7 +90,7 @@ test('the correction shrinks each band toward its own centre', () => {
 });
 
 test('quiet hours become less dead, strong hours less inflated', () => {
-  const { cells } = parseVoacapOutput(fixture, BANDS_BY_FREQ);
+  const { cells } = parseVoacapOutput(fixture, FIXTURE_BANDS);
   // Spread factors held neutral so this test sees the swing alone.
   const corrected = correctCells(cells, FIXTURE_REQUIRED_SNR, {
     swing: SWING_FACTOR,

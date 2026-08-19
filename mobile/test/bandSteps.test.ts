@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
 import { BAND_ORDER } from '../../shared/bands.ts';
-import { stepsTo } from '../src/data/bandStrip.ts';
+import { LEN, stepsTo } from '../src/data/bandStrip.ts';
 
 /**
  * The band strip has no ends, so how far it moves is not how far apart
@@ -29,9 +29,22 @@ describe('how far the band strip moves', () => {
   it('goes the short way whichever side it is on', () => {
     assert.equal(stepsTo(at('10m'), at('12m')), 1);
     assert.equal(stepsTo(at('12m'), at('10m')), -1);
-    // Five places right through the list is four places left round it.
-    assert.equal(stepsTo(at('10m'), at('30m')), -4);
-    assert.equal(stepsTo(at('30m'), at('10m')), 4);
+    // Four places forward beats six places back round the other side.
+    assert.equal(stepsTo(at('10m'), at('20m')), 4);
+    assert.equal(stepsTo(at('20m'), at('10m')), -4);
+  });
+
+  it('settles a tie the same way every time', () => {
+    // An even-length list has an exact opposite, where both directions
+    // are the same distance. Either would be correct; picking one and
+    // holding it is what stops the strip going left one time and right
+    // the next from the same pair.
+    if (LEN % 2 === 1) return;
+    const half = LEN / 2;
+    for (const from of BAND_ORDER.keys()) {
+      const opposite = (from + half) % LEN;
+      assert.equal(stepsTo(from, opposite), -half);
+    }
   });
 
   it('never moves further than half the list', () => {

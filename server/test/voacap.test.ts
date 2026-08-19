@@ -10,9 +10,9 @@ import {
   gridToLatLon,
   latLonToGrid,
 } from '../src/geo.ts';
-import { BANDS_BY_FREQ } from '../src/types.ts';
 import { buildDeck } from '../src/voacap/deck.ts';
 import { parseVoacapOutput } from '../src/voacap/parse.ts';
+import { FIXTURE_BANDS } from './fixtureBands.ts';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const fixture = readFileSync(
@@ -72,7 +72,7 @@ test('deck places every field on its documented column', () => {
   assert.equal(card('MONTH'), 'MONTH      2026 7.00');
   assert.equal(
     card('FREQUENCY'),
-    'FREQUENCY  1.84 3.75 7.1010.1214.2018.1021.2024.9428.40 0.00 0.00',
+    'FREQUENCY  1.84 3.75 5.36 7.1010.1214.2018.1021.2024.9428.40 0.00',
   );
   // 100 W is 0.1 kW, and power sits in the last ten columns of the TX antenna.
   assert.ok(card('ANTENNA').endsWith('    0.1000'));
@@ -103,12 +103,12 @@ test('deck refuses a value that would overflow its field', () => {
 });
 
 test('parser reads every hour and band from a real listing', () => {
-  const { cells, mufByHour } = parseVoacapOutput(fixture, BANDS_BY_FREQ);
+  const { cells, mufByHour } = parseVoacapOutput(fixture, FIXTURE_BANDS);
 
   const hours = new Set(cells.map((c) => c.hour));
   assert.equal(hours.size, 24, 'expected all 24 UTC hours');
   assert.ok(hours.has(0), 'hour 24 should fold to 0');
-  assert.equal(cells.length, 24 * BANDS_BY_FREQ.length);
+  assert.equal(cells.length, 24 * FIXTURE_BANDS.length);
 
   assert.equal(mufByHour.length, 24);
   assert.ok(mufByHour.every((m) => m > 0 && m < 60), 'MUF should be plausible');
@@ -119,12 +119,12 @@ test('the Fortran path reports no operating window rather than an empty one', ()
   // has nothing to report until it runs a second, method-26 deck. Null
   // says that; 24 nulls would say the frequencies were computed and
   // nothing worked, which is a different and untrue claim.
-  const { window } = parseVoacapOutput(fixture, BANDS_BY_FREQ);
+  const { window } = parseVoacapOutput(fixture, FIXTURE_BANDS);
   assert.equal(window, null);
 });
 
 test('parser keeps reliability in 0..1 and reads merged columns correctly', () => {
-  const { cells } = parseVoacapOutput(fixture, BANDS_BY_FREQ);
+  const { cells } = parseVoacapOutput(fixture, FIXTURE_BANDS);
   assert.ok(cells.every((c) => c.reliability >= 0 && c.reliability <= 1));
 
   // From the fixture's 01 UTC block:

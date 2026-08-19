@@ -17,6 +17,7 @@ import { FINE_LAT_STEP, FINE_LON_STEP } from '../src/coverage.ts';
 import { BANDS_BY_FREQ } from '../src/types.ts';
 import { PREDICT_BIN, runCoverage, runEngine } from '../src/voacap/engine.ts';
 import { parseVoacapOutput } from '../src/voacap/parse.ts';
+import { FIXTURE_BANDS } from './fixtureBands.ts';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 
@@ -57,8 +58,14 @@ test('the engine reproduces the reference listing cell for cell', {
     path.join(here, 'fixtures/seattle-tokyo-jul2026-ssn68-es.out'),
     'utf8',
   );
-  const expected = parseVoacapOutput(fixture, BANDS_BY_FREQ);
-  const actual = await runEngine(FIXTURE_REQUEST);
+  const expected = parseVoacapOutput(fixture, FIXTURE_BANDS);
+  // The same nine bands the listing was captured for, so this stays a
+  // comparison of two answers to one question rather than of two
+  // questions.
+  const actual = await runEngine({
+    ...FIXTURE_REQUEST,
+    bands: FIXTURE_BANDS,
+  });
 
   assert.deepEqual(actual.mufByHour, expected.mufByHour);
   assert.equal(actual.cells.length, expected.cells.length);
