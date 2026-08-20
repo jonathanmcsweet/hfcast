@@ -8,11 +8,10 @@ import type { Endpoint, PathPrediction } from './types';
 /**
  * A forecast with no destination, computed on the device.
  *
- * One engine run per sampled direction, combined by `survey.ts`. The runs are
- * sequential rather than concurrent: the native module answers one request at
- * a time, so issuing them together would only queue them, and doing it in
- * order means the whole thing can be abandoned part way if the location
- * changes underneath it.
+ * One engine run per sampled direction, combined by `survey.ts`.
+ * Sequential rather than concurrent: the native module answers one
+ * request at a time, so issuing them together only queues them, and in
+ * order the whole thing can be abandoned if the location changes.
  */
 
 export interface LocalSurveyRequest {

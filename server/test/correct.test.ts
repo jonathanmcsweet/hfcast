@@ -1,17 +1,15 @@
 /**
  * Checks the empirical swing correction and its reliability recomputation.
  *
- * The important test is the first one: with no correction applied (factor 1),
- * the decile formula must reproduce the engine's own printed reliability from
- * the engine's own numbers. If it does, applying the same formula after the
- * correction is consistent with the engine rather than a second model. If it
- * did not, the whole recomputation approach would be unsound.
+ * The first test is the important one: with no correction applied (factor
+ * 1), the decile formula must reproduce the engine's own printed
+ * reliability from the engine's own numbers. If it does, applying the
+ * same formula after the correction stays consistent with the engine
+ * rather than becoming a second model.
  */
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import path from 'node:path';
 import { test } from 'node:test';
-import { fileURLToPath } from 'node:url';
 
 import { BANDS_BY_FREQ } from '../src/types.ts';
 import {
@@ -22,15 +20,12 @@ import {
   SWING_FACTOR,
 } from '../src/voacap/correct.ts';
 import { parseVoacapOutput } from '../src/voacap/parse.ts';
+import { FIXTURE_PATH, FIXTURE_REQUEST } from './fixtureRequest.ts';
 
-const here = path.dirname(fileURLToPath(import.meta.url));
-const fixture = readFileSync(
-  path.join(here, 'fixtures/seattle-tokyo-jul2026-ssn68.out'),
-  'utf8',
-);
+const fixture = readFileSync(FIXTURE_PATH, 'utf8');
 
-/** The fixture's SYSTEM card asked for this, echoed in its header. */
-const FIXTURE_REQUIRED_SNR = 24;
+/** What the fixture's SYSTEM card asked for, echoed in its header. */
+const FIXTURE_REQUIRED_SNR = FIXTURE_REQUEST.requiredSnrDb;
 
 function median(values: number[]): number {
   const sorted = [...values].sort((a, b) => a - b);

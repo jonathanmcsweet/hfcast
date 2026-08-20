@@ -12,17 +12,16 @@
  *
  * That is worth saying plainly, because the coarse map does not work
  * that way. `coverAllBandsLocally` asks the engine for every band in a
- * single pass and gets them for far less than nine times one — measured
- * in the engine at 297 ms against 1,008 for eight bands. The whole-world
- * fine grid has no such pass yet: `coverFineLocally` asks for one band.
- * So a person who keeps nine bands waits nine times as long as one who
- * keeps one, and choosing fewer bands is the strongest thing they can do
- * to make a large scope finish.
+ * single pass and gets them for far less than one each — measured in the
+ * engine at 297 ms against 1,008 for eight bands. The whole-world fine
+ * grid has no such pass yet: `coverFineLocally` asks for one band. So ten
+ * bands take ten times as long as one, and choosing fewer is the
+ * strongest thing anybody can do to make a large scope finish.
  *
  * Giving the fine grid the multi-band pass the coarse map already has
  * would cut this by about three times. It is not done here because the
- * answer for nine bands at 34,560 points arrives as one reply, and that
- * is nine times the memory on the devices least able to spare it.
+ * answer for ten bands at 34,560 points arrives as one reply, and that is
+ * ten times the memory on the devices least able to spare it.
  *
  * No React, no engine, no file system, so `node --test` runs it — see
  * `precomputePlan.test.ts`.

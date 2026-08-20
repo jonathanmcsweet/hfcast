@@ -57,7 +57,7 @@ export default function BandHeatmap({
 
   // Every cell's colour and its spoken label, worked out once.
   //
-  // This grid is 9 bands by 24 hours, and it is rebuilt on every value
+  // This grid is 10 bands by 24 hours, and it is rebuilt on every value
   // the hour slider passes through: `onValueChange` reports each one, and
   // the settle delay that holds the map queries back does not hold this
   // back. Each cell used to scan a 216-row list to find itself, and then

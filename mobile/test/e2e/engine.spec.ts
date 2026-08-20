@@ -1,14 +1,13 @@
 /**
  * The forecast model choice, end to end.
  *
- * The chips live in the preferences modal, and what they change is which
- * model the server is asked for: the classic engine by silence, the new
- * one by `engine=truecast` on the prediction request. The request is the
- * observable that matters — a switch that changed only its own highlight
- * would look exactly the same on screen.
+ * The chips in the preferences modal change which model the server is
+ * asked for: the classic engine by silence, the new one by
+ * `engine=truecast`. The request is the observable that matters — a
+ * switch that moved only its own highlight would look the same on screen.
  *
- * The new model is the default, so the silence is what has to be reached
- * by picking the classic chip rather than by doing nothing.
+ * The new model is the default, so the silence is reached by picking the
+ * classic chip rather than by doing nothing.
  */
 import { expect, test } from './fixtures.ts';
 

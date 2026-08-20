@@ -22,32 +22,31 @@ import type { EngineModel } from '../store/useSettingsStore';
 /**
  * Where the prediction server lives.
  *
- * A build-time constant, and no longer something a user can be asked for. The
- * engine is compiled into the app, so a phone computes its own forecasts and
- * has no server to point at; what still reaches this client is the web build,
- * which has no engine, and there the default is the machine serving the page.
+ * A build-time constant, not something a user is asked for. The engine is
+ * compiled into the app, so a phone has no server to point at; what
+ * reaches this client is the web build, which has no engine, and there
+ * the default is the machine serving the page.
  *
- * `EXPO_PUBLIC_HFCAST_API` overrides it for a development build pointed
- * somewhere else.
+ * `EXPO_PUBLIC_HFCAST_API` overrides it for a development build.
  */
 export const API_BASE = process.env.EXPO_PUBLIC_HFCAST_API
   ?? 'http://127.0.0.1:8787';
 
 /**
- * A request must always finish, one way or the other. A refused connection
- * fails immediately, but a port that accepts and then never answers — a
- * forwarded port with nothing behind it, a sleeping laptop, a captive portal —
- * would otherwise leave the app on its loading spinner with no way out.
+ * A request must always finish. A refused connection fails at once, but a
+ * port that accepts and never answers — a forwarded port with nothing
+ * behind it, a sleeping laptop, a captive portal — would otherwise leave
+ * the app on its spinner with no way out.
  */
 const REQUEST_TIMEOUT_MS = 10_000;
 
 /**
  * A request, and a look at what came back.
  *
- * `check` turns the parsed body into the shape it claims to be, or throws
- * an `ApiError`. It is not optional and there is no cast without one: a
- * response nobody looked at reaches the screen as missing fields rather
- * than as a failure. See `shape.ts`.
+ * `check` turns the parsed body into the shape it claims to be or throws
+ * an `ApiError`. Not optional, and no cast without one: a response nobody
+ * looked at reaches the screen as missing fields, not as a failure. See
+ * `shape.ts`.
  */
 async function getJson<T>(
   path: string,
@@ -67,8 +66,8 @@ async function getJson<T>(
   try {
     response = await fetch(url.toString(), { signal: controller.signal });
   } catch (cause) {
-    // Both a refused connection and the abort above land here. Neither has a
-    // status, so they are reported as 0 rather than invented as a 5xx.
+    // A refused connection and the abort above both land here. Neither
+    // has a status, so it is reported as 0 rather than invented as a 5xx.
     const timedOut = controller.signal.aborted;
     throw new ApiError(
       timedOut
@@ -107,8 +106,8 @@ export interface PredictionParams {
   engine?: EngineModel | undefined;
   /**
    * Power, mode and antenna, already as query parameters. Built by
-   * `stationParams` so the app and the server cannot disagree about the
-   * spelling of a field that silently changes every number returned.
+   * `stationParams`, so the app and the server cannot disagree about the
+   * spelling of a field that changes every number returned.
    */
   station: Record<string, string>;
 }
@@ -202,13 +201,10 @@ export function fetchCoverage(p: {
 /**
  * The fine grid, over the whole world.
  *
- * About 2.2 MB on the wire, and packed into typed arrays before it is
- * returned so the objects it arrived as are released straight away and
- * never reach a cache. See `fineGlobe.ts`.
- *
- * Asked once per band and hour, with nothing about the view in it: the
- * whole point of a whole-world answer is that panning and zooming never
- * need another one.
+ * About 2.2 MB on the wire, packed into typed arrays before returning so
+ * the objects it arrived as are released and never cached
+ * (`fineGlobe.ts`). Asked once per band and hour, with nothing about the
+ * view in it: the point is that panning and zooming need no other.
  */
 export async function fetchFineGlobe(p: {
   from: string;

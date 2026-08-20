@@ -256,10 +256,19 @@
       "presetHint": "保存した局の一覧を開きます",
       "wire": "エレメントを張った方向（度）",
       "facingOne": "{{first}} 度方向",
-      "facingTwo": "{{first}} 度と {{second}} 度を等しく得意とします"
+      "facingTwo": "{{first}} 度と {{second}} 度を等しく得意とします",
+      "pickStation": "編集する局を選択",
+      "editName": "名前を編集"
     },
-    "nameSection": "局",
-    "unnamed": "自局",
+    "nameSection": "名前",
+    "pickSection": "局を選択",
+    "save": "保存",
+    "cancel": "キャンセル",
+    "discardTitle": "変更を破棄しますか？",
+    "discardBody": "この局には保存していない変更があります。ここで閉じると、元のままになります。",
+    "keepEditing": "編集を続ける",
+    "discard": "破棄",
+    "unnamed": "名前のない局",
     "add": "局を追加",
     "remove": "削除",
     "manage": "局を編集…",
@@ -283,7 +292,8 @@
       "w": "西"
     },
     "apexHeight": "頂点の高さ",
-    "invertedVNote": "{{height}}のダイポールとして計算します。頂点の高さの{{percent}}%です。理由はヘルプにあります。"
+    "invertedVNote": "{{height}}のダイポールとして計算します。頂点の高さの{{percent}}%です。理由はヘルプにあります。",
+    "needsName": "すべての局に名前が必要です。"
   },
   "units": {
     "metres": "{{value}} m",

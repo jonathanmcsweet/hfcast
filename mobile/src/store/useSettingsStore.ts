@@ -3,33 +3,26 @@ import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 
 import { BAND_ORDER, type BandKey } from '../../../shared/bands';
+import { withNewBands } from '../data/bandChoice.ts';
 import type { ScopeMonths } from '../data/precomputePlan';
 import type { UnitPreference } from '../data/units';
 
 /**
  * Preferences that are not about a path.
  *
- * Separate from `usePathStore` because it answers a different question and
- * has a different lifetime: the path is what you are looking at, this is
- * how you want to be shown it.
+ * Separate from `usePathStore`, which has a different lifetime: the path
+ * is what you are looking at, this is how you want to be shown it.
  */
 
 /**
- * `system` follows the device. It is the default because a phone set to
- * dark at night has already said what it wants.
+ * `system` follows the device, and is the default: a phone set to dark at
+ * night has already said what it wants. Light and dark are here because
+ * that is not always right for one app — a light phone in a dark shack,
+ * or a screen read outdoors where dark is the harder one.
  *
- * The other two exist because that setting is not always the right one for
- * one app: a light phone in a dark shack, or a screen being read outdoors
- * where the dark theme is the harder one.
- */
-/**
- * `lowLight` is red on black, for reading in the dark without losing
- * dark adaptation (user, 2026-08-01) — an operator at a night station,
- * or anyone reading a chart beside a telescope.
- *
- * It is a choice and never a default: nothing the device reports says a
- * reader wants it, so `system` cannot select it, and it stays off until
- * somebody asks for it.
+ * `lowLight` is red on black, for reading in the dark without losing dark
+ * adaptation (user, 2026-08-01). A choice and never a default: nothing
+ * the device reports says a reader wants it.
  */
 export type ThemeMode = 'system' | 'light' | 'dark' | 'lowLight';
 
@@ -44,9 +37,8 @@ export const THEME_MODES: ThemeMode[] = [
  * Which prediction model answers.
  *
  * `voacap` is the engine as it has always run. `truecast` is the same
- * physics conditioned the new model's way: on a live effective index
- * when the app has one, and otherwise on the engine's built-in
- * day-of-year correction — which is measured to beat the classic run
+ * physics on a live effective index where there is one, and otherwise on
+ * the engine's day-of-year correction — measured to beat the classic run
  * with no network at all (engine repository, `docs/offline.md`).
  */
 export type EngineModel = 'voacap' | 'truecast';
@@ -66,11 +58,9 @@ interface SettingsState {
    * Whether computed maps are kept on disk to be read again.
    *
    * On by default, because what it keeps costs nothing to make: only a
-   * map computed without a live space weather reading is stored, and
-   * that is the map a device with no network computes anyway. So an
-   * afternoon offline fills the store with exactly what the next
-   * afternoon offline will want, and no run happens that would not have
-   * happened.
+   * map computed without a live reading is stored, which is the map a
+   * device with no network computes anyway. An afternoon offline fills
+   * the store with what the next one will want, and no extra run happens.
    */
   keepMaps: boolean;
   setKeepMaps: (keep: boolean) => void;
@@ -92,55 +82,49 @@ interface SettingsState {
   /**
    * Which bands it computes.
    *
-   * Every band by default, with the smallest scope of months, so the
-   * job somebody starts without reading anything is one month of
-   * everything rather than a year of it.
+   * Every band by default, with the smallest scope of months, so a job
+   * started without reading anything is one month of everything.
    *
    * Each band is its own engine run — the whole-world fine grid has no
-   * multi-band pass — so this is the strongest control a person has
-   * over how long a large scope takes, as well as over the room.
+   * multi-band pass — so this is the strongest control over how long a
+   * large scope takes, as well as over the room.
    */
   precomputeBands: readonly BandKey[];
   setPrecomputeBands: (bands: readonly BandKey[]) => void;
   /**
    * Whether a job computing maps ahead waits for a charger.
    *
-   * On, because the job it guards is the long one. A year of nine bands
-   * is about 75 minutes of the engine at full tilt, and this app is for
-   * devices carried into a field with no charger in reach — so the
-   * default protects the battery somebody will need for the radio, and
-   * turning it off is a deliberate act (user, 2026-08-11).
+   * On, because the job it guards is the long one: a year of every band
+   * is about 84 minutes of engine time, and this app is for devices
+   * carried where there is no charger, so the default protects the
+   * battery somebody needs for the radio (user, 2026-08-11).
    *
    * Waiting rather than refusing: unplugging pauses the job and plugging
-   * back in continues it, so a job left running overnight survives
-   * somebody moving the tablet.
+   * in continues it, so an overnight job survives the tablet being moved.
    */
   precomputeOnCharger: boolean;
   setPrecomputeOnCharger: (on: boolean) => void;
   /**
    * Whether the tools for measuring this device are shown.
    *
-   * Off, and reached by tapping the version in About three times (user,
-   * 2026-08-11). What it reveals is a benchmark that runs the engine
-   * flat out for half a minute — useful to whoever is working on the
-   * app, and to somebody sending numbers in, but not something to leave
-   * in front of a person who came here to change the theme.
+   * Off, reached by tapping the version in About three times (user,
+   * 2026-08-11). It reveals a benchmark that runs the engine flat out for
+   * half a minute: useful to whoever works on the app or sends numbers
+   * in, not to somebody who came here to change the theme.
    *
-   * A stored choice rather than a development build flag, because the
-   * measurement worth having is of the build that ships. See
-   * `diagnostics.ts`, which makes the same argument about its own
-   * switch.
+   * A stored choice rather than a build flag, because the measurement
+   * worth having is of the build that ships. See `diagnostics.ts`.
    */
   developer: boolean;
   setDeveloper: (on: boolean) => void;
   /**
    * Which prediction model answers.
    *
-   * `truecast` by default. It is measured to beat the classic model
-   * against ionosonde soundings, and it does so with no network at all
-   * (engine repository, `docs/comparison.md`), so the better answer is
-   * the one a reader who never opens this menu gets. `voacap` stays a
-   * choice for anyone who wants the classic numbers.
+   * `truecast` by default: measured to beat the classic model against
+   * ionosonde soundings, with no network at all (engine repository,
+   * `docs/comparison.md`), so a reader who never opens this menu gets
+   * the better answer. `voacap` stays for anyone who wants the classic
+   * numbers.
    */
   engineModel: EngineModel;
   setEngineModel: (model: EngineModel) => void;
@@ -149,7 +133,7 @@ interface SettingsState {
 /** How much room the stored maps may take, unless somebody says otherwise. */
 export const DEFAULT_MAP_BUDGET_MB = 128;
 
-/** The sizes offered. A whole year of nine bands is about 171 MB. */
+/** The sizes offered. A whole year of every band is about 190 MB. */
 export const MAP_BUDGET_CHOICES = [64, 128, 256, 512] as const;
 
 // Raised for the stored maps at 3, `developer` at 4, waiting for a
@@ -157,7 +141,7 @@ export const MAP_BUDGET_CHOICES = [64, 128, 256, 512] as const;
 // new model becoming the default at 8. An older saved shape is migrated
 // forward rather than discarded: losing a theme and a units choice to
 // gain a storage default would be a poor trade.
-const PERSIST_VERSION = 8;
+const PERSIST_VERSION = 9;
 
 export const useSettingsStore = create<SettingsState>()(
   persist(
@@ -207,12 +191,11 @@ export const useSettingsStore = create<SettingsState>()(
         if (persisted === null || typeof persisted !== 'object') {
           return undefined;
         }
-        // Version 1 is the same shape without `units`, and version 2
-        // without the stored maps. Keeping what was chosen and letting
-        // the rest fall to their defaults is what the reader would
-        // expect: the defaults are what they would have chosen anyway.
+        // Version 1 is the same shape without `units`, version 2 without
+        // the stored maps. What was chosen is kept and the rest fall to
+        // defaults, which is what they would have chosen anyway.
         const held = persisted as Partial<SettingsState>;
-        if (version >= 1 && version <= 7) {
+        if (version >= 1 && version <= 8) {
           return {
             ...held,
             units: held.units ?? 'auto',
@@ -220,17 +203,19 @@ export const useSettingsStore = create<SettingsState>()(
             mapsOnCard: held.mapsOnCard ?? false,
             mapBudgetMb: held.mapBudgetMb ?? DEFAULT_MAP_BUDGET_MB,
             precomputeMonths: held.precomputeMonths ?? 1,
-            precomputeBands: held.precomputeBands ?? BAND_ORDER,
+            // 60m arrived in version 9. A store that held every band
+            // before it meant "all of them" and gets the new one; a
+            // chosen few keeps exactly those.
+            precomputeBands: withNewBands(held.precomputeBands),
             // Kept where a version 4 store already had one, so somebody
             // upgrading does not lose a choice they made.
             precomputeOnCharger: held.precomputeOnCharger ?? true,
             developer: held.developer ?? false,
             // Every stored shape up to 7 moves to the new default, and
-            // no reader loses a decision by it: the model choice never
-            // reached a released build, so a stored `voacap` is the old
-            // default rather than something somebody picked. Version 6
-            // spelled the new model `nowcast`, the name it carried
-            // before release, and that lands in the same place.
+            // nobody loses a decision: the choice never reached a
+            // released build, so a stored `voacap` is the old default
+            // rather than a pick. Version 6 spelled the new model
+            // `nowcast` and lands in the same place.
             engineModel: 'truecast',
           };
         }

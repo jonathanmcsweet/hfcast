@@ -15,36 +15,27 @@ const { withAndroidManifest, withDangerousMod } =
 /**
  * Says what a backup should carry, and what it should leave.
  *
- * Android backs an app up through whatever backup transport the device
- * has. On a de-googled device that is usually Seedvault, which GrapheneOS
- * ships: it uses the same platform APIs Google's transport does, so an app
- * that describes its data correctly is backed up and restored by it with
- * nothing app-side to add. `allowBackup` was already true, but with no
- * rules the platform takes its own view of what to carry, and that view is
- * wrong here in both directions.
+ * Android backs up through whatever transport the device has — usually
+ * Seedvault on a de-googled one, which uses the same platform APIs, so
+ * correct rules are all an app needs. `allowBackup` was already true, but
+ * with no rules the platform's own view is wrong here in both directions.
  *
- * What has to be carried is the settings and the station. Those live in
- * `RKStorage`, the SQLite database `@react-native-async-storage` keeps, so
- * the rules name it rather than trusting a default.
+ * Carry the settings and the station, which live in `RKStorage`, the
+ * SQLite database `@react-native-async-storage` keeps.
  *
- * What must not be carried is `hfcast-maps`. Stored maps are up to the
- * whole budget somebody set, which reaches 512 MB, and a backup that size
- * is refused by the transport or fills a person's card for nothing. They
- * are also the one thing here that can be made again from the engine in
- * the app, so losing them costs computing time and no information.
+ * Leave `hfcast-maps`: stored maps run to the whole budget somebody set,
+ * up to 512 MB, which a transport refuses or a card pays for. They are
+ * also the one thing here the app can compute again.
  *
- * Naming the includes is what leaves them out, and there is deliberately
- * no `exclude` for them. Once a rules file names anything to include, the
- * platform carries that and nothing else, so the maps are already out by
- * living in the `file` domain that no line here names. Excluding them as
- * well fails `lintVitalRelease` with "hfcast-maps is not in an included
- * path", which is lint saying the same thing: an exclude only means
- * something inside an include.
+ * Naming the includes is what leaves them out — no `exclude`, on purpose.
+ * A rules file that names anything to include carries that and nothing
+ * else, so the maps are already out by living in the unnamed `file`
+ * domain. Excluding them too fails `lintVitalRelease` with "hfcast-maps
+ * is not in an included path".
  *
- * Two files rather than one because the platform changed the format.
- * Android 12 and later read `dataExtractionRules`, and everything before
- * reads `fullBackupContent`. Both are written, and the manifest names
- * both, so one build covers every version the app runs on.
+ * Two files because the format changed: Android 12 and later read
+ * `dataExtractionRules`, earlier versions `fullBackupContent`. The
+ * manifest names both, so one build covers every version.
  */
 
 /** Android 12 and later. `device-transfer` is a direct move to a new phone. */

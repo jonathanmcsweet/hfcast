@@ -65,18 +65,16 @@ const DEFAULT_NOISE_DBW = 145;
  *
  * `shared/antenna.ts` holds the two numbers, because the app's control
  * has to stop where this clamps. They had drifted — this accepted
- * 10,000 W while the app offered 1500 — so the sentence under the power
- * field named a ceiling that was not the one in force.
+ * 10,000 W against the app's 1500 — so the sentence under the power field
+ * named a ceiling that was not in force.
  */
 
 /** Space weather updates on the order of an hour; geocoding barely changes. */
 const spaceWeatherCache = new TtlCache<SpaceWeather>(15 * 60 * 1000, 1);
 const geocodeCache = new TtlCache<unknown>(24 * 60 * 60 * 1000, 200);
-// Keyed on the station rather than the request point, since every point
-// near one station wants the same reading. `km` is left out of what is
-// held: it is measured from the point the caller asked about, so it is
-// the one field of a sounding that is not the same for every reader of
-// the entry. `handleIonosonde` puts it back.
+// Keyed on the station rather than the request point: every point near
+// one station wants the same reading. `km` is left out, being measured
+// from the caller's own point; `handleIonosonde` puts it back.
 const ionosondeCache = new TtlCache<Omit<Sounding, 'km'> | null>(
   IONOSONDE_TTL_MS,
   50,
@@ -95,10 +93,9 @@ function num(value: string | null, fallback: number): number {
  * The station behind a request: power, what it has to be good enough for,
  * and the antenna.
  *
- * `mode` sets the required signal-to-noise, and an explicit `snr` still
- * overrides it. Both are kept because they answer different questions: a
- * reader picks a mode, and anyone measuring the engine wants the number
- * itself without having to find a mode that happens to produce it.
+ * `mode` sets the required signal-to-noise and an explicit `snr` still
+ * overrides it. Both, because a reader picks a mode and anyone measuring
+ * the engine wants the number itself.
  */
 function parseStation(url: URL): {
   watts: number;
@@ -276,10 +273,8 @@ async function handleSurvey(url: URL): Promise<PredictionResponse> {
 }
 
 /**
- * Coverage for one band at one hour.
- *
- * Takes the hour explicitly rather than deriving it from the clock: the
- * app's map follows a slider the user moves, so "now" is only one of the
+ * Coverage for one band at one hour. The hour is explicit rather than
+ * from the clock: the map follows a slider, so "now" is one of the
  * twenty-four answers it asks for.
  */
 async function coverageRequest(url: URL) {
@@ -328,13 +323,12 @@ async function handleCoverage(url: URL) {
 /**
  * The fine grid, over the whole world.
  *
- * The same request as the coarse map at a step a hundred and eighty
- * times finer. A separate route for the same reason the patch has one:
- * the coarse map is the answer and must be drawn as soon as it exists,
- * and this arrives behind it and replaces its cells.
+ * The coarse map's request at a step a hundred and eighty times finer.
+ * Its own route like the patch: the coarse map is the answer and must be
+ * drawn as soon as it exists, and this arrives behind it.
  *
- * The response is about 2.2 MB. That is the price of asking the question
- * once for the whole world instead of asking it again on every pan.
+ * About 2.2 MB — the price of asking once for the whole world rather than
+ * again on every pan.
  */
 async function handleCoverageFine(url: URL) {
   return await coverageFine(await coverageRequest(url));
@@ -343,14 +337,12 @@ async function handleCoverageFine(url: URL) {
 /**
  * The fine grid around the operator, for the same band and hour.
  *
- * The same request as the coarse map, answered over a rectangle instead
- * of the world. A separate route rather than a parameter on the other
- * one, because the two are fetched separately on purpose: the coarse map
- * is the answer and has to be drawn as soon as it exists, and this is
- * detail that arrives behind it.
+ * The coarse map's request over a rectangle instead of the world. Its own
+ * route rather than a parameter, because the two are fetched separately:
+ * the coarse map is the answer and this is detail behind it.
  *
- * Answers `null` for a station near the antimeridian, which is a fact
- * about where it is rather than a failure — see `coveragePatch.ts`.
+ * `null` for a station near the antimeridian, which is a fact about where
+ * it is rather than a failure — see `coveragePatch.ts`.
  */
 async function handleCoveragePatch(url: URL) {
   const region = parseRegion(url);
@@ -363,9 +355,8 @@ async function handleCoveragePatch(url: URL) {
 /**
  * Where the map is pointed, if the caller said.
  *
- * All three together or none: a half-extent with no centre, or a centre
- * with no half-extent, describes nothing, and guessing the missing one
- * would put the detail somewhere the reader is not looking. Absent is
+ * All three or none: a centre with no half-extent describes nothing, and
+ * a guess would put the detail where the reader is not looking. Absent is
  * the whole-globe view, where the fine grid belongs at the station.
  */
 function parseRegion(url: URL): MapRegion | null {
@@ -414,11 +405,9 @@ async function handleIonosonde(url: URL): Promise<Sounding | null> {
     : withoutDistance(await fetchSounding(at.lat, at.lon));
   if (cached === undefined) ionosondeCache.set(station.ursi, reading);
 
-  // The entry is held by station, and the distance is measured from the
-  // point the caller asked about, so it is put on here rather than kept
-  // in the entry. Kept there, the first caller's distance is quoted to
-  // everyone else near the same station until the entry expires: a
-  // reader 90 km from Juliusruh is told the station is 220 km away.
+  // The entry is held by station and the distance is the caller's own, so
+  // it is added here. In the entry, the first caller's distance is quoted
+  // to everyone: a reader 90 km from Juliusruh told it is 220 km away.
   return reading === null ? null : { ...reading, km: station.km };
 }
 
@@ -468,10 +457,9 @@ async function handleGeocode(url: URL): Promise<GeocodeResult[]> {
     ];
   }
 
-  // The language is part of what the upstream is asked for, so it is part
-  // of what the entry holds: place names come back translated. Without it
-  // in the key, a search in German fills the entry a search in French then
-  // reads, for the whole day the entry lives.
+  // Part of what the upstream is asked for, so part of the key: place
+  // names come back translated, and without it a search in German fills
+  // the entry a search in French reads for the day the entry lives.
   const language = url.searchParams.get('lang') ?? 'en';
 
   return (await geocodeCache.fetch(
@@ -516,11 +504,9 @@ function send(res: ServerResponse, status: number, body: unknown): void {
 async function route(url: URL): Promise<unknown> {
   switch (url.pathname) {
     case '/health':
-      // The engine gate is reported here because it is the one thing
-      // about this service that a caller cannot infer from a response
-      // time: a host with every slot busy and a queue behind it is
-      // healthy and slow, which looks exactly like a host that is
-      // failing.
+      // The engine gate is the one thing a caller cannot infer from a
+      // response time: a host with every slot busy and a queue behind it
+      // is healthy and slow, which looks like a host that is failing.
       return { ok: true, now: isoDate(new Date()), engine: engineLoad() };
     case '/api/spaceweather': {
       const sw = await trySpaceWeather();

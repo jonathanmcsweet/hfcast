@@ -3,23 +3,23 @@
  *
  * VOACAP names an antenna by a path under `<itshfbc>/antennas`, so an
  * antenna the app can vary has to exist as a file. The distributed tree
- * has samples with the right shapes but fixed parameters, and the one
- * parameter that decides most amateur answers is height: at 14 MHz a
- * dipole one wavelength up beats the same dipole a quarter wave up by
- * about 9 dB at the low angles a long path needs. So the files are
- * generated from the operator's numbers rather than chosen from a list.
+ * has the right shapes with fixed parameters, and the parameter that
+ * decides most amateur answers is height: at 14 MHz a dipole one
+ * wavelength up beats the same dipole a quarter wave up by about 9 dB at
+ * the low angles a long path needs. So files are generated from the
+ * operator's numbers rather than chosen from a list.
  *
- * Each file is named from a digest of its own contents, which makes
- * writing it idempotent: two requests for the same antenna agree on the
- * name, so one cannot write over another's file with different bytes.
- * They can still write the same file at the same moment, so the write
- * itself is done through a rename — see `antennaFile`.
+ * Each file is named from a digest of its contents, which makes writing
+ * idempotent: two requests for the same antenna agree on the name, so
+ * neither can overwrite the other with different bytes. Both can still
+ * write at the same moment, so the write goes through a rename — see
+ * `antennaFile`.
  *
  * Lengths and heights are metres, or wavelengths when negative
- * (`hfcast-engine/src/voacap/ioncap.rs`). Element length is given as -0.5
- * throughout: a half wave at whatever frequency is being predicted, which
- * models the resonant antenna an operator actually has on each band
- * rather than one piece of wire mistuned everywhere but one.
+ * (`hfcast-engine/src/voacap/ioncap.rs`). Element length is -0.5
+ * throughout: a half wave at whatever frequency is predicted, which is
+ * the resonant antenna an operator has on each band rather than one wire
+ * mistuned everywhere but once.
  */
 import { createHash, randomUUID } from 'node:crypto';
 import { mkdir, rename, writeFile } from 'node:fs/promises';
@@ -35,6 +35,7 @@ import {
   MIN_GAIN_DBD,
   MIN_HEIGHT_M,
 } from '../../shared/antenna.ts';
+import { MIN_CARD_FREQ_MHZ } from './types.ts';
 
 export type { AntennaKey } from '../../shared/antenna.ts';
 export {
@@ -48,11 +49,9 @@ export {
 } from '../../shared/antenna.ts';
 
 /**
- * What the server calls an antenna.
- *
- * The same shape `shared/antenna.ts` describes. Named here because every
- * route and every cache key in this project reaches for `AntennaChoice`,
- * and because the shared name is the app's word for it.
+ * What the server calls an antenna: the shape `shared/antenna.ts`
+ * describes. Named here because every route and cache key reaches for
+ * `AntennaChoice`, and the shared name is the app's word for it.
  */
 export type AntennaChoice = Antenna;
 
@@ -87,19 +86,17 @@ const decimals = (value: number, places: number, width: number) =>
  * Ground under the antenna: relative permittivity and conductivity in
  * mhos per metre.
  *
- * The distributed samples all use 4 and 0.001, which is average ground,
- * and the app does not ask an operator to survey their garden. Holding
- * them fixed also keeps the comparison between two antennas about the
- * antennas.
+ * The distributed samples all use 4 and 0.001, average ground, and the
+ * app does not ask an operator to survey their garden. Fixed also keeps a
+ * comparison between two antennas about the antennas.
  */
 const DIELECTRIC = 4;
 const CONDUCTIVITY = 0.001;
 
 /**
- * The frequency the file's own parameters are quoted against. Only
- * parameters given in wavelengths read it, and the height here is in
- * metres, so it changes nothing; it is written because the format has
- * the slot.
+ * The frequency the file's parameters are quoted against. Only
+ * wavelength parameters read it and the height here is in metres, so it
+ * changes nothing; written because the format has the slot.
  */
 const DESIGN_MHZ = 10;
 
@@ -114,10 +111,9 @@ const param = (value: string, index: number, name: string) =>
 /**
  * The parameters after the five every family shares.
  *
- * Read carefully rather than copied between families: for the monopole
- * parameter 6 is its height and parameter 7 is a gain, where the dipole
- * has length then height. Reading one across from the other would give a
- * vertical whose height was whatever gain figure happened to be set.
+ * Not interchangeable between families: for the monopole parameter 6 is
+ * height and 7 is gain, where the dipole has length then height. Reading
+ * one as the other gives a vertical whose height is a gain figure.
  */
 function tail(antenna: AntennaChoice): readonly string[] {
   const height = decimals(effectiveHeightM(antenna), 2, 6);
@@ -142,9 +138,8 @@ function tail(antenna: AntennaChoice): readonly string[] {
       ];
     case 'invertedL':
       // Its two parameters are the horizontal run and the vertical drop.
-      // An amateur inverted L is usually about a quarter wave of wire in
-      // total, so the run is taken as equal to the height rather than
-      // asked for separately.
+      // An amateur inverted L is usually about a quarter wave of wire, so
+      // the run is taken as the height rather than asked for.
       return [
         param(height, 6, 'Antenna Length:'),
         param(height, 7, 'Antenna Height:'),
@@ -177,14 +172,12 @@ function definition(antenna: AntennaChoice): string {
     ...tail(antenna),
   ];
 
-  // The count on the second line is what the reader trusts: it stops
-  // there, so a wrong one drops the parameters after it, the height
-  // among them.
+  // The count on the second line is what the reader trusts and stops at,
+  // so a wrong one drops the parameters after it, the height among them.
   return [
-    // The title carries the height the operator gave, not the effective
-    // one, because it is what they would recognise — and because it is
-    // what keeps an inverted V's file distinct from the dipole's whose
-    // card it shares.
+    // The height the operator gave, not the effective one: what they
+    // would recognise, and what keeps an inverted V's file distinct from
+    // the dipole's whose card it shares.
     `HFcast ${TITLES[antenna.type]} ${antenna.heightM} m`,
     `${field(String(params.length), 2)}    ${params.length} parameters`,
     ...params,
@@ -205,8 +198,8 @@ const TYPE: Record<AntennaKey, number> = {
 
 /**
  * Where generated files go, under the tree the engine reads. The card
- * holds 21 columns, so the directory name and the digest below have to
- * fit inside that together with the extension.
+ * holds 21 columns, so the directory, the digest and the extension have
+ * to fit inside that.
  */
 export const GENERATED_DIR = 'hfcast';
 
@@ -227,17 +220,15 @@ export async function antennaFile(
   const name = `${GENERATED_DIR}/a${digest}.voa`;
   const full = path.join(itshfbc, 'antennas', name);
   await mkdir(path.dirname(full), { recursive: true });
-  // Written every time rather than only when absent. The name is the
-  // digest of the contents, so a write can only ever replace a file with
-  // the same bytes, and checking first would cost a stat to save nothing.
+  // Written every time rather than only when absent: the name is the
+  // digest of the contents, so a write can only replace a file with the
+  // same bytes, and a stat first would save nothing.
   //
-  // Written beside it and then renamed, because several requests can be
-  // writing the same path at the same moment: two predictions with the
-  // same antenna, or the forty-eight runs of one survey. Writing in
-  // place empties the file first, and an engine process reading it in
-  // that moment reads a file that is short or empty. A rename replaces
-  // the whole file in one step, so a reader sees either the old bytes or
-  // the new ones, which here are the same bytes.
+  // Written beside it and renamed, because several requests can write the
+  // same path at once — two predictions with the same antenna, or the
+  // forty-eight runs of one survey. Writing in place empties the file
+  // first, and an engine reading it then sees it short or empty. A rename
+  // replaces it in one step.
   const partial = `${full}.${randomUUID()}`;
   await writeFile(partial, text);
   await rename(partial, full);
@@ -248,10 +239,10 @@ export async function antennaFile(
  * Families whose gain depends on which way they face.
  *
  * Measured against the engine on 2026-07-29, Seattle to Tokyo at 14 MHz:
- * a dipole swings 12 dB over the compass and its reliability runs from
- * 7% to 71%; an inverted L swings 12 dB; a vertical monopole swings 0.
- * Pinning a dipole's bearing at zero, as an earlier version did, reports
- * the null off the ends of the wire as though it were the answer.
+ * a dipole swings 12 dB over the compass with reliability from 7% to 71%,
+ * an inverted L swings 12 dB, a vertical monopole 0. Pinning a dipole's
+ * bearing at zero, as an earlier version did, reports the null off the
+ * ends of the wire as the answer.
  */
 const DIRECTIONAL: readonly AntennaKey[] = [
   'dipole',
@@ -264,6 +255,16 @@ const DIRECTIONAL: readonly AntennaKey[] = [
 export interface AntennaCard {
   file: string;
   beamDeg: number;
+  /**
+   * The lowest frequency this card serves, in whole MHz.
+   *
+   * The engine takes the first card whose range holds the frequency, and
+   * gives a frequency in no card's range no antenna at all. Its default
+   * is 2 and 160m is 1.84, so 160m ran isotropic whatever the operator
+   * set — 3 dB on a short summer path, on the band where an inverted L
+   * or a vertical is the usual antenna.
+   */
+  minFreq: number;
 }
 
 /**
@@ -287,5 +288,8 @@ export async function txCard(
     // by 0 dB over the whole compass, so a bearing there would be a
     // number the model never reads.
     beamDeg: DIRECTIONAL.includes(antenna.type) ? antenna.beamDeg : 0,
+    // Low enough to hold 160m at 1.84 MHz. Whole MHz is all the card
+    // has room for, so 1 rather than 1.8.
+    minFreq: MIN_CARD_FREQ_MHZ,
   };
 }

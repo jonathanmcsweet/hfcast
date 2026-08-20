@@ -14,39 +14,26 @@ import type { AppTheme } from '../theme';
 /**
  * What the app does that a reader cannot see it doing.
  *
- * Named after the menu entry it opens, not "help" (user, 2026-08-11).
- * "Help" is a drawer: anything can be put in it and nothing has to be.
- * This screen has one subject, and the name now says so — which is also
- * the test the text has to pass.
+ * Named after the menu entry it opens, not "help" (user, 2026-08-11):
+ * "help" is a drawer anything can go in, and this screen has one subject.
+ * That is also the test its text has to pass, which it failed for a long
+ * time — two footnotes about an antenna and a mode of propagation, and
+ * nothing about where the numbers came from. It now answers its title
+ * first: what computes the forecast, the input that drives it, what a
+ * colour means, how the map is built. The footnotes stay at the end.
  *
- * For a long time it did not pass it. It held two footnotes — an
- * antenna the model has no pattern for, and a mode of propagation the
- * map marks without naming — and nothing about where any of the numbers
- * came from. A reader who opened it to find out how the app works
- * learned neither.
+ * Every number is read from the code that uses it. Text stating a
+ * threshold and code applying one drift apart, and the only person who
+ * finds out is the reader.
  *
- * So it now answers its own title first: what computes the forecast,
- * the one input that drives it, what a colour on the map means, and how
- * the map is built. The two footnotes stay, at the end, as what they
- * always were.
+ * A section is one string, not one per paragraph (user, 2026-08-11).
+ * Which sentences share a paragraph, and how many there are, is each
+ * language's decision; splitting on the blank line moves that into the
+ * translation and costs nothing, since the spacing is still this file's.
  *
- * Every number in the text is read from the code that uses it rather
- * than written out here. Text that states a threshold and code that
- * applies one will drift apart, and the only person who finds out is
- * the reader.
- *
- * A section is one string, not one string per paragraph (user,
- * 2026-08-11). Which sentences share a paragraph, what order they come
- * in, and how many there are, are decisions each language makes for
- * itself, and a component that lays out fixed paragraphs makes them
- * once for every language. Splitting on the blank line moves that
- * choice into the translation, where it belongs, and costs nothing:
- * the spacing is still this file's.
- *
- * A heading still comes before what it introduces. That one is safe to
- * fix here — it is how documents are built rather than how a language
- * works, and right-to-left changes which edge a line starts at, not
- * which way blocks stack.
+ * A heading still comes before what it introduces: that is how documents
+ * are built rather than how a language works, and right-to-left changes
+ * which edge a line starts at, not which way blocks stack.
  */
 
 interface Props {
@@ -61,20 +48,16 @@ const HEIGHT_PERCENT = Math.round(INVERTED_V_HEIGHT_FRACTION * 100);
 const NOWCAST_HOURS = Math.round(NOWCAST_GOOD_FOR_MS / (60 * 60 * 1000));
 
 /**
- * What separates one paragraph from the next inside a section.
- *
- * A blank line, because that is what it means everywhere else a person
- * writes, and a translator working in a plain text field will reach for
- * it without being told.
+ * What separates one paragraph from the next inside a section. A blank
+ * line, because a translator in a plain text field reaches for it
+ * without being told.
  */
 const PARAGRAPH_BREAK = /\n\s*\n/;
 
 /**
- * The sections, in the order they are read.
- *
- * Listed rather than written out one by one so that adding a section is
- * adding a line here and two strings per language, and so that nothing
- * can draw a heading whose body it forgot.
+ * The sections, in the order they are read. Listed rather than written
+ * out, so adding one is a line here and two strings per language, and
+ * nothing can draw a heading whose body it forgot.
  */
 const SECTIONS = [
   'engine',
@@ -102,19 +85,17 @@ export default function HowTheForecastIsMadeModal(
   /**
    * One section's text, as however many paragraphs it was written in.
    *
-   * Keyed by the paragraph itself. Two identical paragraphs in one
-   * section would be a repetition rather than a layout, so this is as
-   * stable as the text is, and it survives a translation that splits a
-   * section differently from the one before it.
+   * Keyed by the paragraph itself: two identical paragraphs would be a
+   * repetition rather than a layout, so the key is as stable as the text
+   * and survives a translation that splits a section differently.
    */
   const body = (text: string) =>
     text
       .split(PARAGRAPH_BREAK)
       .map((paragraph) => paragraph.trim())
-      // A blank line left at either end of a pasted translation is a
-      // habit, not a paragraph. Drawn, it would be an empty line of text
-      // carrying a real margin, and the section would sit wrong for that
-      // language alone.
+      // A blank line at either end of a pasted translation is a habit,
+      // not a paragraph. Drawn, it carries a real margin and the section
+      // sits wrong for that language alone.
       .filter((paragraph) => paragraph.length > 0)
       .map((paragraph) => (
         <Text
@@ -128,10 +109,9 @@ export default function HowTheForecastIsMadeModal(
   /**
    * What each section names, for the section that names it.
    *
-   * Passed to every section rather than only the one that uses it —
-   * i18next ignores what a string does not ask for, and a translator who
-   * moves a number into a neighbouring sentence should not need this
-   * file changed to allow it.
+   * Passed to every section, not only the one that uses it: i18next
+   * ignores what a string does not ask for, and a translator moving a
+   * number into a neighbouring sentence should not need this file changed.
    */
   const values = {
     first: SSN_TABLE_RANGE.first,
@@ -140,10 +120,9 @@ export default function HowTheForecastIsMadeModal(
     reliable: Math.round(RELIABLE_AT * 100),
     patchy: Math.round(REACHABLE * 100),
     weak: Math.round(WEAK_AT * 100),
-    // Grouped for reading, by the reader's own language: a German page
-    // wants 34.560 where an English one wants 34,560. Where the runtime
-    // has no locale data the number simply comes out ungrouped, which is
-    // legible rather than wrong.
+    // Grouped by the reader's own language: a German page wants 34.560
+    // where an English one wants 34,560. With no locale data it comes
+    // out ungrouped, which is legible rather than wrong.
     points: FINE_POINTS.toLocaleString(i18n.language),
     percent: HEIGHT_PERCENT,
     degrees: NVIS_MIN_ANGLE_DEG,

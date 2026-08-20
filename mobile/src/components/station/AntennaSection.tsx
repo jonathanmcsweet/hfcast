@@ -10,12 +10,14 @@ import {
 import { parseTypedNumber } from '../../data/typedNumber';
 import { useUnits } from '../../hooks/useUnits';
 import {
+  useDraftField,
+  useStationDraftStore,
+} from '../../store/useStationDraftStore';
+import {
   ANTENNA_ORDER,
   LIMITS,
-  useActivePreset,
   usesGain,
   usesHeight,
-  useStationStore,
 } from '../../store/useStationStore';
 import { spacing } from '../../theme';
 import ChipGroup from '../ChipGroup';
@@ -32,16 +34,15 @@ import SectionHeading from './SectionHeading';
 export default function AntennaSection() {
   const { t } = useTranslation();
   const units = useUnits();
-  const { antenna } = useActivePreset();
-  const setAntenna = useStationStore((s) => s.setAntenna);
+  const antenna = useDraftField((preset) => preset.antenna);
+  const setAntenna = useStationDraftStore((s) => s.setAntenna);
 
   /**
    * The height while it is being typed, for the same reason power is.
    *
-   * Height was a slider alone, on the argument that a mast is "about ten
-   * metres" rather than 10.0. That is true of guessing and false of
-   * knowing: someone who has measured their mast should be able to say
-   * so, and dragging a slider to a particular metre is fiddly on a phone.
+   * A slider alone assumed a mast is "about ten metres" rather than 10.0.
+   * True of guessing and false of knowing: somebody who has measured
+   * theirs should be able to say so.
    */
   const [typedHeight, setTypedHeight] = useState<string | null>(null);
 
@@ -112,7 +113,7 @@ export default function AntennaSection() {
               label={antenna.type === 'invertedV'
                 ? t('station.apexHeight')
                 : t('station.height')}
-              value={units.height(antenna.heightM)}
+              format={(value) => units.height(units.heightToMetres(value))}
               current={units.heightFromMetres(antenna.heightM)}
               min={heightScale.min}
               max={heightScale.max}
@@ -151,7 +152,7 @@ export default function AntennaSection() {
         ? (
           <Dial
             label={t('station.gain')}
-            value={t('station.dbd', { gain: antenna.gainDbd })}
+            format={(gain) => t('station.dbd', { gain })}
             current={antenna.gainDbd}
             min={LIMITS.gainDbd.min}
             max={LIMITS.gainDbd.max}

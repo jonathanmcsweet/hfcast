@@ -1,12 +1,17 @@
 /**
  * Builds a VOACAP input deck.
  *
- * The format is punched-card fixed width: a 10-character keyword field followed
- * by 5-character numeric fields, with no separators. Values that fill their
- * field run straight into the next one, which is legal and expected. Column
- * positions are therefore the contract — never join these with spaces.
+ * Punched-card fixed width: a 10-character keyword field then 5-character
+ * numeric fields, no separators. A value that fills its field runs into
+ * the next, which is legal and expected. Column positions are the
+ * contract — never join these with spaces.
  */
-import { BAND_MHZ, type BandKey, BANDS_BY_FREQ } from '../types.ts';
+import {
+  BAND_MHZ,
+  type BandKey,
+  BANDS_BY_FREQ,
+  MIN_CARD_FREQ_MHZ,
+} from '../types.ts';
 
 /** Number of frequency slots on a FREQUENCY card. */
 export const FREQ_SLOTS = 11;
@@ -125,17 +130,17 @@ export function buildDeck(options: DeckOptions): string {
     // most of all at solar minimum (7.0 to 3.0 dB in December 2019). See
     // hfcast-engine/docs/accuracy.md.
     'FPROB      1.00 1.00 1.00 1.00',
-    `ANTENNA   ${field('1', 5)}${field('1', 5)}${field('2', 5)}${
-      field('30', 5)
-    }`
+    `ANTENNA   ${field('1', 5)}${field('1', 5)}${
+      field(String(MIN_CARD_FREQ_MHZ), 5)
+    }${field('30', 5)}`
     + `${field('0.000', 10)}${
       antennaRef(options.txAntennaFile ?? ANTENNA_FILE)
     }${field((options.txBeamDeg ?? 0).toFixed(1), 5)}${
       field(kw.toFixed(4), 10)
     }`,
-    `ANTENNA   ${field('2', 5)}${field('2', 5)}${field('2', 5)}${
-      field('30', 5)
-    }`
+    `ANTENNA   ${field('2', 5)}${field('2', 5)}${
+      field(String(MIN_CARD_FREQ_MHZ), 5)
+    }${field('30', 5)}`
     + `${field('0.000', 10)}${antennaRef(ANTENNA_FILE)}${field('0.0', 5)}${
       field('0.0000', 10)
     }`,

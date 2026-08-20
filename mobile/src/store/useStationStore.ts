@@ -4,36 +4,37 @@ import { createJSONStorage, persist } from 'zustand/middleware';
 
 import {
   type Antenna,
-  MAX_GAIN_DBD,
-  MAX_HEIGHT_M,
-  MAX_WATTS,
-  MIN_GAIN_DBD,
-  MIN_HEIGHT_M,
-  MIN_WATTS,
   usesBeam,
   usesGain,
   usesHeight,
 } from '../../../shared/antenna.ts';
 import type { ModeKey } from '../../../shared/modes.ts';
+import {
+  clamp,
+  DEFAULT_STATION,
+  FIRST_PRESET,
+  LIMITS,
+  MAX_NAME_LENGTH,
+  nextId,
+  type Station,
+  type StationPreset,
+} from '../data/station.ts';
 
 /**
  * The operator's own station, or stations.
  *
- * Separate from `useSettingsStore`, which is about how the app looks, and
- * from `usePathStore`, which is about what is being looked at. This is
- * about the radio: it belongs to the person, not to the screen or the
- * path, and it changes every number the app reports.
+ * Separate from `useSettingsStore`, about how the app looks, and from
+ * `usePathStore`, about what is being looked at. This is the radio: it
+ * belongs to the person and changes every number the app reports.
  *
- * Kept as a list of named presets because a licence does not come with
- * one station. The same operator has a base with a beam, a portable set
- * with a wire in a tree, and a mobile rig, and the answer to "can I work
- * this" is a different answer for each. Switching between them has to be
- * one tap, not a re-entry of three settings.
+ * A list of named presets, because a licence does not come with one
+ * station: a base with a beam, a portable with a wire in a tree, a mobile
+ * rig. "Can I work this" is a different answer for each, and switching
+ * has to be one tap rather than three settings re-entered.
  */
 
-// Re-exported rather than re-declared. Every component that draws the
-// station dialog reaches for these through the store, which is the shape
-// they were in before `shared/` existed; the definitions are there now.
+// Re-exported rather than re-declared: every component reaches for these
+// through the store, which is the shape they were in before `shared/`.
 export type { Antenna, AntennaKey } from '../../../shared/antenna.ts';
 export {
   ANTENNA_ORDER,
@@ -43,80 +44,13 @@ export {
 } from '../../../shared/antenna.ts';
 export type { ModeKey } from '../../../shared/modes.ts';
 export { MODE_ORDER } from '../../../shared/modes.ts';
-
-/** What a run needs to know about the transmitting end. */
-export interface Station {
-  watts: number;
-  mode: ModeKey;
-  antenna: Antenna;
-}
-
-/**
- * One saved station.
- *
- * An empty `name` means the preset has never been named, and the UI shows
- * a translated default for it. Storing the translated word instead would
- * freeze it in whatever language the app happened to be in when the
- * preset was made.
- */
-export interface StationPreset extends Station {
-  id: string;
-  name: string;
-}
-
-/**
- * What the controls stop at, which is what the server clamps to.
- *
- * Every number here comes from `shared/antenna.ts`, so a control cannot
- * offer a value the service will quietly change on the way through. They
- * had drifted before that: this offered 1500 W and the server accepted
- * 10,000, while the comment here claimed the two agreed.
- */
-export const LIMITS = {
-  watts: { min: MIN_WATTS, max: MAX_WATTS },
-  heightM: { min: MIN_HEIGHT_M, max: MAX_HEIGHT_M },
-  gainDbd: { min: MIN_GAIN_DBD, max: MAX_GAIN_DBD },
-} as const;
-
-/** How long a preset name may be. Long enough to name a station, short
- * enough to sit beside three icons on a phone. */
-export const MAX_NAME_LENGTH = 24;
-
-/**
- * The station every earlier version of the app assumed without saying:
- * 100 W to an isotropic antenna, at the threshold CW needs.
- *
- * Keeping these as the defaults means a reader who never opens the
- * settings sees exactly what they saw before.
- */
-export const DEFAULT_STATION: Station = {
-  watts: 100,
-  mode: 'cw',
-  antenna: { type: 'isotropic', heightM: 10, gainDbd: 6, beamDeg: 0 },
-};
-
-/**
- * The next free identifier, given the ones in use.
- *
- * Counted rather than random so the store stays a pure function of what it
- * held: a test can add a preset and know what it will be called, and two
- * devices restoring the same backup do not disagree.
- */
-export function nextId(presets: readonly StationPreset[]): string {
-  const used = presets
-    .map((preset) => Number(preset.id.replace(/^s/, '')))
-    .filter((n) => Number.isInteger(n));
-  return `s${Math.max(0, ...used) + 1}`;
-}
-
-const FIRST_PRESET: StationPreset = {
-  id: 's1',
-  name: '',
-  ...DEFAULT_STATION,
-};
-
-const clamp = (value: number, { min, max }: { min: number; max: number; }) =>
-  Math.min(max, Math.max(min, value));
+export type { Station, StationPreset } from '../data/station.ts';
+export {
+  DEFAULT_STATION,
+  LIMITS,
+  MAX_NAME_LENGTH,
+  nextId,
+} from '../data/station.ts';
 
 interface StationState {
   presets: readonly StationPreset[];
@@ -124,14 +58,13 @@ interface StationState {
   /**
    * True while the station dialog is open.
    *
-   * Every setting here changes the forecast, and on a device the forecast is an
-   * engine run rather than a request to a server. Writing each keystroke
-   * straight through meant deleting two digits of "100" started a run at "10"
-   * and another at "1", so setting 1 W from 100 W computed two forecasts nobody
-   * asked for. The queries stop while this is true and run once when it clears.
+   * Every setting here changes the forecast, which on a device is an
+   * engine run. Writing each keystroke through meant deleting two digits
+   * of "100" ran a forecast at "10" and another at "1". The queries stop
+   * while this is true and run once when it clears.
    *
-   * Deliberately not persisted: a dialog is not open when the app starts, and a
-   * saved `true` would leave the forecast permanently frozen.
+   * Not persisted: a dialog is not open when the app starts, and a saved
+   * `true` would freeze the forecast for good.
    */
   editing: boolean;
   setEditing: (editing: boolean) => void;
@@ -147,6 +80,18 @@ interface StationState {
   selectPreset: (id: string) => void;
   /** Returns the active preset's settings to the defaults. */
   reset: () => void;
+  /**
+   * Writes a whole edited list back, in one go. What Save calls.
+   *
+   * Every other action here changes one field of one preset, and this
+   * store is persisted, so the dialog's old keystroke-by-keystroke
+   * writing cost a serialization and a disk write each time. It now
+   * keeps a draft (`data/stationDraft.ts`) and commits once.
+   */
+  commit: (next: {
+    presets: readonly StationPreset[];
+    activeId: string;
+  }) => void;
 }
 
 /** Applies a change to the active preset and leaves the others alone. */
@@ -252,6 +197,20 @@ export const useStationStore = create<StationState>()(
             ...DEFAULT_STATION,
           }))
         ),
+
+      // Guarded, not trusted: a commit naming no preset, or one not in
+      // the list it arrived with, would leave no station to forecast for.
+      commit: ({ presets, activeId }) =>
+        set(() => {
+          if (presets.length === 0) {
+            return { presets: [FIRST_PRESET], activeId: FIRST_PRESET.id };
+          }
+          const known = presets.some((preset) => preset.id === activeId);
+          return {
+            presets,
+            activeId: known ? activeId : presets[0]?.id ?? FIRST_PRESET.id,
+          };
+        }),
     }),
     {
       name: 'hfcast.station',
@@ -301,11 +260,9 @@ export function activePreset(state: {
 }
 
 /**
- * The same, for a component.
- *
- * The lookup is a find over the list and it returns an object the store
- * already holds, so this subscribes to a stable reference and does not
- * make a new value on every render.
+ * The same, for a component. The lookup returns an object the store
+ * already holds, so this subscribes to a stable reference rather than
+ * making a new value on every render.
  */
 export function useActivePreset(): StationPreset {
   return useStationStore(activePreset);
@@ -315,11 +272,9 @@ export function useActivePreset(): StationPreset {
  * The station as query parameters.
  *
  * Fields the antenna does not use are left out rather than sent as
- * zeroes: they would otherwise become part of the query key and the
- * server's cache key, so changing a beam heading would refetch every
- * dipole answer for nothing. The preset's name and identifier are not
- * sent at all — they are how the reader finds this station, not anything
- * the model reads.
+ * zeroes: they would join the query key and the server's cache key, so
+ * changing a beam heading would refetch every dipole answer. The name and
+ * identifier are not sent at all — the model does not read them.
  */
 export function stationParams(station: Station): Record<string, string> {
   const { watts, mode, antenna } = station;

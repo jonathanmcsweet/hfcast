@@ -15,19 +15,16 @@ import ChipGroup from './ChipGroup';
 /**
  * Language and units, out of the menu (user, 2026-08-11).
  *
- * They were two lists inside the settings menu, and the menu was long
- * before a third English was added. Ten of its items were a language or
- * a unit — settings a person picks once and then never opens again —
- * sitting above the ones they came for.
+ * Ten of the menu's items were a language or a unit — picked once and
+ * never opened again — sitting above the ones people came for.
  *
- * Chips rather than menu rows, because both lists are a single choice
- * out of a short set, which is what a chip row says and what a stack of
- * ticked rows only implies. Seven languages wrap onto three lines here
- * and would have been seven more rows there.
+ * Chips rather than menu rows: both lists are a single choice out of a
+ * short set, which a chip row says and a stack of ticked rows only
+ * implies. Seven languages wrap onto three lines here.
  *
- * The theme stays in the menu. It is the one presentation setting that
- * is changed for a reason that arrives suddenly — the sun goes down, or
- * the room does — and one tap is worth more than tidiness there.
+ * The theme stays in the menu, being the one presentation setting changed
+ * for a reason that arrives suddenly — the sun goes down, or the room
+ * does — where one tap beats tidiness.
  */
 
 interface Props {
