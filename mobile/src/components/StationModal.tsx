@@ -7,21 +7,14 @@ import {
 } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ScrollView, StyleSheet, View } from 'react-native';
-import {
-  Button,
-  Dialog,
-  IconButton,
-  Modal,
-  Portal,
-  Text,
-  useTheme,
-} from 'react-native-paper';
+import { Button, Dialog, Portal, Text, useTheme } from 'react-native-paper';
 
 import { forStore, isDirty, needsName } from '../data/stationDraft';
 import { useDraft, useStationDraftStore } from '../store/useStationDraftStore';
 import { useStationStore } from '../store/useStationStore';
-import { radius, spacing, typography } from '../theme';
+import { spacing, typography } from '../theme';
 import type { AppTheme } from '../theme';
+import ModalFrame from './ModalFrame';
 import AimSection from './station/AimSection';
 import AntennaSection from './station/AntennaSection';
 import ModeSection from './station/ModeSection';
@@ -147,66 +140,47 @@ export default function StationModal(
     else close();
   }, [dirty, close]);
 
+  const blocked = !dirty || unnamed;
+
+  const footer = (
+    <View style={[styles.footer, { borderTopColor: ui.line }]}>
+      <Button mode="text" onPress={leave}>
+        {t('station.cancel')}
+      </Button>
+      <Button mode="contained" onPress={save} disabled={blocked}>
+        {t('station.save')}
+      </Button>
+    </View>
+  );
+
   return (
     <>
-      <Portal>
-        <Modal
-          visible={visible}
-          onDismiss={leave}
-          contentContainerStyle={[
-            styles.modal,
-            { backgroundColor: theme.colors.surface },
-          ]}
-        >
-          <View style={styles.headerRow}>
-            <Text
-              style={[typography.cardHeadline, styles.title, {
-                color: ui.ink,
-              }]}
-            >
-              {t('station.title')}
-            </Text>
-            <IconButton
-              icon="close"
-              onPress={leave}
-              accessibilityLabel={t('station.close')}
-              iconColor={ui.text2}
-            />
-          </View>
+      <ModalFrame
+        visible={visible}
+        onDismiss={leave}
+        title={t('station.title')}
+        leave="close"
+        action={
+          <Button mode="text" onPress={save} disabled={blocked}>
+            {t('station.save')}
+          </Button>
+        }
+        footer={footer}
+      >
+        <ScrollView showsVerticalScrollIndicator={false}>
+          <StationPicker />
+          <NameSection />
+          <ModeSection requiredSnrDb={requiredSnrDb} />
+          <PowerSection />
+          <AntennaSection />
+          <AimSection
+            bearingToDestination={bearingToDestination}
+            destinationLabel={destinationLabel}
+          />
 
-          <ScrollView showsVerticalScrollIndicator={false}>
-            <StationPicker />
-            <NameSection />
-            <ModeSection requiredSnrDb={requiredSnrDb} />
-            <PowerSection />
-            <AntennaSection />
-            <AimSection
-              bearingToDestination={bearingToDestination}
-              destinationLabel={destinationLabel}
-            />
-
-            <ResetButton />
-          </ScrollView>
-
-          {
-            /* Outside the scroll view: the two buttons that end the
-               dialog stay reachable without scrolling past an antenna
-               section whose length changes with the antenna. */
-          }
-          <View style={[styles.footer, { borderTopColor: ui.line }]}>
-            <Button mode="text" onPress={leave}>
-              {t('station.cancel')}
-            </Button>
-            <Button
-              mode="contained"
-              onPress={save}
-              disabled={!dirty || unnamed}
-            >
-              {t('station.save')}
-            </Button>
-          </View>
-        </Modal>
-      </Portal>
+          <ResetButton />
+        </ScrollView>
+      </ModalFrame>
 
       {
         /* Its own portal, so the question sits above the dialog that
@@ -242,19 +216,6 @@ function ResetButton() {
 }
 
 const styles = StyleSheet.create({
-  // Tablets get a centred dialog rather than a full-width sheet, matching
-  // the location picker.
-  modal: {
-    margin: 20,
-    maxWidth: 560,
-    alignSelf: 'center',
-    width: '90%',
-    borderRadius: radius.card,
-    padding: spacing.lg,
-    maxHeight: '85%',
-  },
-  headerRow: { flexDirection: 'row', alignItems: 'center' },
-  title: { flex: 1 },
   reset: { marginTop: spacing.lg, alignSelf: 'flex-start' },
   footer: {
     flexDirection: 'row',

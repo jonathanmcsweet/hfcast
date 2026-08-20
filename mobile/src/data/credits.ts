@@ -8,7 +8,8 @@ import table from '../assets/licences.json' with { type: 'json' };
  * The obligations, so they are not lost: the SIL Open Font License requires its
  * notice and text to travel with IBM Plex; Apache-2.0 asks the same of the app's
  * own licence; and NTIA/ITS asks that VOACAP be credited and that nothing imply
- * a US Government endorsement, which is what `DISCLAIMER` is for.
+ * a US Government endorsement, which is what the VOACAP credit's `notice`
+ * carries.
  *
  * `id` is a translation key, not a display string: the description of what each
  * credit provides is translated, while the names are proper nouns and are not.
@@ -18,8 +19,14 @@ export interface Credit {
   readonly id: string;
   /** The people or body responsible. Not translated. */
   readonly who: string;
-  /** Licence or status, as they state it. Not translated. */
-  readonly terms: string;
+  /**
+   * The licence, where there is one to name. Not translated.
+   *
+   * Set only where the licence puts a condition on the reader. A bare
+   * status ("public domain", "US Government work") is left off: it reads
+   * as a note to a developer rather than as a credit (user, 2026-08-20).
+   */
+  readonly terms?: string;
   /** Where the work itself lives. Shown so a credit can be followed up. */
   readonly url: string;
   /**
@@ -31,14 +38,25 @@ export interface Credit {
    * not need one.
    */
   readonly termsUrl?: string;
+  /**
+   * A statement this credit is obliged to carry, shown under it.
+   *
+   * English in every language, deliberately: it is a specific body's own
+   * statement of its position, and translating it would be this app
+   * speaking on their behalf.
+   */
+  readonly notice?: string;
 }
 
 export const CREDITS: readonly Credit[] = [
   {
     id: 'voacap',
-    who: 'NTIA/ITS, maintained by Greg Hand',
-    terms: 'US Government work, not subject to copyright protection in the US',
+    who:
+      'Institute for Telecommunication Sciences (NTIA/ITS), maintained by Greg Hand',
     url: 'https://its.ntia.gov/',
+    notice:
+      'Neither NTIA/ITS nor NOAA endorses HFcast, and neither is responsible '
+      + 'for what it reports.',
   },
   {
     id: 'voacapl',
@@ -50,31 +68,26 @@ export const CREDITS: readonly Credit[] = [
   {
     id: 'coefficients',
     who: 'CCIR Reports 322 and 340, published by ITU-R',
-    terms: 'published for implementers free from copyright assertions',
     url: 'https://github.com/ITU-R-Study-Group-3/ITU-R-HF',
   },
   {
     id: 'cities',
     who: 'NTIA/ITS, from the VOACAP distribution',
-    terms: 'US Government work, not subject to copyright protection in the US',
     url: 'https://its.ntia.gov/',
   },
   {
     id: 'naturalEarth',
     who: 'Natural Earth',
-    terms: 'public domain',
     url: 'https://www.naturalearthdata.com/',
   },
   {
     id: 'noaa',
     who: 'NOAA Space Weather Prediction Center',
-    terms: 'US Government work, not subject to copyright protection in the US',
     url: 'https://www.swpc.noaa.gov/',
   },
   {
     id: 'giro',
     who: 'UMass Lowell Global Ionosphere Radio Observatory',
-    terms: 'used with attribution',
     url: 'https://giro.uml.edu/',
   },
   {
@@ -91,19 +104,6 @@ export const CREDITS: readonly Credit[] = [
     url: 'https://github.com/IBM/plex',
   },
 ];
-
-/**
- * The no-endorsement wording NTIA/ITS asks redistributors to carry.
- *
- * Not translated, and deliberately so: it is a disclaimer about a specific
- * body's position, and a paraphrase in another language would be this project
- * speaking for them.
- */
-export const DISCLAIMER =
-  'VOACAP was developed by the Institute for Telecommunication Sciences, '
-  + 'NTIA, US Department of Commerce. Neither NTIA/ITS nor NOAA endorses '
-  + 'HFcast, and neither is responsible for anything it reports. Predictions '
-  + 'are climatology with a probability attached, not a guarantee of contact.';
 
 interface LicenceTable {
   licences: readonly { name: string; covers: string; text: string; }[];

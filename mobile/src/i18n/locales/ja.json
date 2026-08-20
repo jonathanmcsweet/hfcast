@@ -190,7 +190,6 @@
   },
   "station": {
     "title": "あなたの無線機",
-    "close": "閉じる",
     "modeSection": "モード",
     "modeHint": "難しい順です。音声で届かない経路もデジタルなら届くことがあります。",
     "modeNeeds": "{{mode}} はこの経路で雑音より {{db}} dB 高い信号が必要です。",
@@ -303,14 +302,12 @@
   },
   "about": {
     "title": "HFcast について",
-    "close": "閉じる",
-    "what": "1 つの経路の伝播予測を、この端末上で VOACAP により計算します。",
+    "what": "HFcast は、プライバシーを重視し、オフラインでも使えるアマチュア無線向けの HF 伝搬予測アプリです。{{engine}} を使って作られています。",
     "version": "バージョン {{version}}",
-    "builtOn": "次の成果に基づいています",
-    "disclaimerSection": "免責事項",
+    "builtOn": "利用しているもの",
     "licencesSection": "ライセンス",
     "credit": {
-      "voacap": "VOACAP、伝播モデル",
+      "voacap": "VOACAP、従来の伝搬モデル",
       "voacapl": "このエンジンの翻訳元となった Linux 移植版",
       "coefficients": "電離層係数マップ",
       "cities": "オフラインで検索する地名リスト",
@@ -320,11 +317,12 @@
       "openMeteo": "オンライン時の地名検索",
       "plex": "IBM Plex Sans、書体"
     },
-    "openSource": "{{who}} のサイトを開く",
+    "openSource": "{{who}} を開く",
     "openTerms": "{{terms}} ライセンスを読む",
-    "developerHint": "3 回タップすると、この端末を測定するツールの表示と非表示を切り替えます。",
+    "developerHint": "バージョンを3回タップすると、この端末の測定ツールを表示または非表示にできます。",
     "developerOn": "測定ツールを設定に表示しました。",
-    "developerOff": "測定ツールを非表示にしました。"
+    "developerOff": "測定ツールを再び非表示にしました。",
+    "engineName": "HFcast エンジン"
   },
   "firstRun": {
     "kicker": "運用地",
@@ -393,7 +391,6 @@
     "charger": "アプリを開いたままにして、端末を充電器につないでください。",
     "start": "開始",
     "stop": "停止",
-    "close": "閉じる",
     "running": "{{total}} 件中 {{done}} 件",
     "finished": "完了しました。地図 {{done}} 件を保存しました。",
     "stoppedEarly": "停止しました。地図 {{done}} 件を保存しました。",
@@ -412,7 +409,10 @@
     "batteryNote": "長い処理をバッテリーで行うと本体が熱くなり、電池を多く使います。できるだけ電源につないでおいてください。"
   },
   "preferences": {
-    "title": "言語と単位",
-    "close": "言語と単位を閉じる"
+    "title": "言語と単位"
+  },
+  "common": {
+    "back": "戻る",
+    "close": "閉じる"
   }
 }

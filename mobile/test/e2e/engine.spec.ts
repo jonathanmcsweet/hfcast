@@ -44,7 +44,7 @@ test.describe('the forecast model choice', () => {
     await expect(page.getByRole('button', { name: 'Truecast (new)' }))
       .toBeVisible();
     await page.getByRole('button', { name: 'VOACAP (classic)' }).click();
-    await page.getByRole('button', { name: 'Close preferences' }).click();
+    await page.getByRole('button', { name: 'Back' }).click();
 
     // The switch re-keys the query, so a new request follows without a
     // reload, and the classic choice names no model at all: the request

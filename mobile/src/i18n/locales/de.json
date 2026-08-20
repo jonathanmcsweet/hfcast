@@ -190,7 +190,6 @@
   },
   "station": {
     "title": "Ihr Funkgerät",
-    "close": "Schließen",
     "modeSection": "Betriebsart",
     "modeHint": "Schwierigste zuerst. Eine digitale Betriebsart schafft Wege, die Sprache nicht schafft.",
     "modeNeeds": "{{mode}} braucht auf diesem Weg {{db}} dB über dem Rauschen.",
@@ -303,14 +302,12 @@
   },
   "about": {
     "title": "Über HFcast",
-    "close": "Schließen",
-    "what": "Eine Ausbreitungsvorhersage für einen Pfad, auf diesem Gerät mit VOACAP berechnet.",
+    "what": "HFcast ist eine datenschutzorientierte, offlinefähige App zur HF-Ausbreitungsvorhersage für Funkamateure. Gebaut mit der {{engine}}.",
     "version": "Version {{version}}",
-    "builtOn": "Aufbauend auf der Arbeit von",
-    "disclaimerSection": "Haftungsausschluss",
+    "builtOn": "Worauf das hier aufbaut",
     "licencesSection": "Lizenzen",
     "credit": {
-      "voacap": "VOACAP, das Ausbreitungsmodell",
+      "voacap": "VOACAP, das klassische Ausbreitungsmodell",
       "voacapl": "Die Linux-Portierung, aus der diese Engine übersetzt wurde",
       "coefficients": "Die ionosphärischen Koeffizientenkarten",
       "cities": "Die offline durchsuchte Ortsliste",
@@ -320,11 +317,12 @@
       "openMeteo": "Ortssuche, wenn online",
       "plex": "IBM Plex Sans, die Schriftart"
     },
-    "openSource": "Website von {{who}} öffnen",
+    "openSource": "{{who}} aufrufen",
     "openTerms": "Lizenz {{terms}} lesen",
-    "developerHint": "Dreimal tippen, um die Werkzeuge zum Messen dieses Geräts ein- oder auszublenden.",
-    "developerOn": "Die Messwerkzeuge werden jetzt in den Einstellungen angezeigt.",
-    "developerOff": "Die Messwerkzeuge sind jetzt ausgeblendet."
+    "developerHint": "Tippe die Version dreimal an, um die Messwerkzeuge für dieses Gerät ein- oder auszublenden.",
+    "developerOn": "Die Messwerkzeuge stehen jetzt in den Einstellungen.",
+    "developerOff": "Die Messwerkzeuge sind wieder ausgeblendet.",
+    "engineName": "HFcast-Engine"
   },
   "firstRun": {
     "kicker": "DEIN STANDORT",
@@ -393,7 +391,6 @@
     "charger": "Lass die App offen und das Gerät am Ladegerät.",
     "start": "Starten",
     "stop": "Stoppen",
-    "close": "Schließen",
     "running": "{{done}} von {{total}}",
     "finished": "Fertig. {{done}} Karten gespeichert.",
     "stoppedEarly": "Gestoppt. {{done}} Karten gespeichert.",
@@ -412,7 +409,10 @@
     "batteryNote": "Ein langer Auftrag im Akkubetrieb wärmt das Gerät und braucht viel Strom. Lass es angeschlossen, wenn du kannst."
   },
   "preferences": {
-    "title": "Voreinstellungen",
-    "close": "Voreinstellungen schließen"
+    "title": "Voreinstellungen"
+  },
+  "common": {
+    "back": "Zurück",
+    "close": "Schließen"
   }
 }

@@ -113,7 +113,7 @@ export default function LocationPicker({ visible, onDismiss }: Props) {
           <IconButton
             icon="close"
             onPress={onDismiss}
-            accessibilityLabel={t('about.close')}
+            accessibilityLabel={t('common.close')}
           />
         </View>
 

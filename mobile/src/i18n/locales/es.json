@@ -190,7 +190,6 @@
   },
   "station": {
     "title": "Su radio",
-    "close": "Cerrar",
     "modeSection": "Modo",
     "modeHint": "De más difícil a más fácil. Un modo digital puede abrir un camino que la voz no abre.",
     "modeNeeds": "{{mode}} necesita {{db}} dB sobre el ruido en este camino.",
@@ -303,14 +302,12 @@
   },
   "about": {
     "title": "Acerca de HFcast",
-    "close": "Cerrar",
-    "what": "Una previsión de propagación para un trayecto, calculada en este dispositivo con VOACAP.",
+    "what": "HFcast es una aplicación de previsión de propagación en HF para radioaficionados, centrada en la privacidad y pensada para funcionar sin conexión. Construida con el {{engine}}.",
     "version": "Versión {{version}}",
-    "builtOn": "Construido sobre el trabajo de",
-    "disclaimerSection": "Aviso legal",
+    "builtOn": "En qué se apoya",
     "licencesSection": "Licencias",
     "credit": {
-      "voacap": "VOACAP, el modelo de propagación",
+      "voacap": "VOACAP, el modelo de propagación clásico",
       "voacapl": "La adaptación a Linux desde la que se tradujo este motor",
       "coefficients": "Los mapas de coeficientes ionosféricos",
       "cities": "La lista de lugares buscada sin conexión",
@@ -320,11 +317,12 @@
       "openMeteo": "Búsqueda de lugares, con conexión",
       "plex": "IBM Plex Sans, la tipografía"
     },
-    "openSource": "Abrir el sitio de {{who}}",
+    "openSource": "Visitar {{who}}",
     "openTerms": "Leer la licencia {{terms}}",
-    "developerHint": "Toca tres veces para mostrar u ocultar las herramientas para medir este dispositivo.",
-    "developerOn": "Las herramientas de medición ya se ven en Ajustes.",
-    "developerOff": "Las herramientas de medición ya están ocultas."
+    "developerHint": "Toca la versión tres veces para mostrar u ocultar las herramientas de medición de este dispositivo.",
+    "developerOn": "Las herramientas de medición ya están en Ajustes.",
+    "developerOff": "Las herramientas de medición vuelven a estar ocultas.",
+    "engineName": "motor HFcast"
   },
   "firstRun": {
     "kicker": "TU UBICACIÓN",
@@ -393,7 +391,6 @@
     "charger": "Deja la aplicación abierta y el dispositivo en el cargador.",
     "start": "Empezar",
     "stop": "Parar",
-    "close": "Cerrar",
     "running": "{{done}} de {{total}}",
     "finished": "Terminado. {{done}} mapas guardados.",
     "stoppedEarly": "Detenido. {{done}} mapas guardados.",
@@ -412,7 +409,10 @@
     "batteryNote": "Un trabajo largo con batería calienta el dispositivo y gasta mucha. Déjalo enchufado si puedes."
   },
   "preferences": {
-    "title": "Preferencias",
-    "close": "Cerrar preferencias"
+    "title": "Preferencias"
+  },
+  "common": {
+    "back": "Atrás",
+    "close": "Cerrar"
   }
 }
