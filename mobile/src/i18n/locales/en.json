@@ -256,10 +256,19 @@
       "presetHint": "Opens the list of your saved stations",
       "wire": "Direction the wire runs, in degrees",
       "facingOne": "Pointing {{first}} degrees",
-      "facingTwo": "Favours {{first}} and {{second}} degrees equally"
+      "facingTwo": "Favours {{first}} and {{second}} degrees equally",
+      "pickStation": "Select a station to edit",
+      "editName": "Edit the name"
     },
-    "nameSection": "Station",
-    "unnamed": "My station",
+    "nameSection": "Name",
+    "pickSection": "Select a station",
+    "save": "Save",
+    "cancel": "Cancel",
+    "discardTitle": "Discard changes?",
+    "discardBody": "This station has changes that have not been saved. Closing now leaves it as it was.",
+    "keepEditing": "Keep editing",
+    "discard": "Discard",
+    "unnamed": "Unnamed station",
     "add": "Add a station",
     "remove": "Delete",
     "manage": "Edit stations…",
@@ -283,7 +292,8 @@
       "w": "W"
     },
     "apexHeight": "Apex height",
-    "invertedVNote": "Calculated as a dipole at {{height}}, which is {{percent}}% of the apex. Help explains why."
+    "invertedVNote": "Calculated as a dipole at {{height}}, which is {{percent}}% of the apex. Help explains why.",
+    "needsName": "Every station needs a name."
   },
   "units": {
     "metres": "{{value}} m",

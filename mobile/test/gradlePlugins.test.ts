@@ -22,25 +22,24 @@ import { BUILD_TIERS, versionCodeFor } from '../src/data/version.ts';
 /**
  * The two plugins that decide what a release is.
  *
- * One chooses the signing key, the other splits the APK by architecture and
- * gives each file its own version code. Both work by rewriting the text of
- * `android/app/build.gradle`, which `expo prebuild` writes fresh every time
- * and which git does not hold.
+ * One chooses the signing key, the other splits the APK by architecture
+ * and gives each file its own version code. Both rewrite the text of
+ * `android/app/build.gradle`, which `expo prebuild` writes fresh and git
+ * does not hold.
  *
- * Nothing checked either of them. Running them for real needs a prebuild, an
- * Android SDK and about twenty minutes, so both faults they can produce were
- * only visible in a finished APK:
+ * Running them for real needs a prebuild, an SDK and twenty minutes, so
+ * both faults they can produce were visible only in a finished APK:
  *
- * - A release signed with the debug key. It installs, and it looks correct.
- *   Nobody who installed it can ever take an update, because Android refuses
+ * - A release signed with the debug key. It installs and looks correct,
+ *   and nobody who installed it can ever take an update: Android refuses
  *   to replace a debug-signed package with a properly signed one.
- * - Four APKs sharing one version code, or codes that fall between releases.
- *   Android compares the code across the whole application, so this shows as
- *   an update that will not install.
+ * - Four APKs sharing one version code, or codes that fall between
+ *   releases. Android compares the code across the whole application, so
+ *   it shows as an update that will not install.
  *
- * These call the transform on a string instead. The template below is the
- * shape React Native and Expo SDK 57 generate, cut down to the parts the two
- * plugins look for.
+ * These call the transform on a string instead. The template below is
+ * what React Native and Expo SDK 57 generate, cut to what the two plugins
+ * look for.
  */
 
 const TEMPLATE = `
@@ -204,14 +203,11 @@ describe('the architecture split plugin', () => {
   });
 
   it('leaves the signing plugin able to run after it', () => {
-    // Both rewrite the same file, in an order `app.json` decides, and both
-    // add their block just inside `android {`. So the two orders do not
-    // give the same text — but neither may take the other's anchor away,
-    // and both results must hold everything.
-    //
-    // The order the blocks end up in does not matter to Gradle. What
-    // matters is that each is present, once, on the correct side of
-    // `dependencies {`.
+    // Both rewrite the same file in an order `app.json` decides, and both
+    // add their block just inside `android {`, so the two orders give
+    // different text. Neither may take the other's anchor away, and each
+    // block must end up present, once, on the correct side of
+    // `dependencies {`. Which order they land in does not matter.
     for (
       const both of [
         addAbiSplits(addReleaseSigning(TEMPLATE)),
@@ -295,10 +291,9 @@ describe('the build memory plugin', () => {
 /**
  * The version code arithmetic, read out of the plugin's own Groovy.
  *
- * The sum is written in Groovy and runs inside Gradle, so it cannot be
- * called from here. Instead the numbers are read from the text the plugin
- * injects, and the sum is checked against `versionCodeFor`, which supplies
- * the other half.
+ * The sum runs inside Gradle and cannot be called from here, so the
+ * numbers are read from the text the plugin injects and checked against
+ * `versionCodeFor`, which supplies the other half.
  */
 const abiCodes = (): Map<string, number> => {
   const line = /ext\.abiCodes = \[([^\]]+)\]/.exec(ABI_CODES);
@@ -408,8 +403,8 @@ describe('the keep-data-on-uninstall plugin', () => {
   });
 
   it('changes nothing when there is no application tag', () => {
-    // A manifest this plugin was not written for. Adding the tag would be
-    // a guess at where it belongs, and a wrong one builds an app that
+    // A manifest this plugin was not written for. Adding the tag would
+    // guess at where it belongs, and a wrong guess builds an app that
     // does not start.
     const bare = { manifest: { $: {} } } as unknown as Manifest;
     assert.deepEqual(keepDataOnUninstall(bare), bare);
@@ -445,10 +440,9 @@ describe('the backup rules plugin', () => {
   });
 
   it('leaves the maps out by naming what it carries, not by excluding', () => {
-    // Stored maps reach the whole budget, up to 512 MB, and the app can
-    // compute them again, so a backup carrying them would be refused by
-    // the transport for nothing. Naming the includes is what leaves them
-    // out. An `exclude` for a path outside every `include` is what fails
+    // Stored maps reach 512 MB and the app can compute them again, so a
+    // backup carrying them is refused for nothing. Naming the includes
+    // leaves them out; an `exclude` outside every `include` fails
     // `lintVitalRelease`, which is how this was found (2026-08-18).
     for (const rules of [EXTRACTION_RULES, FULL_BACKUP_CONTENT]) {
       assert.ok(!rules.includes('<exclude'), 'no exclude outside an include');

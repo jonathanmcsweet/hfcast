@@ -98,12 +98,11 @@ describe('which station a stored map belongs to', () => {
   });
 
   it('leaves the classic name as it was before the model was named', () => {
-    // Maps already on a device hold classic answers, because the model
-    // choice never reached a released build. The classic model adds
-    // nothing to the hashed text, so those files stay readable instead
-    // of being orphaned by an upgrade. This is the value the hash gave
-    // before `engine` existed, so a change that would strand a device's
-    // whole store fails here rather than in the field.
+    // Maps on a device hold classic answers: the model choice never
+    // reached a released build. The classic model adds nothing to the
+    // hashed text, so those files stay readable. This is the value the
+    // hash gave before `engine` existed, so a change that would strand
+    // a whole store fails here rather than in the field.
     assert.equal(placeName(HOME), '6a94387a28bd2cf2');
   });
 

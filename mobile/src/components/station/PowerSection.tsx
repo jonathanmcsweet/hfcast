@@ -6,10 +6,10 @@ import { TextInput, useTheme } from 'react-native-paper';
 
 import { parsePower, positionOf, POWER_STEPS, wattsAt } from '../../data/power';
 import {
-  LIMITS,
-  useActivePreset,
-  useStationStore,
-} from '../../store/useStationStore';
+  useDraftField,
+  useStationDraftStore,
+} from '../../store/useStationDraftStore';
+import { LIMITS } from '../../store/useStationStore';
 import { spacing } from '../../theme';
 import type { AppTheme } from '../../theme';
 import Note from './Note';
@@ -18,27 +18,33 @@ import SectionHeading from './SectionHeading';
 /**
  * The power, typed as well as swept.
  *
- * A rig has an exact setting worth entering, and the slider is
- * logarithmic because the range runs over four decades — a linear one
- * would spend nine tenths of its travel above 150 W and never reach a QRP
- * setting at all.
+ * A rig has an exact setting worth entering. The slider is logarithmic
+ * because the range runs over four decades: a linear one would spend nine
+ * tenths of its travel above 150 W and never reach a QRP setting.
  */
 export default function PowerSection() {
   const { t } = useTranslation();
   const theme = useTheme<AppTheme>();
   const ui = theme.colors.ui;
-  const { watts } = useActivePreset();
-  const setWatts = useStationStore((s) => s.setWatts);
+  const watts = useDraftField((preset) => preset.watts);
+  const setWatts = useStationDraftStore((s) => s.setWatts);
 
   /**
-   * The field while it is being typed.
-   *
-   * Held apart from the store so a half-typed "0." is not parsed, clamped
-   * and written back under the reader's fingers. Null means nothing is
-   * being typed and the field shows the stored value, which is also how
-   * it follows the slider.
+   * The field while it is being typed. Held apart so a half-typed "0." is
+   * not parsed, clamped and written back under the reader's fingers. Null
+   * shows the stored value, which is also how it follows the slider.
    */
   const [typed, setTyped] = useState<string | null>(null);
+
+  /**
+   * Where the slider is while it is being dragged. Null when it is not.
+   * The field above follows the drag from here, and the station is set
+   * once, when the finger lifts.
+   */
+  const [dragging, setDragging] = useState<number | null>(null);
+  const shown = dragging === null
+    ? watts
+    : wattsAt(dragging, LIMITS.watts);
 
   return (
     <>
@@ -48,7 +54,7 @@ export default function PowerSection() {
         dense
         keyboardType="decimal-pad"
         inputMode="decimal"
-        value={typed ?? String(watts)}
+        value={typed ?? String(shown)}
         onChangeText={(text) => {
           setTyped(text);
           const parsed = parsePower(text);
@@ -72,6 +78,10 @@ export default function PowerSection() {
         step={1}
         onValueChange={(position) => {
           setTyped(null);
+          setDragging(position);
+        }}
+        onSlidingComplete={(position) => {
+          setDragging(null);
           setWatts(wattsAt(position, LIMITS.watts));
         }}
         minimumTrackTintColor={ui.accent}

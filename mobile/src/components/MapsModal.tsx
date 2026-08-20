@@ -45,15 +45,13 @@ import type { AppTheme } from '../theme';
 /**
  * Computing maps before they are needed, and the room they take.
  *
- * The screen for the case this feature exists for: a person at home, on a
- * charger, setting the app up for a day out where there is no network.
+ * The screen for the case the feature exists for: at home, on a charger,
+ * setting up for a day out with no network.
  *
- * What it shows before anything runs is the whole point of it. A whole
- * year of every band is about 171 MB and over an hour of work, and that
- * has to be a choice somebody makes rather than a surprise they get. So
- * the size and the time are worked out from what this device measured
- * about itself — never from a fast one — and shown beside the choice
- * that produced them.
+ * What it shows before anything runs is the point. A whole year of every
+ * band is about 190 MB and over an hour of work, which has to be a choice
+ * rather than a surprise, so the size and the time are worked out from
+ * what this device measured about itself — never a fast one.
  */
 interface Props {
   visible: boolean;
@@ -64,11 +62,9 @@ interface Props {
 const MB = 1024 * 1024;
 
 /**
- * A size a person can read.
- *
- * `MB` is left as it is rather than translated: it is written the same
- * way in every language this app ships, and a translated abbreviation
- * would be less recognisable rather than more.
+ * A size a person can read. `MB` is not translated: it is written the
+ * same way in every language this app ships, and a translated
+ * abbreviation would be less recognisable.
  */
 const describeSize = (bytes: number): string =>
   bytes >= MB * 1024
@@ -147,20 +143,15 @@ export default function MapsModal({ visible, onDismiss }: Props) {
   );
 
   // The room in use and the work left, read when the dialog opens, when
-  // the choice changes, and again when a job stops. Deliberately not
-  // read while one runs: the directory would be listed over and over to
-  // move a number nobody is watching that closely, and the progress
-  // line is what matters during a job.
-  //
-  // The work left comes from the job itself rather than from the
-  // calendar, so the estimate counts the grids that will really be
-  // computed and not the ones a fresh device would have needed.
+  // the choice changes, and when a job stops. Not while one runs: the
+  // directory would be listed over and over, and the progress line is
+  // what matters then. The work left comes from the job rather than the
+  // calendar, so it counts the grids that will really be computed.
   useEffect(() => {
     if (!visible || running) return;
     // The one mutable value here, and it never leaves this closure. Two
-    // reads are in flight and the modal can close before either answers;
-    // without this they would set state on a screen that has gone. An
-    // effect and its cleanup are where a change like this belongs.
+    // reads are in flight and the modal can close before either answers,
+    // which without this sets state on a screen that has gone.
     let alive = true;
     void storedBytes().then((bytes) => {
       if (alive) setHeld(bytes);
@@ -532,10 +523,8 @@ export default function MapsModal({ visible, onDismiss }: Props) {
 }
 
 /**
- * Where the calendar is now, in UTC.
- *
- * The plan counts months and hours from here, and the engine's own
- * months are UTC ones.
+ * Where the calendar is now, in UTC. The plan counts months and hours
+ * from here, and the engine's months are UTC ones.
  */
 function startOfNow() {
   const now = new Date();
@@ -549,9 +538,8 @@ function startOfNow() {
 /**
  * This device's measured speed in milliseconds a grid point, or null.
  *
- * Its own hook so the import of the device store stays out of the body
- * above, and so the "not measured yet" case is one value rather than a
- * chain of checks at every place the estimate is drawn.
+ * Its own hook, so "not measured yet" is one value rather than a chain of
+ * checks everywhere the estimate is drawn.
  */
 function useDeviceMeasurement(): number | null {
   const measured = useDeviceStore((state) => state.measured);

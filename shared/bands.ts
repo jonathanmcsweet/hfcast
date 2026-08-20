@@ -8,6 +8,7 @@
 export type BandKey =
   | '160m'
   | '80m'
+  | '60m'
   | '40m'
   | '30m'
   | '20m'
@@ -25,14 +26,35 @@ export const BAND_ORDER: readonly BandKey[] = [
   '20m',
   '30m',
   '40m',
+  '60m',
   '80m',
   '160m',
 ];
+
+/**
+ * The lowest frequency an antenna card claims to serve, in whole MHz.
+ *
+ * The engine takes the first card whose range holds the frequency, and
+ * gives a frequency in no card's range **no antenna at all**. The card's
+ * default is 2 MHz and 160m is 1.84, so until 2026-08-19 every 160m
+ * forecast ran isotropic: dipole and isotrope matched below 2 MHz and
+ * differed by 3 dB above it, on a short summer path.
+ *
+ * 1 rather than 1.8 because the card holds whole megahertz. Nothing else
+ * moves — a card covering more frequencies serves each the same way.
+ */
+export const MIN_CARD_FREQ_MHZ = 1;
 
 /** Nominal centre frequency in MHz, for the deck and the MUF comparison. */
 export const BAND_MHZ: Readonly<Record<BandKey, number>> = {
   '160m': 1.84,
   '80m': 3.75,
+  // The one band here that is not a contiguous allocation everywhere.
+  // WRC-15 gave 5.3515-5.3665 MHz; several countries license channels
+  // either side instead, the widest spread 5.332 to 5.405. 5.36 is inside
+  // the WRC-15 band and within 1% of the middle of the channelised plans,
+  // far below what moves a prediction.
+  '60m': 5.36,
   '40m': 7.1,
   '30m': 10.12,
   '20m': 14.2,
@@ -72,9 +94,8 @@ export interface BandHourPrediction {
    *
    * Steep means near-vertical incidence: the signal leaves steeply and
    * comes back down close to where it started, with no skip zone, which
-   * is why a short path works on bands that look too low for it. The
-   * empirical correction does not touch this — it moves the signal
-   * median, not the geometry.
+   * is why a short path works on bands that look too low. The empirical
+   * correction moves the signal median, not the geometry.
    */
   takeoffAngleDeg: number | null;
 }

@@ -256,10 +256,19 @@
       "presetHint": "Öffnet die Liste Ihrer gespeicherten Stationen",
       "wire": "Verlauf des Drahtes in Grad",
       "facingOne": "Richtung {{first}} Grad",
-      "facingTwo": "Bevorzugt {{first}} und {{second}} Grad gleichermaßen"
+      "facingTwo": "Bevorzugt {{first}} und {{second}} Grad gleichermaßen",
+      "pickStation": "Station zum Bearbeiten auswählen",
+      "editName": "Namen bearbeiten"
     },
-    "nameSection": "Station",
-    "unnamed": "Meine Station",
+    "nameSection": "Name",
+    "pickSection": "Station auswählen",
+    "save": "Speichern",
+    "cancel": "Abbrechen",
+    "discardTitle": "Änderungen verwerfen?",
+    "discardBody": "Diese Station hat noch nicht gespeicherte Änderungen. Wenn du jetzt schließt, bleibt sie unverändert.",
+    "keepEditing": "Weiter bearbeiten",
+    "discard": "Verwerfen",
+    "unnamed": "Station ohne Namen",
     "add": "Station hinzufügen",
     "remove": "Löschen",
     "manage": "Stationen bearbeiten…",
@@ -283,7 +292,8 @@
       "w": "W"
     },
     "apexHeight": "Scheitelhöhe",
-    "invertedVNote": "Berechnet als Dipol auf {{height}}, das sind {{percent}} % der Scheitelhöhe. Die Hilfe erklärt, warum."
+    "invertedVNote": "Berechnet als Dipol auf {{height}}, das sind {{percent}} % der Scheitelhöhe. Die Hilfe erklärt, warum.",
+    "needsName": "Jede Station braucht einen Namen."
   },
   "units": {
     "metres": "{{value}} m",

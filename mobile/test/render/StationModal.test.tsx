@@ -1,6 +1,7 @@
 import { fireEvent } from '@testing-library/react-native';
 
 import StationModal from '../../src/components/StationModal';
+import { DEFAULT_STATION } from '../../src/data/station';
 import i18n from '../../src/i18n/index';
 import { useStationStore } from '../../src/store/useStationStore';
 import { renderWithApp } from './harness';
@@ -8,11 +9,14 @@ import { renderWithApp } from './harness';
 /**
  * The station dialog, mounted.
  *
- * It is five sections over one store, and the rules that decide which of
- * them appear — a height field for an antenna that has a height, a gain
- * dial for one with gain, an aim control only where there is something to
- * point — are rules about the antenna and not about any one section. That
- * is what a mounted test can check and a test of a pure module cannot.
+ * Five sections over one draft. Which of them appear — a height field
+ * for an antenna with a height, a gain dial for one with gain, an aim
+ * control only where there is something to point — is a rule about the
+ * antenna, not about any one section, so only a mounted test sees it.
+ *
+ * Nothing reaches the store until Save, so a test that reads the store
+ * has to press it. That is the behaviour: the dialog used to write on
+ * every keystroke, leaving no button that meant "keep this".
  */
 
 const t = i18n.t.bind(i18n);
@@ -23,7 +27,13 @@ const antennaChip = (key: string) =>
 
 describe('the station dialog', () => {
   beforeEach(() => {
-    useStationStore.getState().reset();
+    // The whole store, not `reset()`: that returns only the active
+    // preset to its defaults, so an added station is left for the next
+    // test to trip over.
+    useStationStore.getState().commit({
+      presets: [{ id: 's1', name: '', ...DEFAULT_STATION }],
+      activeId: 's1',
+    });
   });
 
   it('offers every mode and records the one chosen', async () => {
@@ -34,7 +44,108 @@ describe('the station dialog', () => {
     const ft8 = t('station.a11y.pickMode', { mode: t('station.mode.ft8') });
     await fireEvent.press(view.getByLabelText(ft8));
 
+    // Chosen but not yet kept.
+    expect(useStationStore.getState().presets[0]?.mode).toBe('cw');
+
+    await fireEvent.press(view.getByText(t('station.save')));
     expect(useStationStore.getState().presets[0]?.mode).toBe('ft8');
+  });
+
+  it('keeps nothing when the dialog is cancelled', async () => {
+    const view = await renderWithApp(
+      <StationModal visible onDismiss={() => {}} />,
+    );
+
+    const ft8 = t('station.a11y.pickMode', { mode: t('station.mode.ft8') });
+    await fireEvent.press(view.getByLabelText(ft8));
+    await fireEvent.press(view.getByText(t('station.cancel')));
+
+    // Cancel asks first, because there is something to lose.
+    await fireEvent.press(view.getByText(t('station.discard')));
+    expect(useStationStore.getState().presets[0]?.mode).toBe('cw');
+  });
+
+  it('makes a station with no name, and will not save one', async () => {
+    const view = await renderWithApp(
+      <StationModal visible onDismiss={() => {}} />,
+    );
+    const nameField = () => {
+      const [found] = view.getAllByLabelText(t('station.a11y.name'));
+      if (found === undefined) throw new Error('no name field');
+      return found;
+    };
+
+    await fireEvent.press(view.getByLabelText(t('station.a11y.pickStation')));
+    await fireEvent.press(view.getByText(t('station.add')));
+
+    // Empty, with the reason Save is off on screen beside it.
+    expect(nameField().props.value).toBe('');
+    expect(view.getByText(t('station.needsName'))).toBeTruthy();
+
+    await fireEvent.press(view.getByText(t('station.save')));
+    expect(useStationStore.getState().presets).toHaveLength(1);
+
+    // A letter at a time. The field was open only while the name was
+    // empty, so it shut on the first one and the rest went nowhere.
+    await fireEvent.changeText(nameField(), 'F');
+    expect(nameField().props.editable).toBe(true);
+
+    await fireEvent.changeText(nameField(), 'Field day');
+    expect(view.queryByText(t('station.needsName'))).toBeNull();
+
+    await fireEvent.press(view.getByText(t('station.save')));
+    const { presets, activeId } = useStationStore.getState();
+    expect(presets).toHaveLength(2);
+    expect(presets[1]?.name).toBe('Field day');
+    expect(activeId).toBe(presets[1]?.id);
+  });
+
+  it('holds the name closed until the pencil is pressed', async () => {
+    useStationStore.getState().commit({
+      presets: [{ id: 's1', name: 'Home', ...DEFAULT_STATION }],
+      activeId: 's1',
+    });
+    const view = await renderWithApp(
+      <StationModal visible onDismiss={() => {}} />,
+    );
+    const nameField = () => {
+      const [found] = view.getAllByLabelText(t('station.a11y.name'));
+      if (found === undefined) throw new Error('no name field');
+      return found;
+    };
+
+    expect(nameField().props.editable).toBe(false);
+
+    await fireEvent.press(view.getByLabelText(t('station.a11y.editName')));
+    expect(nameField().props.editable).toBe(true);
+  });
+
+  it('shows the station that was picked, and saves that one', async () => {
+    useStationStore.getState().commit({
+      presets: [
+        { id: 's1', name: 'Home', ...DEFAULT_STATION },
+        { id: 's2', name: 'Field day', ...DEFAULT_STATION },
+      ],
+      activeId: 's2',
+    });
+    const view = await renderWithApp(
+      <StationModal visible onDismiss={() => {}} />,
+    );
+    const nameField = () => {
+      const [found] = view.getAllByLabelText(t('station.a11y.name'));
+      if (found === undefined) throw new Error('no name field');
+      return found;
+    };
+
+    expect(nameField().props.value).toBe('Field day');
+
+    await fireEvent.press(view.getByLabelText(t('station.a11y.pickStation')));
+    await fireEvent.press(view.getByText('Home'));
+
+    expect(nameField().props.value).toBe('Home');
+
+    await fireEvent.press(view.getByText(t('station.save')));
+    expect(useStationStore.getState().activeId).toBe('s1');
   });
 
   it('asks for a height only where the antenna has one', async () => {
@@ -97,6 +208,7 @@ describe('the station dialog', () => {
       view.getByText(t('station.aimAt', { place: 'Tokyo', degrees: 64 })),
     );
 
+    await fireEvent.press(view.getByText(t('station.save')));
     expect(useStationStore.getState().presets[0]?.antenna.beamDeg).toBe(64);
   });
 

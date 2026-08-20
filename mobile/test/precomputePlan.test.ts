@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
+import { BAND_ORDER } from '../../shared/bands.ts';
 import { globeFileBytes } from '../src/data/globeCodec.ts';
 import {
   costOf,
@@ -17,6 +18,15 @@ import {
  */
 
 const FINE_POINTS = 34560;
+
+/**
+ * The default selection, taken from the real list rather than written as
+ * a number. A band added to the app changes what a year costs, and the
+ * storage choices offered are sized against that figure — so these have
+ * to fail when it moves, which is what happened unnoticed when 60m
+ * arrived (2026-08-18).
+ */
+const EVERY_BAND = BAND_ORDER.length;
 
 describe('the months a scope covers', () => {
   it('starts with the month asked from', () => {
@@ -91,32 +101,32 @@ describe('the runs a scope asks for', () => {
 });
 
 describe('what a plan costs', () => {
-  it('says a whole year of nine bands in the numbers it was measured against', () => {
+  it('says a whole year of every band in the numbers it was measured against', () => {
     // 0.0506 ms a point is the phone that measured 1,748 ms for the
     // 34,560-point grid at four threads.
     const hours = runsFor({ year: 2026, month: 8, hour: 18 }, 12).length;
-    const cost = costOf(hours, 9, FINE_POINTS, 0.0506);
+    const cost = costOf(hours, EVERY_BAND, FINE_POINTS, 0.0506);
     assert.equal(cost.hours, 288);
-    assert.equal(cost.files, 2592);
-    // About 171 MB. The same year held as Float32 in memory would be
+    assert.equal(cost.files, 288 * EVERY_BAND);
+    // About 190 MB. The same year held as Float32 in memory would be
     // four times that, which is what one byte a value bought.
     const mb = cost.bytes / (1024 * 1024);
-    assert.ok(mb > 160 && mb < 180, `a year of nine bands is ${mb} MB`);
-    // About an hour and a quarter on that phone. Not the eight minutes
-    // it would be if the fine grid had the multi-band pass the coarse
-    // map has — which is the strongest reason to give it one.
+    assert.ok(mb > 180 && mb < 200, `a year of every band is ${mb} MB`);
+    // About 84 minutes on that phone. Not the eight it would be if the
+    // fine grid had the multi-band pass the coarse map has, which is the
+    // strongest reason to give it one.
     const hoursTaken = cost.ms / 3600000;
     assert.ok(
-      hoursTaken > 1 && hoursTaken < 1.5,
-      `a year of nine bands takes ${hoursTaken} hours`,
+      hoursTaken > 1.3 && hoursTaken < 1.5,
+      `a year of every band takes ${hoursTaken} hours`,
     );
   });
 
   it('charges a band at a time, because the fine grid has no multi-band pass', () => {
     const one = costOf(288, 1, FINE_POINTS, 0.05);
-    const nine = costOf(288, 9, FINE_POINTS, 0.05);
-    assert.equal(nine.ms, one.ms * 9);
-    assert.equal(nine.bytes, one.bytes * 9);
+    const all = costOf(288, EVERY_BAND, FINE_POINTS, 0.05);
+    assert.equal(all.ms, one.ms * EVERY_BAND);
+    assert.equal(all.bytes, one.bytes * EVERY_BAND);
   });
 
   it('keeps one month of one band inside a coffee break', () => {
@@ -146,15 +156,15 @@ describe('what a plan costs', () => {
 describe('the room a person allows', () => {
   it('says how many maps the room reaches', () => {
     // The number the screen shows when it says where the work will
-    // stop. A whole year of nine bands is 2,592 maps, so 50 MB is a
+    // stop. A whole year of every band is 2,880 maps, so 50 MB is a
     // small part of it.
     const files = filesWithin(50 * 1024 * 1024, FINE_POINTS);
     assert.equal(files, Math.floor((50 * 1024 * 1024) / 69168));
     assert.ok(files > 700 && files < 800, `${files} maps fit in 50 MB`);
   });
 
-  it('holds a whole year of nine bands only well above the default', () => {
-    const year = costOf(288, 9, FINE_POINTS, 0.05);
+  it('holds a whole year of every band only well above the default', () => {
+    const year = costOf(288, EVERY_BAND, FINE_POINTS, 0.05);
     assert.ok(filesWithin(128 * 1024 * 1024, FINE_POINTS) < year.files);
     assert.ok(filesWithin(256 * 1024 * 1024, FINE_POINTS) >= year.files);
   });

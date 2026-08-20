@@ -1,16 +1,15 @@
 /**
  * A forecast with no destination: how much of the world hears this station.
  *
- * The sampling and the tally are in `shared/survey.ts`, which is where the
- * reasoning and the measurements behind the approach are written down. The
- * short version: filling the 9 x 24 grid with area runs is 216 of them and
- * about ten seconds, while sampling directions with ordinary path runs is
- * 48 runs and under one, because a path run returns the whole grid at once.
+ * The sampling and the tally are in `shared/survey.ts`, with the
+ * measurements behind them. In short: filling the band-hour grid with
+ * area runs is 216 runs and about ten seconds, while sampling directions
+ * with path runs is 48 runs and under one, because a path run returns the
+ * whole grid at once.
  *
- * What is here is the running of the samples, which is the part the two
- * projects do differently: this spawns engine processes behind the
- * server's semaphore, while the app calls a compiled-in engine that takes
- * one request at a time.
+ * Here is the running of the samples, the part the two projects do
+ * differently: this spawns engine processes behind the server's
+ * semaphore, the app calls a compiled-in engine one request at a time.
  */
 import {
   combineSurvey,
@@ -46,10 +45,8 @@ export function keyFor(request: SurveyRequest): string {
     request.noiseDbw,
     JSON.stringify(request.antenna ?? null),
     // Every run below is corrected with `factorsFor(kpMax24h)`, so the
-    // same term the prediction key carries has to be here too. Without
-    // it a request made after a storm and a quiet one land on the same
-    // entry, and one of them is answered with the other's reliabilities
-    // for the quarter of an hour the entry lives.
+    // prediction key's term belongs here too: without it a stormy request
+    // and a quiet one share an entry for the quarter hour it lives.
     request.kpMax24h === undefined
       ? 'climatology'
       : stormWidening(request.kpMax24h).toFixed(2),
@@ -67,21 +64,17 @@ export async function survey(
   // survey is forty-eight engine runs, and two readers on one station
   // arriving together used to start both sets rather than share one.
   return await cache.fetch(keyFor(request), async () => {
-    // Asked for together. These were sequential, against the day when
-    // nothing bounded how many engine processes could be alive: the
-    // comment here said forty-eight at once would compete for the same
-    // cores and finish no sooner. `limit.ts` now holds that bound for
-    // every engine call in the server, so the sequence was spending
-    // seven eighths of the wait on an empty machine.
+    // Asked for together. These were sequential, from the days when
+    // nothing bounded how many engine processes could be alive; `limit.ts`
+    // now holds that bound, so the sequence was spending seven eighths of
+    // the wait on an empty machine.
     //
     // `Promise.all` keeps the order of its input, which `midRangeMuf`
     // depends on: it picks the middle ring by position.
     //
-    // A survey can now hold every engine slot at once, so a prediction
-    // arriving beside one waits behind more of it than it used to. The
-    // gate hands slots out first in, first out, and a path run is short,
-    // so the wait is bounded and the survey stops holding the machine
-    // for forty-eight times as long.
+    // A survey can hold every engine slot at once, so a prediction beside
+    // one waits behind more of it. The gate is first in, first out and a
+    // path run is short, so that wait is bounded.
     const runs = await Promise.all(
       samplePoints(request.from).map((point) => {
         const to: Endpoint = {

@@ -43,12 +43,10 @@ export interface PredictRequest {
 }
 
 /**
- * The antenna's contribution to the cache key.
- *
- * Every field that reaches the definition file has to be here. Height
- * alone moves a 14 MHz path by about 9 dB, so serving a 20 m dipole from
- * a 5 m dipole's entry would be a wrong answer that looks entirely
- * ordinary.
+ * The antenna's contribution to the cache key. Every field that reaches
+ * the definition file: height alone moves a 14 MHz path by about 9 dB, so
+ * a 20 m dipole served from a 5 m one's entry is a wrong answer that
+ * looks ordinary.
  */
 function antennaKey(antenna: AntennaChoice | undefined): string {
   if (antenna === undefined || antenna.type === 'isotropic') return 'iso';
@@ -57,11 +55,9 @@ function antennaKey(antenna: AntennaChoice | undefined): string {
 }
 
 /**
- * What makes two requests the same run.
- *
- * Exported so a test can pin it. Anything left out of this is either
- * the same for every caller of the entry, or has to be put back on the
- * answer after the read — see `endpointsOf`.
+ * What makes two requests the same run. Exported so a test can pin it.
+ * Anything left out is either the same for every caller of the entry or
+ * put back on the answer after the read — see `endpointsOf`.
  */
 export function keyFor(request: PredictRequest, ssn: number): string {
   const month = request.date.getUTCMonth() + 1;
@@ -76,8 +72,8 @@ export function keyFor(request: PredictRequest, ssn: number): string {
     request.requiredSnrDb,
     request.noiseDbw,
     antennaKey(request.antenna),
-    // The storm widening changes the corrected cells, so a stormy now-cast
-    // must not be served from a quiet cache entry or the reverse.
+    // The storm widening changes the corrected cells, so a stormy
+    // now-cast must not be served from a quiet entry, or the reverse.
     request.kpMax24h === undefined
       ? 'climatology'
       : stormWidening(request.kpMax24h).toFixed(2),
@@ -93,10 +89,9 @@ export function keyFor(request: PredictRequest, ssn: number): string {
  * The parts of the answer that describe the two ends rather than the
  * prediction.
  *
- * These belong to the caller, not to the run. The cache key holds each
- * end as a 6-character locator — a square about 4.6 km by 9.3 km — and
- * holds no label at all, so two callers can share one entry and still
- * have different coordinates and different names for their stations.
+ * The caller's, not the run's. The key holds each end as a 6-character
+ * locator — about 4.6 by 9.3 km — and no label, so two callers can share
+ * an entry and still have their own coordinates and station names.
  */
 function endpointsOf(
   request: PredictRequest,
@@ -132,17 +127,17 @@ export async function predict(
     request.basis,
   );
 
-  // The date, the basis and the two ends are per-request; the VOACAP run
-  // behind them is not, so they are put back on the answer rather than
-  // read from the entry the first caller wrote.
+  // The date, the basis and the two ends are per-request; the run behind
+  // them is not, so they are put back on the answer rather than read from
+  // the entry the first caller wrote.
   //
-  // Through `fetch` so that two requests for the same path arriving
-  // together run the engine once. A survey is forty-eight of these in a
-  // row, and two readers on one path used to be ninety-six runs.
+  // Through `fetch`, so two requests for one path arriving together run
+  // the engine once. A survey is forty-eight of these in a row, and two
+  // readers on one path used to be ninety-six runs.
   const key = keyFor(request, ssn);
   const prediction = await cache.fetch(key, async () => {
-    // Written before the run, because the card names a file the engine
-    // opens. Null for an isotropic station, which names no file at all.
+    // Written before the run: the card names a file the engine opens.
+    // Null for an isotropic station, which names no file at all.
     const txAntenna = request.antenna
       ? await txCard(ITSHFBC_DIR, request.antenna)
       : null;
@@ -167,11 +162,10 @@ async function runOnce(
   txAntenna: Awaited<ReturnType<typeof txCard>> | null,
 ): Promise<PathPrediction> {
   // The classic run states the sunspot number as it always has. The new
-  // model instead names itself and the calendar day, and states the
-  // resolved number as `essn` only when the run is a now-cast — without
-  // one the engine derives its own index from the built-in day-of-year
-  // correction, the offline form (engine repository, `docs/offline.md`).
-  // Exclusive because the engine refuses `ssn` beside `engine:"truecast"`.
+  // model names itself and the calendar day, and adds `essn` only for a
+  // now-cast; without one the engine derives its own index from the
+  // day-of-year correction (engine repository, `docs/offline.md`).
+  // Exclusive: the engine refuses `ssn` beside `engine:"truecast"`.
   const modelFields = request.engine === 'truecast'
     ? {
       engine: 'truecast' as const,

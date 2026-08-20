@@ -17,6 +17,7 @@
 import { expect, test as base } from '@playwright/test';
 import type { Page } from '@playwright/test';
 
+import type { StationPreset } from '../../src/data/station.ts';
 import {
   BAND_ORDER,
   type BandHourPrediction,
@@ -192,24 +193,42 @@ export async function stubApi(
 interface OpenOptions {
   hour?: number;
   to?: Endpoint | null;
+  /**
+   * Saved stations, as the dialog will find them. Written the way the
+   * store persists them, which is the state a reader who set up two
+   * radios and closed the app leaves behind.
+   */
+  stations?: { presets: readonly StationPreset[]; activeId: string; };
 }
 
 export async function openApp(
   page: Page,
   options: OpenOptions = {},
 ): Promise<void> {
-  const { hour = 12, to = null } = options;
+  const { hour = 12, to = null, stations } = options;
 
   const stored = JSON.stringify({
     state: { from: GREENWICH, to, band: '40m', ready: true },
     version: 3,
   });
 
+  // Absent leaves the one station every install starts with.
+  const savedStations = stations === undefined ? null : JSON.stringify({
+    state: stations,
+    version: 2,
+  });
+
   // The function is serialised into the page, so everything it reads has to
   // arrive as its argument.
-  await page.addInitScript((seed: { hour: number; stored: string; }) => {
-    window.localStorage.setItem('hfcast.path', seed.stored);
-  }, { hour, stored });
+  await page.addInitScript(
+    (seed: { stored: string; stations: string | null; }) => {
+      window.localStorage.setItem('hfcast.path', seed.stored);
+      if (seed.stations !== null) {
+        window.localStorage.setItem('hfcast.station', seed.stations);
+      }
+    },
+    { stored, stations: savedStations },
+  );
 
   // Every clock in the application reads UTC, so setting the time fixes the
   // hour the grid opens on and which column is "now". Without it a test that

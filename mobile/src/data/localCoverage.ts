@@ -47,17 +47,14 @@ import {
 /**
  * The coverage map, computed on the device.
  *
- * This mirrors `server/src/coverage.ts` the way `localPredict.ts` mirrors the
- * server's prediction: same grid, same reach threshold, same area weighting,
- * and the same engine underneath. Kept separate from the path forecast for the
- * reason the server keeps them separate — an area run answers one hour in
- * every direction, so a whole day is 24 runs rather than one.
+ * Mirrors `server/src/coverage.ts`: same grid, same reach threshold, same
+ * area weighting, same engine. Separate from the path forecast because an
+ * area run answers one hour in every direction, so a whole day is 24 runs.
  *
- * Cost, measured on the compiled-in engine: 192 points is 48 ms on a desktop
- * and 0.8 s for the ARM build under emulation, which puts a phone somewhere
- * between. That is comfortable for a map drawn when the user looks at it, and
- * it is why the hour is part of the query key rather than something recomputed
- * as a slider moves.
+ * Cost on the compiled-in engine: 192 points is 48 ms on a desktop and
+ * 0.8 s for the ARM build under emulation, so a phone is between. Fine
+ * for a map drawn when the reader looks at it, which is why the hour is
+ * in the query key rather than recomputed as a slider moves.
  */
 
 /** Man-made noise at a residential site, dBW in 1 Hz. VOACAP's own default. */
@@ -66,10 +63,9 @@ const NOISE_DBW = -145;
 /**
  * One point as the map holds it, before the correction.
  *
- * Reliability is clamped here rather than trusted, because the map
- * colours by it. The signal level and its deciles pass through as the
- * engine reported them: `correctMap.ts` is the only thing that reads
- * them and it decides for itself what an absent one means.
+ * Reliability is clamped rather than trusted, because the map colours by
+ * it. Signal level and deciles pass through as reported: `correctMap.ts`
+ * is the only reader and decides what an absent one means.
  */
 const asPoint = (p: WireCoveragePoint): RawCoveragePoint => ({
   lat: p.lat,
@@ -104,10 +100,8 @@ export interface LocalCoverageRequest {
   engine?: EngineModel | undefined;
   /**
    * The part of the world the map is showing, for the fine grid only.
-   *
-   * Absent means the whole globe, and then the fine grid goes around the
-   * station — which is the same place the map is centred on, so the two
-   * agree at the default view.
+   * Absent means the whole globe, and the fine grid goes around the
+   * station — where the map is centred, so the two agree by default.
    */
   region?: MapRegion | null;
 }
@@ -118,21 +112,17 @@ type AreaAsk = Record<string, unknown>;
 /**
  * Runs one whole-world grid across this device's cores, and times it.
  *
- * The strips come from the device's own core count rather than from a
- * number written here, and the same function cuts the calibration probes
- * and the fine grid — which is what lets a line fitted through the two
- * probes say what the fine grid will cost. Three runs of different sizes
- * cut the same way share one fixed cost and one per-point cost; three
- * runs cut differently do not, and a fit across them would describe no
- * run that ever happens.
+ * The strips follow the device's core count, and the same function cuts
+ * the calibration probes and the fine grid — which is what lets a line
+ * fitted through the probes predict the grid. Runs cut the same way share
+ * one fixed and one per-point cost; runs cut differently do not, and a
+ * fit across them would describe no run that happens.
  *
- * Where the module is too old to run a batch, everything here runs
- * whole, probes included. That stays consistent for the same reason: the
- * fit then describes unsharded runs, which is what this device does.
+ * Where the module is too old to batch, everything runs whole, probes
+ * included, so the fit still describes what this device does.
  *
- * Generic over the answer because the same cut serves a one-band grid
- * and an every-band one. The strips are a property of the lattice, not
- * of how many frequencies each point carries.
+ * Generic over the answer: the same cut serves a one-band grid and an
+ * every-band one, since strips are a property of the lattice.
  */
 interface ShardedRun<T> {
   answers: T[];
@@ -153,18 +143,15 @@ async function shardedWholeWorld<T>(
   /**
    * Set to run behind the reader instead of in front of them.
    *
-   * Computing ahead uses this — see `precompute.ts`. It changes the cut
-   * and it changes the lane. The pieces are sized against
-   * `BACKGROUND_PIECE_POINTS` rather than against the thread count, and
-   * each is queued on its own, because the whole delay a reader can
-   * suffer from background work is the length of one piece of it. A
-   * whole grid handed over as one piece would be over a second on a
-   * phone and several on a tablet.
+   * Used by computing ahead (`precompute.ts`). It changes the cut and the
+   * lane: pieces are sized against `BACKGROUND_PIECE_POINTS` rather than
+   * the thread count and queued separately, because the longest delay
+   * background work can cause a reader is one piece. A whole grid as one
+   * piece is over a second on a phone and several on a tablet.
    *
-   * The cost is that the pieces run one at a time, so a grid computed
-   * this way takes about half as long again as one computed in front of
-   * the reader — 2,589 ms against 1,748 on the phone this was measured
-   * on. That is the right trade for work nobody is waiting for.
+   * The cost is that pieces run one at a time, so a grid takes about half
+   * as long again — 2,589 ms against 1,748 on the phone measured. The
+   * right trade for work nobody is waiting for.
    */
   behind: string | null = null,
 ): Promise<ShardedRun<T>> {
@@ -173,13 +160,12 @@ async function shardedWholeWorld<T>(
   }
   const cores = Engine.cores();
   // The measured count where this device has one, the starting rule
-  // where it does not — see `calibrate.ts`. The strips follow the
-  // count, so a device tuned to two threads is not cut sixteen ways.
+  // otherwise (`calibrate.ts`). The strips follow it, so a device tuned
+  // to two threads is not cut sixteen ways.
   const threads = tunedThreadsFor(cores);
-  // Cut into latitude strips so the batch can use more than one core.
-  // The arithmetic is the server's, copied character for character, so
-  // the two paths run the same lattice — see `shard.ts`. Null means the
-  // grid should not be split, and then it runs whole.
+  // Latitude strips, so the batch can use more than one core. The
+  // arithmetic is the server's, copied character for character, so both
+  // paths run the same lattice (`shard.ts`). Null runs the grid whole.
   const strips = Engine.canBatch()
     ? latShards(undefined, latStep, lonStep, threads * STRIPS_PER_THREAD)
     : null;
@@ -189,9 +175,8 @@ async function shardedWholeWorld<T>(
     strips === null
       ? {
         answers: [await Engine.predict<T>(request)],
-        // An unsharded run cannot separate the two: `predict` parses
-        // its one answer inside itself. Charged to the engine rather
-        // than split on a guess.
+        // An unsharded run cannot separate the two: `predict` parses its
+        // one answer inside itself. Charged to the engine, not guessed.
         nativeMs: Date.now() - startedAt,
         parseMs: 0,
       }
@@ -211,13 +196,11 @@ async function shardedWholeWorld<T>(
 /**
  * The same grid, cut small and run behind the reader.
  *
- * `inStrips` does this for the lattice of daily middles; this is the
- * same idea for the whole-world grid, which is twenty times as many
- * places at one hour instead of a few places at twenty-four.
+ * What `inStrips` does for the lattice of daily middles, for the
+ * whole-world grid: twenty times as many places at one hour.
  *
- * One piece at a time, never together: asking for them at once would put
- * the whole grid in the queue in one go, and cutting it up is the only
- * thing that bounds how long a reader can wait behind it.
+ * One piece at a time, never together — cutting it up is the only thing
+ * that bounds how long a reader can wait behind it.
  */
 async function inBackgroundStrips<T>(
   ask: AreaAsk,
@@ -235,9 +218,8 @@ async function inBackgroundStrips<T>(
     ),
   );
   const request = { ...ask, latStep, lonStep };
-  // The threshold is lowered to one strip's worth for the same reason
-  // `inStrips` lowers it: the cut here is about how long a reader waits,
-  // not about spreading work over cores.
+  // The threshold is lowered as `inStrips` lowers it: this cut is about
+  // how long a reader waits, not about spreading work over cores.
   const strips = latShards(undefined, latStep, lonStep, pieces, 1);
   const startedAt = Date.now();
   if (strips === null) {
@@ -265,8 +247,7 @@ async function inBackgroundStrips<T>(
     answers,
     elapsedMs,
     // `predict` parses its own answer inside itself, so the two cannot
-    // be separated here. Charged to the engine rather than split on a
-    // guess, as the unsharded path does.
+    // be separated. Charged to the engine, as the unsharded path does.
     nativeMs: elapsedMs,
     parseMs: 0,
     strips: strips.length,
@@ -285,8 +266,7 @@ async function areaAsk(request: LocalCoverageRequest, ssn: number) {
     month: request.date.getUTCMonth() + 1,
     year: request.date.getUTCFullYear(),
     // The same pair of forms the path forecast sends, from the same
-    // place, so a map and a forecast on one screen cannot end up
-    // describing different models.
+    // place, so a map and a forecast cannot describe different models.
     ...engineFields(request.engine, request.date, ssn, request.nowcast),
     watts: request.station.watts,
     requiredSnrDb: requiredSnrFor(request.station.mode),
@@ -299,10 +279,9 @@ async function areaAsk(request: LocalCoverageRequest, ssn: number) {
 /**
  * Every band, in the increasing order the engine requires.
  *
- * `BAND_ORDER` runs the other way — it is the order the selector shows,
- * highest frequency first — and the engine refuses a list that is not
- * increasing, because each band's antenna table is installed in a
- * window cut halfway to its neighbours.
+ * `BAND_ORDER` runs the other way, highest first, as the selector shows
+ * them. The engine refuses a list that is not increasing: each band's
+ * antenna table is installed in a window cut halfway to its neighbours.
  */
 const BANDS_BY_FREQ: readonly BandKey[] = [...BAND_ORDER].sort(
   (a, b) => BAND_MHZ[a] - BAND_MHZ[b],
@@ -343,12 +322,9 @@ interface WireBands {
 }
 
 /**
- * Pulls one band out of a multi-band answer.
- *
- * The engine echoes the frequencies it answered, and that echo is
- * checked rather than trusted: reading the arrays at the wrong index
- * would draw one band's map under another band's name, which is the
- * fault this app has already shipped once.
+ * Pulls one band out of a multi-band answer. The engine echoes the
+ * frequencies it answered, and the echo is checked rather than trusted:
+ * see `checkEcho`.
  */
 function bandPoints(
   answer: WireBands,
@@ -369,11 +345,9 @@ function bandPoints(
 }
 
 /**
- * Holds the engine to the band it was asked about.
- *
- * Reading the arrays at the wrong index would draw one band's map under
- * another band's name, which is the fault this app has already shipped
- * once.
+ * Holds the engine to the band it was asked about. Reading the arrays at
+ * the wrong index draws one band's map under another band's name, which
+ * this app has shipped once already.
  */
 function checkEcho(echoed: readonly number[] | undefined, index: number): void {
   if (echoed === undefined || echoed.length !== BANDS_BY_FREQ.length) {
@@ -389,22 +363,17 @@ function checkEcho(echoed: readonly number[] | undefined, index: number): void {
 /**
  * The middle of the day at every point of a lattice, for one band or all.
  *
- * This is the one thing the correction needs from the other 23 hours,
- * and the engine computes it in a single pass rather than 24 — see
- * `dailyMedian` in `hfcast-engine/src/service.rs`. It does not depend on
- * the hour, so one answer serves every hour the reader scrubs to, and it
- * does not depend on the storm widening either, which only touches the
- * spread.
+ * The one thing the correction needs from the other 23 hours, computed in
+ * a single pass (`dailyMedian` in `hfcast-engine/src/service.rs`). It
+ * depends on neither the hour nor the storm widening, which touches only
+ * the spread, so one answer serves every hour scrubbed to.
  *
- * `bands` null asks for every band together, which is what the coarse
- * lattice does: one pass over nine bands costs far less than nine
- * passes, and it means changing band does not wait for anything.
+ * `bands` null asks for every band together, as the coarse lattice does:
+ * one pass over them all costs far less than one each.
  *
- * The whole lattice comes back in one call rather than one call an hour,
- * so this goes through `predict` rather than a batch. The lattices are
- * small — 192 points, or 1,728 for the fine one — and the saving from
- * asking for the day at once is larger than the saving from spreading a
- * small grid over cores.
+ * The whole lattice arrives in one call, so this uses `predict` rather
+ * than a batch. The lattices are small — 192 points, or 1,728 fine — and
+ * asking for the day at once saves more than spreading them over cores.
  */
 export async function centresLocally(
   request: LocalCoverageRequest,
@@ -414,9 +383,8 @@ export async function centresLocally(
   /**
    * Set to fill a band in behind the map instead of in front of it.
    *
-   * Background work is cut into strips and each strip queued on its own,
-   * so the longest a reader can be held up by it is one strip rather
-   * than one lattice. See `engineQueue.ts`.
+   * Background work is cut into strips, each queued on its own, so the
+   * longest a reader waits is one strip. See `engineQueue.ts`.
    */
   behind: { group: string; } | null = null,
 ): Promise<Record<BandKey, CentreField | null>> {
@@ -446,9 +414,8 @@ export async function centresLocally(
   const rows = answer.points ?? [];
   const fields = bands.map((each, index) => {
     // A one-band answer carries a number where a several-band answer
-    // carries an array. Checked against the echo, as every other
-    // several-band read is, so one band's middles cannot be filed under
-    // another band's name.
+    // carries an array. Checked against the echo like every other
+    // several-band read.
     if (band === null) checkEcho(answer.freqsMhz, index);
     const centres: CentrePoint[] = rows.map((p) => ({
       lat: p.lat,
@@ -481,18 +448,15 @@ export async function centresLocally(
 /**
  * A whole-day lattice run one strip at a time, behind the map.
  *
- * The point is the gaps between the strips, not the strips. The engine
- * module takes one request at a time and cannot be interrupted, so the
- * delay a background run can impose on a reader is the length of one
- * piece of it — see `engineQueue.ts`. Whole, a fine lattice is over a
- * second of engine time; in strips it is a fraction of that.
+ * The gaps between the strips are the point. The engine module takes one
+ * request at a time and cannot be interrupted, so a background run holds
+ * a reader up for one piece (`engineQueue.ts`). Whole, a fine lattice is
+ * over a second of engine time; in strips a fraction of that.
  *
- * A whole day at one point costs about fifteen times an hour at one
- * point, so the strips are cut against a budget in hours of work rather
- * than in places. Sequential rather than concurrent on purpose: these
- * run between the reader's own requests, and asking for them together
- * would put the whole lattice in the queue at once and defeat the
- * cutting.
+ * A whole day at one point costs about fifteen times an hour there, so
+ * the strips are cut against a budget in hours of work rather than in
+ * places. Sequential on purpose: asking for them together would put the
+ * whole lattice in the queue at once and defeat the cutting.
  */
 async function inStrips(
   body: AreaAsk,
@@ -511,19 +475,16 @@ async function inStrips(
       ),
     ),
   );
-  // The threshold is lowered to one strip's worth, because splitting
-  // here is not about speed. A lattice of 1,728 places is well under the
-  // count that makes a one-hour grid worth cutting, and is far more work
-  // than that count describes.
+  // The threshold is lowered to one strip's worth: splitting here is not
+  // about speed. A lattice of 1,728 places is under the count that makes
+  // a one-hour grid worth cutting, and far more work than it describes.
   const strips = latShards(undefined, latStep, lonStep, pieces, 1);
   if (strips === null) {
     return await runLater(group, () => Engine.predict<WireMedians>(body));
   }
 
   // A loop rather than `Promise.all` over a map: the strips must not run
-  // together. Asking for them at once would put the whole lattice in the
-  // queue in one go, and cutting it up is the only thing that bounds how
-  // long a reader can wait behind it.
+  // together, which is the whole point of cutting them.
   const parts: WireMedians[] = [];
   for (const bounds of strips) {
     parts.push(
@@ -544,31 +505,25 @@ async function inStrips(
 /**
  * How much dearer a whole day is than one hour at the same place.
  *
- * About two fifths of an area run is setting the place up and does not
- * depend on the hour, so 24 hours in one pass costs about 15 times one
- * hour rather than 24. Measured with `HFCAST_PERF=1` in the engine.
+ * About two fifths of an area run is setting the place up, so 24 hours in
+ * one pass costs about 15 times one hour rather than 24. Measured with
+ * `HFCAST_PERF=1` in the engine.
  */
 const HOURS_IN_A_DAY_RUN = 15;
 
 /**
  * The coarse map, for every band at once.
  *
- * One run rather than nine. Almost everything an area run does before it
- * reaches a frequency — the coefficient interpolation, and the ionogram
- * built from it — is the same whatever the band, so nine bands asked for
- * together cost far less than nine bands asked for one at a time.
- * Measured in the engine over a 3,072-point grid: eight bands separately
- * 1,008 ms, eight bands in one pass 297 ms.
+ * One run rather than one a band. Almost everything an area run does
+ * before it reaches a frequency — the coefficient interpolation and the
+ * ionogram built from it — is the same whatever the band. Measured in the
+ * engine over a 3,072-point grid: eight bands separately 1,008 ms, in one
+ * pass 297 ms. The reader gets a band change drawn from memory.
  *
- * The reader gets that as a band change that draws from memory instead
- * of running the engine again.
- *
- * It is safe to read one band out of this because the engine holds a
- * batch to exact equality with the same bands run alone — see
- * `tests/area_bands.rs` there. That is not a property VOACAP has: its
- * own multi-frequency area run reports the maximum over the
- * frequencies, which would saturate every map. This asks for something
- * different and the engine answers each band separately.
+ * Safe to read one band out of, because the engine holds a batch to exact
+ * equality with the same bands run alone (`tests/area_bands.rs` there).
+ * Not a property VOACAP has: its own multi-frequency area run reports the
+ * maximum over the frequencies, which would saturate every map.
  */
 export async function coverAllBandsLocally(
   request: LocalCoverageRequest,
@@ -604,11 +559,9 @@ export async function coverAllBandsLocally(
       // asked for, so the drawn cells match the grid that ran.
       latStep: answer.latStep ?? LAT_STEP,
       lonStep: answer.lonStep ?? LON_STEP,
-      // The share of the world this reaches, from the numbers as the
-      // engine gave them. It is recomputed once the correction arrives
-      // — see `correctedCoverage` — because a corrected map reaches a
-      // different amount of the world from an uncorrected one, and the
-      // sentence beside the map must describe the map above it.
+      // The share of the world this reaches, as the engine gave it.
+      // Recomputed once the correction arrives (`correctedCoverage`):
+      // the sentence beside the map has to describe the map above it.
       reach: reachOf(points),
       basis,
       points,
@@ -629,34 +582,25 @@ export async function coverAllBandsLocally(
 /**
  * The fine grid, over the whole world, on the device.
  *
- * Every device runs it (user, 2026-08-01). There is no measurement of
- * the device beforehand and no decision taken from one: the coarse map
- * is on screen the whole time, a progress bar runs beside it, and a
- * slow device simply finishes later than a fast one.
+ * Every device runs it (user, 2026-08-01), with no measurement first: the
+ * coarse map stays on screen, a progress bar runs beside it, and a slow
+ * device finishes later than a fast one.
  *
- * The strips run on the module's own threads. Everything after them
- * runs on the thread that draws, so it is done a strip at a time with a
- * yield between — see `breathe`. That is what keeps a slow device
- * responsive rather than frozen, and it is the difference the gate used
- * to be protecting against without saying so.
+ * The strips run on the module's threads; everything after them runs on
+ * the thread that draws, a strip at a time with a yield between
+ * (`breathe`). That is what keeps a slow device responsive. The result is
+ * packed into typed arrays, so the engine's objects are released.
  *
- * The result is packed into typed arrays before returning, so the
- * objects the engine produced are released rather than cached.
+ * `centre` is the lattice of daily middles the correction needs, applied
+ * here before packing. The packed form holds reliability and the take-off
+ * angle alone — 276 KB a grid against about 690 KB if it kept the signal
+ * level and both deciles for a later correction. Twenty-four are held at
+ * once: 6.6 MB against 16.5.
  *
- * `centre` is the lattice of daily middles the correction needs, and it
- * is applied here, before the packing, rather than when the map is
- * drawn. The packed form holds reliability and the take-off angle and
- * nothing else — 276 KB a grid, against about 690 KB if it kept the
- * signal level and both deciles so the correction could be applied
- * later. Twenty-four of those are held at once, so the difference is 6.6
- * MB against 16.5.
- *
- * The consequence is that a grid is corrected by the lattice that
- * existed when it ran, and a better lattice arriving afterwards does not
- * improve it. That is why the fine grid waits for the fine lattice
- * rather than starting on the coarse one: rebuilding 34,560 points to
- * move a few colours is the most expensive thing this application can
- * do and the least worth doing twice.
+ * So a grid is corrected by the lattice that existed when it ran, and a
+ * better one afterwards does not improve it. That is why the fine grid
+ * waits for the fine lattice: rebuilding 34,560 points to move a few
+ * colours is the most expensive thing this application can do.
  */
 export async function coverFineLocally(
   request: LocalCoverageRequest,
@@ -677,21 +621,15 @@ export async function coverFineLocally(
   );
   const { answers, elapsedMs } = run;
 
-  // Concatenated in strip order. The engine emits rows south to north,
+  // Concatenated in strip order. The engine emits rows south to north and
   // the strips are cut south to north, so this is the sequence one run
-  // would have produced — not the same points in some other order, which
-  // is what the columnar packing depends on.
+  // would have produced, which the columnar packing depends on.
   //
-  // A strip at a time, with a yield between, rather than one `flatMap`
-  // over all sixteen. The work is the same; what changes is that the
-  // screen gets sixteen chances to draw a frame while it happens
-  // instead of none. A loop rather than a fold because the sequencing is
-  // the point — the yields have to fall between the strips, which is
-  // what a fold over an array cannot express.
-  //
-  // The correction is applied strip by strip too, in the same pass, for
-  // the same reason: it is 34,560 more pieces of arithmetic on the
-  // thread that draws.
+  // A strip at a time with a yield between, not one `flatMap` over all
+  // sixteen: same work, but the screen gets sixteen chances to draw a
+  // frame. A loop rather than a fold because the yields have to fall
+  // between the strips. The correction goes in the same pass, being
+  // 34,560 more pieces of arithmetic on the thread that draws.
   const packingAt = Date.now();
   const factors = factorsFor(request.nowcast?.kpMax24h ?? null);
   const required = requiredSnrFor(request.station.mode);
@@ -701,9 +639,9 @@ export async function coverFineLocally(
     for (const point of correctCoverage(raw, centre, required, factors)) {
       points.push(point);
     }
-    // Skipped outright when the app is not on screen, which is the state
-    // a job computing ahead spends most of its life in. There is nothing
-    // to draw a frame for, and the timeout behind this would not fire.
+    // Skipped when the app is off screen, where a job computing ahead
+    // spends most of its life: nothing to draw, and the timeout behind
+    // this would not fire.
     await breathe(onScreen());
   }
   if (points.length === 0) {
@@ -721,22 +659,17 @@ export async function coverFineLocally(
     points,
   });
 
-  // Said out loud because the parts are charged to different places and
-  // only one of them is the engine. The strips run on their own threads;
-  // everything after them — one JSON string per strip parsed, 34,560
-  // objects built, then packed into typed arrays — runs on the thread
-  // that draws.
+  // Split out because the parts are charged to different places and only
+  // one is the engine. The strips run on their own threads; the parse of
+  // one JSON string per strip, 34,560 objects built and then packed, runs
+  // on the thread that draws.
   //
-  // This is the measurement that decides what to work on next, and the
-  // two candidates need opposite fixes. If the engine half dominates,
-  // the arithmetic is the target. If the parse and pack halves do, no
-  // amount of engine work helps and the answer is to stop sending
-  // 34,560 points through JSON at all.
-  //
-  // The strip and thread counts are here for a third possibility. A
-  // phone measuring roughly what one core would manage, while claiming
-  // eight threads, is a phone whose batch is not running in parallel —
-  // a different fault again, and not visible in a total.
+  // The two candidates need opposite fixes: if the engine half dominates
+  // the arithmetic is the target, and if parse and pack do, no engine
+  // work helps and the answer is to stop sending 34,560 points through
+  // JSON. The strip and thread counts cover a third case — a phone
+  // measuring one core's work while claiming eight threads is one whose
+  // batch is not running in parallel, invisible in a total.
   timing('fine grid', {
     points: `${points.length} points`,
     cut: `${run.strips} strips on ${run.threads} threads`,
@@ -753,17 +686,14 @@ export async function coverFineLocally(
  * The fine grid around the operator, at the same band and hour.
  *
  * A second run rather than a finer first one: the same step over the
- * whole globe would be about a hundred times the work, and the question
- * it answers — where the low bands reach without a skip zone — is only
- * about the region near the station.
+ * whole globe is about a hundred times the work, and the question — where
+ * the low bands reach without a skip zone — is about the region near the
+ * station.
  *
- * Cost, measured on the compiled-in engine at Denver, 40m, 18:00 UTC: 288
- * points in 55 ms against the coarse grid's 192 points in 42 ms, so about
- * 0.14 ms a point over a fixed cost that is the coefficient load. The
- * widest patch, at the latitude where the longitude span stops widening,
- * is 640 points. On a device that is the same multiple of the coarse run,
- * which is why this is a query of its own: the coarse map paints first
- * and this arrives after it rather than delaying it.
+ * Cost on the compiled-in engine at Denver, 40m, 18:00 UTC: 288 points in
+ * 55 ms against the coarse grid's 192 in 42 ms, so about 0.14 ms a point
+ * over the coefficient load. The widest patch is 640 points. Its own
+ * query, so the coarse map paints first and this arrives after.
  *
  * Null where the station is near the antimeridian — see `patchBounds`.
  */
@@ -786,9 +716,8 @@ export async function coverPatchAllBandsLocally(
   );
   const ask = await areaAsk(request, ssn);
 
-  // Every band, as the coarse grid does and for the same reason: this
-  // rectangle's ionosphere does not depend on which band is drawn over
-  // it, and the reader changes band far more often than they pan.
+  // Every band, as the coarse grid does: this rectangle's ionosphere does
+  // not depend on the band, and readers change band more often than pan.
   const startedAt = Date.now();
   const answer = await runNow(() =>
     Engine.predict<WireBands>({
@@ -838,18 +767,15 @@ export async function coverPatchAllBandsLocally(
 /**
  * The coarse map, corrected, with its reach percentage recomputed.
  *
- * Applied when the map is read rather than when it was run, which is
- * what lets the map appear straight away and become correct a moment
- * later without being computed twice. It is affordable here and nowhere
- * else: 192 points, against 34,560 for the fine grid.
+ * Applied on read, not on run, so the map appears at once and becomes
+ * correct a moment later without being computed twice. Affordable here
+ * and nowhere else: 192 points against 34,560 for the fine grid.
  *
- * The reach percentage is recomputed from the corrected cells because it
- * is a sentence about the map — "40m reaches about 8% of the world" —
- * and it would otherwise describe a map nobody is looking at.
+ * Reach is recomputed from the corrected cells because it is a sentence
+ * about the map — "40m reaches about 8% of the world".
  *
- * A null lattice returns the coverage unchanged. That is the state the
- * map is in for the first fraction of a second, and it is what this
- * application drew for its whole life until now.
+ * A null lattice returns the coverage unchanged, which is the state of
+ * the map for the first fraction of a second.
  */
 export function correctedCoverage(
   coverage: Coverage,

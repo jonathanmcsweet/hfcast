@@ -13,10 +13,10 @@ import {
   wireFromBeam,
 } from '../../data/orientation';
 import {
-  useActivePreset,
-  usesBeam,
-  useStationStore,
-} from '../../store/useStationStore';
+  useDraftField,
+  useStationDraftStore,
+} from '../../store/useStationDraftStore';
+import { usesBeam } from '../../store/useStationStore';
 import { spacing } from '../../theme';
 import CompassRose from '../CompassRose';
 import Dial from './Dial';
@@ -26,12 +26,10 @@ import Note from './Note';
  * Where the antenna points, and whether that suits the path.
  *
  * A wire is described by how it runs, a beam by where it points. Asking a
- * dipole owner for its "beam heading" asks them to do the right-angle
- * conversion in their head, and getting it wrong puts the path in the
- * null. Turning a dipole through the compass is worth 12 dB and takes
- * reliability from 7% to 71%.
- *
- * Nothing is drawn for a family with nothing to point.
+ * dipole owner for a "beam heading" asks for a right-angle conversion in
+ * their head, and getting it wrong puts the path in the null: turning a
+ * dipole through the compass is worth 12 dB, and reliability from 7% to
+ * 71%. Nothing is drawn for a family with nothing to point.
  */
 export default function AimSection(
   { bearingToDestination, destinationLabel }: {
@@ -42,8 +40,8 @@ export default function AimSection(
   },
 ) {
   const { t } = useTranslation();
-  const { antenna } = useActivePreset();
-  const setAntenna = useStationStore((s) => s.setAntenna);
+  const antenna = useDraftField((preset) => preset.antenna);
+  const setAntenna = useStationDraftStore((s) => s.setAntenna);
 
   if (!usesBeam(antenna.type)) return null;
 
@@ -61,7 +59,7 @@ export default function AimSection(
     <>
       <Dial
         label={asWire ? t('station.wireRuns') : t('station.beam')}
-        value={t('station.degrees', { degrees: control })}
+        format={(degrees) => t('station.degrees', { degrees })}
         current={control}
         min={0}
         max={359}
