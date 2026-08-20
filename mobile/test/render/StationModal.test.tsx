@@ -65,18 +65,87 @@ describe('the station dialog', () => {
     expect(useStationStore.getState().presets[0]?.mode).toBe('cw');
   });
 
-  it('names a station it makes, rather than leaving the field empty', async () => {
+  it('makes a station with no name, and will not save one', async () => {
     const view = await renderWithApp(
       <StationModal visible onDismiss={() => {}} />,
     );
+    const nameField = () => {
+      const [found] = view.getAllByLabelText(t('station.a11y.name'));
+      if (found === undefined) throw new Error('no name field');
+      return found;
+    };
 
+    await fireEvent.press(view.getByLabelText(t('station.a11y.pickStation')));
     await fireEvent.press(view.getByText(t('station.add')));
-    await fireEvent.press(view.getByText(t('station.save')));
 
+    // Empty, with the reason Save is off on screen beside it.
+    expect(nameField().props.value).toBe('');
+    expect(view.getByText(t('station.needsName'))).toBeTruthy();
+
+    await fireEvent.press(view.getByText(t('station.save')));
+    expect(useStationStore.getState().presets).toHaveLength(1);
+
+    // A letter at a time. The field was open only while the name was
+    // empty, so it shut on the first one and the rest went nowhere.
+    await fireEvent.changeText(nameField(), 'F');
+    expect(nameField().props.editable).toBe(true);
+
+    await fireEvent.changeText(nameField(), 'Field day');
+    expect(view.queryByText(t('station.needsName'))).toBeNull();
+
+    await fireEvent.press(view.getByText(t('station.save')));
     const { presets, activeId } = useStationStore.getState();
     expect(presets).toHaveLength(2);
-    expect(presets[1]?.name).toBe(t('station.defaultName', { number: 2 }));
+    expect(presets[1]?.name).toBe('Field day');
     expect(activeId).toBe(presets[1]?.id);
+  });
+
+  it('holds the name closed until the pencil is pressed', async () => {
+    useStationStore.getState().commit({
+      presets: [{ id: 's1', name: 'Home', ...DEFAULT_STATION }],
+      activeId: 's1',
+    });
+    const view = await renderWithApp(
+      <StationModal visible onDismiss={() => {}} />,
+    );
+    const nameField = () => {
+      const [found] = view.getAllByLabelText(t('station.a11y.name'));
+      if (found === undefined) throw new Error('no name field');
+      return found;
+    };
+
+    expect(nameField().props.editable).toBe(false);
+
+    await fireEvent.press(view.getByLabelText(t('station.a11y.editName')));
+    expect(nameField().props.editable).toBe(true);
+  });
+
+  it('shows the station that was picked, and saves that one', async () => {
+    useStationStore.getState().commit({
+      presets: [
+        { id: 's1', name: 'Home', ...DEFAULT_STATION },
+        { id: 's2', name: 'Field day', ...DEFAULT_STATION },
+      ],
+      activeId: 's2',
+    });
+    const view = await renderWithApp(
+      <StationModal visible onDismiss={() => {}} />,
+    );
+    const nameField = () => {
+      const [found] = view.getAllByLabelText(t('station.a11y.name'));
+      if (found === undefined) throw new Error('no name field');
+      return found;
+    };
+
+    expect(nameField().props.value).toBe('Field day');
+
+    await fireEvent.press(view.getByLabelText(t('station.a11y.pickStation')));
+    await fireEvent.press(view.getByText('Home'));
+
+    expect(nameField().props.value).toBe('Home');
+
+    await fireEvent.press(view.getByText(t('station.save')));
+    expect(useStationStore.getState().activeId).toBe('s1');
   });
 
   it('asks for a height only where the antenna has one', async () => {

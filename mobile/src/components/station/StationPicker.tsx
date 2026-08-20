@@ -1,9 +1,8 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Pressable, StyleSheet, View } from 'react-native';
-import { Text, TextInput, useTheme } from 'react-native-paper';
+import { Divider, Icon, Text, useTheme } from 'react-native-paper';
 
-import { matching } from '../../data/stationDraft';
 import {
   useDraftActiveId,
   useDraftField,
@@ -22,10 +21,15 @@ import SectionHeading from './SectionHeading';
  * meant closing it, picking that station from the main screen's menu and
  * opening it again.
  *
- * A typeahead rather than a list: the reader knows what is in their own
- * list, so with three stations the field is a label and with fifteen two
- * letters beat scrolling. It only selects — creating is the button below,
- * so a mistyped name cannot become a second station.
+ * A dropdown and nothing else. It was a typeahead: a field that both
+ * filtered and displayed, beside a name field that renamed. Two text
+ * fields a line apart doing different things read as one confused
+ * control (user, 2026-08-20).
+ *
+ * Adding is the last row of the list rather than a button beside it,
+ * which is where Android puts it — Wi-Fi networks, Gmail accounts,
+ * keyboards. It keeps every control of this section inside the two
+ * fields.
  */
 export default function StationPicker() {
   const { t } = useTranslation();
@@ -35,47 +39,38 @@ export default function StationPicker() {
   const activeId = useDraftActiveId();
   const name = useDraftField((preset) => preset.name);
   const selectStation = useStationDraftStore((s) => s.selectStation);
+  const addStation = useStationDraftStore((s) => s.addStation);
 
-  /**
-   * What has been typed, or null when the field shows the station. Same
-   * shape as the power and height fields: null follows the state, a
-   * string means the reader is typing and the state must not overwrite it.
-   */
-  const [typed, setTyped] = useState<string | null>(null);
+  const [open, setOpen] = useState(false);
 
   const unnamed = t('station.unnamed');
   const nameOf = (option: StationPreset) =>
     option.name === '' ? unnamed : option.name;
 
-  const open = typed !== null;
-  const matches = matching(presets, typed ?? '', unnamed);
-
-  const choose = (id: string) => {
-    selectStation(id);
-    setTyped(null);
-  };
-
   return (
     <>
       <SectionHeading text={t('station.pickSection')} />
-      <TextInput
-        mode="outlined"
-        dense
-        value={typed ?? (name === '' ? unnamed : name)}
-        onChangeText={setTyped}
-        onFocus={() => setTyped('')}
-        onBlur={() => setTyped(null)}
-        placeholder={unnamed}
-        right={
-          <TextInput.Icon
-            icon={open ? 'menu-up' : 'menu-down'}
-            onPress={() => setTyped(open ? null : '')}
-            accessibilityLabel={t('station.a11y.pickStation')}
-          />
-        }
+      <Pressable
+        onPress={() => setOpen((was) => !was)}
+        accessibilityRole="button"
+        accessibilityState={{ expanded: open }}
         accessibilityLabel={t('station.a11y.pickStation')}
-        style={styles.field}
-      />
+        // No fill, so it reads as one column with the outlined name
+        // field under it.
+        style={[styles.field, { borderColor: open ? ui.accent : ui.line }]}
+      >
+        <Text
+          numberOfLines={1}
+          style={[typography.body, styles.value, { color: ui.ink }]}
+        >
+          {name === '' ? unnamed : name}
+        </Text>
+        <Icon
+          source={open ? 'menu-up' : 'menu-down'}
+          size={20}
+          color={ui.text2}
+        />
+      </Pressable>
 
       {
         /* In the flow, not floating over the sections below: a dialog
@@ -90,39 +85,46 @@ export default function StationPicker() {
               backgroundColor: ui.card,
             }]}
           >
-            {matches.length === 0
-              ? (
+            {presets.map((option) => (
+              <Pressable
+                key={option.id}
+                onPress={() => {
+                  selectStation(option.id);
+                  setOpen(false);
+                }}
+                accessibilityRole="button"
+                accessibilityState={{ selected: option.id === activeId }}
+                style={styles.option}
+              >
                 <Text
-                  style={[typography.body, styles.empty, {
-                    color: ui.text3,
-                  }]}
+                  style={[
+                    option.id === activeId
+                      ? typography.bodyStrong
+                      : typography.body,
+                    { color: option.id === activeId ? ui.accent : ui.ink },
+                  ]}
                 >
-                  {t('station.noMatch')}
+                  {nameOf(option)}
                 </Text>
-              )
-              : matches.map((option) => (
-                <Pressable
-                  key={option.id}
-                  // `onPressIn` rather than `onPress`: the field's blur
-                  // arrives first on web and closes the list before a
-                  // press can land on it.
-                  onPressIn={() => choose(option.id)}
-                  accessibilityRole="button"
-                  accessibilityState={{ selected: option.id === activeId }}
-                  style={styles.option}
-                >
-                  <Text
-                    style={[
-                      option.id === activeId
-                        ? typography.bodyStrong
-                        : typography.body,
-                      { color: option.id === activeId ? ui.accent : ui.ink },
-                    ]}
-                  >
-                    {nameOf(option)}
-                  </Text>
-                </Pressable>
-              ))}
+              </Pressable>
+            ))}
+
+            <Divider />
+
+            <Pressable
+              onPress={() => {
+                addStation();
+                setOpen(false);
+              }}
+              accessibilityRole="button"
+              accessibilityHint={t('station.a11y.addHint')}
+              style={[styles.option, styles.add]}
+            >
+              <Icon source="plus" size={18} color={ui.accent} />
+              <Text style={[typography.body, { color: ui.accent }]}>
+                {t('station.add')}
+              </Text>
+            </Pressable>
           </View>
         )
         : null}
@@ -131,7 +133,19 @@ export default function StationPicker() {
 }
 
 const styles = StyleSheet.create({
-  field: { marginTop: spacing.xs },
+  // Sized and spaced as the outlined text fields below it, so the two
+  // read as one column of controls.
+  field: {
+    marginTop: spacing.xs,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    minHeight: 48,
+    paddingHorizontal: spacing.md,
+    borderWidth: 1,
+    borderRadius: radius.inset,
+  },
+  value: { flex: 1 },
   list: {
     marginTop: spacing.xs,
     borderWidth: StyleSheet.hairlineWidth,
@@ -144,5 +158,12 @@ const styles = StyleSheet.create({
     minHeight: 44,
     justifyContent: 'center',
   },
-  empty: { padding: spacing.md },
+  // Left, with the names above it, rather than centred by the row
+  // above's own vertical centring.
+  add: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'flex-start',
+    gap: spacing.sm,
+  },
 });

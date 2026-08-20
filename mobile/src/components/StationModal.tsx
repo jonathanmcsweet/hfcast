@@ -17,7 +17,7 @@ import {
   useTheme,
 } from 'react-native-paper';
 
-import { forStore, isDirty } from '../data/stationDraft';
+import { forStore, isDirty, needsName } from '../data/stationDraft';
 import { useDraft, useStationDraftStore } from '../store/useStationDraftStore';
 import { useStationStore } from '../store/useStationStore';
 import { radius, spacing, typography } from '../theme';
@@ -94,6 +94,10 @@ export default function StationModal(
   const [asking, setAsking] = useState(false);
 
   const dirty = isDirty(draft, saved);
+  // A station with no name cannot be told from another anywhere it is
+  // shown, so nothing is written until every one has one. The name
+  // section says so.
+  const unnamed = needsName(draft.presets, presets);
 
   /*
    * Start the draft again each time the dialog opens.
@@ -193,7 +197,11 @@ export default function StationModal(
             <Button mode="text" onPress={leave}>
               {t('station.cancel')}
             </Button>
-            <Button mode="contained" onPress={save} disabled={!dirty}>
+            <Button
+              mode="contained"
+              onPress={save}
+              disabled={!dirty || unnamed}
+            >
               {t('station.save')}
             </Button>
           </View>

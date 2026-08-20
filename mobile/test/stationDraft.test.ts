@@ -7,8 +7,8 @@ import type { Draft } from '../src/data/stationDraft.ts';
 
 /**
  * The dialog's working copy. Save writes what the reader sees, Cancel
- * costs nothing, and a station made by Add arrives named — the empty name
- * is what made adding a station read as losing one.
+ * costs nothing, and a station made by Add arrives with no name — which
+ * `needsName` then refuses to save.
  */
 
 const at = (name: string, id: string) => ({ id, name, ...DEFAULT_STATION });
@@ -18,8 +18,6 @@ const two: Draft = {
   presets: [at('Home', 's1'), at('Portable', 's2')],
   activeId: 's1',
 };
-
-const number = (n: number) => `Station ${n}`;
 
 describe('the station draft', () => {
   it('changes the active station and no other', () => {
@@ -48,34 +46,23 @@ describe('the station draft', () => {
     );
   });
 
-  it('names a new station rather than leaving it blank', () => {
-    // A blank name shows the placeholder, which looks like a form that
-    // was never filled in.
-    const next = draft.addStation(one, number);
+  it('leaves a new station with no name', () => {
+    // Named would be a name nobody chose. `needsName` makes the reader
+    // give it one before it can be saved.
+    const next = draft.addStation(one);
     assert.equal(next.presets.length, 2);
-    assert.equal(draft.active(next).name, 'Station 2');
-    assert.notEqual(draft.active(next).name, '');
-  });
-
-  it('does not name two stations the same', () => {
-    const taken: Draft = {
-      presets: [at('Home', 's1'), at('Station 2', 's2')],
-      activeId: 's1',
-    };
-    assert.equal(
-      draft.active(draft.addStation(taken, number)).name,
-      'Station 3',
-    );
+    assert.equal(draft.active(next).name, '');
+    assert.equal(draft.needsName(next.presets, one.presets), true);
   });
 
   it('selects the station it just made', () => {
-    const next = draft.addStation(one, number);
+    const next = draft.addStation(one);
     assert.equal(next.activeId, next.presets[1]?.id);
   });
 
   it('copies the active station rather than starting from defaults', () => {
     const set = draft.setWatts(one, 5);
-    const next = draft.addStation(set, number);
+    const next = draft.addStation(set);
     assert.equal(draft.active(next).watts, 5);
   });
 
@@ -95,7 +82,7 @@ describe('the station draft', () => {
     assert.equal(draft.isDirty(one, one), false);
     assert.equal(draft.isDirty(draft.setWatts(one, 5), one), true);
     assert.equal(draft.isDirty(draft.rename(one, 'Shack'), one), true);
-    assert.equal(draft.isDirty(draft.addStation(one, number), one), true);
+    assert.equal(draft.isDirty(draft.addStation(one), one), true);
   });
 
   it('counts a different station as a change', () => {
@@ -116,20 +103,26 @@ describe('the station draft', () => {
     assert.equal(draft.forStore(typed).presets[0]?.name, 'Field');
   });
 
-  it('matches stations by what has been typed', () => {
-    assert.equal(draft.matching(two.presets, '', 'My station').length, 2);
+  it('holds Save until every station has a name', () => {
+    assert.equal(draft.needsName(two.presets, two.presets), false);
+    // Any of them, not only the one being edited: a station left unnamed
+    // and switched away from is still one nobody can tell apart.
+    const added = draft.addStation(two);
     assert.equal(
-      draft.matching(two.presets, 'port', 'My station')[0]?.id,
-      's2',
+      draft.needsName(draft.selectStation(added, 's1').presets, two.presets),
+      true,
     );
-    assert.equal(draft.matching(two.presets, 'zzz', 'My station').length, 0);
   });
 
-  it('finds an unnamed station by the word shown for it', () => {
-    const unnamed: Draft = { presets: [at('', 's1')], activeId: 's1' };
+  it('counts a name of nothing but spaces as no name', () => {
     assert.equal(
-      draft.matching(unnamed.presets, 'my sta', 'My station').length,
-      1,
+      draft.needsName(draft.rename(one, '   ').presets, one.presets),
+      true,
     );
+
+    // One saved without a name is not a debt: every install starts with
+    // one, and it can be edited without being named first.
+    const never: Draft = { presets: [at('', 's1')], activeId: 's1' };
+    assert.equal(draft.needsName(never.presets, never.presets), false);
   });
 });

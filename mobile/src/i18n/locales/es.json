@@ -257,19 +257,18 @@
       "wire": "Dirección en la que va el hilo, en grados",
       "facingOne": "Apuntando a {{first}} grados",
       "facingTwo": "Favorece {{first}} y {{second}} grados por igual",
-      "pickStation": "Qué estación se edita"
+      "pickStation": "Selecciona la estación que quieres editar",
+      "editName": "Editar el nombre"
     },
-    "nameSection": "Estación",
-    "pickSection": "Qué estación",
-    "noMatch": "Ninguna estación con ese nombre",
-    "defaultName": "Estación {{number}}",
+    "nameSection": "Nombre",
+    "pickSection": "Selecciona una estación",
     "save": "Guardar",
     "cancel": "Cancelar",
     "discardTitle": "¿Descartar los cambios?",
     "discardBody": "Esta estación tiene cambios sin guardar. Si cierras ahora, se queda como estaba.",
     "keepEditing": "Seguir editando",
     "discard": "Descartar",
-    "unnamed": "Mi estación",
+    "unnamed": "Estación sin nombre",
     "add": "Añadir estación",
     "remove": "Eliminar",
     "manage": "Editar estaciones…",
@@ -293,7 +292,8 @@
       "w": "O"
     },
     "apexHeight": "Altura del vértice",
-    "invertedVNote": "Calculada como un dipolo a {{height}}, el {{percent}} % de la altura del vértice. La ayuda explica por qué."
+    "invertedVNote": "Calculada como un dipolo a {{height}}, el {{percent}} % de la altura del vértice. La ayuda explica por qué.",
+    "needsName": "Cada estación necesita un nombre."
   },
   "units": {
     "metres": "{{value}} m",

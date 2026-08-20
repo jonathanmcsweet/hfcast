@@ -94,43 +94,18 @@ export const reset = (draft: Draft): Draft =>
   }));
 
 /**
- * What to call a station nobody has named yet.
- *
- * New presets used to arrive empty, showing only a placeholder — which
- * looks like a form that was never filled in, and is why adding a station
- * read as losing one (user, 2026-08-18).
- *
- * The formatter is passed in because the word is translated and this file
- * knows nothing about i18next. Numbering walks up until the name is free,
- * so adding, deleting and adding again cannot make two "Station 2"s.
- */
-export function nextName(
-  presets: readonly StationPreset[],
-  format: (n: number) => string,
-): string {
-  const taken = new Set(presets.map((preset) => preset.name));
-  for (let n = presets.length + 1; n < presets.length + 100; n++) {
-    const name = format(n);
-    if (!taken.has(name)) return name;
-  }
-  return format(presets.length + 1);
-}
-
-/**
- * Copies the active preset under a new name and selects the copy.
+ * Copies the active preset under no name, and selects it.
  *
  * A copy, not a blank: a second station is usually the first with one
- * thing different.
+ * thing different. The name is left empty on purpose — `needsName`
+ * stops it being saved until the reader gives it one, which is what
+ * tells two stations apart everywhere else in the app.
  */
-export function addStation(
-  draft: Draft,
-  format: (n: number) => string,
-): Draft {
+export function addStation(draft: Draft): Draft {
   const source = active(draft);
   const id = nextId(draft.presets);
-  const name = nextName(draft.presets, format);
   return {
-    presets: [...draft.presets, { ...source, id, name }],
+    presets: [...draft.presets, { ...source, id, name: '' }],
     activeId: id,
   };
 }
@@ -204,17 +179,22 @@ export function forStore(draft: Draft): Draft {
   };
 }
 
-/** Which stations match what has been typed into the picker. */
-export function matching(
+/**
+ * Whether a station is waiting for a name the reader owes it.
+ *
+ * Blocks Save. Two cases: a station just made, and one whose name has
+ * been rubbed out. A station that was saved without a name is left
+ * alone — every install begins with one, and demanding a name before
+ * the mode can be changed would be a toll on somebody who never asked
+ * for a second station.
+ */
+export function needsName(
   presets: readonly StationPreset[],
-  query: string,
-  unnamed: string,
-): readonly StationPreset[] {
-  const needle = query.trim().toLocaleLowerCase();
-  if (needle === '') return presets;
-  return presets.filter((preset) =>
-    (preset.name === '' ? unnamed : preset.name)
-      .toLocaleLowerCase()
-      .includes(needle)
-  );
+  saved: readonly StationPreset[],
+): boolean {
+  return presets.some((preset) => {
+    if (preset.name.trim() !== '') return false;
+    const was = saved.find((other) => other.id === preset.id);
+    return was === undefined || was.name.trim() !== '';
+  });
 }

@@ -28,12 +28,8 @@ interface StationDraftState {
   setMode: (mode: ModeKey) => void;
   setAntenna: (antenna: Partial<Antenna>) => void;
   rename: (name: string) => void;
-  /**
-   * Copies the active station under a new name. The name is translated
-   * and a store knows nothing about i18next, so the caller passes the
-   * formatter it already has.
-   */
-  addStation: (format: (n: number) => string) => void;
+  /** Copies the active station, unnamed, and moves to it. */
+  addStation: () => void;
   removeStation: (id: string) => void;
   selectStation: (id: string) => void;
   reset: () => void;
@@ -51,8 +47,7 @@ export const useStationDraftStore = create<StationDraftState>()((set) => ({
   setAntenna: (antenna) =>
     set((s) => ({ draft: draft.setAntenna(s.draft, antenna) })),
   rename: (name) => set((s) => ({ draft: draft.rename(s.draft, name) })),
-  addStation: (format) =>
-    set((s) => ({ draft: draft.addStation(s.draft, format) })),
+  addStation: () => set((s) => ({ draft: draft.addStation(s.draft) })),
   removeStation: (id) =>
     set((s) => ({ draft: draft.removeStation(s.draft, id) })),
   selectStation: (id) =>
