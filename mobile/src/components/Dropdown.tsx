@@ -31,7 +31,7 @@ interface Props<T extends string> {
  * A chip row says "one of these" better than a stack of ticked rows, and
  * is what the short lists here used. It stops working once a list can
  * grow: seven languages already wrap onto three lines, and more are
- * coming (user, 2026-08-20).
+ * coming.
  *
  * The list sits in the flow rather than floating over what follows: a
  * dialog that already scrolls clips an overlay on one platform and not
