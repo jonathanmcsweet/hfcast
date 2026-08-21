@@ -51,6 +51,7 @@ What this means for every change:
 
 ## Core coding principles
 
+- NEVER add a dependency that calls a third party service for the built app without asking the user first
 - Always use a function-first immutability-first coding style unless the developer approves of you not doing so
 - Use pure functional programming style unless the developer approves of you not doing so. A function is pure when:
   1. the function return values are identical for identical arguments (no variation with local static variables, non-local variables, mutable reference arguments or input streams, i.e., referential transparency), and
