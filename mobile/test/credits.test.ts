@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { describe, it } from 'node:test';
 
-import { CREDITS, DISCLAIMER, LICENCES } from '../src/data/credits.ts';
+import { CREDITS, LICENCES } from '../src/data/credits.ts';
 import {
   APP_VERSION,
   APP_VERSION_CODE,
@@ -103,10 +103,11 @@ describe('the credits', () => {
     }
   });
 
-  it('states terms for every credit', () => {
+  it('names somebody for every credit', () => {
     for (const credit of CREDITS) {
       assert.ok(credit.who.length > 0, `${credit.id} names nobody`);
-      assert.ok(credit.terms.length > 0, `${credit.id} states no terms`);
+      // Optional, but an empty string draws a blank line rather than nothing.
+      assert.ok(credit.terms !== '', `${credit.id} has an empty terms line`);
     }
   });
 
@@ -126,19 +127,25 @@ describe('the credits', () => {
       LICENCES.map((licence) => licence.name.toLowerCase()),
     );
     for (const credit of CREDITS) {
-      const published = /^(cc0|cc by)/i.test(credit.terms);
-      if (!published || carried.has(credit.terms.toLowerCase())) continue;
+      const terms = credit.terms ?? '';
+      const published = /^(cc0|cc by)/i.test(terms);
+      if (!published || carried.has(terms.toLowerCase())) continue;
       assert.match(
         credit.termsUrl ?? '',
         /^https:\/\/(creativecommons\.org)\/\S+$/,
-        `${credit.id} states ${credit.terms} but links no licence`,
+        `${credit.id} states ${terms} but links no licence`,
       );
     }
   });
 
-  it('carries the no-endorsement disclaimer NTIA/ITS asks for', () => {
-    assert.match(DISCLAIMER, /Institute for Telecommunication Sciences/);
-    assert.match(DISCLAIMER, /endorse/i);
+  it('carries the no-endorsement notice NTIA/ITS asks for', () => {
+    // Both halves of what ITS asks: the body named in full, and a statement
+    // that they endorse nothing. It rides on the credit rather than standing
+    // as its own About section (user, 2026-08-20).
+    const voacap = CREDITS.find((credit) => credit.id === 'voacap');
+    assert.ok(voacap, 'no VOACAP credit at all');
+    assert.match(voacap.who, /Institute for Telecommunication Sciences/);
+    assert.match(voacap.notice ?? '', /endorse/i);
   });
 
   it('has a description in every language', () => {
@@ -157,7 +164,6 @@ describe('the credits', () => {
       for (
         const key of [
           'title',
-          'close',
           'what',
           'version',
           'builtOn',

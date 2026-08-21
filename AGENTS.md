@@ -7,8 +7,18 @@
 - Use technical terms accurate to the domain terms in the codebase
 - When making technical decisions, do not give weight to development cost or development hours. Instead prefer readability, quality, simplicity, robustness, scalability, testability, and long term maintainability
 - when writting code comments or commit messages, be extremely concise. Favor concision over proper grammar.
+- never use em dash
 
-## Who the users are
+## In-app text and user documentation
+
+- Write as one person telling another something useful, not as a specification.
+- Let related facts share a sentence with commas or appositives. Don't give each fact its own sentence.
+- Say what a thing is and what it's good for, not what it isn't.
+- Don't add a paragraph explaining how to interpret what you just said.
+- Cut any detail that doesn't change what the reader thinks or does.
+- Never end a paragraph on a short punchy line.
+
+## What this project is and who the users are
 
 HFcast is for amateur radio operators who use both new and old, cheap, low-power
 Android devices as assistants. Many operate in the field: field days, hikes,

@@ -1,11 +1,12 @@
 import * as Clipboard from 'expo-clipboard';
 import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { AccessibilityInfo, ScrollView, StyleSheet, View } from 'react-native';
-import { IconButton, Modal, Portal, Text, useTheme } from 'react-native-paper';
+import { AccessibilityInfo, ScrollView, StyleSheet } from 'react-native';
+import { IconButton, Text, useTheme } from 'react-native-paper';
 
-import { radius, spacing, typography } from '../theme';
+import { typography } from '../theme';
 import type { AppTheme } from '../theme';
+import ModalFrame from './ModalFrame';
 
 /**
  * The measurement's numbers, with a way to get them off the phone.
@@ -56,80 +57,44 @@ export default function MeasureModal(
   };
 
   return (
-    <Portal>
-      <Modal
-        visible={visible}
-        {
-          // While the benchmark runs, a tap outside would close the only
-          // place its answer can arrive. The close icon disappears too, so
-          // the dialog does not offer a way out that it would ignore.
-          ...(measuring ? {} : { onDismiss })
-        }
-        dismissable={!measuring}
-        contentContainerStyle={[
-          styles.modal,
-          { backgroundColor: theme.colors.surface },
-        ]}
-      >
-        <View style={styles.headerRow}>
-          <Text
-            style={[typography.cardHeadline, styles.title, { color: ui.ink }]}
-          >
-            {t('settings.measure')}
-          </Text>
-          {measuring ? null : (
-            <>
-              <IconButton
-                icon={copied ? 'check' : 'content-copy'}
-                onPress={() => {
-                  void copy();
-                }}
-                accessibilityLabel={t(
-                  copied ? 'settings.copied' : 'settings.copyMeasurement',
-                )}
-                iconColor={copied ? theme.colors.primary : ui.text2}
-              />
-              <IconButton
-                icon="close"
-                onPress={onDismiss}
-                accessibilityLabel={t('settings.measureClose')}
-                iconColor={ui.text2}
-              />
-            </>
+    <ModalFrame
+      visible={visible}
+      onDismiss={onDismiss}
+      title={t('settings.measure')}
+      // While the benchmark runs there is no way out on offer: a tap
+      // outside would close the only place its answer can arrive.
+      leave={measuring ? 'none' : 'close'}
+      tool={measuring ? null : (
+        <IconButton
+          icon={copied ? 'check' : 'content-copy'}
+          onPress={() => {
+            void copy();
+          }}
+          accessibilityLabel={t(
+            copied ? 'settings.copied' : 'settings.copyMeasurement',
           )}
-        </View>
-
-        <ScrollView showsVerticalScrollIndicator={false}>
-          {measuring
-            ? (
-              <Text style={[typography.body, { color: ui.text2 }]}>
-                {t('settings.measuring')}
-              </Text>
-            )
-            : (
-              <Text
-                selectable
-                style={[styles.numbers, { color: ui.text2 }]}
-              >
-                {text}
-              </Text>
-            )}
-        </ScrollView>
-      </Modal>
-    </Portal>
+          iconColor={copied ? theme.colors.primary : ui.text2}
+        />
+      )}
+    >
+      <ScrollView showsVerticalScrollIndicator={false}>
+        {measuring
+          ? (
+            <Text style={[typography.body, { color: ui.text2 }]}>
+              {t('settings.measuring')}
+            </Text>
+          )
+          : (
+            <Text selectable style={[styles.numbers, { color: ui.text2 }]}>
+              {text}
+            </Text>
+          )}
+      </ScrollView>
+    </ModalFrame>
   );
 }
 
 const styles = StyleSheet.create({
-  modal: {
-    margin: spacing.lg,
-    marginVertical: spacing.xxl,
-    padding: spacing.lg,
-    borderRadius: radius.card,
-    maxHeight: '85%',
-  },
-  headerRow: { flexDirection: 'row', alignItems: 'center' },
-  title: { flex: 1 },
   // Monospaced so the stage lines keep their shape, and so the text
   // matches the log it will be read next to.
   numbers: {

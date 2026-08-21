@@ -1,6 +1,6 @@
 import { useTranslation } from 'react-i18next';
-import { ScrollView, StyleSheet, View } from 'react-native';
-import { IconButton, Modal, Portal, Text, useTheme } from 'react-native-paper';
+import { ScrollView, StyleSheet } from 'react-native';
+import { Text, useTheme } from 'react-native-paper';
 
 import { UNIT_PREFERENCES } from '../data/units';
 import { useDirection } from '../hooks/useDirection';
@@ -8,9 +8,11 @@ import { useUnits } from '../hooks/useUnits';
 import { LANGUAGE_NAMES, SUPPORTED } from '../i18n';
 import type { SupportedLanguage } from '../i18n';
 import { ENGINE_MODELS, useSettingsStore } from '../store/useSettingsStore';
-import { radius, spacing, typography } from '../theme';
+import { spacing, typography } from '../theme';
 import type { AppTheme } from '../theme';
 import ChipGroup from './ChipGroup';
+import Dropdown from './Dropdown';
+import ModalFrame from './ModalFrame';
 
 /**
  * Language and units, out of the menu (user, 2026-08-11).
@@ -61,87 +63,63 @@ export default function PreferencesModal({ visible, onDismiss }: Props) {
       : t(`settings.units.${value}`);
 
   return (
-    <Portal>
-      <Modal
-        visible={visible}
-        onDismiss={onDismiss}
-        contentContainerStyle={[
-          styles.modal,
-          { backgroundColor: theme.colors.surface },
-        ]}
-      >
-        <View style={styles.headerRow}>
-          <Text
-            style={[typography.cardHeadline, styles.title, { color: ui.ink }]}
-          >
-            {t('preferences.title')}
-          </Text>
-          <IconButton
-            icon="close"
-            onPress={onDismiss}
-            accessibilityLabel={t('preferences.close')}
-            iconColor={ui.text2}
-          />
-        </View>
+    <ModalFrame
+      visible={visible}
+      onDismiss={onDismiss}
+      title={t('preferences.title')}
+      leave="back"
+    >
+      <ScrollView showsVerticalScrollIndicator={false}>
+        {heading(t('settings.languageSection'))}
+        {
+          /* A dropdown, not chips: the list only grows, and seven
+             already wrap onto three lines. Each language names itself,
+             so somebody who cannot read the current one can still find
+             their own, and the three Englishes carry their country for
+             the same reason. */
+        }
+        <Dropdown
+          label={t('settings.changeLanguage')}
+          options={SUPPORTED.map((lang) => ({
+            key: lang,
+            label: LANGUAGE_NAMES[lang],
+          }))}
+          selected={i18n.language as SupportedLanguage}
+          onSelect={(lang) => void setLanguage(lang)}
+        />
 
-        <ScrollView showsVerticalScrollIndicator={false}>
-          {heading(t('settings.languageSection'))}
-          {
-            /* Each language names itself, so somebody who cannot read the
-               current one can still find their own. The three Englishes
-               carry their country for the same reason: "English" three
-               times says nothing about which to pick. */
-          }
-          <ChipGroup
-            options={SUPPORTED}
-            selected={i18n.language as SupportedLanguage}
-            onSelect={(lang) => void setLanguage(lang)}
-            label={(lang) => LANGUAGE_NAMES[lang]}
-            a11yLabel={(lang) => LANGUAGE_NAMES[lang]}
-          />
+        {heading(t('settings.unitsSection'))}
+        <ChipGroup
+          options={UNIT_PREFERENCES}
+          selected={units}
+          onSelect={setUnits}
+          label={unitLabel}
+          a11yLabel={unitLabel}
+        />
 
-          {heading(t('settings.unitsSection'))}
-          <ChipGroup
-            options={UNIT_PREFERENCES}
-            selected={units}
-            onSelect={setUnits}
-            label={unitLabel}
-            a11yLabel={unitLabel}
-          />
-
-          {heading(t('settings.engineSection'))}
-          <ChipGroup
-            options={ENGINE_MODELS}
-            selected={engineModel}
-            onSelect={setEngineModel}
-            label={(model) => t(`settings.engine.${model}`)}
-            a11yLabel={(model) => t(`settings.engine.${model}`)}
-          />
-          {
-            /* One sentence of what the choice means, because the two chip
+        {heading(t('settings.engineSection'))}
+        <ChipGroup
+          options={ENGINE_MODELS}
+          selected={engineModel}
+          onSelect={setEngineModel}
+          label={(model) => t(`settings.engine.${model}`)}
+          a11yLabel={(model) => t(`settings.engine.${model}`)}
+        />
+        {
+          /* One sentence of what the choice means, because the two chip
                names alone cannot say why the numbers just moved. */
-          }
-          <Text
-            style={[typography.caption, styles.caption, { color: ui.text3 }]}
-          >
-            {t('settings.engine.caption')}
-          </Text>
-        </ScrollView>
-      </Modal>
-    </Portal>
+        }
+        <Text
+          style={[typography.caption, styles.caption, { color: ui.text3 }]}
+        >
+          {t('settings.engine.caption')}
+        </Text>
+      </ScrollView>
+    </ModalFrame>
   );
 }
 
 const styles = StyleSheet.create({
-  modal: {
-    margin: spacing.lg,
-    marginVertical: spacing.xxl,
-    padding: spacing.lg,
-    borderRadius: radius.card,
-    maxHeight: '85%',
-  },
-  headerRow: { flexDirection: 'row', alignItems: 'center' },
-  title: { flex: 1 },
   heading: { marginTop: spacing.lg, marginBottom: spacing.sm },
   caption: { marginTop: spacing.sm },
 });
