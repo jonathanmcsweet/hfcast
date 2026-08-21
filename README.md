@@ -30,6 +30,24 @@
   <a href="https://github.com/jonathanmcsweet/isopod"><img src="https://img.shields.io/badge/built%20with-Isopod-6f42c1" alt="Built with Isopod"></a>
 </p>
 
+## What the forecast is
+
+HFcast runs two propagation models, both run locally on your device. Both are built
+on the physics behind VOACAP, the point-to-point model NTIA/ITS has maintained
+for decades, [translated faithfully to Rust](https://github.com/jonathanmcsweet/hfcast-engine).
+
+**Truecast**, the default, is HFcast's own model. It works from what the ionosphere is doing on a day to day basis, using a daily sunspot figure derived from ionosonde stations, a table of magnetic storms, and an estimate of the height a signal bounces from. Scored day by day against ionosonde measurements since 2015, it was closer than VOACAP on 77% of days, and its average miss was about a fifth smaller.
+
+**VOACAP** is the classic model, reproduced faithfully down to a few defects in
+the original, and available in Preferences for anyone who wants to use this traditional reference model. It reports a monthly average, so 4pm on a Tuesday in August will look the same as a 4pm this Thursday in August.
+
+Both models work with no network. Online, Truecast takes a live effective sunspot
+index and VOACAP takes the current sunspot number; offline, Truecast falls back
+to a built-in correction for the time of year that still beats the monthly
+average.
+
+[See HFcast engine for more information](https://github.com/jonathanmcsweet/hfcast-engine)
+
 ## Privacy
 
 When online, two features do reach out to the network with no identifying data of yours being sent out:
@@ -56,21 +74,6 @@ Everything else:
 - No crapware
 - No spyware
 
-## What the forecast is, and isn't
-
-The forecast is based on the point-to-point propagation model NTIA/ITS has maintained for decades. [Faithfully translated to Rust and running directly on the phone](https://github.com/jonathanmcsweet/hfcast-engine).
-
-- When online, HFcast enters live ionospheric data into VOACAP's model to give you the most accurate up to date propagation map.
-- When offline or looking at future times, HFcast uses VOACAP's monthly climatology estimate.
-- Every day inside the same month gets the same base answer unless the
-  sunspot number changes; HFcast can pull today's space weather to adjust
-  that, but the underlying model is still telling you what's _typical_ for
-  a path like yours in a month like this one.
-
-The model's numbers are corrected against real measured signals, and
-the correction data — what was measured, and where the model is
-weakest — is documented in [docs/](docs/) and in the engine repository.
-
 ## Build it
 
 [![CI](https://github.com/jonathanmcsweet/hfcast/actions/workflows/ci.yml/badge.svg)](https://github.com/jonathanmcsweet/hfcast/actions/workflows/ci.yml)
@@ -84,7 +87,7 @@ Start with the [quick start](docs/development.md#quick-start) — about
 of the [development guide](docs/development.md) if you're going to work
 on the code.
 
-## What is in this repository
+## What's in this repository
 
 | Part               | What it is                                         |
 | ------------------ | -------------------------------------------------- |
@@ -93,7 +96,7 @@ on the code.
 | [docs/](docs/)     | The guides                                         |
 
 The propagation engine itself lives in a separate repository,
-[hfcast-engine](https://github.com/jonathanmcsweet/hfcast-engine) — a
+[hfcast-engine](https://github.com/jonathanmcsweet/hfcast-engine); a
 Rust translation of VOACAP, tested cell by cell against the original
 Fortran.
 
