@@ -32,6 +32,16 @@ export default function App() {
   const scheme = useColorScheme();
   const mode = useSettingsStore((s) => s.themeMode);
   const mapsOnCard = useSettingsStore((s) => s.mapsOnCard);
+  const language = useSettingsStore((s) => s.language);
+
+  // i18next starts on the device's language, because the stored one is
+  // read back after the first render. Null means nobody has picked, so
+  // the device keeps the say.
+  React.useEffect(() => {
+    if (language !== null && language !== i18n.language) {
+      void i18n.changeLanguage(language);
+    }
+  }, [language]);
 
   // Stale readings refetch once when the app comes back to the front.
   // See `api/focus.ts` for why React Query cannot see that by itself.
