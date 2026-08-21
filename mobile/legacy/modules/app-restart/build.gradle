@@ -1,0 +1,23 @@
+// The Android 5.0 build of modules/app-restart. See the note in
+// legacy/modules/engine-bridge/build.gradle for why this file exists.
+apply plugin: 'com.android.library'
+
+group = 'com.hfcast.apprestart'
+version = '1.0.0'
+
+def expoModulesCorePlugin = new File(project(":expo-modules-core").projectDir.absolutePath, "ExpoModulesCorePlugin.gradle")
+apply from: expoModulesCorePlugin
+applyKotlinExpoModulesCorePlugin()
+useCoreDependencies()
+
+// No dependencies block on purpose. Everything this module calls is in the
+// Android platform itself, so this file differs from the SDK 57 one only in
+// how the Expo plugin is applied.
+
+android {
+  namespace "com.hfcast.apprestart"
+  defaultConfig {
+    versionCode 1
+    versionName "1.0.0"
+  }
+}

@@ -1,0 +1,23 @@
+// This is the Expo SDK 57 build of this module. The Android 5.0 build runs on
+// SDK 50 and cannot read this file; it gets `legacy/modules/app-restart/
+// build.gradle` instead, copied in by tools/build-android.sh.
+plugins {
+  id 'com.android.library'
+  id 'expo-module-gradle-plugin'
+}
+
+group = 'com.hfcast.apprestart'
+version = '1.0.0'
+
+// No dependencies block on purpose. The module calls PackageManager, Intent
+// and Runtime, all of them in the Android platform, which is what lets one
+// Kotlin source serve both Expo SDKs: nothing here moved between React
+// Native 0.73 and 0.86 because nothing here is a React Native class.
+
+android {
+  namespace "com.hfcast.apprestart"
+  defaultConfig {
+    versionCode 1
+    versionName "1.0.0"
+  }
+}

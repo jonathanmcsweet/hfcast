@@ -77,7 +77,7 @@ download the first time.
 **Budget memory for it.** Three separate things want a gigabyte or more: the
 Gradle JVM, the Kotlin compiler, and Metro bundling the JavaScript. Attempted on
 a 4 GB machine with about 2 GB actually free, this build was killed by the kernel
-during `:expo-updates-gradle-plugin:compileKotlin`, and it presents as
+while a Gradle plugin compiled its Kotlin, and it presents as
 `Gradle build daemon disappeared unexpectedly` rather than as an out-of-memory
 message. 8 GB free is comfortable; 4 GB total is not enough. If a machine is all
 that is available, give it swap first — the failure is a memory spike, and swap

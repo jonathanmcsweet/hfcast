@@ -6,7 +6,7 @@
 - Explain things in concise, plain english free of technical jargon.
 - Use technical terms accurate to the domain terms in the codebase
 - When making technical decisions, do not give weight to development cost or development hours. Instead prefer readability, quality, simplicity, robustness, scalability, testability, and long term maintainability
-- when writting code comments or commit messages, be extremely concise. Favor concision over proper grammar.
+- when writting code comments or commit messages, be extremely concise. Favor concision over proper grammar. Do not quote users in code comments
 - never use em dash
 
 ## In-app text and user documentation
@@ -51,6 +51,7 @@ What this means for every change:
 
 ## Core coding principles
 
+- NEVER add a dependency that calls a third party service for the built app without asking the user first
 - Always use a function-first immutability-first coding style unless the developer approves of you not doing so
 - Use pure functional programming style unless the developer approves of you not doing so. A function is pure when:
   1. the function return values are identical for identical arguments (no variation with local static variables, non-local variables, mutable reference arguments or input streams, i.e., referential transparency), and
