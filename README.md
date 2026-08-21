@@ -50,17 +50,45 @@ average.
 
 ## Privacy
 
-When online, two features do reach out to the network with no identifying data of yours being sent out:
+Three things reach the network, and only when you are online:
 
-- Today's space weather (from NOAA)
-- Recent ionosphere measurements (from GIRO)
+- Today's space weather, from NOAA
+- Recent ionosphere measurements, from GIRO
+- Place-name search, from Open-Meteo. The app has 4,064 places built
+  in, and only searches online when those turn up little or nothing for
+  what you typed. A grid square or a latitude and longitude is worked
+  out on the phone and never reaches the network.
+
+The forecast itself is computed on the phone. Your station, your antenna
+and the path you are forecasting are never sent anywhere. The one thing
+that does leave is a place name you type into the search box, which is
+covered below.
+
+### What those three can see
+
+NOAA, GIRO and Open-Meteo each see your IP if you choose to allow network permission for the app, and Open-Meteo also sees the place name you typed. None of them is told who you are, but an IP address is roughly a location, so it is worth knowing about.
+
+Two ways around it:
+
+- Put the app behind a VPN / Tor
+- Deny the app network access altogether. GrapheneOS has a per-app
+  Network toggle, and a local firewall does the same job on stock
+  Android. The forecast still works from the sunspot table and the seasonal
+  correction built into the app, and you can still name a location by
+  grid square or coordinate.
+
+### One item in the code that may cause confusion
+
+Anyone who unpacks the APK will find this, so it is worth explaining:
+
+- `classic-assets.eascdn.net` is a hostname inside `expo-asset`. A
+  standalone build never calls this, so the line cannot run. This is a build tool item that pulls in fonts and images at build time.
 
 Everything else:
 
 - Runs on a de-Googled phone or your old tablet without any Google services
 - Developed and tested on GrapheneOS
 - Works fully offline by calculating conditions based on historical HF propagation records
-- Nothing about your station, your position, or the path you're checking leaves the device
 - No ads
 - No account
 - No sign-in
@@ -71,7 +99,6 @@ Everything else:
 - No mandatory tutorials
 - No noisy email spam
 - No push notifications
-- No crapware
 - No spyware
 
 ## Build it
