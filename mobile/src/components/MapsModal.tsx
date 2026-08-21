@@ -5,9 +5,6 @@ import {
   Button,
   Divider,
   Icon,
-  IconButton,
-  Modal,
-  Portal,
   ProgressBar,
   Switch,
   Text,
@@ -41,6 +38,7 @@ import {
 } from '../store/useStationStore';
 import { radius, spacing, typography } from '../theme';
 import type { AppTheme } from '../theme';
+import ModalFrame from './ModalFrame';
 
 /**
  * Computing maps before they are needed, and the room they take.
@@ -240,123 +238,98 @@ export default function MapsModal({ visible, onDismiss }: Props) {
   );
 
   return (
-    <Portal>
-      <Modal
-        visible={visible}
-        {
-          // While a job runs, a tap outside would close the only place
-          // its progress is shown. The close icon goes too, so the
-          // dialog does not offer a way out it would ignore.
-          ...(running ? {} : { onDismiss })
-        }
-        dismissable={!running}
-        contentContainerStyle={[
-          styles.modal,
-          { backgroundColor: theme.colors.surface },
-        ]}
-      >
-        <View style={styles.headerRow}>
-          <Text
-            style={[typography.cardHeadline, styles.title, { color: ui.ink }]}
-          >
-            {t('maps.title')}
-          </Text>
-          {running ? null : (
-            <IconButton
-              icon="close"
-              onPress={onDismiss}
-              accessibilityLabel={t('maps.close')}
-              iconColor={ui.text2}
-            />
-          )}
-        </View>
-
-        {
-          /* Outside the scroll, so it cannot be the thing nobody scrolled
+    <ModalFrame
+      visible={visible}
+      onDismiss={onDismiss}
+      title={t('maps.title')}
+      leave={running ? 'none' : 'close'}
+    >
+      {
+        /* Outside the scroll, so it cannot be the thing nobody scrolled
              to. A job that is waiting looks exactly like a job that has
              stalled, and the first person to see this state read it as
              one and did not find the line saying otherwise (user,
              2026-08-12). So it is a band of colour at the top rather than
              a caption in the middle, and it names the switch that ends
              the wait rather than only reporting it. */
-        }
-        {running && waiting
-          ? (
-            <View
-              accessibilityRole="alert"
-              accessibilityLiveRegion="polite"
-              style={[styles.banner, { backgroundColor: ui.amberBg }]}
-            >
-              <Icon source="power-plug-off" size={20} color={ui.amberFg} />
-              <View style={styles.bannerText}>
-                <Text
-                  style={[typography.bodyStrong, { color: ui.amberFg }]}
-                >
-                  {t('maps.waitingTitle')}
-                </Text>
-                {
-                  /* The switch is named by asking for its own label
+      }
+      {running && waiting
+        ? (
+          <View
+            accessibilityRole="alert"
+            accessibilityLiveRegion="polite"
+            style={[styles.banner, { backgroundColor: ui.amberBg }]}
+          >
+            <Icon source="power-plug-off" size={20} color={ui.amberFg} />
+            <View style={styles.bannerText}>
+              <Text
+                style={[typography.bodyStrong, { color: ui.amberFg }]}
+              >
+                {t('maps.waitingTitle')}
+              </Text>
+              {
+                /* The switch is named by asking for its own label
                      rather than by repeating the words, so renaming it
                      cannot leave this sentence pointing at something
                      that is no longer called that. */
-                }
-                <Text style={[typography.caption, { color: ui.amberFg }]}>
-                  {t('maps.waitingForCharger', {
-                    setting: t('maps.onCharger'),
-                  })}
-                </Text>
-              </View>
+              }
+              <Text style={[typography.caption, { color: ui.amberFg }]}>
+                {t('maps.waitingForCharger', {
+                  setting: t('maps.onCharger'),
+                })}
+              </Text>
             </View>
-          )
-          : null}
-
-        <ScrollView showsVerticalScrollIndicator={false}>
-          <Text style={[typography.body, { color: ui.text2 }]}>
-            {t('maps.what')}
-          </Text>
-
-          {heading(t('maps.monthsSection'))}
-          <View style={styles.pills}>
-            {SCOPE_MONTHS.map((count) =>
-              choice(
-                t(`maps.months.${count}`),
-                months === count,
-                () => setMonths(count as ScopeMonths),
-                `month-${count}`,
-              )
-            )}
           </View>
+        )
+        : null}
 
-          {heading(t('maps.bandsSection'))}
-          <View style={styles.pills}>
-            {choice(
-              t('maps.bandsAll'),
-              everyBand,
-              () => setBands(BAND_ORDER),
-              'bands-all',
-            )}
-            {choice(
-              t('maps.bandsOne', { band }),
-              !everyBand,
-              () => setBands([band]),
-              'bands-one',
-            )}
-          </View>
+      <ScrollView showsVerticalScrollIndicator={false}>
+        <Text style={[typography.body, { color: ui.text2 }]}>
+          {t('maps.what')}
+        </Text>
 
-          {heading(t('maps.roomSection'))}
-          <View style={styles.pills}>
-            {MAP_BUDGET_CHOICES.map((mb) =>
-              choice(
-                describeSize(mb * MB),
-                budgetMb === mb,
-                () => setBudgetMb(mb),
-                `room-${mb}`,
-              )
-            )}
-          </View>
+        {heading(t('maps.monthsSection'))}
+        <View style={styles.pills}>
+          {SCOPE_MONTHS.map((count) =>
+            choice(
+              t(`maps.months.${count}`),
+              months === count,
+              () => setMonths(count as ScopeMonths),
+              `month-${count}`,
+            )
+          )}
+        </View>
 
-          {
-            /* Off means the job runs on battery. It is offered rather
+        {heading(t('maps.bandsSection'))}
+        <View style={styles.pills}>
+          {choice(
+            t('maps.bandsAll'),
+            everyBand,
+            () => setBands(BAND_ORDER),
+            'bands-all',
+          )}
+          {choice(
+            t('maps.bandsOne', { band }),
+            !everyBand,
+            () => setBands([band]),
+            'bands-one',
+          )}
+        </View>
+
+        {heading(t('maps.roomSection'))}
+        <View style={styles.pills}>
+          {MAP_BUDGET_CHOICES.map((mb) =>
+            choice(
+              describeSize(mb * MB),
+              budgetMb === mb,
+              () => setBudgetMb(mb),
+              `room-${mb}`,
+            )
+          )}
+        </View>
+
+        {
+          /* Off means the job runs on battery. It is offered rather
                than fixed because a person at home with the tablet on a
                desk is the case this feature was built for, and a person
                in a field with a power bank is a case it should not
@@ -369,156 +342,155 @@ export default function MapsModal({ visible, onDismiss }: Props) {
                Turning it off then does not wait for the next map to
                finish — see `waitForCharger`, which reads this on every
                pass. */
-          }
-          <View style={styles.toggleRow}>
-            <Text
-              style={[typography.body, styles.toggleText, { color: ui.ink }]}
+        }
+        <View style={styles.toggleRow}>
+          <Text
+            style={[typography.body, styles.toggleText, { color: ui.ink }]}
+          >
+            {t('maps.onCharger')}
+          </Text>
+          <Switch
+            value={onCharger}
+            onValueChange={setOnCharger}
+            accessibilityLabel={t('maps.onCharger')}
+          />
+        </View>
+        {onCharger ? null : (
+          <Text
+            style={[typography.caption, styles.note, { color: ui.text3 }]}
+          >
+            {t('maps.batteryNote')}
+          </Text>
+        )}
+
+        <Divider style={styles.divider} />
+
+        {running
+          ? (
+            <View
+              accessibilityRole="progressbar"
+              accessibilityLabel={t('maps.a11yProgress', { done, total })}
             >
-              {t('maps.onCharger')}
+              <Text style={[typography.body, { color: ui.ink }]}>
+                {t('maps.running', { done, total })}
+              </Text>
+              <ProgressBar
+                progress={total === 0 ? 0 : done / total}
+                style={styles.bar}
+              />
+              {
+                /* The month, hour and band last computed. Kept while
+                     the job waits for a charger, because it is then the
+                     answer to "where will it pick up". The banner above
+                     already says why nothing is moving. */
+              }
+              {at === null
+                ? null
+                : (
+                  <Text style={[typography.caption, { color: ui.text4 }]}>
+                    {at}
+                  </Text>
+                )}
+            </View>
+          )
+          : (
+            <>
+              <Text style={[typography.body, { color: ui.ink }]}>
+                {cost.files === 0
+                  ? t('maps.nothingToDo')
+                  : measured === null
+                  ? t('maps.estimateNoTime', {
+                    files: cost.files,
+                    size: describeSize(cost.bytes),
+                  })
+                  : t('maps.estimate', {
+                    files: cost.files,
+                    size: describeSize(cost.bytes),
+                    time: describeTime(cost.ms),
+                  })}
+              </Text>
+              {measured === null && cost.files > 0
+                ? (
+                  <Text style={[typography.caption, { color: ui.text4 }]}>
+                    {t('maps.measureFirst')}
+                  </Text>
+                )
+                : null}
+              {cost.files > fits
+                ? (
+                  <Text style={[typography.caption, { color: ui.text4 }]}>
+                    {t('maps.willNotFit', { files: fits })}
+                  </Text>
+                )
+                : null}
+              {cost.ms > 10 * 60000
+                ? (
+                  <Text style={[typography.caption, { color: ui.text4 }]}>
+                    {t('maps.charger')}
+                  </Text>
+                )
+                : null}
+            </>
+          )}
+
+        {!running && total > 0
+          ? (
+            <Text style={[typography.caption, { color: ui.text4 }]}>
+              {t(wasStopped ? 'maps.stoppedEarly' : 'maps.finished', {
+                done,
+              })}
+              {failed > 0 ? ` ${t('maps.someFailed', { failed })}` : ''}
             </Text>
-            <Switch
-              value={onCharger}
-              onValueChange={setOnCharger}
-              accessibilityLabel={t('maps.onCharger')}
-            />
-          </View>
-          {onCharger ? null : (
+          )
+          : null}
+
+        {held === null
+          ? null
+          : (
             <Text
-              style={[typography.caption, styles.note, { color: ui.text3 }]}
+              style={[typography.caption, styles.held, { color: ui.text4 }]}
             >
-              {t('maps.batteryNote')}
+              {t('maps.held', { size: describeSize(held) })}
+            </Text>
+          )}
+        {note === null
+          ? null
+          : (
+            <Text style={[typography.caption, { color: ui.text4 }]}>
+              {note}
             </Text>
           )}
 
-          <Divider style={styles.divider} />
-
+        <View style={styles.buttons}>
           {running
             ? (
-              <View
-                accessibilityRole="progressbar"
-                accessibilityLabel={t('maps.a11yProgress', { done, total })}
-              >
-                <Text style={[typography.body, { color: ui.ink }]}>
-                  {t('maps.running', { done, total })}
-                </Text>
-                <ProgressBar
-                  progress={total === 0 ? 0 : done / total}
-                  style={styles.bar}
-                />
-                {
-                  /* The month, hour and band last computed. Kept while
-                     the job waits for a charger, because it is then the
-                     answer to "where will it pick up" — the banner above
-                     already says why nothing is moving. */
-                }
-                {at === null
-                  ? null
-                  : (
-                    <Text style={[typography.caption, { color: ui.text4 }]}>
-                      {at}
-                    </Text>
-                  )}
-              </View>
+              <Button mode="contained" onPress={stopPrecompute}>
+                {t('maps.stop')}
+              </Button>
             )
             : (
-              <>
-                <Text style={[typography.body, { color: ui.ink }]}>
-                  {cost.files === 0
-                    ? t('maps.nothingToDo')
-                    : measured === null
-                    ? t('maps.estimateNoTime', {
-                      files: cost.files,
-                      size: describeSize(cost.bytes),
-                    })
-                    : t('maps.estimate', {
-                      files: cost.files,
-                      size: describeSize(cost.bytes),
-                      time: describeTime(cost.ms),
-                    })}
-                </Text>
-                {measured === null && cost.files > 0
-                  ? (
-                    <Text style={[typography.caption, { color: ui.text4 }]}>
-                      {t('maps.measureFirst')}
-                    </Text>
-                  )
-                  : null}
-                {cost.files > fits
-                  ? (
-                    <Text style={[typography.caption, { color: ui.text4 }]}>
-                      {t('maps.willNotFit', { files: fits })}
-                    </Text>
-                  )
-                  : null}
-                {cost.ms > 10 * 60000
-                  ? (
-                    <Text style={[typography.caption, { color: ui.text4 }]}>
-                      {t('maps.charger')}
-                    </Text>
-                  )
-                  : null}
-              </>
-            )}
-
-          {!running && total > 0
-            ? (
-              <Text style={[typography.caption, { color: ui.text4 }]}>
-                {t(wasStopped ? 'maps.stoppedEarly' : 'maps.finished', {
-                  done,
-                })}
-                {failed > 0 ? ` ${t('maps.someFailed', { failed })}` : ''}
-              </Text>
-            )
-            : null}
-
-          {held === null
-            ? null
-            : (
-              <Text
-                style={[typography.caption, styles.held, { color: ui.text4 }]}
+              <Button
+                mode="contained"
+                onPress={() => {
+                  void start();
+                }}
+                disabled={cost.files === 0}
               >
-                {t('maps.held', { size: describeSize(held) })}
-              </Text>
+                {t('maps.start')}
+              </Button>
             )}
-          {note === null
-            ? null
-            : (
-              <Text style={[typography.caption, { color: ui.text4 }]}>
-                {note}
-              </Text>
-            )}
-
-          <View style={styles.buttons}>
-            {running
-              ? (
-                <Button mode="contained" onPress={stopPrecompute}>
-                  {t('maps.stop')}
-                </Button>
-              )
-              : (
-                <Button
-                  mode="contained"
-                  onPress={() => {
-                    void start();
-                  }}
-                  disabled={cost.files === 0}
-                >
-                  {t('maps.start')}
-                </Button>
-              )}
-            <Button
-              mode="text"
-              onPress={() => {
-                void forget();
-              }}
-              disabled={running || held === null || held === 0}
-            >
-              {t('maps.forget')}
-            </Button>
-          </View>
-        </ScrollView>
-      </Modal>
-    </Portal>
+          <Button
+            mode="text"
+            onPress={() => {
+              void forget();
+            }}
+            disabled={running || held === null || held === 0}
+          >
+            {t('maps.forget')}
+          </Button>
+        </View>
+      </ScrollView>
+    </ModalFrame>
   );
 }
 
@@ -549,15 +521,6 @@ function useDeviceMeasurement(): number | null {
 }
 
 const styles = StyleSheet.create({
-  modal: {
-    margin: spacing.lg,
-    marginVertical: spacing.xxl,
-    padding: spacing.lg,
-    borderRadius: radius.card,
-    maxHeight: '85%',
-  },
-  headerRow: { flexDirection: 'row', alignItems: 'center' },
-  title: { flex: 1 },
   heading: { marginTop: spacing.md, marginBottom: spacing.xs },
   pills: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.xs },
   pill: {

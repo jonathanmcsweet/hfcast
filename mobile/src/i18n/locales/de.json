@@ -160,7 +160,6 @@
     "measureFailed": "Die Messung konnte nicht abgeschlossen werden.",
     "copyMeasurement": "Zahlen kopieren",
     "copied": "Kopiert",
-    "measureClose": "Schließen",
     "mapsSection": "Gespeicherte Karten",
     "keepMaps": "Berechnete Karten behalten",
     "mapsOnCard": "Auf der Speicherkarte behalten",
@@ -190,7 +189,6 @@
   },
   "station": {
     "title": "Ihr Funkgerät",
-    "close": "Schließen",
     "modeSection": "Betriebsart",
     "modeHint": "Schwierigste zuerst. Eine digitale Betriebsart schafft Wege, die Sprache nicht schafft.",
     "modeNeeds": "{{mode}} braucht auf diesem Weg {{db}} dB über dem Rauschen.",
@@ -303,14 +301,12 @@
   },
   "about": {
     "title": "Über HFcast",
-    "close": "Schließen",
-    "what": "Eine Ausbreitungsvorhersage für einen Pfad, auf diesem Gerät mit VOACAP berechnet.",
+    "what": "HFcast ist eine datenschutzorientierte, offlinefähige App zur HF-Ausbreitungsvorhersage für Funkamateure. Gebaut mit der {{engine}}.",
     "version": "Version {{version}}",
-    "builtOn": "Aufbauend auf der Arbeit von",
-    "disclaimerSection": "Haftungsausschluss",
+    "builtOn": "Worauf das hier aufbaut",
     "licencesSection": "Lizenzen",
     "credit": {
-      "voacap": "VOACAP, das Ausbreitungsmodell",
+      "voacap": "VOACAP, das klassische Ausbreitungsmodell",
       "voacapl": "Die Linux-Portierung, aus der diese Engine übersetzt wurde",
       "coefficients": "Die ionosphärischen Koeffizientenkarten",
       "cities": "Die offline durchsuchte Ortsliste",
@@ -320,11 +316,12 @@
       "openMeteo": "Ortssuche, wenn online",
       "plex": "IBM Plex Sans, die Schriftart"
     },
-    "openSource": "Website von {{who}} öffnen",
+    "openSource": "{{who}} aufrufen",
     "openTerms": "Lizenz {{terms}} lesen",
-    "developerHint": "Dreimal tippen, um die Werkzeuge zum Messen dieses Geräts ein- oder auszublenden.",
-    "developerOn": "Die Messwerkzeuge werden jetzt in den Einstellungen angezeigt.",
-    "developerOff": "Die Messwerkzeuge sind jetzt ausgeblendet."
+    "developerHint": "Tippe die Version dreimal an, um die Messwerkzeuge für dieses Gerät ein- oder auszublenden.",
+    "developerOn": "Die Messwerkzeuge stehen jetzt in den Einstellungen.",
+    "developerOff": "Die Messwerkzeuge sind wieder ausgeblendet.",
+    "engineName": "HFcast-Engine"
   },
   "firstRun": {
     "kicker": "DEIN STANDORT",
@@ -341,7 +338,6 @@
   },
   "help": {
     "title": "Wie die Vorhersage entsteht",
-    "close": "Hilfe schließen",
     "engine": {
       "heading": "Woher die Zahlen kommen",
       "body": "Jede Vorhersage wird auf diesem Gerät von der Kernphysik hinter VOACAP berechnet, einem Ausbreitungsmodell, das seit Jahrzehnten im Einsatz ist. Die Kernphysik ist dieselbe, welches Modell du auch wählst.\n\nDiese App bietet zwei Modelle:\n\n1. VOACAP, geschrieben vom Institute for Telecommunication Sciences der US-Regierung. Hier wird es originalgetreu nachgebildet, einschließlich einiger weniger Fehler des ursprünglichen Modells. Dieses Modell arbeitet mit einem Monatsmittel. Jede Tageszeit ist zwar anders, jeder Tag desselben Monats aber nicht. 16 Uhr an diesem Dienstag sieht also genauso aus wie 16 Uhr an diesem Donnerstag.\n\n2. Truecast, das von dem ausgeht, was die Ionosphäre an dem jeweiligen Tag tatsächlich tut. Tag für Tag an echten Messungen seit 2015 geprüft, lag es an 77 % der Tage näher als VOACAP, und seine durchschnittliche Abweichung war rund ein Fünftel kleiner. Mehr zu Truecast weiter unten."
@@ -393,7 +389,6 @@
     "charger": "Lass die App offen und das Gerät am Ladegerät.",
     "start": "Starten",
     "stop": "Stoppen",
-    "close": "Schließen",
     "running": "{{done}} von {{total}}",
     "finished": "Fertig. {{done}} Karten gespeichert.",
     "stoppedEarly": "Gestoppt. {{done}} Karten gespeichert.",
@@ -412,7 +407,10 @@
     "batteryNote": "Ein langer Auftrag im Akkubetrieb wärmt das Gerät und braucht viel Strom. Lass es angeschlossen, wenn du kannst."
   },
   "preferences": {
-    "title": "Voreinstellungen",
-    "close": "Voreinstellungen schließen"
+    "title": "Voreinstellungen"
+  },
+  "common": {
+    "back": "Zurück",
+    "close": "Schließen"
   }
 }

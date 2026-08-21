@@ -160,7 +160,6 @@
     "measureFailed": "The measurement could not finish.",
     "copyMeasurement": "Copy the numbers",
     "copied": "Copied",
-    "measureClose": "Close",
     "mapsSection": "Stored maps",
     "keepMaps": "Keep computed maps",
     "mapsOnCard": "Keep them on the memory card",
@@ -190,7 +189,6 @@
   },
   "station": {
     "title": "Your radio",
-    "close": "Close",
     "modeSection": "Mode",
     "modeHint": "Listed hardest first. A digital mode can work a path that voice cannot.",
     "modeNeeds": "{{mode}} needs {{db}} dB above the noise on this path.",
@@ -303,14 +301,12 @@
   },
   "about": {
     "title": "About HFcast",
-    "close": "Close",
-    "what": "A propagation forecast for one path, computed on this device by VOACAP.",
+    "what": "HFcast is a privacy-first offline-friendly HF propagation forecasting app for amateur radio operators. Built using the {{engine}}.",
     "version": "Version {{version}}",
-    "builtOn": "Built on the work of",
-    "disclaimerSection": "Disclaimer",
+    "builtOn": "What this is built on",
     "licencesSection": "Licenses",
     "credit": {
-      "voacap": "VOACAP, the propagation model",
+      "voacap": "VOACAP, the classic propagation model",
       "voacapl": "The Linux port this engine was translated from",
       "coefficients": "The ionospheric coefficient maps",
       "cities": "The place list searched offline",
@@ -320,11 +316,12 @@
       "openMeteo": "Place search, when online",
       "plex": "IBM Plex Sans, the typeface"
     },
-    "openSource": "Open the site for {{who}}",
+    "openSource": "Visit {{who}}",
     "openTerms": "Read the {{terms}} license",
-    "developerHint": "Tap three times to show or hide the tools for measuring this device.",
-    "developerOn": "Measuring tools are now shown in Settings.",
-    "developerOff": "Measuring tools are now hidden."
+    "developerHint": "Tap the version three times to show or hide the tools for measuring this device.",
+    "developerOn": "Measuring tools are now in Settings.",
+    "developerOff": "Measuring tools are hidden again.",
+    "engineName": "HFcast engine"
   },
   "firstRun": {
     "kicker": "YOUR LOCATION",
@@ -341,7 +338,6 @@
   },
   "help": {
     "title": "How the forecast is made",
-    "close": "Close help",
     "engine": {
       "heading": "Where the numbers come from",
       "body": "Every forecast is worked out on this device by the core physics behind VOACAP, a propagation model that has been in use for decades. The core physics are the same whichever model you pick.\n\nThis app offers two models:\n\n1. VOACAP, which was written by the US government's Institute for Telecommunication Sciences. It is reproduced faithfully here, including a small number of defects that were in the original model. This model uses a monthly average. While each time of day is different, each day in the same month is not. So 4pm this Tuesday looks the same as 4pm this Thursday.\n\n2. Truecast, which works from what the ionosphere is actually doing that day. Scored day by day against real measurements since 2015, it was closer than VOACAP on 77% of days, and its average miss was about a fifth smaller. More on Truecast below."
@@ -393,7 +389,6 @@
     "charger": "Leave the app open and the device on a charger.",
     "start": "Start",
     "stop": "Stop",
-    "close": "Close",
     "running": "{{done}} of {{total}}",
     "finished": "Finished. {{done}} maps stored.",
     "stoppedEarly": "Stopped. {{done}} maps stored.",
@@ -412,7 +407,10 @@
     "batteryNote": "A long job on battery will warm the device and use a lot of it. Keep it plugged in where you can."
   },
   "preferences": {
-    "title": "Preferences",
-    "close": "Close preferences"
+    "title": "Preferences"
+  },
+  "common": {
+    "back": "Back",
+    "close": "Close"
   }
 }

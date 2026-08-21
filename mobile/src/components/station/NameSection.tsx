@@ -45,6 +45,8 @@ export default function NameSection() {
   const savedPresets = useStationStore((s) => s.presets);
 
   const field = useRef<NativeTextInput>(null);
+  /** Set while the effect below drops focus on purpose. */
+  const retaking = useRef(false);
   const [unlocked, setUnlocked] = useState(false);
 
   const missing = needsName(presets, savedPresets);
@@ -65,10 +67,40 @@ export default function NameSection() {
     }
     const { presets: held } = useStationDraftStore.getState().draft;
     const arrived = held.find((preset) => preset.id === activeId);
-    const blank = arrived?.name === '';
-    setUnlocked(blank);
-    if (blank) field.current?.focus();
+    setUnlocked(arrived?.name === '');
   }, [activeId]);
+
+  /*
+   * Give the field the cursor once it is editable, and make sure a focus
+   * event actually arrives.
+   *
+   * Web: pressing the pencil focuses the input before React has
+   * processed the unlock, so Paper sees that event while it still holds
+   * `editable={false}` and drops it (`TextInput.tsx`: handleFocus
+   * returns early). No second event follows, because the element is
+   * already the active one, so Paper stayed unfocused for good: the
+   * field took the cursor and the keys and never drew the outline that
+   * says so (user, 2026-08-20). Dropping focus first makes the next one
+   * a real event, with the field editable by then.
+   *
+   * Android: `editable` is a prop and `focus()` is a view command, and
+   * Fabric does not order a command behind the commit that carries the
+   * prop. Focusing in this frame can reach a view that is still not
+   * focusable, which leaves the field locked-looking until it is tapped
+   * (user, 2026-08-20, on the 1.5.0 APK). A frame later the prop has
+   * landed. Web does not need the wait and is not harmed by it.
+   */
+  useEffect(() => {
+    if (!unlocked) return;
+    const frame = requestAnimationFrame(() => {
+      if (field.current?.isFocused()) {
+        retaking.current = true;
+        field.current.blur();
+      }
+      field.current?.focus();
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [unlocked]);
 
   return (
     <>
@@ -82,15 +114,20 @@ export default function NameSection() {
         placeholder={t('station.unnamed')}
         maxLength={MAX_NAME_LENGTH}
         onChangeText={rename}
-        onBlur={() => setUnlocked(false)}
+        // Leaving the field locks it again, except where the effect
+        // above dropped focus only to take it back.
+        onBlur={() => {
+          if (retaking.current) {
+            retaking.current = false;
+            return;
+          }
+          setUnlocked(false);
+        }}
         accessibilityLabel={t('station.a11y.name')}
         right={
           <TextInput.Icon
             icon="pencil"
-            onPress={() => {
-              setUnlocked(true);
-              field.current?.focus();
-            }}
+            onPress={() => setUnlocked(true)}
             accessibilityLabel={t('station.a11y.editName')}
           />
         }

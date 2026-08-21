@@ -32,8 +32,10 @@ describe('the preferences dialog', () => {
       <PreferencesModal visible onDismiss={() => {}} />,
     );
 
+    // A dropdown now, so the names are behind it.
+    await fireEvent.press(view.getByLabelText(t('settings.changeLanguage')));
     for (const lang of SUPPORTED) {
-      expect(view.getByLabelText(LANGUAGE_NAMES[lang])).toBeTruthy();
+      expect(view.getAllByText(LANGUAGE_NAMES[lang]).length).toBeGreaterThan(0);
     }
   });
 
@@ -42,12 +44,14 @@ describe('the preferences dialog', () => {
       <PreferencesModal visible onDismiss={() => {}} />,
     );
 
-    // Three chips reading "English" would be a coin toss. Each carries
+    // Three rows reading "English" would be a coin toss. Each carries
     // its country, and no two of the seven names may be the same.
     const names = SUPPORTED.map((lang) => LANGUAGE_NAMES[lang]);
     expect(new Set(names).size).toBe(names.length);
+    await fireEvent.press(view.getByLabelText(t('settings.changeLanguage')));
     for (const english of ['en', 'en-GB', 'en-CA'] as const) {
-      expect(view.getByLabelText(LANGUAGE_NAMES[english])).toBeTruthy();
+      expect(view.getAllByText(LANGUAGE_NAMES[english]).length)
+        .toBeGreaterThan(0);
     }
   });
 

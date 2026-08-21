@@ -7,21 +7,14 @@ import {
   StyleSheet,
   View,
 } from 'react-native';
-import {
-  Divider,
-  IconButton,
-  Modal,
-  Portal,
-  Text,
-  TouchableRipple,
-  useTheme,
-} from 'react-native-paper';
+import { Divider, Text, TouchableRipple, useTheme } from 'react-native-paper';
 
-import { CREDITS, DISCLAIMER, LICENCES } from '../data/credits';
+import { CREDITS, LICENCES } from '../data/credits';
 import { APP_VERSION, APP_VERSION_CODE } from '../data/version';
 import { useSettingsStore } from '../store/useSettingsStore';
 import { radius, spacing, typography } from '../theme';
 import type { AppTheme } from '../theme';
+import ModalFrame from './ModalFrame';
 
 /**
  * Who made what this is built from, and the licences that travel with it.
@@ -40,6 +33,39 @@ import type { AppTheme } from '../theme';
 interface Props {
   visible: boolean;
   onDismiss: () => void;
+}
+
+/** Where the engine this app runs on is kept. */
+const ENGINE_URL = 'https://github.com/jonathanmcsweet/hfcast-engine';
+
+/**
+ * The opening sentence, with the engine's name as a link.
+ *
+ * Split on the placeholder rather than assembled from pieces: word order
+ * around it differs by language, and only the whole sentence knows where
+ * the name belongs.
+ */
+function What({ colour, link }: { colour: string; link: string; }) {
+  const { t } = useTranslation();
+  const name = t('about.engineName');
+  const [before = '', after = ''] = t('about.what', { engine: '\u0000' })
+    .split('\u0000');
+
+  return (
+    <Text style={[typography.body, styles.para, { color: colour }]}>
+      {before}
+      <Text
+        accessibilityRole="link"
+        style={{ color: link }}
+        onPress={() => {
+          void Linking.openURL(ENGINE_URL).catch(() => {});
+        }}
+      >
+        {name}
+      </Text>
+      {after}
+    </Text>
+  );
 }
 
 /** How many taps on the version reveal the tools for measuring. */
@@ -123,41 +149,22 @@ export default function AboutModal({ visible, onDismiss }: Props) {
   );
 
   return (
-    <Portal>
-      <Modal
-        visible={visible}
-        onDismiss={onDismiss}
-        contentContainerStyle={[
-          styles.modal,
-          { backgroundColor: theme.colors.surface },
-        ]}
-      >
-        <View style={styles.headerRow}>
-          <Text
-            style={[typography.cardHeadline, styles.title, { color: ui.ink }]}
-          >
-            {t('about.title')}
-          </Text>
-          <IconButton
-            icon="close"
-            onPress={onDismiss}
-            accessibilityLabel={t('about.close')}
-            iconColor={ui.text2}
-          />
-        </View>
-
-        <ScrollView showsVerticalScrollIndicator={false}>
-          <Text style={[typography.body, styles.para, { color: ui.text2 }]}>
-            {t('about.what')}
-          </Text>
-          {
-            /* The build number goes next to the version because two APKs carry
+    <ModalFrame
+      visible={visible}
+      onDismiss={onDismiss}
+      title={t('about.title')}
+      leave="back"
+    >
+      <ScrollView showsVerticalScrollIndicator={false}>
+        <What colour={ui.text2} link={ui.accent} />
+        {
+          /* The build number goes next to the version because two APKs carry
                the same version name and differ only in how old a device they
                install on. It is the one thing that tells them apart, and it is
                a number, so it needs no translation. */
-          }
-          {
-            /* Three taps here show or hide the tools for measuring this
+        }
+        {
+          /* Three taps here show or hide the tools for measuring this
                device (user, 2026-08-11). Hidden rather than removed
                because the numbers are worth having from the build that
                ships, and somebody sending them in needs a way to reach
@@ -168,121 +175,112 @@ export default function AboutModal({ visible, onDismiss }: Props) {
                On the version line because that is where this idiom
                lives on Android, and because it is already the line a
                person is asked to read out when reporting anything. */
-          }
-          <TouchableRipple
-            onPress={tapVersion}
-            accessibilityRole="button"
-            accessibilityLabel={t('about.version', {
+        }
+        <TouchableRipple
+          onPress={tapVersion}
+          accessibilityRole="button"
+          accessibilityLabel={t('about.version', {
+            version: `${APP_VERSION} (${APP_VERSION_CODE})`,
+          })}
+          accessibilityHint={t('about.developerHint')}
+        >
+          <Text
+            style={[typography.caption, styles.para, { color: ui.text3 }]}
+          >
+            {t('about.version', {
               version: `${APP_VERSION} (${APP_VERSION_CODE})`,
             })}
-            accessibilityHint={t('about.developerHint')}
-          >
-            <Text
-              style={[typography.caption, styles.para, { color: ui.text3 }]}
-            >
-              {t('about.version', {
-                version: `${APP_VERSION} (${APP_VERSION_CODE})`,
-              })}
-            </Text>
-          </TouchableRipple>
+          </Text>
+        </TouchableRipple>
 
-          {heading(t('about.builtOn'))}
-          {CREDITS.map((credit) => (
-            <View key={credit.id} style={styles.credit}>
-              <Text style={[typography.bodyStrong, { color: ui.ink }]}>
-                {t(`about.credit.${credit.id}`)}
-              </Text>
-              <Text style={[typography.caption, { color: ui.text2 }]}>
-                {credit.who}
-              </Text>
-              <Text style={[typography.caption, { color: ui.text3 }]}>
-                {credit.terms}
-              </Text>
-              {
-                /* The address is shown as well as opened. A reader with no
+        {heading(t('about.builtOn'))}
+        {CREDITS.map((credit) => (
+          <View key={credit.id} style={styles.credit}>
+            <Text style={[typography.bodyStrong, { color: ui.ink }]}>
+              {t(`about.credit.${credit.id}`)}
+            </Text>
+            <Text style={[typography.caption, { color: ui.text2 }]}>
+              {credit.who}
+            </Text>
+            {credit.terms
+              ? (
+                <Text style={[typography.caption, { color: ui.text3 }]}>
+                  {credit.terms}
+                </Text>
+              )
+              : null}
+            {credit.notice
+              ? (
+                <Text style={[typography.caption, { color: ui.text3 }]}>
+                  {credit.notice}
+                </Text>
+              )
+              : null}
+            {
+              /* The address is shown as well as opened. A reader with no
                    browser handler, or reading a screenshot, still has the
                    whole attribution in front of them — which is the part
                    CC BY 4.0 asks for by name. */
-              }
-              <Link
-                url={credit.url}
-                label={t('about.openSource', { who: credit.who })}
-                colour={ui.accent}
-              />
-              {credit.termsUrl
+            }
+            <Link
+              url={credit.url}
+              label={t('about.openSource', { who: credit.who })}
+              colour={ui.accent}
+            />
+            {credit.termsUrl
+              ? (
+                <Link
+                  url={credit.termsUrl}
+                  label={t('about.openTerms', { terms: credit.terms })}
+                  colour={ui.accent}
+                />
+              )
+              : null}
+          </View>
+        ))}
+
+        {heading(t('about.licencesSection'))}
+        {LICENCES.map((licence) => {
+          const open = openLicence === licence.name;
+          return (
+            <View key={licence.name}>
+              <TouchableRipple
+                onPress={() => setOpenLicence(open ? null : licence.name)}
+                accessibilityRole="button"
+                accessibilityState={{ expanded: open }}
+                style={styles.licenceRow}
+              >
+                <View>
+                  <Text style={[typography.bodyStrong, { color: ui.ink }]}>
+                    {`${licence.name} ${open ? '▾' : '▸'}`}
+                  </Text>
+                  <Text style={[typography.caption, { color: ui.text3 }]}>
+                    {licence.covers}
+                  </Text>
+                </View>
+              </TouchableRipple>
+              {open
                 ? (
-                  <Link
-                    url={credit.termsUrl}
-                    label={t('about.openTerms', { terms: credit.terms })}
-                    colour={ui.accent}
-                  />
+                  <Text
+                    style={[styles.licenceText, {
+                      color: ui.text2,
+                      backgroundColor: ui.inset,
+                    }]}
+                  >
+                    {licence.text}
+                  </Text>
                 )
                 : null}
+              <Divider />
             </View>
-          ))}
-
-          {heading(t('about.disclaimerSection'))}
-          {
-            /* Left in English in every language. It is a specific body's own
-               statement of its position, and translating it here would be this
-               app speaking on their behalf. */
-          }
-          <Text style={[typography.caption, styles.para, { color: ui.text3 }]}>
-            {DISCLAIMER}
-          </Text>
-
-          {heading(t('about.licencesSection'))}
-          {LICENCES.map((licence) => {
-            const open = openLicence === licence.name;
-            return (
-              <View key={licence.name}>
-                <TouchableRipple
-                  onPress={() => setOpenLicence(open ? null : licence.name)}
-                  accessibilityRole="button"
-                  accessibilityState={{ expanded: open }}
-                  style={styles.licenceRow}
-                >
-                  <View>
-                    <Text style={[typography.bodyStrong, { color: ui.ink }]}>
-                      {`${licence.name} ${open ? '▾' : '▸'}`}
-                    </Text>
-                    <Text style={[typography.caption, { color: ui.text3 }]}>
-                      {licence.covers}
-                    </Text>
-                  </View>
-                </TouchableRipple>
-                {open
-                  ? (
-                    <Text
-                      style={[styles.licenceText, {
-                        color: ui.text2,
-                        backgroundColor: ui.inset,
-                      }]}
-                    >
-                      {licence.text}
-                    </Text>
-                  )
-                  : null}
-                <Divider />
-              </View>
-            );
-          })}
-        </ScrollView>
-      </Modal>
-    </Portal>
+          );
+        })}
+      </ScrollView>
+    </ModalFrame>
   );
 }
 
 const styles = StyleSheet.create({
-  modal: {
-    margin: spacing.lg,
-    marginVertical: spacing.xxl,
-    padding: spacing.lg,
-    borderRadius: radius.card,
-    maxHeight: '85%',
-  },
-  headerRow: { flexDirection: 'row', alignItems: 'center' },
-  title: { flex: 1 },
   heading: { marginTop: spacing.lg, marginBottom: spacing.xs },
   para: { marginBottom: spacing.sm },
   credit: { marginBottom: spacing.md },
