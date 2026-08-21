@@ -1,14 +1,12 @@
 import { useCallback, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { FlatList, StyleSheet, View } from 'react-native';
+import { FlatList, StyleSheet } from 'react-native';
 import {
   ActivityIndicator,
   Button,
   Divider,
   IconButton,
   List,
-  Modal,
-  Portal,
   Searchbar,
   SegmentedButtons,
   Text,
@@ -19,8 +17,9 @@ import { useGeocode } from '../api/queries';
 import { type Endpoint, placeToEndpoint } from '../data/types';
 import { useDeviceFix } from '../hooks/useDeviceFix';
 import { usePathStore } from '../store/usePathStore';
-import { radius, spacing, typography } from '../theme';
+import { spacing, typography } from '../theme';
 import type { AppTheme } from '../theme';
+import ModalFrame from './ModalFrame';
 
 type End = 'from' | 'to';
 
@@ -87,180 +86,150 @@ export default function LocationPicker({ visible, onDismiss }: Props) {
   } = useDeviceFix(fromDevice);
 
   return (
-    <Portal>
-      <Modal
-        visible={visible}
-        onDismiss={onDismiss}
-        contentContainerStyle={[
-          styles.modal,
-          { backgroundColor: theme.colors.surface },
-        ]}
-      >
-        <View style={styles.headerRow}>
-          <Text style={[typography.cardHeadline, styles.title]}>
-            {t('location.title')}
-          </Text>
-          <IconButton
-            icon="swap-horizontal"
-            onPress={swapEnds}
-            accessibilityLabel={t('a11y.swapEnds')}
-          />
-          {
-            /* An explicit way out, now that choosing a location no longer
-               closes the pane. Tapping the scrim still works, but that is
-               not an affordance anyone can see. */
-          }
-          <IconButton
-            icon="close"
-            onPress={onDismiss}
-            accessibilityLabel={t('common.close')}
-          />
-        </View>
-
-        <SegmentedButtons
-          value={end}
-          onValueChange={(next) => setEnd(next as End)}
-          buttons={[
-            { value: 'from', label: `${t('location.from')}: ${from.label}` },
-            {
-              value: 'to',
-              label: `${t('location.to')}: ${
-                to?.label ?? t('location.noneSet')
-              }`,
-            },
-          ]}
-          style={styles.segments}
+    <ModalFrame
+      visible={visible}
+      onDismiss={onDismiss}
+      title={t('location.title')}
+      // Back, not a cross: choosing a place applies it at once, so there
+      // is nothing here to discard.
+      leave="back"
+      tool={
+        <IconButton
+          icon="swap-horizontal"
+          onPress={swapEnds}
+          accessibilityLabel={t('a11y.swapEnds')}
         />
+      }
+    >
+      <SegmentedButtons
+        value={end}
+        onValueChange={(next) => setEnd(next as End)}
+        buttons={[
+          { value: 'from', label: `${t('location.from')}: ${from.label}` },
+          {
+            value: 'to',
+            label: `${t('location.to')}: ${to?.label ?? t('location.noneSet')}`,
+          },
+        ]}
+        style={styles.segments}
+      />
 
-        {
-          /* Only offered once there is one to clear. The forecast without a
+      {
+        /* Only offered once there is one to clear. The forecast without a
              destination is a whole mode rather than an empty state, so
              leaving it has to be as easy as entering it. */
-        }
-        {end === 'to' && to !== null
-          ? (
-            <Button
-              mode="text"
-              icon="close-circle-outline"
-              onPress={() => {
-                setTo(null);
-                setQuery('');
-                onDismiss();
-              }}
-              style={styles.clear}
-            >
-              {t('location.clearDestination')}
-            </Button>
-          )
-          : null}
+      }
+      {end === 'to' && to !== null
+        ? (
+          <Button
+            mode="text"
+            icon="close-circle-outline"
+            onPress={() => {
+              setTo(null);
+              setQuery('');
+              onDismiss();
+            }}
+            style={styles.clear}
+          >
+            {t('location.clearDestination')}
+          </Button>
+        )
+        : null}
 
-        {
-          /* Absent where it could not work, rather than present and failing:
+      {
+        /* Absent where it could not work, rather than present and failing:
              the module is not in Expo Go, and there is no iOS implementation
              yet. Typing a place name or a grid does the same job and is the
              path most operators use anyway. */
-        }
-        {end === 'from' && canUseDevice
-          ? (
-            <Button
-              mode="contained-tonal"
-              icon="crosshairs-gps"
-              onPress={useDeviceLocation}
-              loading={locating}
-              disabled={locating}
-              style={styles.gps}
-            >
-              {t('location.useDevice')}
-            </Button>
-          )
-          : null}
+      }
+      {end === 'from' && canUseDevice
+        ? (
+          <Button
+            mode="contained-tonal"
+            icon="crosshairs-gps"
+            onPress={useDeviceLocation}
+            loading={locating}
+            disabled={locating}
+            style={styles.gps}
+          >
+            {t('location.useDevice')}
+          </Button>
+        )
+        : null}
 
-        {locationError
+      {locationError
+        ? (
+          <Text
+            style={[typography.caption, styles.message, {
+              color: theme.colors.onSurfaceVariant,
+            }]}
+          >
+            {locationError}
+          </Text>
+        )
+        : null}
+
+      <Searchbar
+        value={query}
+        onChangeText={setQuery}
+        placeholder={t('location.searchPlaceholder')}
+        // Not "characters". A locator is conventionally written in capitals
+        // and this box accepts one, but forcing every letter upper case turns
+        // "Wellington" into shouting for the far more common case of typing a
+        // place name. Locators are matched case-insensitively instead.
+        autoCapitalize="none"
+        autoCorrect={false}
+        style={styles.search}
+      />
+
+      {isFetching ? <ActivityIndicator style={styles.spinner} /> : null}
+
+      {error
+        ? (
+          <Text
+            style={[
+              typography.caption,
+              styles.message,
+              { color: theme.colors.error },
+            ]}
+          >
+            {t('location.searchFailed')}
+          </Text>
+        )
+        : null}
+
+      <FlatList
+        data={results ?? []}
+        keyboardShouldPersistTaps="handled"
+        keyExtractor={(item) => `${item.grid}:${item.name}:${item.lat}`}
+        ItemSeparatorComponent={Divider}
+        style={styles.list}
+        renderItem={({ item }) => (
+          <List.Item
+            title={item.name}
+            description={[item.admin1, item.country, item.grid]
+              .filter(Boolean)
+              .join(' · ')}
+            onPress={() => choose(placeToEndpoint(item))}
+          />
+        )}
+        ListEmptyComponent={query.trim().length >= 2 && !isFetching
           ? (
             <Text
               style={[typography.caption, styles.message, {
                 color: theme.colors.onSurfaceVariant,
               }]}
             >
-              {locationError}
+              {t('location.noResults')}
             </Text>
           )
           : null}
-
-        <Searchbar
-          value={query}
-          onChangeText={setQuery}
-          placeholder={t('location.searchPlaceholder')}
-          // Not "characters". A locator is conventionally written in capitals
-          // and this box accepts one, but forcing every letter upper case turns
-          // "Wellington" into shouting for the far more common case of typing a
-          // place name. Locators are matched case-insensitively instead.
-          autoCapitalize="none"
-          autoCorrect={false}
-          style={styles.search}
-        />
-
-        {isFetching ? <ActivityIndicator style={styles.spinner} /> : null}
-
-        {error
-          ? (
-            <Text
-              style={[
-                typography.caption,
-                styles.message,
-                { color: theme.colors.error },
-              ]}
-            >
-              {t('location.searchFailed')}
-            </Text>
-          )
-          : null}
-
-        <FlatList
-          data={results ?? []}
-          keyboardShouldPersistTaps="handled"
-          keyExtractor={(item) => `${item.grid}:${item.name}:${item.lat}`}
-          ItemSeparatorComponent={Divider}
-          style={styles.list}
-          renderItem={({ item }) => (
-            <List.Item
-              title={item.name}
-              description={[item.admin1, item.country, item.grid]
-                .filter(Boolean)
-                .join(' · ')}
-              onPress={() => choose(placeToEndpoint(item))}
-            />
-          )}
-          ListEmptyComponent={query.trim().length >= 2 && !isFetching
-            ? (
-              <Text
-                style={[typography.caption, styles.message, {
-                  color: theme.colors.onSurfaceVariant,
-                }]}
-              >
-                {t('location.noResults')}
-              </Text>
-            )
-            : null}
-        />
-      </Modal>
-    </Portal>
+      />
+    </ModalFrame>
   );
 }
 
 const styles = StyleSheet.create({
-  // Tablets get a centred dialog rather than a full-bleed sheet.
-  modal: {
-    margin: 20,
-    maxWidth: 560,
-    alignSelf: 'center',
-    width: '90%',
-    borderRadius: radius.card,
-    padding: spacing.lg,
-    maxHeight: '85%',
-  },
-  headerRow: { flexDirection: 'row', alignItems: 'center' },
-  title: { flex: 1 },
   segments: { marginTop: spacing.sm },
   clear: { marginTop: spacing.xs, alignSelf: 'flex-start' },
   gps: { marginTop: spacing.md, minHeight: 52, justifyContent: 'center' },
