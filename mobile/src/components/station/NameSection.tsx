@@ -74,22 +74,32 @@ export default function NameSection() {
    * Give the field the cursor once it is editable, and make sure a focus
    * event actually arrives.
    *
-   * Pressing the pencil focuses the input before React has processed the
-   * unlock, so Paper sees that event while it still holds
+   * Web: pressing the pencil focuses the input before React has
+   * processed the unlock, so Paper sees that event while it still holds
    * `editable={false}` and drops it (`TextInput.tsx`: handleFocus
    * returns early). No second event follows, because the element is
    * already the active one, so Paper stayed unfocused for good: the
    * field took the cursor and the keys and never drew the outline that
    * says so (user, 2026-08-20). Dropping focus first makes the next one
    * a real event, with the field editable by then.
+   *
+   * Android: `editable` is a prop and `focus()` is a view command, and
+   * Fabric does not order a command behind the commit that carries the
+   * prop. Focusing in this frame can reach a view that is still not
+   * focusable, which leaves the field locked-looking until it is tapped
+   * (user, 2026-08-20, on the 1.5.0 APK). A frame later the prop has
+   * landed. Web does not need the wait and is not harmed by it.
    */
   useEffect(() => {
     if (!unlocked) return;
-    if (field.current?.isFocused()) {
-      retaking.current = true;
-      field.current.blur();
-    }
-    field.current?.focus();
+    const frame = requestAnimationFrame(() => {
+      if (field.current?.isFocused()) {
+        retaking.current = true;
+        field.current.blur();
+      }
+      field.current?.focus();
+    });
+    return () => cancelAnimationFrame(frame);
   }, [unlocked]);
 
   return (

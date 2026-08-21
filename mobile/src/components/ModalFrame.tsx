@@ -35,6 +35,12 @@ interface Props {
    * carries `footer` instead, where there is room for both words.
    */
   action?: ReactNode;
+  /**
+   * A control that sits beside the title in both layouts, for something
+   * the screen offers rather than something it confirms. Copying a
+   * measurement is one; saving a station is not.
+   */
+  tool?: ReactNode;
   /** Pinned under the content of a card, out of the scroll. */
   footer?: ReactNode;
   children: ReactNode;
@@ -54,8 +60,16 @@ interface Props {
  * card sits inside the insets already.
  */
 export default function ModalFrame(
-  { visible, onDismiss, title, leave = 'close', action, footer, children }:
-    Props,
+  {
+    visible,
+    onDismiss,
+    title,
+    leave = 'close',
+    action,
+    tool,
+    footer,
+    children,
+  }: Props,
 ) {
   const theme = useTheme<AppTheme>();
   const { t } = useTranslation();
@@ -114,6 +128,7 @@ export default function ModalFrame(
           >
             {title}
           </Text>
+          {tool}
           {full ? action : null}
           {full ? null : leaveButton}
         </View>

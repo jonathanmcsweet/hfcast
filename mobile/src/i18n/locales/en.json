@@ -160,7 +160,6 @@
     "measureFailed": "The measurement could not finish.",
     "copyMeasurement": "Copy the numbers",
     "copied": "Copied",
-    "measureClose": "Close",
     "mapsSection": "Stored maps",
     "keepMaps": "Keep computed maps",
     "mapsOnCard": "Keep them on the memory card",
@@ -339,7 +338,6 @@
   },
   "help": {
     "title": "How the forecast is made",
-    "close": "Close help",
     "engine": {
       "heading": "Where the numbers come from",
       "body": "Every forecast is worked out on this device by the core physics behind VOACAP, a propagation model that has been in use for decades. The core physics are the same whichever model you pick.\n\nThis app offers two models:\n\n1. VOACAP, which was written by the US government's Institute for Telecommunication Sciences. It is reproduced faithfully here, including a small number of defects that were in the original model. This model uses a monthly average. While each time of day is different, each day in the same month is not. So 4pm this Tuesday looks the same as 4pm this Thursday.\n\n2. Truecast, which works from what the ionosphere is actually doing that day. Scored day by day against real measurements since 2015, it was closer than VOACAP on 77% of days, and its average miss was about a fifth smaller. More on Truecast below."

@@ -1,6 +1,6 @@
 import { useTranslation } from 'react-i18next';
 import { ScrollView, StyleSheet, View } from 'react-native';
-import { IconButton, Modal, Portal, Text, useTheme } from 'react-native-paper';
+import { Text, useTheme } from 'react-native-paper';
 
 import { REACHABLE } from '../../../shared/coverageGrid';
 import { INVERTED_V_HEIGHT_FRACTION } from '../data/antennaFile';
@@ -8,8 +8,9 @@ import { FINE_POINTS } from '../data/fineGlobe';
 import { NVIS_MIN_ANGLE_DEG, RELIABLE_AT, WEAK_AT } from '../data/quality';
 import { NOWCAST_GOOD_FOR_MS } from '../data/spaceWeather';
 import { SSN_TABLE_RANGE } from '../data/ssn';
-import { radius, spacing, typography } from '../theme';
+import { spacing, typography } from '../theme';
 import type { AppTheme } from '../theme';
+import ModalFrame from './ModalFrame';
 
 /**
  * What the app does that a reader cannot see it doing.
@@ -129,52 +130,25 @@ export default function HowTheForecastIsMadeModal(
   };
 
   return (
-    <Portal>
-      <Modal
-        visible={visible}
-        onDismiss={onDismiss}
-        contentContainerStyle={[
-          styles.modal,
-          { backgroundColor: theme.colors.surface },
-        ]}
-      >
-        <View style={styles.headerRow}>
-          <Text
-            style={[typography.cardHeadline, styles.title, { color: ui.ink }]}
-          >
-            {t('help.title')}
-          </Text>
-          <IconButton
-            icon="close"
-            onPress={onDismiss}
-            accessibilityLabel={t('help.close')}
-            iconColor={ui.text2}
-          />
-        </View>
-
-        <ScrollView showsVerticalScrollIndicator={false}>
-          {SECTIONS.map((section) => (
-            <View key={section}>
-              {heading(t(`help.${section}.heading`))}
-              {body(t(`help.${section}.body`, values))}
-            </View>
-          ))}
-        </ScrollView>
-      </Modal>
-    </Portal>
+    <ModalFrame
+      visible={visible}
+      onDismiss={onDismiss}
+      title={t('help.title')}
+      leave="back"
+    >
+      <ScrollView showsVerticalScrollIndicator={false}>
+        {SECTIONS.map((section) => (
+          <View key={section}>
+            {heading(t(`help.${section}.heading`))}
+            {body(t(`help.${section}.body`, values))}
+          </View>
+        ))}
+      </ScrollView>
+    </ModalFrame>
   );
 }
 
 const styles = StyleSheet.create({
-  modal: {
-    margin: spacing.lg,
-    marginVertical: spacing.xxl,
-    padding: spacing.lg,
-    borderRadius: radius.card,
-    maxHeight: '85%',
-  },
-  headerRow: { flexDirection: 'row', alignItems: 'center' },
-  title: { flex: 1 },
   heading: { marginTop: spacing.lg, marginBottom: spacing.xs },
   para: { marginBottom: spacing.sm },
 });

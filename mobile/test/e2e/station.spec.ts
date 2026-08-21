@@ -125,7 +125,7 @@ test.describe('the station dialog', () => {
       .toBeVisible();
   });
 
-  test('unlocking the name draws the focus outline', async ({ page, open }) => {
+  test('unlocking the name focuses it and outlines it', async ({ page, open }) => {
     // Paper drops a focus event that arrives while it still holds
     // `editable={false}`, and no second one follows because the element
     // is already the active one. The field took the cursor and the keys
@@ -133,22 +133,30 @@ test.describe('the station dialog', () => {
     await open({ stations: SAVED });
     await openDialog(page);
 
-    const outline = () =>
+    // Cursor and outline together. "The border changed" would pass on
+    // the colour `editable` flips by itself, with the field still
+    // unfocused and waiting for a tap, which is the bug.
+    const state = () =>
       page.locator('input[aria-label="Name of this station"]').evaluate(
         (input) => {
           const box = input.parentElement?.parentElement;
           const drawn = Array.from(box?.children ?? [])
             .map((node) => getComputedStyle(node))
             .find((style) => parseFloat(style.borderTopWidth) > 0);
-          return drawn === undefined
-            ? 'none'
-            : `${drawn.borderTopColor} ${drawn.borderTopWidth}`;
+          return {
+            focused: document.activeElement === input,
+            editable: !(input as HTMLInputElement).readOnly,
+            border: drawn === undefined ? 0 : parseFloat(drawn.borderTopWidth),
+          };
         },
       );
 
-    const resting = await outline();
+    expect(await state())
+      .toEqual({ focused: false, editable: false, border: 1 });
+
     await unlockName(page);
-    await expect.poll(outline).not.toBe(resting);
+    await expect.poll(state)
+      .toEqual({ focused: true, editable: true, border: 2 });
   });
 
   test('adds a station from the list, unnamed and unsaveable', async ({ page, open }) => {

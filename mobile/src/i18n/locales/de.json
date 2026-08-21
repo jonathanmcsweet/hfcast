@@ -160,7 +160,6 @@
     "measureFailed": "Die Messung konnte nicht abgeschlossen werden.",
     "copyMeasurement": "Zahlen kopieren",
     "copied": "Kopiert",
-    "measureClose": "Schließen",
     "mapsSection": "Gespeicherte Karten",
     "keepMaps": "Berechnete Karten behalten",
     "mapsOnCard": "Auf der Speicherkarte behalten",
@@ -339,7 +338,6 @@
   },
   "help": {
     "title": "Wie die Vorhersage entsteht",
-    "close": "Hilfe schließen",
     "engine": {
       "heading": "Woher die Zahlen kommen",
       "body": "Jede Vorhersage wird auf diesem Gerät von der Kernphysik hinter VOACAP berechnet, einem Ausbreitungsmodell, das seit Jahrzehnten im Einsatz ist. Die Kernphysik ist dieselbe, welches Modell du auch wählst.\n\nDiese App bietet zwei Modelle:\n\n1. VOACAP, geschrieben vom Institute for Telecommunication Sciences der US-Regierung. Hier wird es originalgetreu nachgebildet, einschließlich einiger weniger Fehler des ursprünglichen Modells. Dieses Modell arbeitet mit einem Monatsmittel. Jede Tageszeit ist zwar anders, jeder Tag desselben Monats aber nicht. 16 Uhr an diesem Dienstag sieht also genauso aus wie 16 Uhr an diesem Donnerstag.\n\n2. Truecast, das von dem ausgeht, was die Ionosphäre an dem jeweiligen Tag tatsächlich tut. Tag für Tag an echten Messungen seit 2015 geprüft, lag es an 77 % der Tage näher als VOACAP, und seine durchschnittliche Abweichung war rund ein Fünftel kleiner. Mehr zu Truecast weiter unten."

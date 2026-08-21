@@ -160,7 +160,6 @@
     "measureFailed": "La medición no pudo terminar.",
     "copyMeasurement": "Copiar los números",
     "copied": "Copiado",
-    "measureClose": "Cerrar",
     "mapsSection": "Mapas guardados",
     "keepMaps": "Guardar los mapas calculados",
     "mapsOnCard": "Guardarlos en la tarjeta de memoria",
@@ -339,7 +338,6 @@
   },
   "help": {
     "title": "Cómo se hace la previsión",
-    "close": "Cerrar la ayuda",
     "engine": {
       "heading": "De dónde salen los números",
       "body": "Cada previsión se calcula en este dispositivo con la física básica de VOACAP, un modelo de propagación que lleva décadas en uso. Esa física básica es la misma sea cual sea el modelo que elijas.\n\nEsta aplicación ofrece dos modelos:\n\n1. VOACAP, creado por el Institute for Telecommunication Sciences del Gobierno de EE. UU. Aquí se reproduce con fidelidad, incluidos unos pocos defectos que tenía el modelo original. Este modelo usa una media mensual. Cada hora del día es distinta, pero cada día del mismo mes no lo es. Así, las 16:00 de este martes se ven igual que las 16:00 de este jueves.\n\n2. Truecast, que parte de lo que la ionosfera está haciendo realmente ese día. Comparado día a día con mediciones reales desde 2015, estuvo más cerca que VOACAP el 77 % de los días, y su error medio fue alrededor de una quinta parte menor. Más sobre Truecast a continuación."
