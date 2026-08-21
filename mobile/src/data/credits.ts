@@ -24,7 +24,7 @@ export interface Credit {
    *
    * Set only where the licence puts a condition on the reader. A bare
    * status ("public domain", "US Government work") is left off: it reads
-   * as a note to a developer rather than as a credit (user, 2026-08-20).
+   * as a note to a developer rather than as a credit.
    */
   readonly terms?: string;
   /** Where the work itself lives. Shown so a credit can be followed up. */

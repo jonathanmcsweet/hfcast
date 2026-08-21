@@ -6,6 +6,7 @@ import { BAND_ORDER, type BandKey } from '../../../shared/bands';
 import { withNewBands } from '../data/bandChoice.ts';
 import type { ScopeMonths } from '../data/precomputePlan';
 import type { UnitPreference } from '../data/units';
+import type { SupportedLanguage } from '../i18n/languages.ts';
 
 /**
  * Preferences that are not about a path.
@@ -54,6 +55,15 @@ interface SettingsState {
    */
   units: UnitPreference;
   setUnits: (units: UnitPreference) => void;
+  /**
+   * The chosen language, or null to follow the device.
+   *
+   * `I18nManager` stores direction natively but i18next held the choice
+   * in memory, so an Arabic pick came back right to left with the
+   * device's language in it.
+   */
+  language: SupportedLanguage | null;
+  setLanguage: (language: SupportedLanguage | null) => void;
   /**
    * Whether computed maps are kept on disk to be read again.
    *
@@ -133,15 +143,20 @@ interface SettingsState {
 /** How much room the stored maps may take, unless somebody says otherwise. */
 export const DEFAULT_MAP_BUDGET_MB = 128;
 
+/** The key the settings live under. Exported so a caller can wait on the write. */
+export const SETTINGS_KEY = 'hfcast.settings';
+
 /** The sizes offered. A whole year of every band is about 190 MB. */
 export const MAP_BUDGET_CHOICES = [64, 128, 256, 512] as const;
 
 // Raised for the stored maps at 3, `developer` at 4, waiting for a
 // charger at 5, the engine model at 6, its renamed value at 7, and the
-// new model becoming the default at 8. An older saved shape is migrated
+// new model becoming the default at 8, 60m at 9, and the saved language
+// at 10. An older saved shape is migrated
 // forward rather than discarded: losing a theme and a units choice to
 // gain a storage default would be a poor trade.
-const PERSIST_VERSION = 9;
+
+const PERSIST_VERSION = 10;
 
 export const useSettingsStore = create<SettingsState>()(
   persist(
@@ -150,6 +165,8 @@ export const useSettingsStore = create<SettingsState>()(
       setThemeMode: (themeMode) => set({ themeMode }),
       units: 'auto',
       setUnits: (units) => set({ units }),
+      language: null,
+      setLanguage: (language) => set({ language }),
       keepMaps: true,
       setKeepMaps: (keepMaps) => set({ keepMaps }),
       mapsOnCard: false,
@@ -169,12 +186,13 @@ export const useSettingsStore = create<SettingsState>()(
       setEngineModel: (engineModel) => set({ engineModel }),
     }),
     {
-      name: 'hfcast.settings',
+      name: SETTINGS_KEY,
       version: PERSIST_VERSION,
       storage: createJSONStorage(() => AsyncStorage),
       partialize: (state) => ({
         themeMode: state.themeMode,
         units: state.units,
+        language: state.language,
         keepMaps: state.keepMaps,
         mapsOnCard: state.mapsOnCard,
         mapBudgetMb: state.mapBudgetMb,
@@ -195,10 +213,13 @@ export const useSettingsStore = create<SettingsState>()(
         // the stored maps. What was chosen is kept and the rest fall to
         // defaults, which is what they would have chosen anyway.
         const held = persisted as Partial<SettingsState>;
-        if (version >= 1 && version <= 8) {
+        if (version >= 1 && version <= 9) {
           return {
             ...held,
             units: held.units ?? 'auto',
+            // Null rather than the device's language: a store written
+            // before 10 never held a pick, so nothing is being ignored.
+            language: held.language ?? null,
             keepMaps: held.keepMaps ?? true,
             mapsOnCard: held.mapsOnCard ?? false,
             mapBudgetMb: held.mapBudgetMb ?? DEFAULT_MAP_BUDGET_MB,

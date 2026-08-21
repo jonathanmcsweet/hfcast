@@ -54,7 +54,7 @@ interface Props {
  * full-screen dialog on a small screen, and a card only where there is
  * room for the screen to stay visible behind it. Four dialogs were a
  * 560-point card whatever they were opened on, which on a phone is a
- * cramped window over a page nobody can reach (user, 2026-08-20).
+ * cramped window over a page nobody can reach.
  *
  * The safe-area inset is added only when the frame fills the screen. A
  * card sits inside the insets already.

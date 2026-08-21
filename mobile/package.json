@@ -1,6 +1,6 @@
 {
   "name": "hfcast",
-  "version": "1.6.1",
+  "version": "1.6.3",
   "license": "Apache-2.0",
   "packageManager": "pnpm@11.17.0",
   "main": "index.js",
@@ -41,7 +41,6 @@
     "expo-font": "~57.0.1",
     "expo-localization": "~57.0.1",
     "expo-status-bar": "~57.0.1",
-    "expo-updates": "~57.0.14",
     "i18next": "^26.3.6",
     "react": "19.2.3",
     "react-dom": "19.2.3",

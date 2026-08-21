@@ -43,7 +43,6 @@ minimumReleaseAgeExclude:
   - expo-modules-autolinking@57.0.10
   - expo-modules-core@57.0.11
   - expo-server@57.0.3
-  - expo-updates@57.0.14
   - expo@57.0.13
 
 # Skia ships its Android and Apple binaries as separate packages and its

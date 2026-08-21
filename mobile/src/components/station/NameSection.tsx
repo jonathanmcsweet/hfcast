@@ -25,12 +25,12 @@ import SectionHeading from './SectionHeading';
  * Locked, with a pencil to unlock it. A name is what tells two stations
  * apart in the picker, the header and the menu, so it should take a
  * deliberate press to change — the field beneath a dropdown invited
- * edits nobody meant to make (user, 2026-08-20).
+ * edits nobody meant to make.
  *
  * Opens itself for a station that arrives without a name, which is what
  * the picker's Add row makes. Held open until the field is left, rather
  * than for as long as the name is empty: derived from the name, it shut
- * on the first letter typed (user, 2026-08-20). Nothing saves until that
+ * on the first letter typed. Nothing saves until that
  * station is named — see `needsName`.
  */
 export default function NameSection() {
@@ -80,15 +80,15 @@ export default function NameSection() {
    * returns early). No second event follows, because the element is
    * already the active one, so Paper stayed unfocused for good: the
    * field took the cursor and the keys and never drew the outline that
-   * says so (user, 2026-08-20). Dropping focus first makes the next one
-   * a real event, with the field editable by then.
+   * says so. Dropping focus first makes the next one a real event, with
+   * the field editable by then.
    *
    * Android: `editable` is a prop and `focus()` is a view command, and
    * Fabric does not order a command behind the commit that carries the
    * prop. Focusing in this frame can reach a view that is still not
-   * focusable, which leaves the field locked-looking until it is tapped
-   * (user, 2026-08-20, on the 1.5.0 APK). A frame later the prop has
-   * landed. Web does not need the wait and is not harmed by it.
+   * focusable, which leaves the field locked-looking until it is
+   * tapped. A frame later the prop has landed. Web does not need the
+   * wait and is not harmed by it.
    */
   useEffect(() => {
     if (!unlocked) return;

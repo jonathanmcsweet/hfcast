@@ -141,7 +141,7 @@ describe('the credits', () => {
   it('carries the no-endorsement notice NTIA/ITS asks for', () => {
     // Both halves of what ITS asks: the body named in full, and a statement
     // that they endorse nothing. It rides on the credit rather than standing
-    // as its own About section (user, 2026-08-20).
+    // as its own About section.
     const voacap = CREDITS.find((credit) => credit.id === 'voacap');
     assert.ok(voacap, 'no VOACAP credit at all');
     assert.match(voacap.who, /Institute for Telecommunication Sciences/);
