@@ -19,6 +19,7 @@ import { fetchGeocode as fetchGeocodeDirect } from '../data/geocode';
 import type { MapIdentity } from '../data/globeName';
 import { keepGlobe, makeRoom, readGlobe } from '../data/globeStore';
 import { gridToLatLon, isGrid, latLonToGrid } from '../data/grid';
+import { heldWhileHere } from '../data/heldAnswer';
 import {
   fetchSounding as fetchSoundingDirect,
   usefulStation,
@@ -51,7 +52,7 @@ import {
   type SpaceWeather,
 } from '../data/types';
 import { useSettled } from '../hooks/useSettled';
-import { hasSkia } from '../render/available';
+import { hasCanvas } from '../render/available';
 import { today, usePathStore } from '../store/usePathStore';
 import { useSettingsStore } from '../store/useSettingsStore';
 import {
@@ -397,8 +398,9 @@ function useMapRun(from: Endpoint, band: BandKey, reportedHour: number) {
      */
     keeping: {
       // So the screen keeps the map it already had rather than falling
-      // back to the loading state on every adjustment.
-      placeholderData: keepPreviousData,
+      // back to the loading state on every adjustment, and only while the
+      // reader stays put.
+      placeholderData: heldWhileHere(from.grid),
       staleTime: local ? Number.POSITIVE_INFINITY : SPACE_WEATHER_POLL_MS,
       gcTime: MAP_CACHE_MS,
     },
@@ -786,7 +788,7 @@ export function useFineGlobe(
     from,
     band,
     reportedHour,
-    enabled && hasSkia && run.enabled,
+    enabled && hasCanvas && run.enabled,
   );
   const centre = centres.data ?? null;
   // Settled means the lattice arrived or failed. A failure still lets the
@@ -821,11 +823,11 @@ export function useFineGlobe(
       }
       return grid;
     },
-    // `hasSkia` is a renderer limit, not a speed one: the legacy SVG
+    // `hasCanvas` is a renderer limit, not a speed one: the legacy SVG
     // cell field cannot hold 34,560 shapes, so on that build the run
     // would cost seconds and change nothing on screen. Every device that
     // can draw the grid runs it (user, 2026-08-01).
-    enabled: enabled && hasSkia && run.enabled && centreSettled,
+    enabled: enabled && hasCanvas && run.enabled && centreSettled,
     ...run.keeping,
     // No retry, as for the patch: the coarse map is the answer and this
     // is detail on top of it, so a second attempt spends seconds of
