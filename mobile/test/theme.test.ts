@@ -54,6 +54,26 @@ describe('the theme module', () => {
     assert.ok(theme.darkTheme, 'the dark theme must exist');
   });
 
+  it('gives the map only colours the native canvas can parse', async () => {
+    // The system renderer hands these straight to Android's
+    // `Color.parseColor`, which takes a hex string or one of a few names
+    // and throws on anything else. `rgba(...)` is used elsewhere in this
+    // file and would be caught here rather than as a magenta map on a
+    // phone.
+    const { lightTheme, darkTheme, lowLightTheme } = await stub();
+    for (const theme of [lightTheme, darkTheme, lowLightTheme]) {
+      const { map, ui } = theme.colors;
+      const drawn = [
+        ui.card,
+        ui.nvisDot,
+        ...Object.values(map).map((state) => state.fill),
+      ];
+      for (const colour of drawn) {
+        assert.match(colour, /^#([0-9A-Fa-f]{6}|[0-9A-Fa-f]{8})$/);
+      }
+    }
+  });
+
   it('names a font face for every weight it offers', async () => {
     const { face } = await stub();
     for (const [weight, style] of Object.entries(face)) {

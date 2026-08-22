@@ -1,0 +1,24 @@
+// This is the Expo SDK 57 build of this module. The Android 5.0 build runs on
+// SDK 50 and cannot read this file; it gets `legacy/modules/cell-canvas/
+// build.gradle` instead, copied in by tools/build-android.sh.
+plugins {
+  id 'com.android.library'
+  id 'expo-module-gradle-plugin'
+}
+
+group = 'com.hfcast.cellcanvas'
+version = '1.0.0'
+
+// No dependencies block, and that is the entire point of this module. It draws
+// with android.graphics.Canvas, which is the Skia the operating system already
+// carries, so nothing is bundled and nothing is downloaded. Canvas, Path and
+// Paint have been in the platform since Android 1.0, so one Kotlin source
+// serves both Expo SDKs.
+
+android {
+  namespace "com.hfcast.cellcanvas"
+  defaultConfig {
+    versionCode 1
+    versionName "1.0.0"
+  }
+}
