@@ -57,4 +57,35 @@ while IFS= read -r jar; do
   drop 'packaged gradle wrapper' "$jar"
 done < <(find node_modules -name gradle-wrapper.jar -not -path '*/build/*')
 
+
+# Apple. Every package that supports iOS ships something prebuilt for it: the
+# Expo modules carry xcframework tarballs, the macros plugin a compiled tool,
+# and React Native the binary string packs for its own iOS strings. None of it
+# is opened by a Gradle build.
+while IFS= read -r dir; do
+  drop 'apple prebuild' "$dir"
+done < <(find node_modules -maxdepth 3 -type d -name prebuilds -not -path '*/build/*')
+
+drop 'apple tool' node_modules/@expo/expo-modules-macros-plugin/apple
+
+while IFS= read -r pack; do
+  drop 'ios string pack' "$pack"
+done < <(find node_modules/react-native/React -name '*.bin' 2>/dev/null)
+
+# Host tools for machines this is not. `dotslash` belongs to React Native's
+# debugger shell, which a release build never starts, and only the binaries
+# for other operating systems are removed so the host keeps whatever it uses.
+drop 'foreign host tool' \
+  node_modules/fb-dotslash/bin/macos \
+  node_modules/fb-dotslash/bin/windows \
+  node_modules/fb-dotslash/bin/windows-arm64 \
+  node_modules/fb-dotslash/bin/linux-musl.aarch64 \
+  node_modules/fb-dotslash/bin/linux-musl.x86_64 \
+  node_modules/hermes-compiler/hermesc/osx-bin \
+  node_modules/hermes-compiler/hermesc/win64-bin
+
+# TypeScript's native compiler, which types the source and builds nothing.
+# `expo prebuild` and Metro read the TypeScript through Babel instead.
+drop 'typechecker' node_modules/@typescript
+
 echo "pruned $removed"

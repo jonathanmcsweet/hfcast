@@ -74,6 +74,7 @@ Builds:
       - mobile/node_modules/react-native-svg/android/build.gradle
       - mobile/node_modules/react-native-vector-icons/android/build.gradle
       - mobile/node_modules/react-native/ReactAndroid/publish.gradle
+      - mobile/node_modules/hermes-compiler/hermesc/linux64-bin/hermesc
 
   - versionName: 1.7.0
     versionCode: 10070012
@@ -119,6 +120,7 @@ Builds:
       - mobile/node_modules/react-native-svg/android/build.gradle
       - mobile/node_modules/react-native-vector-icons/android/build.gradle
       - mobile/node_modules/react-native/ReactAndroid/publish.gradle
+      - mobile/node_modules/hermes-compiler/hermesc/linux64-bin/hermesc
 
   - versionName: 1.7.0
     versionCode: 10070013
@@ -164,6 +166,7 @@ Builds:
       - mobile/node_modules/react-native-svg/android/build.gradle
       - mobile/node_modules/react-native-vector-icons/android/build.gradle
       - mobile/node_modules/react-native/ReactAndroid/publish.gradle
+      - mobile/node_modules/hermes-compiler/hermesc/linux64-bin/hermesc
 
   - versionName: 1.7.0
     versionCode: 10070014
@@ -209,6 +212,7 @@ Builds:
       - mobile/node_modules/react-native-svg/android/build.gradle
       - mobile/node_modules/react-native-vector-icons/android/build.gradle
       - mobile/node_modules/react-native/ReactAndroid/publish.gradle
+      - mobile/node_modules/hermes-compiler/hermesc/linux64-bin/hermesc
 
 # Four builds per release, so a tag does not describe one build.
 AutoUpdateMode: None
