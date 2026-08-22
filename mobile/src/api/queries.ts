@@ -839,7 +839,7 @@ export function useFineGlobe(
   // drawn map and it made a band change far worse: the engine module runs
   // one request at a time by design (the single-thread executor in
   // `HfcastEngineModule.kt`), so the fill-in happened in front of the
-  // reader's next run, not beside it. Measured on a Pixel 8: about 30
+  // reader's next run, not beside it. Measured on a fast phone: about 30
   // seconds to change band (user, 2026-08-01) against 3.4 for the run.
   //
   // What to do instead is open work, and needs the two costs measured.

@@ -166,7 +166,7 @@ See [server/README.md](../server/README.md).
 ## Measuring a telephone
 
 The map is drawn from work that can be counted, and until 0.60.0 nobody
-could tell which part of it was slow. A Pixel 8 reported 3.9 seconds of
+could tell which part of it was slow. A fast phone reported 3.9 seconds of
 engine time for the whole-world fine grid. The same engine, the same
 34,560 points, takes 1.24 seconds on one desktop core and 0.17 across
 eight. A telephone core is two or three times slower than a desktop one,
@@ -228,7 +228,7 @@ really held. Read them together:
 | high      | high       | slow             | cores held but starved — the strips fight over memory       |
 | about one | about one  | —                | the pool is not running in parallel at all                  |
 
-A Pixel 8 measured the third row: eight strips in flight, and each one
+A fast phone measured the third row: eight strips in flight, and each one
 five times slower than it runs alone. That is memory contention, and
 more threads cannot fix it — which is what the benchmark's thread sweep
 is for. It runs the same grid at 1, 2, 4 and the map's own thread

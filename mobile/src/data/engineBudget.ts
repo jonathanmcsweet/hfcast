@@ -11,7 +11,7 @@
  * nothing: a device projecting 4,999 ms drew 34,560 points and a device
  * projecting 5,001 ms drew 192. That is a 180-fold difference in detail
  * from a 2 ms difference in speed, and wherever the line is drawn some
- * device sits just behind it and gets nothing. A Pixel 8 was one of
+ * device sits just behind it and gets nothing. A fast phone was one of
  * them: it ran the grid, recorded its own 3.4 seconds, and that reading
  * put it over the budget so it was never asked again.
  *
@@ -31,7 +31,7 @@ export const FINE_GRID_POINTS = 34560;
 /**
  * How many threads a batch runs across, given the device's core count.
  *
- * Four, measured, not the core count assumed. A Pixel 8 ran the
+ * Four, measured, not the core count assumed. A fast phone ran the
  * whole-world grid at every count (Diagnostics sweep, 2026-08-10):
  *
  *   threads   1        2        4        8
