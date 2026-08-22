@@ -4,14 +4,9 @@ import { StyleSheet, useWindowDimensions, View } from 'react-native';
 import { IconButton, Modal, Portal, Text, useTheme } from 'react-native-paper';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { TABLET_WIDTH } from '../data/rotation';
 import { radius, spacing, typography } from '../theme';
 import type { AppTheme } from '../theme';
-
-/**
- * Material's compact breakpoint. Below it a dialog fills the screen;
- * above it a dialog is a card with the screen behind it.
- */
-export const COMPACT_WIDTH = 600;
 
 interface Props {
   visible: boolean;
@@ -77,7 +72,7 @@ export default function ModalFrame(
   const insets = useSafeAreaInsets();
   const ui = theme.colors.ui;
 
-  const full = width < COMPACT_WIDTH;
+  const full = width < TABLET_WIDTH;
 
   const shell = full
     ? [styles.full, {

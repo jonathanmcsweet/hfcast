@@ -50,7 +50,6 @@
       "./plugins/withBuildMemory.ts",
       "./plugins/withKeepDataOnUninstall.ts",
       "./plugins/withBackupRules.ts",
-      "./plugins/withTabletRotation.ts",
       [
         "expo-build-properties",
         {

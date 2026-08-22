@@ -17,13 +17,6 @@ import {
   type Manifest,
 } from '../plugins/withKeepDataOnUninstall.ts';
 import { addReleaseSigning } from '../plugins/withReleaseSigning.ts';
-import {
-  askResourceForOrientation,
-  PHONE_INTEGERS,
-  PORTRAIT,
-  TABLET_INTEGERS,
-  UNSPECIFIED,
-} from '../plugins/withTabletRotation.ts';
 import { BUILD_TIERS, versionCodeFor } from '../src/data/version.ts';
 
 /**
@@ -468,50 +461,5 @@ describe('the backup rules plugin', () => {
 
   it('covers a direct move to a new device as well as a backup', () => {
     assert.match(EXTRACTION_RULES, /<device-transfer>/);
-  });
-});
-
-describe('the tablet rotation plugin', () => {
-  const manifest = () => ({
-    manifest: {
-      $: { 'xmlns:android': 'http://schemas.android.com/apk/res/android' },
-      application: [{
-        $: { 'android:label': '@string/app_name' },
-        activity: [{
-          $: {
-            'android:name': '.MainActivity',
-            'android:screenOrientation': 'portrait',
-          },
-        }],
-      }],
-    },
-  } as unknown as Manifest);
-
-  it('asks a resource instead of naming an orientation', () => {
-    // The whole mechanism. A literal here is what app.json's `orientation`
-    // writes, and it is the same on every device; the reference lets
-    // Android choose by screen size before the activity starts.
-    const held = askResourceForOrientation(manifest());
-    assert.equal(
-      held.manifest.application?.[0]?.activity?.[0]?.$[
-        'android:screenOrientation'
-      ],
-      '@integer/screen_orientation',
-    );
-  });
-
-  it('holds a telephone upright and lets a tablet turn', () => {
-    // `ActivityInfo.SCREEN_ORIENTATION_PORTRAIT` and `_UNSPECIFIED`. A
-    // wrong number here is a legal manifest that behaves as some other
-    // orientation, which no build step would report.
-    assert.equal(PORTRAIT, 1);
-    assert.equal(UNSPECIFIED, -1);
-    assert.match(PHONE_INTEGERS, /name="screen_orientation">1</);
-    assert.match(TABLET_INTEGERS, /name="screen_orientation">-1</);
-  });
-
-  it('leaves a manifest with no application alone', () => {
-    const bare = { manifest: { $: {} } } as unknown as Manifest;
-    assert.deepEqual(askResourceForOrientation(bare), bare);
   });
 });

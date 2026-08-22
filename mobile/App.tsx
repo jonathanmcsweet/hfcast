@@ -6,10 +6,11 @@ import {
   useFonts,
 } from '@expo-google-fonts/ibm-plex-sans';
 import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client';
+import * as ScreenOrientation from 'expo-screen-orientation';
 import { StatusBar } from 'expo-status-bar';
 import React from 'react';
 import { I18nextProvider } from 'react-i18next';
-import { StyleSheet, useColorScheme, View } from 'react-native';
+import { Dimensions, StyleSheet, useColorScheme, View } from 'react-native';
 import { PaperProvider } from 'react-native-paper';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
@@ -23,6 +24,7 @@ import {
 } from './src/api/persist';
 import BootFrame from './src/components/BootFrame';
 import ErrorBoundary from './src/components/ErrorBoundary';
+import { isTablet } from './src/data/rotation';
 import i18n from './src/i18n';
 import ForecastScreen from './src/screens/ForecastScreen';
 import { useSettingsStore } from './src/store/useSettingsStore';
@@ -46,6 +48,22 @@ export default function App() {
   // Stale readings refetch once when the app comes back to the front.
   // See `api/focus.ts` for why React Query cannot see that by itself.
   React.useEffect(() => wireFocus(), []);
+
+  // A tablet may be turned on its side; a telephone stays upright.
+  //
+  // Only ever unlocks. The manifest holds the app portrait, which is the
+  // answer for a telephone and needs no code, so nothing here can leave a
+  // small screen free by accident. `Dimensions` rather than a hook,
+  // because this asks about the hardware and must not run again when the
+  // device turns.
+  //
+  // Nothing awaits it and a failure is swallowed: on a device that
+  // refuses, the app stays portrait, which is where it started.
+  React.useEffect(() => {
+    const { width, height } = Dimensions.get('screen');
+    if (!isTablet(width, height)) return;
+    void ScreenOrientation.unlockAsync().catch(() => {});
+  }, []);
 
   // Where stored maps are kept. Told to the module here rather than
   // where the choice is made, because the module forgets it when the app
