@@ -6,7 +6,10 @@
 # to GitHub releases and is not offered here, because it has not been tested
 # on a device.
 #
-# NOT YET VALIDATED against `fdroid build`. See docs/fdroid.md.
+# Built with `fdroid build --test` on 2026-08-22, at 1.7.0: the scan passes
+# with no errors and the APK carries the engine, no Skia, and no signature.
+# Two things a local run cannot check, both in docs/fdroid.md: the `sudo:`
+# block, which only runs under `--server`, and F-Droid's own gradle wrapper.
 
 Categories:
   - Science & Education

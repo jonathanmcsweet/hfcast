@@ -80,24 +80,34 @@ finds, and its paths are relative to the repository root rather than to
 `subdir`. Two ways out of that: `scanignore`, which asks a reviewer to take
 our word that a file is unused, and deleting the file, which shows the same
 thing by the build still working. `tools/fdroid-prune.sh` runs in `prebuild`
-and deletes what this build genuinely does not read: the four prebuilt Skia
-packages, the eight precompiled Expo modules, and the Gradle wrappers shipped
-inside other packages. Around 1.5 GB, none of it opened.
+and deletes what this build genuinely does not read, around 1.5 GB of it:
 
-`build-rust.sh` sits in `build` rather than `prebuild` for the same reason.
+- the four prebuilt Skia packages, and Expo's eight precompiled modules
+- everything for Apple, which is most of the count. Expo ships xcframework
+  tarballs, React Native ships binary string packs for its own iOS strings,
+  and the macros plugin ships a compiled tool
+- host tools for other operating systems: `dotslash` and `hermesc` built for
+  macOS and Windows, and the Gradle wrappers other packages carry
+- TypeScript's native compiler, which types the source and builds nothing
+
+`build-rust.sh` sits in `build` rather than `prebuild` for a related reason.
 Run earlier, its Rust object files and the engine library would land before
 the scan, and all 38 of them are binaries the scan refuses.
 
-**`scanignore` covers six files that have to stay.** Five packages declare a
-maven repository at `node_modules/react-native/android`, a path React Native
-has not published to since it moved to Maven Central, and the sixth is
+**`scanignore` covers seven files that have to stay.** Five packages declare
+a maven repository at `node_modules/react-native/android`, a path React
+Native has not published to since it moved to Maven Central, and the sixth is
 React Native's own publishing script. The scanner reads the text rather than
 the resolved path, so it reports a repository that is not on its allowlist.
-Deleting is not an option here: `scandelete` removes the whole file for any
-problem, and these are the build files of async-storage, safe-area-context,
-svg, vector-icons and expo-modules-core. Losing them fails the Gradle
-configuration with nothing to say why.
+Deleting is not an option for those: `scandelete` removes the whole file for
+any problem, and these are the build files of async-storage,
+safe-area-context, svg, vector-icons and expo-modules-core, so losing them
+fails the Gradle configuration with nothing to say why.
 
+The seventh is `hermesc` for linux64, and it is the one prebuilt binary this
+build really does run: it compiles the JavaScript bundle to Hermes bytecode.
+It runs on the build machine and no part of it enters the APK, which is the
+argument a reviewer will want to see made.
 **Expo's modules are built from source.** SDK 57 ships eight of them as `.aar`
 files under `node_modules/*/local-maven-repo/`, which is faster and is one
 thing F-Droid will not take. Two separate checks reject it: the scanner
@@ -162,9 +172,19 @@ Changelogs are named for the version code, `changelogs/10070013.txt`, and are
 **truncated past 500 characters**. There is one per architecture, so a release
 writes the same text to four files.
 
-Screenshots go in `phoneScreenshots/` and `tenInchScreenshots/`. They must be
-**PNG or JPEG, with an extension that matches the format**: a WebP file is
-rejected whatever it is called, and so is a JPEG named `.png`.
+Screenshots go beside the changelogs, in two directories that do not exist
+yet:
+
+```
+mobile/fastlane/metadata/android/en-US/phoneScreenshots/
+mobile/fastlane/metadata/android/en-US/tenInchScreenshots/
+```
+
+They must be **PNG or JPEG, with an extension that matches the format**: a
+WebP file is rejected whatever it is called, and so is a JPEG named `.png`.
+The ones under `docs/screenshots/` are the wrong way round on both counts, so
+they cannot simply be copied. Order is by filename, which is why the examples
+below are numbered.
 
 ### Taking them
 
@@ -217,6 +237,22 @@ points `commit` at the pushed SHA, and builds arm64-v8a.
 
 `--stop` is not optional there. `fdroid build` exits 0 even when a build
 fails, so without it a broken recipe passes CI silently.
+
+Two parts of the recipe cannot be checked outside F-Droid's own build server.
+
+The `sudo:` block is skipped without `--server`, so Node, Rust's Android
+target and the NDK have to be on the machine already. That block is the one
+piece nothing here exercises.
+
+And `gradle` on F-Droid's machines is `gradlew-fdroid`, which downloads the
+Gradle the project asks for and checks it against a list of known hashes.
+Debian's `fdroidserver` 2.2.1 carries a copy of that list which stops at
+8.0.2, while `expo prebuild` writes a wrapper asking for 9.3.1, so a local
+run stops with "No hash for gradle version 9.3.1". This is the packaged tool
+being old rather than a problem with the recipe: `gradlew-fdroid` moved to
+its own repository and its list now runs past 9.5, and it also fetches
+checksums from F-Droid's gradle transparency log at run time. Put a real
+Gradle 9.3.1 on PATH to get past it locally.
 
 To check by hand, install `fdroidserver`, clone `fdroiddata`, drop both files
 in and build one architecture:
