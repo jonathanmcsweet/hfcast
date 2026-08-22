@@ -9,9 +9,11 @@
  *
  * The geometry is the strings `cellField` already writes, which is what let
  * the two be compared: a difference in what you see is a difference in the
- * renderer, not in the shapes it was given. Measured on a phone at 30 to
- * 43 ms to build the paths and 3 to 4 ms to record a frame, against a Skia
- * build that was visibly less smooth (user, 2026-08-21).
+ * renderer, not in the shapes it was given. Measured at 30 to 43 ms to build
+ * the paths and 3 to 4 ms to record a frame, against a Skia build that was
+ * visibly less smooth (user, 2026-08-21). That was a current flagship phone
+ * and this app is for old cheap ones, so those are the best case and a
+ * weaker device will take longer at both.
  */
 import { useMemo } from 'react';
 import { View } from 'react-native';
