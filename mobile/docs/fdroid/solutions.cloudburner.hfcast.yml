@@ -1,0 +1,221 @@
+# Goes in fdroiddata as `metadata/solutions.cloudburner.hfcast.yml`, not in
+# this repository. Kept here so it moves with the build it describes, and
+# `tools/check-fdroid-pin.sh` fails a push when it stops matching.
+#
+# Android 7.0 and later only. The Android 5.0 build in `mobile/legacy/` goes
+# to GitHub releases and is not offered here, because it has not been tested
+# on a device.
+#
+# NOT YET VALIDATED against `fdroid build`. See docs/fdroid.md.
+
+Categories:
+  - Science & Education
+License: Apache-2.0
+SourceCode: https://github.com/jonathanmcsweet/hfcast
+IssueTracker: https://github.com/jonathanmcsweet/hfcast/issues
+Changelog: https://github.com/jonathanmcsweet/hfcast/releases
+
+RepoType: git
+Repo: https://github.com/jonathanmcsweet/hfcast.git
+
+# One entry per architecture. `withAbiSplits.ts` gives each APK its own
+# version code, `variant.versionCode * 10 + abiCode`, with the ABI digits
+# fixed at armeabi-v7a 1, x86 2, arm64-v8a 3, x86_64 4. Those must never be
+# renumbered: a device that installed arm64-v8a as 3 has to keep seeing 3.
+#
+# `subdir` is `mobile` and not `mobile/android`, because prebuild runs in
+# subdir and `android/` does not exist until `expo prebuild` makes it.
+#
+# Node comes from nodejs.org with its checksum rather than from a package
+# repository, which is what F-Droid's React Native guide asks for. Debian's
+# own Node is too old for Expo SDK 57.
+Builds:
+  - versionName: 1.7.0
+    versionCode: 10070011
+    commit: v1.7.0
+    subdir: mobile
+    sudo:
+      - apt-get update
+      - apt-get install -y curl rustup xz-utils
+      - curl -Lo node.tar.xz https://nodejs.org/dist/v24.19.0/node-v24.19.0-linux-x64.tar.xz
+      - echo "14b342e71204f811bde6153be8e04b62aef63c236fef92b55f9c83154b409647 node.tar.xz" | sha256sum -c -
+      - tar xf node.tar.xz --strip-components=1 -C /usr/local
+      - rm node.tar.xz
+      - corepack enable
+    init:
+      - rustup target add armv7-linux-androideabi
+    srclibs:
+      - hfcast-engine@v1.6.1
+    prebuild:
+      - pnpm install --frozen-lockfile
+      - node ../tools/expo-build-from-source.mjs package.json
+      - bash ../tools/fdroid-prune.sh
+      - npx expo prebuild --platform android --no-install
+    build:
+      - HFCAST_ENGINE=$$hfcast-engine$$ modules/engine-bridge/build-rust.sh armeabi-v7a
+      - cd android && gradle assembleRelease -PreactNativeArchitectures=armeabi-v7a -PHFCAST_UNSIGNED=true
+    output: android/app/build/outputs/apk/release/app-armeabi-v7a-release-unsigned.apk
+    ndk: 27.1.12297006
+    # Everything the scanner rejects that this build does not read is deleted
+    # in prebuild by tools/fdroid-prune.sh: prebuilt Skia, Expo's precompiled
+    # modules, and the gradle wrappers other packages ship. What is left is
+    # six gradle files naming a maven repository React Native has not
+    # published to since it moved to Maven Central. Those cannot be deleted,
+    # because scandelete removes the whole file for any problem and these are
+    # build files the gradle configuration needs.
+    #
+    # `build-rust.sh` is in `build` rather than prebuild for a related
+    # reason: run earlier, its Rust object files and the engine library land
+    # before the scan and every one of them is a binary it refuses.
+    scanignore:
+      - mobile/node_modules/@react-native-async-storage/async-storage/android/build.gradle
+      - mobile/node_modules/expo-modules-core/android/ExpoModulesCorePlugin.gradle
+      - mobile/node_modules/react-native-safe-area-context/android/build.gradle
+      - mobile/node_modules/react-native-svg/android/build.gradle
+      - mobile/node_modules/react-native-vector-icons/android/build.gradle
+      - mobile/node_modules/react-native/ReactAndroid/publish.gradle
+
+  - versionName: 1.7.0
+    versionCode: 10070012
+    commit: v1.7.0
+    subdir: mobile
+    sudo:
+      - apt-get update
+      - apt-get install -y curl rustup xz-utils
+      - curl -Lo node.tar.xz https://nodejs.org/dist/v24.19.0/node-v24.19.0-linux-x64.tar.xz
+      - echo "14b342e71204f811bde6153be8e04b62aef63c236fef92b55f9c83154b409647 node.tar.xz" | sha256sum -c -
+      - tar xf node.tar.xz --strip-components=1 -C /usr/local
+      - rm node.tar.xz
+      - corepack enable
+    init:
+      - rustup target add i686-linux-android
+    srclibs:
+      - hfcast-engine@v1.6.1
+    prebuild:
+      - pnpm install --frozen-lockfile
+      - node ../tools/expo-build-from-source.mjs package.json
+      - bash ../tools/fdroid-prune.sh
+      - npx expo prebuild --platform android --no-install
+    build:
+      - HFCAST_ENGINE=$$hfcast-engine$$ modules/engine-bridge/build-rust.sh x86
+      - cd android && gradle assembleRelease -PreactNativeArchitectures=x86 -PHFCAST_UNSIGNED=true
+    output: android/app/build/outputs/apk/release/app-x86-release-unsigned.apk
+    ndk: 27.1.12297006
+    # Everything the scanner rejects that this build does not read is deleted
+    # in prebuild by tools/fdroid-prune.sh: prebuilt Skia, Expo's precompiled
+    # modules, and the gradle wrappers other packages ship. What is left is
+    # six gradle files naming a maven repository React Native has not
+    # published to since it moved to Maven Central. Those cannot be deleted,
+    # because scandelete removes the whole file for any problem and these are
+    # build files the gradle configuration needs.
+    #
+    # `build-rust.sh` is in `build` rather than prebuild for a related
+    # reason: run earlier, its Rust object files and the engine library land
+    # before the scan and every one of them is a binary it refuses.
+    scanignore:
+      - mobile/node_modules/@react-native-async-storage/async-storage/android/build.gradle
+      - mobile/node_modules/expo-modules-core/android/ExpoModulesCorePlugin.gradle
+      - mobile/node_modules/react-native-safe-area-context/android/build.gradle
+      - mobile/node_modules/react-native-svg/android/build.gradle
+      - mobile/node_modules/react-native-vector-icons/android/build.gradle
+      - mobile/node_modules/react-native/ReactAndroid/publish.gradle
+
+  - versionName: 1.7.0
+    versionCode: 10070013
+    commit: v1.7.0
+    subdir: mobile
+    sudo:
+      - apt-get update
+      - apt-get install -y curl rustup xz-utils
+      - curl -Lo node.tar.xz https://nodejs.org/dist/v24.19.0/node-v24.19.0-linux-x64.tar.xz
+      - echo "14b342e71204f811bde6153be8e04b62aef63c236fef92b55f9c83154b409647 node.tar.xz" | sha256sum -c -
+      - tar xf node.tar.xz --strip-components=1 -C /usr/local
+      - rm node.tar.xz
+      - corepack enable
+    init:
+      - rustup target add aarch64-linux-android
+    srclibs:
+      - hfcast-engine@v1.6.1
+    prebuild:
+      - pnpm install --frozen-lockfile
+      - node ../tools/expo-build-from-source.mjs package.json
+      - bash ../tools/fdroid-prune.sh
+      - npx expo prebuild --platform android --no-install
+    build:
+      - HFCAST_ENGINE=$$hfcast-engine$$ modules/engine-bridge/build-rust.sh arm64-v8a
+      - cd android && gradle assembleRelease -PreactNativeArchitectures=arm64-v8a -PHFCAST_UNSIGNED=true
+    output: android/app/build/outputs/apk/release/app-arm64-v8a-release-unsigned.apk
+    ndk: 27.1.12297006
+    # Everything the scanner rejects that this build does not read is deleted
+    # in prebuild by tools/fdroid-prune.sh: prebuilt Skia, Expo's precompiled
+    # modules, and the gradle wrappers other packages ship. What is left is
+    # six gradle files naming a maven repository React Native has not
+    # published to since it moved to Maven Central. Those cannot be deleted,
+    # because scandelete removes the whole file for any problem and these are
+    # build files the gradle configuration needs.
+    #
+    # `build-rust.sh` is in `build` rather than prebuild for a related
+    # reason: run earlier, its Rust object files and the engine library land
+    # before the scan and every one of them is a binary it refuses.
+    scanignore:
+      - mobile/node_modules/@react-native-async-storage/async-storage/android/build.gradle
+      - mobile/node_modules/expo-modules-core/android/ExpoModulesCorePlugin.gradle
+      - mobile/node_modules/react-native-safe-area-context/android/build.gradle
+      - mobile/node_modules/react-native-svg/android/build.gradle
+      - mobile/node_modules/react-native-vector-icons/android/build.gradle
+      - mobile/node_modules/react-native/ReactAndroid/publish.gradle
+
+  - versionName: 1.7.0
+    versionCode: 10070014
+    commit: v1.7.0
+    subdir: mobile
+    sudo:
+      - apt-get update
+      - apt-get install -y curl rustup xz-utils
+      - curl -Lo node.tar.xz https://nodejs.org/dist/v24.19.0/node-v24.19.0-linux-x64.tar.xz
+      - echo "14b342e71204f811bde6153be8e04b62aef63c236fef92b55f9c83154b409647 node.tar.xz" | sha256sum -c -
+      - tar xf node.tar.xz --strip-components=1 -C /usr/local
+      - rm node.tar.xz
+      - corepack enable
+    init:
+      - rustup target add x86_64-linux-android
+    srclibs:
+      - hfcast-engine@v1.6.1
+    prebuild:
+      - pnpm install --frozen-lockfile
+      - node ../tools/expo-build-from-source.mjs package.json
+      - bash ../tools/fdroid-prune.sh
+      - npx expo prebuild --platform android --no-install
+    build:
+      - HFCAST_ENGINE=$$hfcast-engine$$ modules/engine-bridge/build-rust.sh x86_64
+      - cd android && gradle assembleRelease -PreactNativeArchitectures=x86_64 -PHFCAST_UNSIGNED=true
+    output: android/app/build/outputs/apk/release/app-x86_64-release-unsigned.apk
+    ndk: 27.1.12297006
+    # Everything the scanner rejects that this build does not read is deleted
+    # in prebuild by tools/fdroid-prune.sh: prebuilt Skia, Expo's precompiled
+    # modules, and the gradle wrappers other packages ship. What is left is
+    # six gradle files naming a maven repository React Native has not
+    # published to since it moved to Maven Central. Those cannot be deleted,
+    # because scandelete removes the whole file for any problem and these are
+    # build files the gradle configuration needs.
+    #
+    # `build-rust.sh` is in `build` rather than prebuild for a related
+    # reason: run earlier, its Rust object files and the engine library land
+    # before the scan and every one of them is a binary it refuses.
+    scanignore:
+      - mobile/node_modules/@react-native-async-storage/async-storage/android/build.gradle
+      - mobile/node_modules/expo-modules-core/android/ExpoModulesCorePlugin.gradle
+      - mobile/node_modules/react-native-safe-area-context/android/build.gradle
+      - mobile/node_modules/react-native-svg/android/build.gradle
+      - mobile/node_modules/react-native-vector-icons/android/build.gradle
+      - mobile/node_modules/react-native/ReactAndroid/publish.gradle
+
+# Four builds per release, so a tag does not describe one build.
+AutoUpdateMode: None
+UpdateCheckMode: Tags
+
+# The highest code in the release. Every device sees the APKs it can run and
+# takes the highest of those, so an arm64 phone gets arm64-v8a rather than
+# the armeabi-v7a build it could also install.
+CurrentVersion: 1.7.0
+CurrentVersionCode: 10070014

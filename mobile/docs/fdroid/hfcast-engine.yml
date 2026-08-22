@@ -1,0 +1,11 @@
+# Goes in fdroiddata as `srclibs/hfcast-engine.yml`, not in this repository.
+#
+# F-Droid clones this beside the app checkout so `build-rust.sh` can point
+# cargo at it. `mobile/modules/engine-bridge/rust/Cargo.toml` asks for the
+# published crate, but the Android build turns on `embedded-coefficients`
+# and the published crate does not carry those files.
+#
+# The revision each build asks for has to match the version in
+# `rust/Cargo.lock`. Nothing checks that, so move both together.
+RepoType: git
+Repo: https://github.com/jonathanmcsweet/hfcast-engine.git
