@@ -1,0 +1,8 @@
+The forecast engine is a newer version. Coverage maps arrive faster, and
+the new Truecast model works out the height it is reflecting from rather
+than estimating it, so its predictions should sit closer to what you
+hear.
+
+Devices with more than eight cores can now use them. The app measured
+each device to pick a thread count but never looked above eight, so a
+larger phone or tablet was left running slower than it could.
