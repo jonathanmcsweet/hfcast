@@ -165,12 +165,6 @@ mobile/fastlane/metadata/android/en-US/phoneScreenshots/
 mobile/fastlane/metadata/android/en-US/tenInchScreenshots/
 ```
 
-They have to be PNG or JPEG with an extension matching the format, since a
-WebP file is rejected whatever it is called and so is a JPEG named `.png`,
-and the ones under `docs/screenshots/` are JPEG and WebP behind `.png` names,
-so they cannot be copied across. Order is by filename, which is why the
-examples below are numbered.
-
 ### Taking them
 
 `adb exec-out screencap -p > shot.png` captures the framebuffer, status bar
