@@ -36,7 +36,7 @@ import CoverageGlobe from '../CoverageGlobe';
  * gave back its two lines and the gap under them, which is close to the
  * 58 points added here — so the fold is where it was.
  */
-const MAX_MAP = 380;
+export const MAX_MAP = 380;
 
 export default function MapSlot(
   {
@@ -51,6 +51,7 @@ export default function MapSlot(
     onPanning,
     busy,
     busyLabel,
+    maxSize,
   }: {
     coverage: Coverage | null | undefined;
     patch: CoveragePatch | null;
@@ -65,12 +66,20 @@ export default function MapSlot(
     busy: boolean;
     /** What that wait is, for a reader who cannot see the bar. */
     busyLabel: string;
+    /**
+     * The tallest the map may be, where the caller knows better.
+     *
+     * Beside the answer the map has its own column and its own height to
+     * spend, so `ReachCard` raises this. Stacked, nothing passes it and
+     * `MAX_MAP` stands.
+     */
+    maxSize?: number | undefined;
   },
 ) {
   const theme = useTheme<AppTheme>();
   const [width, setWidth] = useState(0);
   // Square, because the projection is a disc.
-  const size = Math.min(width, MAX_MAP);
+  const size = Math.min(width, maxSize ?? MAX_MAP);
 
   return (
     <View

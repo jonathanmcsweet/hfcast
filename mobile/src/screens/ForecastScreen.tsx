@@ -5,6 +5,7 @@ import {
   RefreshControl,
   ScrollView,
   StyleSheet,
+  useWindowDimensions,
   View,
 } from 'react-native';
 import { Button, Text, useTheme } from 'react-native-paper';
@@ -32,6 +33,7 @@ import {
 } from '../api/queries';
 import { qualityFor } from '../data/quality';
 import { mayRefresh } from '../data/refreshPolicy';
+import { isWideLayout, wideMapSize } from '../data/rotation';
 import { trackStart } from '../data/timeline';
 import { useShownFor } from '../hooks/useShownFor';
 import { usePathStore } from '../store/usePathStore';
@@ -52,6 +54,11 @@ export default function ForecastScreen() {
   const theme = useTheme<AppTheme>();
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
+  // The one place the window is read. `ReachCard` is told what to draw
+  // rather than measuring for itself, which keeps the decision testable
+  // and stops two components disagreeing about the same screen.
+  const window = useWindowDimensions();
+  const wide = isWideLayout(window.width);
   const [now, setNow] = useState(() => new Date());
   const [pickerOpen, setPickerOpen] = useState(false);
   const [stationOpen, setStationOpen] = useState(false);
@@ -347,6 +354,8 @@ export default function ForecastScreen() {
           nowMs={now.getTime()}
           onHourChange={setHour}
           onMapPanning={setMapPanning}
+          wide={wide}
+          mapMax={wide ? wideMapSize(window.width, window.height) : undefined}
         />
 
         {

@@ -1,0 +1,8 @@
+The map is drawn with Android's own graphics now, so panning and zooming
+are smoother and the download is about 15 MB smaller.
+
+On a tablet held sideways the forecast, the clock and the reach sit beside
+the map instead of above it, and dialogs show their content again.
+
+A newer forecast engine works maps out faster, and a device with more than
+eight cores can now use them all.
