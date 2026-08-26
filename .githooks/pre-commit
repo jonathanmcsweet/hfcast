@@ -13,6 +13,9 @@ set -euo pipefail
 
 cd "$(git rev-parse --show-toplevel)"
 
+hook="pre-commit"
+. .githooks/lib.sh
+
 # The roadmap and the completions ledger are kept outside this
 # repository. `.gitignore` names them, but `git add -f` gets past
 # `.gitignore`, so refuse them here as well.
@@ -53,4 +56,12 @@ if [[ -n $changed_lockfiles ]]; then
   for lockfile in $changed_lockfiles; do
     "$pnpm" --dir "$(dirname "$lockfile")" audit
   done
+fi
+
+# The Rust lockfile has its own audit and moves far less often than the pnpm
+# ones, so it is a check of its own rather than a branch inside the loop
+# above.
+if git diff --cached --name-only | grep -q 'Cargo\.lock$'; then
+  echo "pre-commit: dependency audit (rust)"
+  rust_audit
 fi

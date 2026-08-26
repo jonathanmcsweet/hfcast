@@ -6,7 +6,7 @@
  * back once it has been handed over. So work started in the background
  * does not run beside the reader's next request, it runs in front of it.
  * That is not a theory: filling every band in behind the map made a band
- * change take about 30 seconds on a Pixel 8 against 3.4 for the run
+ * change take about 30 seconds on a fast phone against 3.4 for the run
  * alone (user, 2026-08-01).
  *
  * This puts one queue in front of the module, with two lanes. Work the

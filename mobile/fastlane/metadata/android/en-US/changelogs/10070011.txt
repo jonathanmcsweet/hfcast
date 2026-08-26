@@ -1,0 +1,7 @@
+The map is drawn with Android's own graphics engine now. Panning and
+zooming are smoother, and the download is 15 MB smaller, because the app
+was carrying its own copy of a drawing engine the phone already has.
+
+Moving to a new location used to leave the coverage cloud sitting over
+the old one until you changed band; it now clears and comes back in the
+right place on its own.

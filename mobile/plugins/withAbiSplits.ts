@@ -75,6 +75,13 @@ const SPLITS = `
  * does not fit Android's ceiling of 2,100,000,000. `credits.test.ts` checks
  * both ends of that.
  *
+ * All four are built and all four are published. `x86` covers Intel Android
+ * devices, which stopped being made when Intel left the mobile business in
+ * 2016 and are kept anyway, since a device that old can still be in use and
+ * a fourth APK costs a reader nothing (user, 2026-08-22). `armeabi-v7a` is
+ * not legacy either: Amazon shipped Fire tablets with a wholly 32-bit Fire OS
+ * on 64-bit capable silicon into 2020.
+ *
  * The order is fixed and must not be reordered — a device that installed
  * `arm64-v8a` as 3 has to keep seeing 3, or an update looks like a downgrade.
  */

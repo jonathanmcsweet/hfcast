@@ -1,6 +1,6 @@
 {
   "name": "hfcast",
-  "version": "1.6.4",
+  "version": "1.7.0",
   "license": "Apache-2.0",
   "packageManager": "pnpm@11.17.0",
   "main": "index.js",
@@ -40,6 +40,7 @@
     "expo-clipboard": "~57.0.1",
     "expo-font": "~57.0.1",
     "expo-localization": "~57.0.1",
+    "expo-screen-orientation": "~57.0.1",
     "expo-status-bar": "~57.0.1",
     "i18next": "^26.3.6",
     "react": "19.2.3",
@@ -70,5 +71,14 @@
     "typescript": "~7.0.2",
     "world-atlas": "^2.0.2"
   },
-  "private": true
+  "private": true,
+  "expo": {
+    "autolinking": {
+      "android": {
+        "exclude": [
+          "@shopify/react-native-skia"
+        ]
+      }
+    }
+  }
 }

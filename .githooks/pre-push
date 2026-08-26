@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# Runs before every push: a dependency audit of all three packages, then
+# Runs before every push: a dependency audit of every lockfile, then
 # the typechecks and the tests of both packages. The formatting and lint
 # checks are in the pre-commit hook.
 #
@@ -17,6 +17,9 @@
 set -euo pipefail
 
 cd "$(git rev-parse --show-toplevel)"
+
+hook="pre-push"
+. .githooks/lib.sh
 
 pnpm_bin() {
   if command -v pnpm > /dev/null 2>&1; then
@@ -44,6 +47,11 @@ echo "pre-push: dependency audit (mobile)"
 "$pnpm" --dir mobile audit
 echo "pre-push: dependency audit (server)"
 "$pnpm" --dir server audit
+echo "pre-push: dependency audit (rust)"
+rust_audit
+
+echo "pre-push: f-droid recipe"
+tools/check-fdroid-pin.sh
 
 echo "pre-push: mobile typecheck"
 "$pnpm" --dir mobile typecheck

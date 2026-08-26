@@ -41,6 +41,9 @@ jobs:
       - name: The changed parts must move their versions
         run: tools/check-version-bump.sh "origin/${{ github.base_ref }}"
 
+      - name: The F-Droid recipe must describe this version
+        run: tools/check-fdroid-pin.sh
+
   check:
     runs-on: ubuntu-latest
     timeout-minutes: 30
