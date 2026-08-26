@@ -29,7 +29,7 @@ crate-type = ["cdylib"]
 # checkout and applies a Cargo path override, which changes where the
 # crate comes from and nothing else.
 
-hfcast = { version = "1.6.1", features = ["embedded-coefficients"] }
+hfcast = { version = "2.13.3", features = ["embedded-coefficients"] }
 jni = "0.21"
 
 [profile.release]
