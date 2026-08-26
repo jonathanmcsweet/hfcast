@@ -33,9 +33,9 @@ Repo: https://github.com/jonathanmcsweet/hfcast.git
 # repository, which is what F-Droid's React Native guide asks for. Debian's
 # own Node is too old for Expo SDK 57.
 Builds:
-  - versionName: 1.7.0
-    versionCode: 10070011
-    commit: v1.7.0
+  - versionName: 1.7.1
+    versionCode: 10070111
+    commit: v1.7.1
     subdir: mobile
     sudo:
       - apt-get update
@@ -79,9 +79,9 @@ Builds:
       - mobile/node_modules/react-native/ReactAndroid/publish.gradle
       - mobile/node_modules/hermes-compiler/hermesc/linux64-bin/hermesc
 
-  - versionName: 1.7.0
-    versionCode: 10070012
-    commit: v1.7.0
+  - versionName: 1.7.1
+    versionCode: 10070112
+    commit: v1.7.1
     subdir: mobile
     sudo:
       - apt-get update
@@ -125,9 +125,9 @@ Builds:
       - mobile/node_modules/react-native/ReactAndroid/publish.gradle
       - mobile/node_modules/hermes-compiler/hermesc/linux64-bin/hermesc
 
-  - versionName: 1.7.0
-    versionCode: 10070013
-    commit: v1.7.0
+  - versionName: 1.7.1
+    versionCode: 10070113
+    commit: v1.7.1
     subdir: mobile
     sudo:
       - apt-get update
@@ -171,9 +171,9 @@ Builds:
       - mobile/node_modules/react-native/ReactAndroid/publish.gradle
       - mobile/node_modules/hermes-compiler/hermesc/linux64-bin/hermesc
 
-  - versionName: 1.7.0
-    versionCode: 10070014
-    commit: v1.7.0
+  - versionName: 1.7.1
+    versionCode: 10070114
+    commit: v1.7.1
     subdir: mobile
     sudo:
       - apt-get update
@@ -224,5 +224,5 @@ UpdateCheckMode: Tags
 # The highest code in the release. Every device sees the APKs it can run and
 # takes the highest of those, so an arm64 phone gets arm64-v8a rather than
 # the armeabi-v7a build it could also install.
-CurrentVersion: 1.7.0
-CurrentVersionCode: 10070014
+CurrentVersion: 1.7.1
+CurrentVersionCode: 10070114
