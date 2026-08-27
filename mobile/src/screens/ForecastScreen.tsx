@@ -33,7 +33,7 @@ import {
 } from '../api/queries';
 import { qualityFor } from '../data/quality';
 import { mayRefresh } from '../data/refreshPolicy';
-import { isWideLayout, wideMapSize } from '../data/rotation';
+import { isWideLayout } from '../data/rotation';
 import { trackStart } from '../data/timeline';
 import { useShownFor } from '../hooks/useShownFor';
 import { usePathStore } from '../store/usePathStore';
@@ -292,6 +292,55 @@ export default function ForecastScreen() {
     (c) => qualityFor(c.reliability) === 'closed',
   );
 
+  const reachCard = (
+    <ReachCard
+      prediction={prediction}
+      band={band}
+      hour={hour}
+      start={start}
+      past={past}
+      // The exact moment behind the now-cast: the live readings when
+      // they have arrived, the clock when they have not.
+      liveAt={weather.dataUpdatedAt || now.getTime()}
+      nowMs={now.getTime()}
+      onHourChange={setHour}
+      onMapPanning={setMapPanning}
+    />
+  );
+
+  const allBands = (
+    <>
+      {
+        /* Named for the destination, because this grid is about one path.
+             The map above answers the other question — who can hear you —
+             and the two were reading as the same thing. */
+      }
+      <SectionHeading
+        title={prediction.to
+          ? t('sections.allBandsTo', { place: prediction.to.label })
+          : t('sections.allBandsAnywhere')}
+        hint={allClosed
+          ? (prediction.to
+            ? t('sections.noneReach', { place: prediction.to.label })
+            : t('sections.noneReachAnywhere'))
+          : t('sections.allBandsHint')}
+      />
+      <ReachGrid
+        prediction={prediction}
+        band={band}
+        hour={hour}
+        fillingBand={mapProgress.working}
+        nowHour={nowHour}
+        start={start}
+        offline={offline}
+        onSelect={(nextBand, nextHour) => {
+          setBand(nextBand);
+          setHour(nextHour);
+        }}
+      />
+    </>
+  );
+
   return (
     <View style={[styles.root, { backgroundColor: ui.page }]}>
       <FixedHeader>
@@ -342,50 +391,26 @@ export default function ForecastScreen() {
           />
         }
       >
-        <ReachCard
-          prediction={prediction}
-          band={band}
-          hour={hour}
-          start={start}
-          past={past}
-          // The exact moment behind the now-cast: the live readings when
-          // they have arrived, the clock when they have not.
-          liveAt={weather.dataUpdatedAt || now.getTime()}
-          nowMs={now.getTime()}
-          onHourChange={setHour}
-          onMapPanning={setMapPanning}
-          wide={wide}
-          mapMax={wide ? wideMapSize(window.width, window.height) : undefined}
-        />
-
         {
-          /* Named for the destination, because this grid is about one path.
-             The map above answers the other question — who can hear you —
-             and the two were reading as the same thing. */
+          /* Side by side once there is room. The card answers "who can
+             hear me now" and the grid answers "when else", and on a wide
+             screen the second was a scroll away from the first for no
+             reason. The sun and the disclaimer stay full width below,
+             since neither is part of that comparison. */
         }
-        <SectionHeading
-          title={prediction.to
-            ? t('sections.allBandsTo', { place: prediction.to.label })
-            : t('sections.allBandsAnywhere')}
-          hint={allClosed
-            ? (prediction.to
-              ? t('sections.noneReach', { place: prediction.to.label })
-              : t('sections.noneReachAnywhere'))
-            : t('sections.allBandsHint')}
-        />
-        <ReachGrid
-          prediction={prediction}
-          band={band}
-          hour={hour}
-          fillingBand={mapProgress.working}
-          nowHour={nowHour}
-          start={start}
-          offline={offline}
-          onSelect={(nextBand, nextHour) => {
-            setBand(nextBand);
-            setHour(nextHour);
-          }}
-        />
+        {wide
+          ? (
+            <View style={styles.split}>
+              <View style={styles.column}>{reachCard}</View>
+              <View style={styles.column}>{allBands}</View>
+            </View>
+          )
+          : (
+            <>
+              {reachCard}
+              {allBands}
+            </>
+          )}
 
         {
           /* The freshness tag stays on the collapsed header. A cached quiet
@@ -451,6 +476,10 @@ export default function ForecastScreen() {
 
 const styles = StyleSheet.create({
   root: { flex: 1 },
+  // The card and the band grid as two columns. `flex-start` so the
+  // shorter one keeps its own height instead of stretching to match.
+  split: { flexDirection: 'row', alignItems: 'flex-start' },
+  column: { flex: 1 },
   centre: {
     flex: 1,
     alignItems: 'center',

@@ -31,16 +31,6 @@ interface Props {
   onHourChange: (hour: number) => void;
   /** True while the map owns a two-finger pan. See `CoverageGlobe`. */
   onMapPanning?: ((active: boolean) => void) | undefined;
-  /**
-   * Whether the answer sits beside the map rather than above it.
-   *
-   * Decided by `ForecastScreen` from the window, so this stays a
-   * question of what to draw and the width is read in one place. See
-   * `isWideLayout`.
-   */
-  wide?: boolean | undefined;
-  /** How tall the map may be when `wide`. See `wideMapSize`. */
-  mapMax?: number | undefined;
 }
 
 /**
@@ -65,8 +55,6 @@ export default function ReachCard({
   nowMs,
   onHourChange,
   onMapPanning,
-  wide = false,
-  mapMax,
 }: Props) {
   const theme = useTheme<AppTheme>();
   const { t } = useTranslation();
@@ -86,8 +74,8 @@ export default function ReachCard({
     ? isNvis(cell.takeoffAngleDeg, cell.reliability)
     : false;
 
-  const answer = (
-    <>
+  return (
+    <Card>
       {
         /* No headline and no caption. They asked "Where can I reach?"
            and named the destination, and the sentence directly below
@@ -135,11 +123,7 @@ export default function ReachCard({
           )
           : null}
       </Inset>
-    </>
-  );
 
-  const mapPane = (
-    <>
       <MapSlot
         coverage={map.drawn}
         patch={map.patch}
@@ -152,7 +136,6 @@ export default function ReachCard({
         onPanning={onMapPanning}
         busy={map.busy}
         busyLabel={t(map.busyKey)}
-        maxSize={wide ? mapMax : undefined}
       />
 
       {
@@ -169,11 +152,6 @@ export default function ReachCard({
         : null}
 
       <MapLegend hasNvis={map.hasNvis} />
-    </>
-  );
-
-  const clock = (
-    <>
       <ReachLines
         coverage={map.coverage}
         nvisBand={map.nvisBand}
@@ -189,37 +167,6 @@ export default function ReachCard({
         place={prediction.from.label}
         lon={prediction.from.lon}
       />
-    </>
-  );
-
-  return (
-    <Card>
-      {
-        /* Beside the map once there is room for it, stacked below
-           otherwise. A tablet on its side is short, and stacked the
-           map had to shrink to keep the clock above the fold; given
-           its own column it keeps its height and the answer, the
-           sentences and the clock take the other. See `isWideLayout`. */
-      }
-      {wide
-        ? (
-          <View style={styles.split}>
-            <View style={styles.answerColumn}>
-              {answer}
-              {clock}
-            </View>
-            <View style={[styles.mapColumn, mapMax ? { width: mapMax } : null]}>
-              {mapPane}
-            </View>
-          </View>
-        )
-        : (
-          <>
-            {answer}
-            {mapPane}
-            {clock}
-          </>
-        )}
     </Card>
   );
 }
@@ -232,11 +179,4 @@ const styles = StyleSheet.create({
     minHeight: 40,
   },
   sentence: { flex: 1 },
-  // The answer beside the map. `alignItems` starts them at the same top
-  // edge rather than stretching the shorter one, so the map does not grow
-  // to match a long sentence.
-  split: { flexDirection: 'row', alignItems: 'flex-start', gap: spacing.lg },
-  // The card's own gap does not reach inside a column, so each repeats it.
-  answerColumn: { flex: 1, gap: spacing.md },
-  mapColumn: { gap: spacing.md },
 });

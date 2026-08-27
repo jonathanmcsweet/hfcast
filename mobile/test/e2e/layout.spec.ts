@@ -1,5 +1,5 @@
 /**
- * Where the answer sits relative to the map.
+ * Where the band grid sits relative to the map card.
  *
  * `isWideLayout` decides it and `test/rotation.test.ts` holds the number.
  * What that cannot show is that the two really are drawn side by side,
@@ -12,38 +12,38 @@
  */
 import { expect, test } from './fixtures.ts';
 
-test.describe('the answer and the map', () => {
+test.describe('the map card and the band grid', () => {
   test(
     'sit side by side only where there is room',
     async ({ page, open }, testInfo) => {
       await open();
 
-      // The headline sentence, which is `reach.answerAnywhere` with no
-      // destination set. Distinct from the reach line under the map, which
-      // ends "of the world at this hour".
-      const answer = page.getByText(/of the directions sampled/i).first();
       // Either label, because the slot holds the same box whether the grid
       // has arrived or is still coming, and this is about where it sits.
       const map = page
         .getByLabel(/Coverage map|Working out where this band reaches/i)
         .first();
-      await expect(answer).toBeVisible();
+      const bands = page.getByText(/All bands, every direction/i).first();
+      await expect(map).toBeVisible();
+      await expect(bands).toBeVisible();
 
-      const a = await answer.boundingBox();
       const m = await map.boundingBox();
-      expect(a, 'the answer has no box').not.toBeNull();
+      const b = await bands.boundingBox();
       expect(m, 'the map has no box').not.toBeNull();
-      if (!a || !m) return;
+      expect(b, 'the band grid has no box').not.toBeNull();
+      if (!m || !b) return;
 
       if (testInfo.project.name === 'tablet') {
-        // Beside: the answer ends before the map starts, and the two share
-        // a band of the screen vertically.
-        expect(a.x + a.width).toBeLessThanOrEqual(m.x + 1);
-        expect(a.y).toBeLessThan(m.y + m.height);
-        expect(m.y).toBeLessThan(a.y + a.height);
+        // Beside: the map ends before the heading starts across the page,
+        // and the heading begins before the map ends down it. The heading
+        // is one line at the top of its own column, so it is not expected
+        // to reach as far down as the map does; only that it does not sit
+        // below the map entirely, which is what stacking would mean.
+        expect(m.x + m.width).toBeLessThanOrEqual(b.x + 1);
+        expect(b.y).toBeLessThan(m.y + m.height);
       } else {
-        // Stacked: the map begins below the answer.
-        expect(m.y).toBeGreaterThanOrEqual(a.y + a.height - 1);
+        // Stacked: the grid begins below the map.
+        expect(b.y).toBeGreaterThanOrEqual(m.y + m.height - 1);
       }
     },
   );

@@ -6,7 +6,6 @@ import {
   isWideLayout,
   TABLET_WIDTH,
   WIDE_WIDTH,
-  wideMapSize,
 } from '../src/data/rotation.ts';
 
 /**
@@ -42,14 +41,14 @@ describe('deciding whether a device may rotate', () => {
 });
 
 /**
- * Whether the answer sits beside the map or above it.
+ * Whether the band grid sits beside the map card or below it.
  *
  * This one reads the current width and not the smallest side, because it
  * is about how the device is being held: the same tablet stacks upright
  * and splits on its side.
  */
 
-describe('deciding whether the answer sits beside the map', () => {
+describe('deciding whether the band grid sits beside the map', () => {
   it('stacks on a telephone and on a tablet held upright', () => {
     // A telephone, which the manifest holds upright anyway.
     assert.equal(isWideLayout(412), false);
@@ -59,7 +58,7 @@ describe('deciding whether the answer sits beside the map', () => {
   });
 
   it('splits once a tablet is turned on its side', () => {
-    // 1280x800, the arrangement `MapSlot`'s cap was written for.
+    // 1280x800, a ten inch tablet on its side.
     assert.equal(isWideLayout(1280), true);
     // Galaxy Tab S4 landscape, which is what the e2e tablet project runs,
     // so the split is exercised by the existing suite.
@@ -77,44 +76,5 @@ describe('deciding whether the answer sits beside the map', () => {
     // fire on a tablet held the tall way.
     assert.ok(WIDE_WIDTH > TABLET_WIDTH);
     assert.ok(WIDE_WIDTH > 800);
-  });
-});
-
-/**
- * How big the map may be once it has a column of its own.
- *
- * Height is the binding constraint here, not width. The whole point of
- * the split is that a tablet on its side is short, so a map sized only
- * from the width would push the clock off the bottom.
- */
-
-describe('sizing the map beside the answer', () => {
-  it('is bounded by the height, not the width', () => {
-    // 1138x712, Galaxy Tab S4 landscape. Width alone would allow 478.
-    assert.equal(wideMapSize(1138, 712), 412);
-  });
-
-  it('grows with the room a taller screen gives', () => {
-    assert.ok(wideMapSize(1280, 800) > wideMapSize(1138, 712));
-  });
-
-  it('keeps a floor on a short screen rather than vanishing', () => {
-    // An old seven inch tablet on its side: 600 points of height leaves
-    // almost nothing after the header and the legend.
-    assert.equal(wideMapSize(1024, 600), 320);
-  });
-
-  it('never returns something a card cannot hold', () => {
-    const screens: Array<[number, number]> = [
-      [900, 500],
-      [1138, 712],
-      [1280, 800],
-      [2000, 1200],
-    ];
-    for (const [w, h] of screens) {
-      const size = wideMapSize(w, h);
-      assert.ok(size > 0, `${w}x${h} gave ${size}`);
-      assert.ok(size <= w, `${w}x${h} gave ${size}, wider than the screen`);
-    }
   });
 });
