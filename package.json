@@ -21,7 +21,7 @@
     "dev:ui": "pnpm --dir mobile start"
   },
   "devDependencies": {
-    "@biomejs/biome": "^2.5.8",
+    "@biomejs/biome": "^2.5.10",
     "dprint": "^0.55.2"
   }
 }
