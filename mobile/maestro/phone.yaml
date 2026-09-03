@@ -1,0 +1,52 @@
+# The phone captures: the forecast in each of the three themes, then the
+# antenna settings.
+#
+# Hiding the system bars, and putting the device back afterwards, is
+# tools/screenshots.sh's job. This only drives the app, and writes into
+# whichever directory it is run from.
+appId: solutions.cloudburner.hfcast
+---
+- launchApp
+
+# Set the theme rather than trusting what the device was left on, because
+# the starting mode may be "Follow the device".
+- tapOn: 'Settings'
+- tapOn: 'Dark'
+
+# Wait for the forecast, not for the screen. The map carries this label
+# only once it has been drawn, so this is what separates a capture from a
+# picture of the spinner. A weak device takes its time, hence the minute.
+- extendedWaitUntil:
+    visible: 'Coverage map.*'
+    timeout: 60000
+- takeScreenshot: 01-forecast-dark
+
+- tapOn: 'Settings'
+- tapOn: 'Light'
+- extendedWaitUntil:
+    visible: 'Coverage map.*'
+    timeout: 60000
+- takeScreenshot: 02-forecast-light
+
+- tapOn: 'Settings'
+- tapOn: 'Low light'
+- extendedWaitUntil:
+    visible: 'Coverage map.*'
+    timeout: 60000
+- takeScreenshot: 03-forecast-low-light
+
+- tapOn: 'Settings'
+- tapOn: 'Dark'
+- extendedWaitUntil:
+    visible: 'Coverage map.*'
+    timeout: 60000
+
+# The radio settings reach the antenna, which is the fourth section down
+# the modal. Opening them from the menu rather than the station strip,
+# because the strip's chips are small targets that move with the text.
+- tapOn: 'Settings'
+- tapOn: 'Your radio'
+- scrollUntilVisible:
+    element: 'Antenna'
+    direction: DOWN
+- takeScreenshot: 04-antenna-dark

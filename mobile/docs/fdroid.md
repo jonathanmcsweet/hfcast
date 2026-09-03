@@ -167,43 +167,95 @@ mobile/fastlane/metadata/android/en-US/tenInchScreenshots/
 
 ### Taking them
 
-`adb exec-out screencap -p > shot.png` captures the framebuffer, status bar
-and navigation bar included. F-Droid has no rule about either and most
-listings keep them, though demo mode gives a clean and repeatable bar in
-place of whatever the phone happened to be showing:
+`tools/screenshots.sh` runs the whole capture. It hides the two system
+bars, applies the screen override for that set, prompts for each shot, and
+puts the device back afterwards, including when the run is interrupted:
 
 ```bash
-adb shell settings put global sysui_demo_allowed 1
-adb shell am broadcast -a com.android.systemui.demo -e command enter
-adb shell am broadcast -a com.android.systemui.demo -e command clock -e hhmm 1200
-adb shell am broadcast -a com.android.systemui.demo -e command battery -e level 100 -e plugged false
-adb shell am broadcast -a com.android.systemui.demo -e command network -e wifi show -e level 4
-adb shell am broadcast -a com.android.systemui.demo -e command notifications -e visible false
-
-adb exec-out screencap -p > phoneScreenshots/01-forecast.png
-
-adb shell am broadcast -a com.android.systemui.demo -e command exit
+tools/screenshots.sh --check    # what this device holds, changes nothing
+tools/screenshots.sh phone      # the four phone captures
+tools/screenshots.sh tablet     # the one ten inch capture
 ```
 
-GrapheneOS does not always honour demo mode, so check it before planning a
-set of captures around it.
-
-A ten inch capture needs no tablet. Android reports a different screen to the
-app, which then lays out and draws as a tablet, and the capture comes back at
-the size asked for:
+The script holds the list of shots a release needs, so that list lives in
+one place rather than in somebody's memory. It stops before each capture
+and waits, so the app is set up by hand between shots, and naming one
+retakes it on its own:
 
 ```bash
-adb shell wm size 2560x1600      # a 10 inch tablet, landscape
-adb shell wm density 320         # 1280x800 in dp, which is what the layout reads
-adb exec-out screencap -p > tenInchScreenshots/01-forecast.png
-
-adb shell wm size reset
-adb shell wm density reset
+tools/screenshots.sh phone 03-forecast-low-light
+tools/screenshots.sh phone 03
 ```
 
-The tablet layout puts the readout, the map and the clock on one screen,
-which is the arrangement `MapSlot`'s 380 point cap exists for, so it is worth
-capturing rather than reusing a phone shot.
+The set is the forecast in each of the three themes, the radio settings
+scrolled to the antenna, and one ten inch capture of the wide
+arrangement.
+
+Two things end up in a capture that the app does not draw. The status bar
+carries whatever notifications are waiting, and one of them is always the
+USB debugging notice, which cannot be dismissed while adb is attached. The
+navigation bar sits at the bottom. The script hides both, two ways at once
+because neither works everywhere: `policy_control` hides them outright,
+which every build honoured until Android 11 dropped it and some still do,
+and demo mode replaces the status bar with a fixed clock and a full
+battery. GrapheneOS does not always honour demo mode either. `--check`
+reads the Android version and says which to expect; the clock reading
+12:00 during a run is the quick test of whether demo mode took. If a
+device refuses both, capture with the bars and crop them off, which
+F-Droid does not mind because it puts no constraint on screenshot
+dimensions.
+
+A ten inch capture needs no ten inch tablet. `wm size` makes Android
+report a different screen to the app, which then lays out and draws as a
+tablet. The override is clamped to twice the physical size on each axis
+separately, so asking an 800x1280 panel for 2560x1600 gives 1600x1600:
+the width is cut to twice 800, and the height is already under twice 1280.
+The script gives the override the same way up as the panel, at 1600x2560,
+and forces the rotation to landscape instead, which comes back as the
+2560x1600 the listing wants.
+
+The phone set overrides the screen too, to 1080x2400 at density 420,
+which is 412x915 in points: the telephone `test/rotation.test.ts` is
+written around. So one tablet produces both sets, and both come back the
+same size whichever device took them.
+
+The tablet arrangement is the reason to capture it rather than reuse a
+phone shot: past 900 points across, the band grid moves to the right of
+the map card instead of sitting below it, and no phone capture shows that.
+
+### Letting maestro drive
+
+`--auto` hands the app to [maestro](https://maestro.dev) instead of
+prompting, running the flow in `maestro/` for that device:
+
+```bash
+tools/screenshots.sh tablet --auto
+```
+
+Everything above still applies. Maestro captures the framebuffer like
+anything else, so it sees the same two system bars, and the script hides
+them and restores the device around the run either way. What changes is
+only who works the app.
+
+Maestro is a standalone binary needing Java 11 or later, and nothing in
+this repository depends on it, so the manual path keeps working without
+it:
+
+```bash
+curl -Ls https://get.maestro.mobile.dev | bash
+```
+
+The flows are checked for shape, not against a device:
+
+```bash
+maestro check-syntax maestro/phone.yaml
+```
+
+That catches an unknown command or a bad direction, and cannot tell
+whether a selector matches anything real. The flows match on the English
+strings the app draws, so they hold for `en-US` and would need their own
+selectors for another locale. `maestro hierarchy` dumps what the device
+actually exposes when one of them finds nothing.
 
 ## Testing the recipe before submitting
 
