@@ -20,7 +20,6 @@ import FixedHeader from '../components/FixedHeader';
 import LocationPicker from '../components/LocationPicker';
 import ReachCard from '../components/ReachCard';
 import ReachGrid from '../components/ReachGrid';
-import SectionHeading from '../components/SectionHeading';
 import SkeletonForecast from '../components/SkeletonForecast';
 import SpaceWeatherCard from '../components/SpaceWeatherCard';
 import StationModal from '../components/StationModal';
@@ -315,17 +314,12 @@ export default function ForecastScreen() {
              The map above answers the other question — who can hear you —
              and the two were reading as the same thing. */
       }
-      <SectionHeading
-        title={prediction.to
-          ? t('sections.allBandsTo', { place: prediction.to.label })
-          : t('sections.allBandsAnywhere')}
-        hint={allClosed
+      <ReachGrid
+        note={allClosed
           ? (prediction.to
             ? t('sections.noneReach', { place: prediction.to.label })
             : t('sections.noneReachAnywhere'))
-          : t('sections.allBandsHint')}
-      />
-      <ReachGrid
+          : undefined}
         prediction={prediction}
         band={band}
         hour={hour}

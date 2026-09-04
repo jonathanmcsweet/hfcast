@@ -36,9 +36,10 @@ test.describe('the map card and the band grid', () => {
       if (testInfo.project.name === 'tablet') {
         // Beside: the map ends before the heading starts across the page,
         // and the heading begins before the map ends down it. The heading
-        // is one line at the top of its own column, so it is not expected
-        // to reach as far down as the map does; only that it does not sit
-        // below the map entirely, which is what stacking would mean.
+        // is the first line inside the band card, at the top of its own
+        // column, so it is not expected to reach as far down as the map
+        // does; only that it does not sit below the map entirely, which is
+        // what stacking would mean.
         expect(m.x + m.width).toBeLessThanOrEqual(b.x + 1);
         expect(b.y).toBeLessThan(m.y + m.height);
       } else {
