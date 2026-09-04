@@ -1,7 +1,0 @@
-Forecasts no longer stop when the built-in sunspot record runs out, which
-happened on 1 September. The record now reaches the end of 2030 and follows
-the sun into its quiet years.
-
-The map is drawn with Android's own graphics, so panning and zooming are
-smoother and the download is about 15 MB smaller. On a tablet held sideways
-the all-bands grid sits beside the map, and dialogs show their content again.
