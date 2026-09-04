@@ -45,6 +45,32 @@ jobs:
 
       - run: rustup target add aarch64-linux-android
 
+      # The recipe's `sudo:` block installs node and enables corepack, and
+      # that block is skipped outside F-Droid's own build server, so without
+      # this the prebuild stops at `pnpm: not found`.
+      #
+      # The version is read from the recipe rather than written a second
+      # time, so moving it there moves it here. pnpm then arrives the way it
+      # does on the build server, through corepack from the
+      # `packageManager` field in mobile/package.json, rather than through
+      # `pnpm/action-setup` as the other workflows do: this one exists to
+      # find out whether the recipe still works.
+      - name: Read the node version the recipe installs
+        id: node
+        run: |
+          version="$(grep -m1 -oE 'node-v[0-9]+\.[0-9]+\.[0-9]+-linux-x64\.tar\.xz' \
+            mobile/docs/fdroid/io.github.jonathanmcsweet.hfcast.yml \
+            | grep -oE '[0-9]+\.[0-9]+\.[0-9]+')"
+          [ -n "$version" ] || { echo "no node version in the recipe"; exit 1; }
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "node $version"
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: ${{ steps.node.outputs.version }}
+
+      - run: corepack enable
+
       - name: Install fdroidserver
         run: |
           sudo apt-get update
