@@ -77,14 +77,30 @@ jobs:
           sudo apt-get install -y --no-install-recommends fdroidserver
 
       # F-Droid removes `gradle-wrapper.jar` before building, so `./gradlew` is
-      # gone and the recipe calls `gradle`. This is the shim fdroidserver ships
-      # for that, which fetches the version the project asks for. The runner's
-      # own gradle is a different version and would be used by accident.
+      # gone and the recipe calls `gradle`. This is the shim that stands in for
+      # it, downloading the Gradle the project asks for and refusing any it
+      # cannot check a hash for. The runner's own gradle is a different version
+      # and would be used by accident without this.
+      #
+      # Taken from its own repository rather than from the `fdroidserver`
+      # package installed above. That package carries a copy of the shim whose
+      # built-in hash list stops at 8.0.2, so it refuses the 9.3.1 that
+      # `expo prebuild` asks for, with "No hash for gradle version 9.3.1".
+      # The current shim reads F-Droid's gradle transparency log at run time,
+      # which carries 9.3.1, so this checks the recipe rather than the age of
+      # a distribution package. See docs/fdroid.md.
+      #
+      # Pinned to a commit, because the project publishes no tags. F-Droid's
+      # own build server runs a recent one, so move this when it goes stale.
       - name: Put F-Droid's gradle shim on PATH
+        env:
+          SHIM: c7227d147483979bb5c408048cee3533a8814fb0
         run: |
-          shim="$(dpkg -L fdroidserver | grep -m1 'gradlew-fdroid$')"
           mkdir -p "$HOME/.local/bin"
-          ln -sf "$shim" "$HOME/.local/bin/gradle"
+          curl -fsSL --retry 3 \
+            "https://gitlab.com/fdroid/gradlew-fdroid/-/raw/$SHIM/gradlew.py" \
+            -o "$HOME/.local/bin/gradle"
+          chmod +x "$HOME/.local/bin/gradle"
           echo "$HOME/.local/bin" >> "$GITHUB_PATH"
 
       # A repository shaped like fdroiddata, holding only this app. Cloning the
