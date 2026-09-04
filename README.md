@@ -13,14 +13,16 @@
 <p align="center"><strong>Pick a place, pick a band, enter your radio settings and get a custom forecast for HF propagation.</strong></p>
 
 <p align="center">
-  <img src="docs/screenshots/dark-mode-main-screen.png" width="200" alt="Home screen dark theme">
-  <img src="docs/screenshots/light-mode-main-screen.png" width="200" alt="Home screen light theme">
-  <img src="docs/screenshots/low-light-mode-main-screen.png" width="200" alt="Home screen low light theme">
+  <img src="mobile/fastlane/metadata/android/en-US/phoneScreenshots/01-forecast-dark.png" width="220" alt="The forecast for one band, dark theme">
+  <img src="mobile/fastlane/metadata/android/en-US/phoneScreenshots/04-antenna-dark.png" width="220" alt="Radio settings: mode, power, antenna and which way the wire runs">
+
 </p>
 <p align="center">
-  <img src="docs/screenshots/dark-mode-all-bands-screen.png" width="200" alt="All band propagation grid view">
-  <img src="docs/screenshots/dark-mode-station-settings.png" width="200" alt="Station power and mode settings">
-  <img src="docs/screenshots/dark-mode-more-station-settings.png" width="200" alt="Antenna height, type and orientation">
+  <img src="mobile/fastlane/metadata/android/en-US/phoneScreenshots/02-forecast-light.png" width="220" alt="The same forecast, light theme">
+  <img src="mobile/fastlane/metadata/android/en-US/phoneScreenshots/03-forecast-low-light.png" width="220" alt="The same forecast, low light theme">
+</p>
+<p align="center">
+  <img src="mobile/fastlane/metadata/android/en-US/tenInchScreenshots/01-forecast-dark.png" width="640" alt="A tablet held sideways, with the band grid beside the map">
 </p>
 
 <p align="center">
