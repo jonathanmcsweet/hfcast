@@ -23,7 +23,7 @@ module.exports = ({ config }) => {
     name: 'HFcast dev',
     android: {
       ...config.android,
-      package: 'solutions.cloudburner.hfcastdev',
+      package: 'io.github.jonathanmcsweet.hfcastdev',
     },
   };
 };

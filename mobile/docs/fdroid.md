@@ -42,7 +42,7 @@ entries carrying 0 as the last version-code digit rather than 1.
 ## The recipe
 
 The recipe is
-[`docs/fdroid/solutions.cloudburner.hfcast.yml`](fdroid/solutions.cloudburner.hfcast.yml)
+[`docs/fdroid/io.github.jonathanmcsweet.hfcast.yml`](fdroid/io.github.jonathanmcsweet.hfcast.yml)
 with the srclib beside it at
 [`docs/fdroid/hfcast-engine.yml`](fdroid/hfcast-engine.yml). Both belong in
 F-Droid's own `fdroiddata` and are kept here so they move with the build they
@@ -271,7 +271,7 @@ By hand, install `fdroidserver`, clone `fdroiddata`, drop both files in and
 build one architecture:
 
 ```bash
-fdroid build --test --no-tarball --stop solutions.cloudburner.hfcast:10070013
+fdroid build --test --no-tarball --stop io.github.jonathanmcsweet.hfcast:10070013
 ```
 
 Two parts of the recipe need F-Droid's own build server. The `sudo:` block is
@@ -298,6 +298,6 @@ where F-Droid's layout differs.
 ## Submitting
 
 A merge request against `gitlab.com/fdroid/fdroiddata` adding
-`metadata/solutions.cloudburner.hfcast.yml` and `srclibs/hfcast-engine.yml`.
+`metadata/io.github.jonathanmcsweet.hfcast.yml` and `srclibs/hfcast-engine.yml`.
 Expect review rounds, because a Rust and NDK prebuild with a srclib is more
 than their automated checks usually see.

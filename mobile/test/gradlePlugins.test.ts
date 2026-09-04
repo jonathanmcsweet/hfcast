@@ -51,9 +51,9 @@ android {
     ndkVersion rootProject.ext.ndkVersion
     compileSdk rootProject.ext.compileSdkVersion
 
-    namespace 'solutions.cloudburner.hfcast'
+    namespace 'io.github.jonathanmcsweet.hfcast'
     defaultConfig {
-        applicationId 'solutions.cloudburner.hfcast'
+        applicationId 'io.github.jonathanmcsweet.hfcast'
         minSdkVersion rootProject.ext.minSdkVersion
         versionCode 54041
         versionName "0.54.4"

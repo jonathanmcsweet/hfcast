@@ -72,8 +72,8 @@ jobs:
           mkdir -p /tmp/fdd/metadata /tmp/fdd/srclibs
           sed -e "s|^Repo: .*|Repo: $GITHUB_WORKSPACE|" \
               -e "s|^    commit: .*|    commit: $GITHUB_SHA|" \
-              mobile/docs/fdroid/solutions.cloudburner.hfcast.yml \
-              > /tmp/fdd/metadata/solutions.cloudburner.hfcast.yml
+              mobile/docs/fdroid/io.github.jonathanmcsweet.hfcast.yml \
+              > /tmp/fdd/metadata/io.github.jonathanmcsweet.hfcast.yml
           sed -e "s|^Repo: .*|Repo: https://github.com/jonathanmcsweet/hfcast-engine.git|" \
               mobile/docs/fdroid/hfcast-engine.yml \
               > /tmp/fdd/srclibs/hfcast-engine.yml
@@ -82,7 +82,7 @@ jobs:
 
       - name: Lint the metadata
         working-directory: /tmp/fdd
-        run: fdroid lint solutions.cloudburner.hfcast
+        run: fdroid lint io.github.jonathanmcsweet.hfcast
 
       # `--stop` is not optional. Without it `fdroid build` reports a failed
       # build on stdout and still exits 0, so the job would pass.
@@ -101,7 +101,7 @@ jobs:
         working-directory: /tmp/fdd
         run: |
           code=$(node -p "require('$GITHUB_WORKSPACE/mobile/app.json').expo.android.versionCode * 10 + 3")
-          fdroid build --test --no-tarball --stop "solutions.cloudburner.hfcast:$code"
+          fdroid build --test --no-tarball --stop "io.github.jonathanmcsweet.hfcast:$code"
 
       - name: The APK must be unsigned and carry the engine
         working-directory: /tmp/fdd

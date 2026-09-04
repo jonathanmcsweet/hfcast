@@ -1,4 +1,4 @@
-# Goes in fdroiddata as `metadata/solutions.cloudburner.hfcast.yml`, not in
+# Goes in fdroiddata as `metadata/io.github.jonathanmcsweet.hfcast.yml`, not in
 # this repository. Kept here so it moves with the build it describes, and
 # `tools/check-fdroid-pin.sh` fails a push when it stops matching.
 #

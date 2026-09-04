@@ -47,7 +47,7 @@ set -euo pipefail
 
 mobile="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
-package='solutions.cloudburner.hfcast'
+package='io.github.jonathanmcsweet.hfcast'
 locale='en-US'
 
 # The set a release needs. F-Droid orders them by filename as text, so the

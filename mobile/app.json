@@ -8,10 +8,10 @@
     "userInterfaceStyle": "automatic",
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "solutions.cloudburner.hfcast"
+      "bundleIdentifier": "io.github.jonathanmcsweet.hfcast"
     },
     "android": {
-      "package": "solutions.cloudburner.hfcast",
+      "package": "io.github.jonathanmcsweet.hfcast",
       "versionCode": 1008031,
       "adaptiveIcon": {
         "foregroundImage": "./src/assets/icon-foreground.png",

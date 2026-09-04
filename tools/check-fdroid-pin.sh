@@ -15,7 +15,7 @@
 set -euo pipefail
 
 here="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-recipe="$here/mobile/docs/fdroid/solutions.cloudburner.hfcast.yml"
+recipe="$here/mobile/docs/fdroid/io.github.jonathanmcsweet.hfcast.yml"
 appjson="$here/mobile/app.json"
 changelogs="$here/mobile/fastlane/metadata/android/en-US/changelogs"
 
