@@ -159,14 +159,7 @@ case "$what" in
 esac
 mkdir -p "$dir"
 
-# --auto hands the whole set to maestro, so a named shot has nothing to
-# narrow and the two together are a mistake worth naming.
 wanted="${rest[1]:-}"
-if [ -n "$auto" ] && [ -n "$wanted" ]; then
-  echo 'a named shot and --auto do not go together: the flow takes the' >&2
-  echo 'whole set. drop one of them' >&2
-  exit 2
-fi
 
 # A named shot narrows the set to itself, so retaking one costs one run
 # rather than skipping past the rest. The number alone is enough.
@@ -267,19 +260,25 @@ esac
 adb shell monkey -p "$package" -c android.intent.category.LAUNCHER 1 > /dev/null 2>&1
 sleep 2
 
-# Both of --auto's own checks ran before the device was touched, so this
-# is only the run.
-if [ -n "$auto" ]; then
-  echo 'handing the app to maestro'
-  # From `$dir`, because `takeScreenshot` writes beside the working
-  # directory and the flow names the files without a path.
-  (cd "$dir" && maestro test "$mobile/maestro/$what.yaml")
-  exit 0
-fi
-
 for shot in "${shots[@]}"; do
   name="${shot%%|*}"
   printf '\n  %s\n  set up: %s\n' "$name" "${shot#*|}"
+
+  # Maestro puts the app in the state and stops there. It does not take
+  # the picture: on a slow device the screen is still settling when the
+  # flow ends, and only somebody looking at it knows when it has
+  # finished. So the capture stays on the enter below.
+  if [ -n "$auto" ]; then
+    flow="$mobile/maestro/$what/$name.yaml"
+    if [ ! -f "$flow" ]; then
+      echo "  no flow at ${flow#"$mobile/"}, set this one up by hand" >&2
+    elif maestro test "$flow" > /dev/null 2>&1; then
+      echo '  maestro has set it up'
+    else
+      echo '  maestro could not set it up, so do it by hand' >&2
+    fi
+  fi
+
   key=''
   read -r -p '  enter to capture, s to skip, q to stop: ' key || true
   case "$key" in
