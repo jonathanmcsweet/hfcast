@@ -99,11 +99,11 @@ tools/build-android.sh modern
 The files are in `build/apk/`. There are four, one for each processor
 type:
 
-| File                            | For                                                 |
-| ------------------------------- | --------------------------------------------------- |
+| File                            | For                                             |
+| ------------------------------- | ----------------------------------------------- |
 | `...-arm64-v8a.apk`             | almost all phones made after approximately 2016 |
-| `...-armeabi-v7a.apk`           | older 32-bit ARM devices                            |
-| `...-x86_64.apk`, `...-x86.apk` | emulators, and some Intel tablets                   |
+| `...-armeabi-v7a.apk`           | older 32-bit ARM devices                        |
+| `...-x86_64.apk`, `...-x86.apk` | emulators, and some Intel tablets               |
 
 Each file has the JavaScript and the engine in it. The application
 operates with no development server.
