@@ -10,9 +10,18 @@ name: F-Droid
 # Only arm64-v8a. The four entries differ in three strings, so one failing for
 # a reason the others would not is unlikely, and four builds is forty minutes.
 #
-# Only on a change that could plausibly break it, because it is slow.
+# On a merge rather than on a pull request, because it is slow: a pull request
+# runs this again on every push to the branch, where main runs it once. That
+# still catches a break before a tag is cut, which is the moment it matters.
+#
+# Not on the tag itself, tempting as it is, because the recipe's `commit:`
+# could then be read as written. A push event's path filter is evaluated
+# against the commits the push carries, and a tag pointing at a commit already
+# on main carries none, so the tag run would be skipped without saying so.
+# Run it by hand with workflow_dispatch before tagging.
 on:
-  pull_request:
+  push:
+    branches: [main]
     paths:
       - '.github/workflows/fdroid.yml'
       - 'mobile/app.json'
@@ -106,9 +115,10 @@ jobs:
       # A repository shaped like fdroiddata, holding only this app. Cloning the
       # real one is several hundred megabytes of other people's metadata.
       #
-      # The recipe names a release tag, which does not exist on a pull request,
-      # so the commit is pointed at the branch under test and both repositories
-      # at this checkout. Everything else is the recipe as written.
+      # The recipe names a release tag, which does not exist until the release
+      # is cut, so the commit is pointed at the commit under test and both
+      # repositories at this checkout. Everything else is the recipe as
+      # written.
       - name: Assemble a metadata repository
         run: |
           mkdir -p /tmp/fdd/metadata /tmp/fdd/srclibs
