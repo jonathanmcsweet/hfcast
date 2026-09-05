@@ -29,13 +29,15 @@ crate-type = ["cdylib"]
 # checkout and applies a Cargo path override, which changes where the
 # crate comes from and nothing else.
 
-hfcast = { version = "1.6.1", features = ["embedded-coefficients"] }
+hfcast = { version = "2.14.0", features = ["embedded-coefficients"] }
 jni = "0.21"
 
 [profile.release]
-# The engine ships 560 KB of data and a lot of tables; size matters in an
-# APK, and none of this is hot enough to need the extra unrolling.
-opt-level = 2
+# The engine is nearly the whole cost of a map, so it gets the unrolling.
+# Measured on the world grid: 1051 ms at 2, 955 ms at 3, for 55 KB more
+# library (2026-08-22). The engine's own release profile is 3 as well,
+# which is the build its parity evidence comes from.
+opt-level = 3
 lto = true
 codegen-units = 1
 panic = "abort"

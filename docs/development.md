@@ -99,11 +99,11 @@ tools/build-android.sh modern
 The files are in `build/apk/`. There are four, one for each processor
 type:
 
-| File                            | For                                                 |
-| ------------------------------- | --------------------------------------------------- |
-| `...-arm64-v8a.apk`             | almost all telephones made after approximately 2016 |
-| `...-armeabi-v7a.apk`           | older 32-bit ARM devices                            |
-| `...-x86_64.apk`, `...-x86.apk` | emulators, and some Intel tablets                   |
+| File                            | For                                             |
+| ------------------------------- | ----------------------------------------------- |
+| `...-arm64-v8a.apk`             | almost all phones made after approximately 2016 |
+| `...-armeabi-v7a.apk`           | older 32-bit ARM devices                        |
+| `...-x86_64.apk`, `...-x86.apk` | emulators, and some Intel tablets               |
 
 Each file has the JavaScript and the engine in it. The application
 operates with no development server.
@@ -127,7 +127,7 @@ is compiled once for each, so this does a quarter of the work:
 HFCAST_ABIS=arm64-v8a tools/build-android.sh modern
 ```
 
-`arm64-v8a` fits every telephone of the last ten years. Do not publish a
+`arm64-v8a` fits every phone of the last ten years. Do not publish a
 release built this way: the other three have no file at all.
 
 ### 4. Install
@@ -138,7 +138,7 @@ With a USB cable:
 adb install build/apk/hfcast-*-arm64-v8a.apk
 ```
 
-Or copy the file to the telephone and open it. Android asks for
+Or copy the file to the phone and open it. Android asks for
 permission to install applications from the application that opened the
 file.
 
@@ -148,7 +148,7 @@ To change from one to the other, remove the application first. You lose
 your settings. To make signed builds, see
 [publishing-setup.md](publishing-setup.md), step 4.
 
-### To operate it without a telephone
+### To operate it without a phone
 
 The web build needs the server, because it has no engine in it.
 
@@ -163,13 +163,13 @@ server when you exit. Then press `w` for the browser.
 The server needs `voacapl` and an `itshfbc` data tree on the machine.
 See [server/README.md](../server/README.md).
 
-## Measuring a telephone
+## Measuring a phone
 
 The map is drawn from work that can be counted, and until 0.60.0 nobody
-could tell which part of it was slow. A Pixel 8 reported 3.9 seconds of
+could tell which part of it was slow. A fast phone reported 3.9 seconds of
 engine time for the whole-world fine grid. The same engine, the same
 34,560 points, takes 1.24 seconds on one desktop core and 0.17 across
-eight. A telephone core is two or three times slower than a desktop one,
+eight. A phone core is two or three times slower than a desktop one,
 not twenty, so most of that gap was somewhere other than the arithmetic.
 
 There are three places it can be, and they need opposite fixes:
@@ -196,7 +196,7 @@ written until something asks for it, so an ordinary run measures nothing.
    Two tags: `hfcast` is what the engine and the module write, and
    `ReactNativeJS` is where the application's own lines come out.
 
-3. On the telephone: the menu at the top right, then **Diagnostics**,
+3. On the phone: the menu at the top right, then **Diagnostics**,
    then **Measure this device**. It takes under a minute. A box shows
    the result when it finishes, and its copy icon puts the same text on
    the clipboard — so with no cable at all, the summary can still be
@@ -228,7 +228,7 @@ really held. Read them together:
 | high      | high       | slow             | cores held but starved — the strips fight over memory       |
 | about one | about one  | —                | the pool is not running in parallel at all                  |
 
-A Pixel 8 measured the third row: eight strips in flight, and each one
+A fast phone measured the third row: eight strips in flight, and each one
 five times slower than it runs alone. That is memory contention, and
 more threads cannot fix it — which is what the benchmark's thread sweep
 is for. It runs the same grid at 1, 2, 4 and the map's own thread
@@ -300,7 +300,7 @@ after a change to the engine or to the JNI crate.
 what the application depends on.
 
 An APK also needs the ionospheric coefficients compiled in, because a
-telephone has no `itshfbc` tree to read. The published crate does not
+phone has no `itshfbc` tree to read. The published crate does not
 carry those files: part of that data is CCIR Report 322 and 340 material
 that the engine does not redistribute. Only the engine repository has
 them.
@@ -489,7 +489,7 @@ functional form cannot.
 Network state goes in React Query. All other state goes in Zustand.
 
 The interface must satisfy WCAG, must translate, and must operate on a
-telephone and on a tablet. `mobile/test/contrast.test.ts` measures the
+phone and on a tablet. `mobile/test/contrast.test.ts` measures the
 contrast of each colour pair that the design puts on the screen.
 
 ## Documents

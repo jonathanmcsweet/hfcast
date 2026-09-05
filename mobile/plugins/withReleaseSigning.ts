@@ -36,16 +36,22 @@ const { withAppBuildGradle } =
  *     HFCAST_KEY_PASSWORD=...
  *
  * **A build with no key still works.** Without those properties the release
- * build falls back to the debug key, exactly as before. That matters for more
- * than convenience: F-Droid builds from source and signs with its own key, and a
- * contributor cloning this repository has to be able to build without being
- * handed a signing secret.
+ * build falls back to the debug key, so a contributor cloning this repository
+ * can build it without being handed a signing secret.
  *
- * The two are not interchangeable in the other direction. A debug-signed install
- * cannot be upgraded by a properly signed one — Android refuses, and the user
- * has to uninstall first, losing their settings.
+ * The two are not interchangeable in the other direction. A debug-signed
+ * install cannot be upgraded by a properly signed one: Android refuses, and the
+ * user has to uninstall first, losing their settings.
+ *
+ * **`HFCAST_UNSIGNED` asks for no signature at all.** F-Droid signs with its
+ * own key and will not take an APK that already carries one, so falling back to
+ * the debug key is wrong there.
+ *
+ * F-Droid does strip signing configs out of `build.gradle` itself, but it does
+ * that before running `prebuild`, and `expo prebuild` writes this file
+ * afterwards. An app with `android/` committed never notices. This one has to
+ * ask.
  */
-
 const SIGNING_CONFIG = `
     signingConfigs {
         // Present only when the machine building has the key. See
@@ -75,8 +81,15 @@ const SIGNING_CONFIG = `
  */
 const DEBUG_KEY = 'signingConfig signingConfigs.debug';
 
-const CHOSEN_KEY =
-  "signingConfig project.hasProperty('HFCAST_STORE_FILE') ? signingConfigs.release : signingConfigs.debug";
+/**
+ * Three states, not two: the real key, the debug key, or no signature.
+ *
+ * `null` is what Gradle reads as "do not sign", and it renames the output to
+ * `-unsigned`, which is the file F-Droid's recipe collects.
+ */
+const CHOSEN_KEY = "signingConfig project.hasProperty('HFCAST_UNSIGNED') ? null"
+  + " : (project.hasProperty('HFCAST_STORE_FILE') ? signingConfigs.release"
+  + ' : signingConfigs.debug)';
 
 /**
  * The whole change, as one function on the text of `app/build.gradle`.

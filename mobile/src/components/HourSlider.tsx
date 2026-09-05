@@ -240,7 +240,7 @@ export default function HourSlider(
               // the web control insets the thumb's travel by half the
               // thumb, Android's SeekBar pads the track by an amount of
               // its own — so a thumb or a track the platform places sits
-              // off the ticks by a platform-sized amount. On the Pixel 8
+              // off the ticks by a platform-sized amount. On a fast phone
               // the now line missed the track's start entirely. The drawn
               // ones use the ticks' own arithmetic, so nothing on the
               // scale can disagree with anything else on it.

@@ -64,22 +64,24 @@ allowBuilds:
 # newest release is the patched one and resolution reaches it on its own:
 # brace-expansion@5 (minimatch asks ^5.0.8), js-yaml@3 and js-yaml@4
 # (cosmiconfig ^3.13.1, @expo/xcpretty ^4.1.0), nanoid@3 (postcss ^3.3.16).
+#
+# Dropped on 2026-09-04 for the same reason: fast-uri@3.1.4 (ajv asks
+# ^3.0.1, and the newest 3.x is now the patched 3.1.7).
 overrides:
   fast-xml-parser: ^5.10.1
   uuid: ^14.0.1
   # legacy (Expo SDK 50) only, below this line
-  fast-uri@3.1.4: ^3.1.5
   postcss@8.4.49: 8.5.25
   semver@7.3.2: 7.5.3
   send@0.18.0: 0.19.2
-  '@xmldom/xmldom@0.7.13': 0.9.10
+  '@xmldom/xmldom@0.7.13': 0.9.12
   brace-expansion@1.1.17: 1.1.18
   # tar 6.x was never patched for these CVEs; the fix only ever shipped on 7.x.
   tar@6.2.1: ^7.5.22
 
 # Two advisories against `image-size` that no released version fixes yet. Both
 # name 2.0.3 as the patched version, but the newest release is 2.0.2 (checked
-# 2026-08-09), so there is nothing to move to: not on the 1.x line Metro asks
+# 2026-09-04), so there is nothing to move to: not on the 1.x line Metro asks
 # for (`image-size: ^1.0.2`), and not on 2.x either.
 #
 # Both are an infinite loop in an image parser (ICNS, and JXL/HEIF). The only

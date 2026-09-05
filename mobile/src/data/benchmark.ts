@@ -1,7 +1,7 @@
 /**
  * One repeatable measurement of where the map's time goes.
  *
- * A Pixel 8 reported 3.9 seconds of engine time for the whole-world fine
+ * A fast phone reported 3.9 seconds of engine time for the whole-world fine
  * grid. The same engine, the same 34,560 points, one hour and one band,
  * takes 1.24 seconds on one desktop core and 0.17 across eight. Phone
  * cores are two or three times slower than desktop ones, not twenty, so
@@ -87,7 +87,7 @@ async function stage(
 /**
  * How many threads the sweep tries, smallest first.
  *
- * A Pixel 8 measured the answer this sweep exists to find: the curve
+ * A fast phone measured the answer this sweep exists to find: the curve
  * turned at four threads, and eight was slower than two. The map asks
  * for the count where the curve turns (`MAX_THREADS`), and the sweep
  * keeps measuring past it on purpose — a device the cap does not suit

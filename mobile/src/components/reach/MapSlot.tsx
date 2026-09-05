@@ -28,7 +28,7 @@ import CoverageGlobe from '../CoverageGlobe';
  *
  * It was 322, which was narrower than the card on an ordinary phone, so
  * the map sat inset from the readout above it and the sides did not line
- * up (user, 2026-08-01). A Pixel 8 gives the card 347 points of inside
+ * up (user, 2026-08-01). A fast phone gives the card 347 points of inside
  * width, and a large phone about 366, so this covers both and the map
  * fills the card on either.
  *

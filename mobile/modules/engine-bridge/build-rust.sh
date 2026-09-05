@@ -124,6 +124,17 @@ if [[ -f $lock ]]; then
   trap 'cp "$held" "$lock"; rm -f "$held"' EXIT
 fi
 
+# Let the patch win over the locked registry version.
+#
+# `cargo build` keeps a locked version when it still satisfies the
+# requirement, so a checkout sitting ahead of the registry is resolved
+# away: cargo says "patch was not used in the crate graph" and builds the
+# published crate instead, which has no coefficient files and stops in its
+# build script. That is the one case the patch exists for, so the lock is
+# re-resolved here first. The trap above puts it back either way.
+cargo update -p hfcast --manifest-path "$here/rust/Cargo.toml" \
+  --config "patch.crates-io.hfcast.path=\"$engine\"" >/dev/null
+
 for entry in "${targets[@]}"; do
   read -r triple abi linker_prefix <<<"$entry"
 

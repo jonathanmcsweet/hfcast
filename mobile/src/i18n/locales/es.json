@@ -34,7 +34,6 @@
   "grid": {
     "readoutNow": "Ahora · {{hour}} · {{band}}",
     "readoutAt": "{{band}} a las {{hour}}",
-    "chanceTo": "cerca de {{percent}} de probabilidad de contacto con {{place}}",
     "unitChance": "Probabilidad de contacto, %",
     "showAsTable": "Ver como tabla",
     "showAsGrid": "Ver como cuadrícula",
@@ -42,11 +41,9 @@
     "footnoteHours": "Las horas son UTC. La hora local en {{place}} está en el reloj de arriba.",
     "footnoteSaved": "Son datos guardados, así que no pueden mostrar nada que haya cambiado desde que se descargaron.",
     "unitDirections": "Direcciones alcanzables, %",
-    "chanceAnywhere": "alcanza cerca del {{percent}} de las direcciones muestreadas",
     "mapFilling": "El mapa de {{band}} todavía se está calculando."
   },
   "sections": {
-    "allBandsHint": "Hasta dónde llega cada banda, hora a hora.",
     "sun": "El sol hoy",
     "allBandsTo": "Todas las bandas hacia {{place}}",
     "noneReach": "Hoy ninguna banda llega a {{place}} a ninguna hora.",

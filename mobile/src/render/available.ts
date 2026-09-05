@@ -1,7 +1,7 @@
 /**
- * Whether this build can draw on a canvas.
+ * Whether this build can draw the cells on a canvas.
  *
- * A constant, and deliberately not a probe of the Skia module.
+ * A constant, and deliberately not a probe of any renderer.
  *
  * The first version of this asked the question by importing Skia and
  * testing what came back. That looked more honest and was worse, because
@@ -14,9 +14,12 @@
  *
  * So this file imports nothing, and the fact it states is a fact about
  * the build rather than about the runtime: the modern dependency set has
- * Skia, the legacy one does not. `tools/build-android.sh` replaces
+ * a canvas, the legacy one does not. `tools/build-android.sh` replaces
  * `src/render/` with `legacy/render/` for the legacy build, and the copy
  * of this file there says false. Nothing else in the app needs to know
  * which build it is.
+ *
+ * Which canvas is `CellLayer`'s business, not this file's: Android draws
+ * on the platform's own, web on Skia through CanvasKit.
  */
-export const hasSkia = true;
+export const hasCanvas = true;

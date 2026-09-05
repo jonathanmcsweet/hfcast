@@ -4,14 +4,9 @@ import { StyleSheet, useWindowDimensions, View } from 'react-native';
 import { IconButton, Modal, Portal, Text, useTheme } from 'react-native-paper';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { TABLET_WIDTH } from '../data/rotation';
 import { radius, spacing, typography } from '../theme';
 import type { AppTheme } from '../theme';
-
-/**
- * Material's compact breakpoint. Below it a dialog fills the screen;
- * above it a dialog is a card with the screen behind it.
- */
-export const COMPACT_WIDTH = 600;
 
 interface Props {
   visible: boolean;
@@ -77,7 +72,7 @@ export default function ModalFrame(
   const insets = useSafeAreaInsets();
   const ui = theme.colors.ui;
 
-  const full = width < COMPACT_WIDTH;
+  const full = width < TABLET_WIDTH;
 
   const shell = full
     ? [styles.full, {
@@ -168,6 +163,17 @@ const styles = StyleSheet.create({
   headerFull: { marginLeft: -spacing.sm },
   title: { flex: 1 },
   titleFull: { marginLeft: spacing.xs },
-  body: { flex: 1 },
+  // `flexShrink` and not `flex`, because a card has no height of its own.
+  // `styles.card` sets only `maxHeight`, so the card is as tall as what is
+  // in it, and `flex: 1` here means a base size of zero plus a share of the
+  // free space, which in an auto-sized parent is none: the body collapsed
+  // and every dialog rendered as its title bar alone. Shrinking instead
+  // sizes the body to its content and lets it give way once the card
+  // reaches its cap, which is what makes the scroll inside it work.
+  //
+  // The full-screen path below is unaffected, since `styles.full` is
+  // `flex: 1` and does have a height to share out. That is why this only
+  // ever showed on a screen at least 600 points wide (user, 2026-08-22).
+  body: { flexShrink: 1 },
   bodyFull: { flex: 1 },
 });

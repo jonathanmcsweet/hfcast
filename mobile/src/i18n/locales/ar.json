@@ -34,7 +34,6 @@
   "grid": {
     "readoutNow": "الآن · {{hour}} · {{band}}",
     "readoutAt": "{{band}} في {{hour}}",
-    "chanceTo": "احتمال الاتصال بـ {{place}} نحو {{percent}}",
     "unitChance": "احتمال الاتصال، ٪",
     "showAsTable": "عرض كجدول",
     "showAsGrid": "عرض كشبكة",
@@ -42,11 +41,9 @@
     "footnoteHours": "الساعات بالتوقيت العالمي. التوقيت المحلي في {{place}} موجود على الساعة أعلاه.",
     "footnoteSaved": "هذه بيانات محفوظة، لذا لا يمكنها إظهار أي تغيّر حدث بعد جلبها.",
     "unitDirections": "الاتجاهات القابلة للوصول، %",
-    "chanceAnywhere": "يصل إلى نحو {{percent}} من الاتجاهات المفحوصة",
     "mapFilling": "لا تزال خريطة {{band}} قيد الحساب."
   },
   "sections": {
-    "allBandsHint": "إلى أي مدى يصل كل نطاق، ساعة بساعة.",
     "sun": "الشمس اليوم",
     "allBandsTo": "كل النطاقات إلى {{place}}",
     "noneReach": "لا يصل أي نطاق إلى {{place}} في أي ساعة اليوم.",

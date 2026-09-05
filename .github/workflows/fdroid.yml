@@ -1,0 +1,163 @@
+name: F-Droid
+
+# Runs F-Droid's own build against the recipe in `mobile/docs/fdroid/`.
+#
+# That recipe is written by hand and lives in F-Droid's `fdroiddata`, so
+# nothing else here would notice it going stale. `tools/check-fdroid-pin.sh`
+# catches a version drifting; this catches the build itself breaking, which is
+# the failure that would otherwise be found by an F-Droid reviewer.
+#
+# Only arm64-v8a. The four entries differ in three strings, so one failing for
+# a reason the others would not is unlikely, and four builds is forty minutes.
+#
+# Only on a change that could plausibly break it, because it is slow.
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/fdroid.yml'
+      - 'mobile/app.json'
+      - 'mobile/docs/fdroid/**'
+      - 'mobile/modules/engine-bridge/**'
+      - 'mobile/package.json'
+      - 'mobile/pnpm-lock.yaml'
+      - 'mobile/plugins/**'
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Read the engine version the application depends on
+        id: engine
+        run: bash .github/read-engine-version.sh
+
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Install the NDK
+        run: |
+          "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "ndk;27.1.12297006"
+
+      - run: rustup target add aarch64-linux-android
+
+      # The recipe's `sudo:` block installs node and enables corepack, and
+      # that block is skipped outside F-Droid's own build server, so without
+      # this the prebuild stops at `pnpm: not found`.
+      #
+      # The version is read from the recipe rather than written a second
+      # time, so moving it there moves it here. pnpm then arrives the way it
+      # does on the build server, through corepack from the
+      # `packageManager` field in mobile/package.json, rather than through
+      # `pnpm/action-setup` as the other workflows do: this one exists to
+      # find out whether the recipe still works.
+      - name: Read the node version the recipe installs
+        id: node
+        run: |
+          version="$(grep -m1 -oE 'node-v[0-9]+\.[0-9]+\.[0-9]+-linux-x64\.tar\.xz' \
+            mobile/docs/fdroid/io.github.jonathanmcsweet.hfcast.yml \
+            | grep -oE '[0-9]+\.[0-9]+\.[0-9]+')"
+          [ -n "$version" ] || { echo "no node version in the recipe"; exit 1; }
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "node $version"
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: ${{ steps.node.outputs.version }}
+
+      - run: corepack enable
+
+      - name: Install fdroidserver
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends fdroidserver
+
+      # F-Droid removes `gradle-wrapper.jar` before building, so `./gradlew` is
+      # gone and the recipe calls `gradle`. This is the shim that stands in for
+      # it, downloading the Gradle the project asks for and refusing any it
+      # cannot check a hash for. The runner's own gradle is a different version
+      # and would be used by accident without this.
+      #
+      # Taken from its own repository rather than from the `fdroidserver`
+      # package installed above. That package carries a copy of the shim whose
+      # built-in hash list stops at 8.0.2, so it refuses the 9.3.1 that
+      # `expo prebuild` asks for, with "No hash for gradle version 9.3.1".
+      # The current shim reads F-Droid's gradle transparency log at run time,
+      # which carries 9.3.1, so this checks the recipe rather than the age of
+      # a distribution package. See docs/fdroid.md.
+      #
+      # Pinned to a commit, because the project publishes no tags. F-Droid's
+      # own build server runs a recent one, so move this when it goes stale.
+      - name: Put F-Droid's gradle shim on PATH
+        env:
+          SHIM: c7227d147483979bb5c408048cee3533a8814fb0
+        run: |
+          mkdir -p "$HOME/.local/bin"
+          curl -fsSL --retry 3 \
+            "https://gitlab.com/fdroid/gradlew-fdroid/-/raw/$SHIM/gradlew.py" \
+            -o "$HOME/.local/bin/gradle"
+          chmod +x "$HOME/.local/bin/gradle"
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+
+      # A repository shaped like fdroiddata, holding only this app. Cloning the
+      # real one is several hundred megabytes of other people's metadata.
+      #
+      # The recipe names a release tag, which does not exist on a pull request,
+      # so the commit is pointed at the branch under test and both repositories
+      # at this checkout. Everything else is the recipe as written.
+      - name: Assemble a metadata repository
+        run: |
+          mkdir -p /tmp/fdd/metadata /tmp/fdd/srclibs
+          sed -e "s|^Repo: .*|Repo: $GITHUB_WORKSPACE|" \
+              -e "s|^    commit: .*|    commit: $GITHUB_SHA|" \
+              mobile/docs/fdroid/io.github.jonathanmcsweet.hfcast.yml \
+              > /tmp/fdd/metadata/io.github.jonathanmcsweet.hfcast.yml
+          sed -e "s|^Repo: .*|Repo: https://github.com/jonathanmcsweet/hfcast-engine.git|" \
+              mobile/docs/fdroid/hfcast-engine.yml \
+              > /tmp/fdd/srclibs/hfcast-engine.yml
+          printf 'repo_url: https://example.com/fdroid/repo\nrepo_name: check\nrepo_description: check\nsdk_path: %s\n' \
+            "$ANDROID_HOME" > /tmp/fdd/config.yml
+
+      - name: Lint the metadata
+        working-directory: /tmp/fdd
+        run: fdroid lint io.github.jonathanmcsweet.hfcast
+
+      # `--stop` is not optional. Without it `fdroid build` reports a failed
+      # build on stdout and still exits 0, so the job would pass.
+      #
+      # `--test` puts the APK in `tmp/` instead of `unsigned/`, and
+      # `--no-tarball` skips the source tarball, which is only for publishing.
+      #
+      # The recipe's `sudo:` block is skipped outside F-Droid's own build
+      # server, which is why Java, the NDK and the Rust target are installed
+      # above. That block is the one part of the recipe this cannot check.
+
+      # arm64-v8a, derived rather than written down: `withAbiSplits.ts` gives
+      # each APK `versionCode * 10 + abiCode` and arm64-v8a is 3, so this
+      # follows a version bump instead of failing after one.
+      - name: Build
+        working-directory: /tmp/fdd
+        run: |
+          code=$(node -p "require('$GITHUB_WORKSPACE/mobile/app.json').expo.android.versionCode * 10 + 3")
+          fdroid build --test --no-tarball --stop "io.github.jonathanmcsweet.hfcast:$code"
+
+      - name: The APK must be unsigned and carry the engine
+        working-directory: /tmp/fdd
+        run: |
+          apk="$(find tmp -name '*.apk' | head -1)"
+          [ -n "$apk" ] || { echo "no APK was collected"; exit 1; }
+          unzip -l "$apk" | grep -q 'lib/arm64-v8a/libhfcast_jni.so' \
+            || { echo "the APK has no engine library"; exit 1; }
+          if unzip -l "$apk" | grep -qE 'META-INF/.*\.(RSA|DSA|EC|SF)$'; then
+            echo "the APK is signed; F-Droid signs with its own key"
+            exit 1
+          fi
+          if unzip -l "$apk" | grep -q librnskia.so; then
+            echo "the APK carries Skia; the map draws on Android's own Canvas"
+            exit 1
+          fi
+          echo "ok: $(basename "$apk")"

@@ -1,0 +1,9 @@
+Android treats HFcast as a new app, so this version installs beside the old
+copy rather than over it: set your station up again, then uninstall the old
+one. In Obtainium, remove HFcast and add it again from the same address.
+
+Forecasts no longer stop when the built-in sunspot record runs out, as it
+did on 1 September; it now runs to the end of 2030.
+
+The map uses Android's own graphics, so it is smoother and about 15 MB
+smaller, and on a tablet held sideways the all-bands grid sits beside it.

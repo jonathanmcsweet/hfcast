@@ -17,7 +17,7 @@ import type {
   FineGlobe,
   MapRegion,
 } from '../data/types';
-import { hasSkia } from '../render/available';
+import { hasCanvas } from '../render/available';
 import CellLayer from '../render/CellLayer';
 import { radius as radii, spacing, typography } from '../theme';
 import type { AppTheme } from '../theme';
@@ -177,14 +177,16 @@ export default function CoverageGlobe({
       {
         /* The cell field, on a canvas, under everything else.
 
-           Only where a canvas exists. The legacy build has no Skia, so
-           `hasSkia` is false there and the same buckets are drawn as SVG
-           paths below — from the same strings, so the two renderers
-           cannot disagree about geometry. Availability rather than a
-           platform test, because that is the thing that actually
-           differs. */
+           Only where a canvas exists. The legacy build has none, so
+           `hasCanvas` is false there and the same buckets are drawn as SVG
+           paths below, from the same strings, so the two renderers cannot
+           disagree about geometry. Availability rather than a platform
+           test, because that is the thing that actually differs.
+
+           Which canvas depends on the platform and `CellLayer` picks it:
+           Android's own on the phone, Skia through CanvasKit on web. */
       }
-      {hasSkia
+      {hasCanvas
         ? (
           <CellLayer
             p={p}
@@ -217,7 +219,7 @@ export default function CoverageGlobe({
           : t('reach.mapLoading')}
       >
         <Svg width={size} height={size} viewBox={transform.viewBox}>
-          {hasSkia ? null : (
+          {hasCanvas ? null : (
             <GlobeCellsSvg
               cx={p.cx}
               cy={p.cy}

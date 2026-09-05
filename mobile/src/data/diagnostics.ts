@@ -13,7 +13,7 @@
  *
  * `setDiagnostics` turns them on anyway. That is not a hole in the
  * above: the measurement worth having is of the build that ships. A
- * Pixel 8 reported 3.9 seconds for a grid this engine computes in 0.17
+ * fast phone reported 3.9 seconds for a grid this engine computes in 0.17
  * on a desktop, and a development build would answer a different
  * question — different optimisation, different bundle, a debug bridge.
  * So the switch exists, it is off until something asks for it, and what
