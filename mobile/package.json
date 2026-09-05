@@ -27,7 +27,7 @@
     "@formatjs/intl-locale": "^5.3.10",
     "@formatjs/intl-numberformat": "^9.4.0",
     "@formatjs/intl-pluralrules": "^6.3.13",
-    "@react-native-async-storage/async-storage": "2.2.0",
+    "@react-native-async-storage/async-storage": "3.1.1",
     "@react-native-community/slider": "5.2.0",
     "@react-native/assets-registry": "0.86.2",
     "@shopify/react-native-skia": "2.11.0",
