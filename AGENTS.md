@@ -59,6 +59,10 @@ What this means for every change:
 - Effects that cannot be avoided belong at the edges of the code
 - Use the DRY principle (reducing redundancy by ensuring that every piece of knowledge has a single, authoritative representation in a system) unless the excess abstraction complicates the code by creating unnecessary layers that make it harder to understand, modify, test.
 
+## Testing
+
+A new test must be shown to fail before the fix, or it is decoration.
+
 ## Build and verify
 
 Node 24 and pnpm. Three packages: `mobile/`, `server/`, and the tooling
@@ -270,8 +274,7 @@ does no harm, but an unnamed one is filed with the rest.
 
 ## All Typescript, front end and back end
 
-- Always use a functional-first immutability-first coding style (user,
-  2026-07-29: this applies to the server too, not only the app)
+- Always use a functional-first immutability-first coding style
   - Prefer `map`, `filter` and `reduce` over `for` loops; build new values
     instead of mutating them; `const` over `let`
   - This is about building values. For iteration that only causes side

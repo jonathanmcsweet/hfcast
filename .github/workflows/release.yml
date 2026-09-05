@@ -209,7 +209,7 @@ jobs:
           | file | for |
           | --- | --- |
           | `arm64-v8a` | almost all telephones made after about 2016 |
-          | `armeabi-v7a` | older 32-bit ARM devices |
+          | `armeabi-v7a` | 32-bit ARM, including tablets still sold in 2020 |
           | `x86_64`, `x86` | emulators, and some Intel tablets |
 
           Needs Android 7.0 or later. Check a download against

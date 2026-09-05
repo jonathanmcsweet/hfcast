@@ -2,20 +2,20 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { StyleSheet, View } from 'react-native';
 import { Text, TouchableRipple, useTheme } from 'react-native-paper';
-import { qualityFor } from '../data/quality';
-import { cellFor, mufAt } from '../data/selectors';
+import { mufAt } from '../data/selectors';
 import type { BandKey, PathPrediction } from '../data/types';
 import { useFormatters } from '../hooks/useFormatters';
-import { numeric, spacing, typography } from '../theme';
+import { spacing, typography } from '../theme';
 import type { AppTheme } from '../theme';
 import BandHeatmap from './BandHeatmap';
 import BandTable from './BandTable';
 import { Card, Inset } from './Card';
-import QualityChip from './QualityChip';
 import QualityLegend from './QualityLegend';
 import WindowRail from './WindowRail';
 
 interface Props {
+  /** Said under the readout when nothing reaches at all, else absent. */
+  note?: string | undefined;
   prediction: PathPrediction;
   band: BandKey;
   hour: number;
@@ -49,6 +49,7 @@ interface Props {
  * everything else, for the reader who wants to plan rather than to act.
  */
 export default function ReachGrid({
+  note,
   prediction,
   band,
   hour,
@@ -64,43 +65,45 @@ export default function ReachGrid({
   const f = useFormatters();
   const ui = theme.colors.ui;
 
-  const cell = cellFor(prediction, band, hour);
-  const reliability = cell?.reliability ?? 0;
-  const quality = qualityFor(reliability);
   const place = prediction.from.label;
 
   return (
     <Card>
       <Inset>
-        <View style={styles.readoutRow}>
-          <View style={styles.readoutText}>
-            <Text style={[typography.label, { color: ui.text4 }]}>
-              {hour === nowHour
-                ? t('grid.readoutNow', {
-                  hour: f.utcClock(hour),
-                  band: band.toUpperCase(),
-                })
-                : t('grid.readoutAt', {
-                  hour: f.utcClock(hour),
-                  band: band.toUpperCase(),
-                })}
-            </Text>
-            <Text style={[typography.bodyStrong, numeric, { color: ui.ink }]}>
-              {prediction.to
-                ? t('grid.chanceTo', {
-                  percent: f.percent(reliability),
-                  place: prediction.to.label,
-                })
-                : t('grid.chanceAnywhere', {
-                  percent: f.percent(reliability),
-                })}
-            </Text>
-          </View>
-          <QualityChip quality={quality} large />
+        {
+          /* The answer is the heading, and the band and hour it belongs to
+             sit under it. One block rather than a title above a sentence,
+             which read as two headings (user, 2026-09-03). */
+        }
+        <View style={styles.head}>
+          <Text style={typography.cardTitle}>
+            {prediction.to
+              ? t('sections.allBandsTo', { place: prediction.to.label })
+              : t('sections.allBandsAnywhere')}
+          </Text>
+          <Text style={[typography.label, { color: ui.text4 }]}>
+            {hour === nowHour
+              ? t('grid.readoutNow', {
+                hour: f.utcClock(hour),
+                band: band.toUpperCase(),
+              })
+              : t('grid.readoutAt', {
+                hour: f.utcClock(hour),
+                band: band.toUpperCase(),
+              })}
+          </Text>
+          {note
+            ? (
+              <Text style={[typography.caption, { color: ui.text3 }]}>
+                {note}
+              </Text>
+            )
+            : null}
         </View>
         {
-          /* The rail sits inside the readout rather than beside it: it is
-             the reason for the number above it, not a separate display. */
+          /* The rail sits inside the head rather than beside it: it is
+             the reason for the band and hour named above it, not a
+             separate display. */
         }
         <View style={[styles.rule, { backgroundColor: ui.line }]} />
         <WindowRail
@@ -180,13 +183,7 @@ export default function ReachGrid({
 }
 
 const styles = StyleSheet.create({
-  readoutRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-    minHeight: 40,
-  },
-  readoutText: { flex: 1, gap: 2 },
+  head: { gap: 2 },
   rule: { height: StyleSheet.hairlineWidth },
   unitRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
   unit: { flexShrink: 1 },

@@ -34,7 +34,6 @@
   "grid": {
     "readoutNow": "現在 · {{hour}} · {{band}}",
     "readoutAt": "{{hour}} の {{band}}",
-    "chanceTo": "{{place}} と交信できる可能性は約 {{percent}}",
     "unitChance": "交信できる可能性、%",
     "showAsTable": "表で表示",
     "showAsGrid": "図で表示",
@@ -42,11 +41,9 @@
     "footnoteHours": "時刻は UTC です。{{place}} の現地時刻は上の時計にあります。",
     "footnoteSaved": "これは保存されたデータのため、取得後の変化は反映されません。",
     "unitDirections": "到達できる方位、%",
-    "chanceAnywhere": "調査方位の約 {{percent}} に到達",
     "mapFilling": "{{band}} の地図はまだ計算中です。"
   },
   "sections": {
-    "allBandsHint": "各バンドがどこまで届くか、1時間ごとに示します。",
     "sun": "今日の太陽",
     "allBandsTo": "{{place}} への全バンド",
     "noneReach": "今日はどの時間帯でも、{{place}} に届くバンドはありません。",

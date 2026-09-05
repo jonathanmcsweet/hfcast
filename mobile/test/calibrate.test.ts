@@ -9,6 +9,8 @@ import {
   PROBE_LATTICES,
   probeLattice,
   REMEASURE_AFTER_MS,
+  tunedThreads,
+  usableThreads,
 } from '../src/data/calibrateMath.ts';
 
 /**
@@ -23,18 +25,25 @@ import {
 describe('which thread counts a device tries', () => {
   it('gives a big phone two, four and eight', () => {
     assert.deepEqual(candidatesFor(9), [2, 4, 8]);
-    assert.deepEqual(candidatesFor(16), [2, 4, 8]);
   });
 
-  it('gives an old four-core tablet two and four', () => {
-    // The Fire HD 7 shape: four slow, equal cores. Whether four
-    // threads help there at all is exactly what the probe answers.
-    assert.deepEqual(candidatesFor(4), [2, 4]);
+  it('lets a device with many cores try counts above eight', () => {
+    // Eight was a fixed ceiling, so a sixteen-core machine could never
+    // measure past it and its readings stopped exactly where the
+    // interesting part began.
+    assert.deepEqual(candidatesFor(16), [2, 4, 8, 15]);
+    assert.deepEqual(candidatesFor(12), [2, 4, 8, 11]);
   });
 
-  it('gives middling devices their own core count as the top', () => {
-    assert.deepEqual(candidatesFor(6), [2, 4, 6]);
-    assert.deepEqual(candidatesFor(3), [2, 3]);
+  it('gives an old four-core tablet two and three', () => {
+    // The Fire HD 7 shape: four slow, equal cores, one of which the
+    // thread that draws still needs.
+    assert.deepEqual(candidatesFor(4), [2, 3]);
+  });
+
+  it('gives middling devices their core count less one as the top', () => {
+    assert.deepEqual(candidatesFor(6), [2, 4, 5]);
+    assert.deepEqual(candidatesFor(3), [2]);
   });
 
   it('offers a two-core device nothing to compare', () => {
@@ -43,6 +52,39 @@ describe('which thread counts a device tries', () => {
     assert.deepEqual(candidatesFor(2), [2]);
     assert.deepEqual(candidatesFor(1), []);
     assert.deepEqual(candidatesFor(Number.NaN), []);
+  });
+});
+
+describe('how many threads a device may use at all', () => {
+  it('holds one core back for the thread that draws', () => {
+    // Strips run on the module's threads while the JavaScript thread
+    // packs points and answers touches. A device with every core busy
+    // stutters, so the last one is not the engine's to take.
+    assert.equal(usableThreads(16), 15);
+    assert.equal(usableThreads(9), 8);
+    assert.equal(usableThreads(4), 3);
+  });
+
+  it('keeps two at the bottom, as the strip budget does', () => {
+    // A device reporting one core is more likely reporting badly than
+    // to have one, and below two there is nothing to compare.
+    assert.equal(usableThreads(3), 2);
+    assert.equal(usableThreads(2), 2);
+    assert.equal(usableThreads(1), 0);
+    assert.equal(usableThreads(Number.NaN), 0);
+  });
+
+  it('trusts a measurement up to that ceiling and no further', () => {
+    // The measured winner used to be clamped to eight whatever the
+    // device had, which threw away the reading it had just paid for.
+    assert.equal(tunedThreads(16, 12), 12);
+    assert.equal(tunedThreads(16, 15), 15);
+    assert.equal(tunedThreads(9, 4), 4);
+  });
+
+  it('brings a reading from outside the range back inside it', () => {
+    assert.equal(tunedThreads(4, 8), 3);
+    assert.equal(tunedThreads(9, 1), 2);
   });
 });
 

@@ -51,9 +51,9 @@ android {
     ndkVersion rootProject.ext.ndkVersion
     compileSdk rootProject.ext.compileSdkVersion
 
-    namespace 'solutions.cloudburner.hfcast'
+    namespace 'io.github.jonathanmcsweet.hfcast'
     defaultConfig {
-        applicationId 'solutions.cloudburner.hfcast'
+        applicationId 'io.github.jonathanmcsweet.hfcast'
         minSdkVersion rootProject.ext.minSdkVersion
         versionCode 54041
         versionName "0.54.4"
@@ -111,8 +111,16 @@ describe('the release signing plugin', () => {
     const releaseBlock = signed.slice(at(signed, 'buildTypes'));
     assert.match(
       releaseBlock,
-      /release \{[\s\S]*signingConfig project\.hasProperty\('HFCAST_STORE_FILE'\) \? signingConfigs\.release : signingConfigs\.debug/,
+      /release \{[\s\S]*signingConfig project\.hasProperty\('HFCAST_UNSIGNED'\) \? null : \(project\.hasProperty\('HFCAST_STORE_FILE'\) \? signingConfigs\.release : signingConfigs\.debug\)/,
     );
+  });
+
+  it('lets a build ask for no signature at all', () => {
+    // F-Droid signs with its own key and will not take an APK that carries
+    // one. Gradle reads a null signingConfig as "do not sign" and names the
+    // output `-unsigned`, which is the file the recipe collects.
+    const releaseBlock = signed.slice(at(signed, 'buildTypes'));
+    assert.match(releaseBlock, /HFCAST_UNSIGNED'\) \? null/);
   });
 
   it('adds the release key only when the machine has one', () => {
@@ -218,7 +226,7 @@ describe('the architecture split plugin', () => {
       assert.match(both, /universalApk false/);
       assert.match(
         both,
-        /signingConfig project\.hasProperty\('HFCAST_STORE_FILE'\)/,
+        /signingConfig project\.hasProperty\('HFCAST_UNSIGNED'\) \? null/,
       );
       assert.ok(at(both, 'android {') < at(both, 'splits {'));
       assert.ok(at(both, 'dependencies {') < at(both, 'ext.abiCodes'));

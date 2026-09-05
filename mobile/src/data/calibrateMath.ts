@@ -39,10 +39,51 @@ export interface Reading {
  * eight, where it is above four. A two-core device gets one candidate,
  * which is no comparison at all, and `calibrate` skips it.
  */
+/**
+ * The most threads this device may give the engine.
+ *
+ * One core is held back for the thread that draws. Strips run on the
+ * module's threads, but the JavaScript thread is still packing points
+ * and answering touches while they do, and a device with every core
+ * taken stutters at exactly the moment a map is arriving.
+ *
+ * This used to be a flat eight, which was never a property of any
+ * device: it was the largest count the maintainer's machines had shown
+ * a use for. A device with more cores could not measure past it, so its
+ * readings stopped where the interesting part started.
+ *
+ * Two at the bottom, matching `threadsFor`: a device reporting one core
+ * is more likely reporting badly than to have one. Below two cores
+ * there is nothing worth comparing and this returns zero, which
+ * `candidatesFor` turns into an empty list.
+ */
+export function usableThreads(cores: number): number {
+  if (!Number.isFinite(cores) || cores < 2) return 0;
+  return Math.max(2, Math.floor(cores) - 1);
+}
+
+/**
+ * The count to use, given what this device measured.
+ *
+ * The measurement is believed anywhere between two and the ceiling
+ * above. A reading from outside that range is brought inside it rather
+ * than thrown away, since `freshEnough` has already refused any reading
+ * that does not describe this device and this build.
+ */
+export function tunedThreads(cores: number, measured: number): number {
+  const top = Math.max(2, usableThreads(cores));
+  return Math.min(top, Math.max(2, measured));
+}
+
 export function candidatesFor(cores: number): number[] {
-  if (!Number.isFinite(cores)) return [];
-  const top = Math.min(8, Math.floor(cores));
-  const wanted = [2, 4, top].filter((count) => count >= 2 && count <= top);
+  const top = usableThreads(cores);
+  if (top < 2) return [];
+  // A doubling ladder up to the ceiling, then the ceiling itself. The
+  // cost of a probe is one batch each, so the ladder keeps a large
+  // device's range covered without paying for every count between.
+  // Eight doublings reach 512, past anything this runs on.
+  const doubling = Array.from({ length: 8 }, (_, step) => 2 ** (step + 1));
+  const wanted = [...doubling.filter((count) => count < top), top];
   return [...new Set(wanted)].sort((a, b) => a - b);
 }
 

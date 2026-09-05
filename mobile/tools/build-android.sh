@@ -57,6 +57,15 @@ mkdir -p "$out"
 # architectures left out have no file at all.
 all_abis="armeabi-v7a,arm64-v8a,x86,x86_64"
 abis="${HFCAST_ABIS:-$all_abis}"
+
+# A test build is a different application, not a variant of the release, so
+# its file should not look like one. See app.config.js for the other half:
+# the package name, which is what lets both sit on a phone at once.
+dev_tag=""
+if [[ ${HFCAST_DEV:-} == 1 ]]; then
+  dev_tag="-dev"
+  echo "building HFcast dev, which installs beside the release rather than over it"
+fi
 if [[ $abis != "$all_abis" ]]; then
   echo "building $abis only — not a release, which needs all of $all_abis"
 fi
@@ -154,7 +163,7 @@ collect_apks() {
     if [[ ! -f $from ]]; then
       continue
     fi
-    local to="$out/hfcast-$version-$label-$abi.apk"
+    local to="$out/hfcast${dev_tag}-$version-$label-$abi.apk"
     cp "$from" "$to"
     check_icon_font "$to"
     found=$((found + 1))

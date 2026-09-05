@@ -4,8 +4,10 @@ import { describe, it } from 'node:test';
 
 /**
  * `src/render/` is the only place that names `@shopify/react-native-skia`,
- * and `legacy/render/` is what `tools/build-android.sh` copies over it for
- * the legacy build, which has no Skia to name.
+ * and only on the web side of it: Android draws on the platform's own
+ * canvas through the local `cell-canvas` module, so the package reaches no
+ * APK. `legacy/render/` is what `tools/build-android.sh` copies over
+ * `src/render/` for the legacy build, which draws SVG instead.
  *
  * The swap happens during a ten-minute Android build, so a mismatch
  * surfaces there rather than here unless something checks it. That is
@@ -15,6 +17,10 @@ import { describe, it } from 'node:test';
  */
 const MODERN = 'src/render';
 const LEGACY = 'legacy/render';
+
+const SKIA = '@shopify/react-native-skia';
+/** The package as an import specifier, so a doc comment naming it is fine. */
+const IMPORTS_SKIA = /['"]@shopify\/react-native-skia/;
 
 /** Every name a module exports, however it spells the export. */
 function exportsOf(source: string): Set<string> {
@@ -33,7 +39,7 @@ function exportsOf(source: string): Set<string> {
 
 const read = (path: string) => readFileSync(path, 'utf8');
 
-describe('the Skia seam and its legacy stand-in', () => {
+describe('the render seam and its legacy stand-in', () => {
   it('has a stand-in for every file the legacy build would otherwise take', () => {
     // The whole directory is replaced, so a modern file with no
     // counterpart simply disappears from the legacy tree — and anything
@@ -71,7 +77,7 @@ describe('the Skia seam and its legacy stand-in', () => {
   it('reports the canvas absent in the legacy stand-in', () => {
     // The single fact the rest of the map branches on. If this ever said
     // true, the legacy build would render a canvas it cannot draw on.
-    assert.match(read(`${LEGACY}/available.ts`), /hasSkia\s*=\s*false/);
+    assert.match(read(`${LEGACY}/available.ts`), /hasCanvas\s*=\s*false/);
   });
 
   it('answers the availability question without importing Skia', () => {
@@ -102,6 +108,29 @@ describe('the Skia seam and its legacy stand-in', () => {
         /from\s+'@shopify\/react-native-skia'/.test(read(`${MODERN}/${name}`))
       );
     assert.deepEqual(eager, []);
+  });
+
+  it('keeps Skia off every path Android can reach', () => {
+    // The reason the package leaves no APK. `CellLayer.tsx` resolves to the
+    // platform canvas on Android and `CellLayer.web.tsx` to Skia, and Metro
+    // picks between them by filename, so anything else in this directory
+    // that names the package would be bundled for the phone as well.
+    const androidReachable = readdirSync(MODERN)
+      .filter((name) => !name.includes('.web.'))
+      .filter((name) => !name.startsWith('CellCanvas'))
+      .filter((name) => IMPORTS_SKIA.test(read(`${MODERN}/${name}`)));
+    assert.deepEqual(androidReachable, []);
+  });
+
+  it('excludes Skia from Android autolinking', () => {
+    // Autolinking finds native code by scanning `node_modules`, not by
+    // following imports, so dropping the last import is not enough: without
+    // this entry `librnskia.so` is packaged whether or not anything calls
+    // it, which is 13.9 MB of APK and the one thing F-Droid refuses.
+    const held = JSON.parse(read('package.json'));
+    assert.deepEqual(held.expo?.autolinking?.android?.exclude, [SKIA]);
+    // Still a dependency, because web draws with it.
+    assert.ok(held.dependencies?.[SKIA], 'web still needs the package');
   });
 
   it('keeps every mention of the package inside the seam', () => {

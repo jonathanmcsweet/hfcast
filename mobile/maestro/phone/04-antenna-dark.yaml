@@ -1,0 +1,24 @@
+appId: io.github.jonathanmcsweet.hfcast
+---
+- launchApp
+
+# The radio settings stay open after the antenna shot, and they cover the
+# forecast. Closed only when they are actually there, since `back` on the
+# forecast itself would put the app in the background.
+- runFlow:
+    when:
+      visible: 'Antenna'
+    commands:
+      - back
+
+- tapOn: 'Settings'
+- tapOn: 'Dark'
+
+# The antenna is the fourth section down the radio settings. Opened from
+# the menu rather than the station strip, whose chips are small targets
+# that move with the text.
+- tapOn: 'Settings'
+- tapOn: 'Your radio'
+- scrollUntilVisible:
+    element: 'Antenna'
+    direction: DOWN

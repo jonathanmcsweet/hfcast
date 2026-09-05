@@ -8,6 +8,7 @@ import {
   type ProbeLattice,
   probeLattice,
   type Reading,
+  tunedThreads,
 } from './calibrateMath';
 import { STRIPS_PER_THREAD, threadsFor } from './engineBudget';
 import { dropLater, runLater, wasDropped } from './engineQueue';
@@ -93,8 +94,7 @@ export function tunedThreadsFor(cores: number): number {
   ) {
     return threadsFor(cores);
   }
-  const top = Math.min(8, Math.max(2, Math.floor(cores)));
-  return Math.min(top, Math.max(2, measured.threads));
+  return tunedThreads(cores, measured.threads);
 }
 
 /** One probe batch: the lattice, cut for the count, timed by the bridge. */
