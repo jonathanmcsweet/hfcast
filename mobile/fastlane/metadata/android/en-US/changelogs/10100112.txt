@@ -1,0 +1,1 @@
+Updates Expo, React Native and the other libraries HFcast is built with, and fixes known security issues in the build tools, with no change to how the app looks or works.
