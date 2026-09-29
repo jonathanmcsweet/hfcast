@@ -1,6 +1,6 @@
 {
   "name": "hfcast-workspace",
-  "version": "0.48.0",
+  "version": "0.48.1",
   "private": true,
   "description": "Tooling shared by the HFcast app and its prediction server",
   "license": "Apache-2.0",
@@ -21,7 +21,7 @@
     "dev:ui": "pnpm --dir mobile start"
   },
   "devDependencies": {
-    "@biomejs/biome": "^2.5.8",
-    "dprint": "^0.55.2"
+    "@biomejs/biome": "^2.5.14",
+    "dprint": "^0.57.4"
   }
 }
